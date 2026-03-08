@@ -1,0 +1,367 @@
+@database "DRing"
+@width 80
+@index index
+@node main "Distinctive Ring for Trapdoor"
+
+@{B}DRing V1.11@{UB}
+
+    @{"Description" link desc}
+    @{"Usage" link usage}
+    @{"Configuration" link conf}
+    @{"Area Codes" link area}
+    @{"ARexx" link rexx}
+    @{"Contact me" link cont}
+    @{"History" link hist}
+    @{"Future" link future}
+    @{"Copyright" link copy}
+
+    @{"Greets" link greet}
+
+@endnode
+@node desc "Description"
+
+This program will sit and listen to Trapdoor's output ARexx port
+waiting for a suitable RING type response from the modem. If the
+correct requirements are satisfied, it will tell Trapdoor to 
+answer the call.
+
+It will output CLI information from Trapdoor if you
+have a suitable modem (as long as CLI is on).
+
+Your modem will need to have distinctive ring capability, and
+your phone company will have to supply you with that service.
+If not, you can still use it for logging Caller ID information
+and blacklisting users.
+@endnode
+@node usage "Using Dring"
+
+DRing is a very simple program which sits on its own without any
+other configuration files (ATM).
+
+It can be run from either Workbench or the CLI, although it is
+best suited to being run from Workbench.
+
+It has a couple of command line arguments which you may or may
+not need to use.
+
+These are:
+
+  -? (gives a quick usage guide)
+  -p<Sets our port name for Trapdoor>
+  -s<string to count as ring>
+  -r<number of rings>
+  -w<seconds between rings timeout>
+  -l<logfile path>
+  -b<database path>
+  -v<Voice ring string>
+  -a<Number of voice rings before script execution>
+  -x<Filename of voice script>
+
+e.g.
+
+DRing -tTRAPDOOR -pDRING -sRING -r2 -w5 -lPROGDIR:dring.log -bPROGDIR:dring.db
+
+or in the icon tooltypes:
+
+PORT=DRING
+RINGS=2
+STRING=RING
+TIMEOUT=5
+LOGFILE=PROGDIR:dring.log
+DATABASE=PROGDIR:dring.db
+ICONIFY (Iconify on startup - default off, ToolTypes only)
+WINDOW=xx,yy (Default window position - ToolTypes only)
+CALLWIN=xx,yy (Default "Incoming call" window position - ToolTypes only)
+VRING=RING2
+VRINGS=2
+VSCRIPT=Voice.dring
+ASCRIPT=Data.dring
+
+Select the configuration menu to edit these values while
+DRing is running. Apart from the ARexx port, all values
+may be changed without restarting. If changing the log
+file fails, the original will continue to be used, and the
+name will remain unchanged.
+
+Icon tooltypes will also be used as defaults when run from
+the CLI, if available.
+
+The values shown here also happen to be the defaults.
+
+The log file will use the time sent with Caller ID, not
+the system time.
+
+The blacklist has been replaced by a slighty more user
+friendly callers database. You can ban users, or make
+them data only (e.g. BBS callers) If a database entry
+matches the incoming number, the name will show up in
+the title of the window. Select this from the menu.
+
+You could ban "WITHHELD" numbers by putting P on one of
+the lines. (Or data only for double glazing salesmen..)
+
+  O=Unavailable
+  P=Withheld
+
+@endnode
+@node conf "Configuration"
+
+To use this program with Trapdoor (or another ARexx using program
+perhaps), you will need to alter the configuration.
+
+First, you will have to enable distinctive ring. My Pace 56
+voice uses the "AT-SDR" command, where:
+
+AT-SDR=0 (off)
+AT-SDR=1-7 Various combinations of ring types.
+
+It reports in the form RING1, RING2, RING3.
+
+According to the Hayes command set, S-register 101 is responsible
+for controlling how the modem reacts to different rings.
+
+The ring types are as follows:
+
+RING A (RING1) 	- 1 long on, 1 long off
+RING B (RING2)	- 2 equal rings, then long off
+RING C		- 2 short, 1 long, then long off
+RING D		- 1 short, 1 long, 1 short, then long off
+
+The bits for S101 are as follows:
+
+Bit 0 (LSB)	- Enable distinctive ring reporting.
+Bit 1		- Disable type A
+Bit 2		- Disable type B
+Bit 3		- Disable type C
+Bit 4		- Disable type D
+Bit 5		- Disable type U (unidentified)
+
+USR Sportster Voice modems use S41 for distinctive ring, and report
+in the same way as Hayes. (Bit 0 - Enable)
+I imagine the bits would be the same as for the Hayes...
+
+
+If you have CLI, 
+
+AT#CID=0 turns off CLI information.
+AT#CID=1 turns on formatted CLI information. (We use this)
+AT#CID=2 turns on raw CLI information.
+
+This seems to be standard with a few modems.
+
+You will need to consult your modem's manual for more information
+about ring types and caller information if you are unsure.
+
+Anyway, stick that in Trapdoor's modem init string to enable
+the Caller ID/Distinctive Ring.
+
+You'll need to stop Trapdoor answering the modem. Set
+RINGS to a big number as it suggests in the Trapdoor manual.
+
+Also, check scripts which set/reset rings (tossing, maintenance
+etc.) with TrapTell, as this will ruin the operation of this
+program. Replace calls to TrapTell with an ARexx script like
+rings.rexx, or point TrapTell at DRing like so:
+
+TrapTell -PDRING "rings 5"
+
+Then, set Trapdoor's IPC port 'IPCPORT' to our port name (e.g.
+DRING) and double check the main ARexx port name (or the modem
+will never be answered...)
+@endnode
+
+@node area "Area codes database"
+
+This is a new feature I added which allows DRing to show you
+instantly (well) where the caller is calling from, or a mobile
+etc. This is only valid in the UK, and is based on Oftel's
+area codes information. I have included the small database
+which contains just the area codes with this archive.
+
+You must store this database as @{B}mail:codes.db@{UB} or it
+will not be found. The larger database (not included) needs
+to be stored as @{B}mail:extra.db@{UB}.
+
+If you want the bigger database with suppliers included, you
+will have to get it from my web page (free, just big).
+
+I am not releasing information about the structure of these
+codes databases yet, but as soon as I have a permanent format, I
+will make it public.
+
+Included is a tool to search the database by hand. (could be
+useful you never know.)
+@endnode
+
+@node rexx "ARexx"
+
+The ARexx port is mainly meant for Trapdoor to send its messages,
+but it has a couple of commands.
+
+These are: 
+
+  RINGS   - set rings before answer (similar to Trapdoor)
+  VRINGS  - set number of voice rings before script execution.
+  STRING  - change ring string (e.g. RING1)
+  VSTRING - change voice ring string (e.g. RING2)
+  VSCRIPT - change the voice script used for incoming calls
+  ASCRIPT - change the data script used for incoming calls
+  TIMEOUT - change seconds between rings timeout
+  ICONIFY - iconify the window
+  SHOW    - Reopen window if iconified
+  QUIT    - quit DRing
+
+Trapdoor sends 'STAT' messages which our port uses to detect
+rings and CLI information. I used these to test the program,
+but you may find a use for this setting up your timeouts.
+Otherwise, don't bother with it.
+
+If there are any other sensible commands you would include, please
+don't hesitate to mail me.
+@endnode
+@node cont "Contact me"
+
+For bugs, improvements etc., contact rich@theforest.demon.co.uk,
+or call The Forest BBS on 0870-7405367 (UK) +44-1549-402746(World)
+(Fido: 2:259/301) for a chat or to download any later versions.
+
+ICQ: 39760273
+
+@endnode
+@node hist "History"
+
+  · 20-Jan-2000
+    Aminet release V1.12
+    Fixed bug with telco/withheld numbers.
+    After accidentally deleting most of my callers
+    database, added confirmation request. :]
+    
+  · 14-Dec-1999
+    Aminet release V1.11
+    Fixed stupid bug in logging.
+
+  · 10-Dec-1999
+    Aminet release V1.10
+    Did installer.
+
+  · 09-Dec-1999
+    Changed calls log to a binary format, added log
+    viewer/clear.
+
+  · 02-Dec-1999
+    Done quite a bit of stuff & not documented it :/
+    sorry.
+    Added areacodes database.
+
+  · 02-Aug-1999
+    Fixed August bug :( Sorry.. Not my fault, but bug
+    in atoi(). Its sscanf now.
+
+  · 24-May-1999
+    Aminet release V1.8
+    Added keyfile. (Unregistered version still functional)
+    Fixed timer IO bug when quit selected during timeout.
+    Fixed timer bug - timer would be set indefinitely if call
+    window was closed prior to timeout.
+
+  · 23-May-1999
+    Replaced blacklist with small database.
+    Added "data only" feature to numbers (instant data answer)
+
+  · 16-May-1999
+    Created configuration menu and window.
+    Saves to tooltypes in DRing's icon.
+
+  · 15-May-1999
+    Aminet release V1.7
+    Noticed bug in logging. :( fixed.
+ 
+  · 13-May-1999
+    Aminet release V1.6
+
+  · 12-May-1999
+    Fixed some waiting problems with Trapdoor/ARexx
+    Added "about" menu item/window.
+
+  · 09-May-1999
+    Discovered and fixed bug in ARexx stuff causing
+    problems.
+    Added VSCRIPT, VRING, VRINGS ARexx commands.
+    Using ARexx script for data answer now.
+    ASCRIPT ToolType and ARexx command added.
+    Removed redundant TDPORT ToolType.
+
+  · 20-Apr-1999
+    Release V1.5 - Local version
+
+  · 20-Apr-1999
+    Fixed bug in logging CallerID. Names were being
+    carried forward into subsequent calls. All date,
+    time, name, number are cleared now.
+
+  · 15-Apr-1999
+    Added voice call code. Execute ARexx script on
+    receipt of voice call.
+    New ToolTypes: VRING, VRINGS, VSCRIPT
+
+  · 12-Apr-1999
+    Aminet release V1.4
+    Added ICONIFY, WINDOW, CALLWIN ToolTypes
+    Added ARexx commands "Iconify", "Show"
+    Running DRing with same "PORT" will de-iconify
+    existing window.
+
+  · 11-Apr-1999
+    Fixed stupid Caller ID bug (K)
+    Gave windows depth gadgets & added close
+    to incoming calls window.
+
+  · 19-Mar-1999
+    Release 1.3 on Aminet after some fixes
+
+  · 15-Mar-1999
+    Added tooltypes and Workbench icon
+
+  · 14-Mar-1999
+    Created small window for DRing
+    Added a simple numbers blacklist
+
+  · 13-Mar-1999
+    Stuck incoming calls in a window with Caller ID
+
+  · 23-Feb-1999
+    Phantom ring bug fixed. (Buffer overrun) V1.2
+
+  · 20-Feb-1999
+    First public release on Aminet V1.1
+
+  · 11-Feb-1999
+    Initial internal version V1.0
+@endnode
+@node future
+
+Maybe someone might draw an icon (normal & newicons). The
+present one is supposed to be a phone. :(
+
+@endnode
+@node copy "Copyright notice"
+
+This program is copyright 1999 R. Smith. This distribution is now
+uncrippled shareware. Please contact me if you wish to register.
+I'd like to know how many people use DRing... Please contact me
+anyway.
+
+Registration is £2.00 (UKP), and you will receive later revisions
+of this version, and a keyfile (via email, fidonet, or BBS).
+Any non-public versions will also be made available to you.
+@endnode
+@node greet
+
+A big hello to Glen Martin, sysop of Gremlins BBS.
+
+HI :) Keep up the good work...
+@endnode
+@node index "Index"
+
+Use the @{"contents" link main} page.
+@endnode

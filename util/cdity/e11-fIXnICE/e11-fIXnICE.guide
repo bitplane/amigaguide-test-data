@@ -1,0 +1,572 @@
+@database "e11-fIXnICE 1.1"
+@$VER: 1.1
+@wordwrap
+@index MAIN
+@author "manta/eLVEN 11"
+
+@node MAIN "fIXnICE by eLVEN 11"
+
+             :::.:.: .                  . :.:::
+             ::.:.    /\                   .:::
+             :.  ____/ /   /\__  ___  /\/\  .::
+             .  / __/ / /\/ /  \/  ( / / /   .:
+               / _// /_/ / / __/ / / \/\/     .
+              /   / / / / / / / / /            
+              \__/\__/\  /\__/ /\/  eLVeN   . .
+             .         \/    \/    eLeVeN  ..::
+             ::.:. .                      .:.::
+             ::::.:.: .               . :.::.::
+
+@{b}@{i}
+                       f I X n I C E  
+@{ui}@{ub}
+                             by
+
+                       manta/eLVEN 11
+
+
+ @{b}Interesting stuff@{ub}
+
+  @{" Overview                 " link OVERVIEW}  what the hell is it ?!
+  @{" Usage                    " link USAGE}  lots of parameters for nothing
+  @{" Feedback                 " link FEEDBACK}  don't mean the rescheduler
+  @{" Known bugs               " link BUGS}  lots as usual ;)
+
+ @{b}Past Present Future@{ub}
+
+  @{" History                  " link HISTORY}  what's new and what's old
+  @{" To do                    " link TODO}  even more useless features !
+
+ @{b}Formal stuff@{ub}
+
+  @{" Requirements             " link REQ}  guess what ?
+  @{" Installation             " link INSTALL}  copy it to c:
+  @{" Copyright & Distribution " link COPYRIGHT}  legalization
+  @{" How to contact us        " link CONTACTS}  e11 official paper
+
+@endnode
+
+@node OVERVIEW " Overview "
+
+@{b}@{u} Overview @{ub}@{uu}
+
+For the last 8 months I've been involved in designing and implementing an
+innovative rescheduling algorithm (maybe someone will use it on a PowerPC
+OS - hope WarpOS, Sam...;) ) and have always loved OSes for their simple
+complexity, thus learnt lots of stuff about scheduling and kernels in general.
+All this interest probably was dued to the charm that Executive by Petri
+Nordlund had on me since I first installed it: the best OS enhancer, in my
+opinion.
+Nevertheless, studying existing OSes' schedulers (NT, UNIX/Linux, BeOS, AmigaOS
+powered by Executive) and facing problems on my skin, I realized that Executive
+has kind of a lack: catched processes are not treated according to their original
+priority. And since every AmigaOS program is designed to run on a fixed
+priority round-robin scheduler, special attention should be kept for original
+priorities, giving rescheduled tasks a sort of dynamic order, someway.
+fIXnICE achieves this goal forcing a nice value computed in function of the
+original priority, implemented with both some exec library patches and realtime
+services done by a resident fIXnICE (read the @{" usage " link USAGE} chapter for details
+about fIXnICE abilities).
+Basically, fIXnICE is an Executive client that calculates a nice in the
+range -20..20 (the range supported by Executive and most UNIX systems) for each
+process, in proportion to the real priority, that is kind of an "importance"
+the task has been designed for.
+With fIXnICE, having a full dynamic OS will be possible, since processes won't
+be kept all at the same scheduling privileges, and with a lower nice value,
+urgent tasks will both respond better and be kept on a high priority feedback
+queue (assuming you configured Executive to use the feedback algorithm - the
+rescheduler which fIXnICE has been coded to work at its best with).
+Though, a full dynamic OS is only an extreme example, and I would
+discourage it (certain system servers has been thought to run ALWAYS at the
+highest priority, not for pre-emption troubles but for performance and response
+reasons - such as input.device or Executive itself), even if the computer
+would be anyway highly usable for most "light" applications, and moreover you
+won't suffer by scheduling deadlocks anymore, such as crashed device drivers or
+busy-waiting shells.
+Anyway, an almost-full dynamic enviroment would be realstic, that is
+rescheduling most processes, leaving out only either bugged-programs (which
+won't like being pre-empted or rescheduled) or really urgent tasks.
+
+A powerful configuration which would let you taste the shiver of a superior OS
+could be the following...;)
+Set Executive catch range from a very low bound, which could be -100 for
+example, to a quite high bound for AmigaOS, maybe 5-10 (including most shells
+and DOS drivers) or even 11-12 (even high priority exec devices like scsi.device
+for IDE HDs and cybppc.device for Ultra-Wide-SCSI HDs - not guarateed to work
+everywhere: data loss may occur depending on the device implementation and on
+your 68k CPU).
+Then set the dynamic range (that is the priority range where all catched
+processes will be rescheduled) to something like -80..-10 or anyway a quite
+large range BELOW zero.
+Theoretically, you might set the dynamic range also on positive priorities
+(AmigaOS internal scheduler just sorts queued tasks, and if the highest one is
+at -50 or 80 has no difference: it will be run as first), but since few
+processes really need to be kept at fixed priority, which will obviously be a
+positive value - otherwise what would they be kept fixed for ? -, it would led
+to conflicts.
+Now start fIXnICE from your startup-sequence (even before launching Executive:
+it will wait for it and then start working) with @{" MINPRI " link USAGE} at -30 or so and
+@{" MAXPRI " link USAGE} at catch range's higher bound or lower: processes with priority 0
+will get nice 0, priority with negative values higher than -30 (or so) will be
+a proportional nice value between 1 and 19 (or 20, depending on the @{" OFFRANGE " link USAGE}
+switch, and positive priorities will become nices in the range -1..-19 (or -20,
+as for positive nices).
+Processes outside fIXnICE range will get nice 20 or -20 in case their original
+priority is negative or positive, respectively.
+Every process will get a nice, but only dynamic ones will be affected by it: it
+would have caused too overhead checking if the process is reschedulable or not,
+and it wouldn't have been useful.
+
+What else to say...try it, probably experimenting will make you realize the
+best setting for your ideal envirment.
+I would appreciate @{" feedback " link FEEDBACK} about particularly efficient configurations.
+
+Have fun ! :)
+
+@endnode
+
+
+@node HISTORY " History "
+
+@{b}@{u} History @{ub}@{uu}
+
+@{b}v1.1@{ub}    - promised @{" NICEZERO " link USAGE} feature giving a certain nice value to
+          processes with priority 0, and offsetting proportional nices from it.
+        - patch-and-leave mode still not avaiable - wait folks, it's not so
+          easy as it could seem :)
+        - CTRL-F signal service changed to something much more useful: it
+          toggles patches ON/OFF, thus allowing you to load bugging programs
+          such as CrossDOS by just turning OFF patches for a moment.
+        - super-secret hidden part finally fixed: find it !
+        - the guide file has been fixed: USAGE section doc said that signal
+          services worked in REFRESH mode, but that's not true :P
+
+@{b}v1.0@{ub}    - first public version
+        - patch-and-leave mode not avaiable yet.
+        - CTRL-F signal service absolutely useless ;)
+        - due to a (mysterious) bug, the super-secret hidden part didn't work on
+          the spread version...shame on me :|
+
+@endnode
+
+
+@node TODO " To do "
+
+@{b}@{u} To do @{ub}@{uu}
+
+fIXnICE is far from being finished or perfect.
+I think only time and various testers (with different needs and habits) will
+signal possible improvements, fixes and new features to implement.
+However, mainly 4 features could be added soon as probably useful:
+
+  - a sort of user-definable @{b}function@{ub} or @{b}proportional factor@{ub} for both
+    positive and negative nices would make fIXnICE even more flexible and would
+    let assigning a kind of non-linear step to nice calculation, distancing for
+    example high-priority tasks nices more than default.
+
+  - the @{b}patch-and-leave@{ub} mode, i.e. @{" RESIDENT " link USAGE} switch won't be compulsory,
+    as it had been designed to be, allowing a patch-only version of fIXnICE
+    without keeping idle (=dirty) tasks alive (though, excluding all realtime
+    services).
+
+  - maybe a @{b}commodity@{ub} spirit for resident mode, in order to make fIXnICE
+    active, inactive and removed in a standard and OS-compliant way.
+
+  - making signal services avaiable also in refresh mode.
+
+Let me know...
+
+@endnode
+
+@node USAGE " Usage "
+
+@{b}@{u} Usage @{ub}@{uu}
+
+Try to run fIXnICE with a "?" as argument, and you'll get the template.
+Thought it may appear complicated, it is really like this :)
+fIXnICE job is always the same (calculating nice values instead in function of
+fixed priorities given to processes), but it has several additional options
+and operating modes, most of them designed to help user to set both fIXnICE and
+Executive well for his needs.
+
+Here's a full explaination of all fIXnICE options:
+
+     @{b}MINPRI@{ub}           this keyword specifies the lower bound for nice
+                      calculation, that is the highest nice value will
+                      be given to processes having this priority (or even
+                      lower). You can set this parameter to the lower bound
+                      of the catch range in Executive configuration, or to
+                      a value you know there shouldn't be processes with
+                      a lower priority.
+                      Usually, it should be higher or equal than Executive
+                      catch range lower bound.
+                      @{u}Remember that MINPRI can't be higher or equal than 0 !@{uu}
+
+                      @{i}example 1  @{ui}
+                      if your Executive prefs are set to a lower catch range
+                      of -100 (processes lower than -100 will be kept to their
+                      low fixed priority), and fIXnICE @{u}MINPRI@{uu} is -30,
+                      then processes with priority lower than -30 will get
+                      nice 20 (if @{u}OFFRANGE@{uu} is on), or processes with
+                      priority lower or equal than -30 will get nice 20 (if
+                      @{u}OFFRANGE@{uu} is off). Other processes with priority
+                      lower than 0 and higher than -30 will get a positive nice
+                      value proportionally -29..0 -> 19..0
+
+                      @{i}example 2  @{ui}
+                      if Executive catch range lower bound is equal to fIXnICE
+                      @{u}MINPRI@{uu}, then all positive nice values will be proportional
+                      and there will be no dynamic processes with nice 20, if
+                      @{u}OFFRANGE@{uu} is specified.
+
+
+     @{b}MAXPRI@{ub}           this parameter is analogous to @{u}MINPRI@{uu}, but it refers
+                      to higher bounds, and thus negative nice value.
+                      @{u}Notice that MAXPRI value can't be lower or equal than 0 !@{uu}
+
+                      @{i}example 1  @{ui}
+                      if Executive higher catch range is set to 10 (watch out:
+                      also DOS devices and some exec devices will be rescheduled),
+                      you may set fIXnICE @{u}MAXPRI@{ui} to 10 without @{u}OFFRANGE@{uu},
+                      thus such system servers will get nice -20.
+
+                      @{i}example 2  @{ui}
+                      if your want to try a full dynamic-priority OS (fIXnICE has been
+                      created also for this purpose), you could set Executive catch
+                      range from -120 to 120, for example, and rescheduling range
+                      from -50 to 30, or from -70 to -10 if you want to exclude
+                      some high-pri tasks from being rescheduled; then, use fIXnICE
+                      with @{u}MAXPRI@{uu}=20 and @{u}MINPRI@{uu}=-30 with @{u}OFFRANGE@{uu} on,
+                      thus giving -19 nice to all common processes till "input.device"
+                      system server, and all (if any) processes over 20 will get
+                      -20 nice, as urgent.
+                      NOTE: my suggestion would be keeping "input.device" at
+                      fixed priority anyway by excluding it in Executive prefs.
+
+
+     @{b}REFRESH@{ub}          this key must specify the refresh rate in seconds, i.e. the
+                      time between every nice recalculation of every process in
+                      the system (both ready and waiting queues).
+                      At every refresh all existing processes are forced to be
+                      rescheduled and nice values are forced to values computed
+                      from their real priority, thus deleting any nice value manually
+                      changed by the user.
+                      It's very useful for processes that have used the CPU for less
+                      than a quantum and then have fallen asleep: Executive keeps such
+                      tasks at their original fixed priority until they use the CPU
+                      a bit more. This side effect generates the need of setting
+                      Executive catch range below 0, otherwise sleeping tasks won't
+                      get the CPU at awake if their pri is around 0, because the high
+                      feedback queue will keep most processes much higher than 0.
+                      The refresh option has been mainly implemented for those
+                      who have troubles with fIXnICE patches, thus using a refresh of
+                      3 seconds or so, together with @{u}NOPATCH@{uu} will let you
+                      enjoy a fIXnICEed OS without bugs dued to lame programs that
+                      doesn't like the new AddTask() (see the @{" known bugs " link BUGS} section
+                      for details).
+                      @{u}This option obviously needs the RESIDENT switched on, but signal@{uu}
+                      @{u}services (except CTRL-C that quits) won't work ! !@{uu}
+
+
+     @{b}RESIDENT@{ub}         it will keep fIXnICE as a resident process, and will not
+                      make it patch and quit (it's not a commodity, anyway !).
+                      @{u}To keep fIXnICE resident you have to launch it with a Run@{uu}
+                      @{u}command, for example if you start fIXnICE from startup-sequence,@{uu}
+                      @{u}otherwise the Shell process will become fIXnICE and startup@{uu}
+                      @{u}won't go on !@{uu}
+                      Keeping fIXnICE as a resident process has, besides the disadvantage
+                      of having another idle task in the system (a sense of dirtyness), some
+                      bonus features: the process will be completely idle (unless a @{u}REFRESH@{uu}
+                      value is specified), but it will do some services on signals.
+                      As always, CTRL-C (signal 12) will make fIXnICE quit and restore
+                      system vectors as they were when it performed the patch (be aware !).
+                      A CTRL-E (signal 14) will make fixnice perform a refresh (just like
+                      the one performed at startup and at every refresh timeout, if any).
+                      A CTRL-F (signal 15) will make fixnice toggle patches, in order to
+                      make a bugging program loadable just disabling the patches before
+                      running it, and enabling them again afterwards.
+                      @{i}WARNING !!! The non-resident mode has not been implemented yet
+                                  till this fIXnICE version, thus the @{u}RESIDENT @{uu}
+                                  switch has to be always specified, otherwise an error
+                                  will occur.  
+                                  However, fIXnICE code has already been designed to
+                                  support a patch-and-quit mode, that will be hopefully
+                                  implemented in the next few versions (if you strongly
+                                  need it, give me some @{" feedback " link FEEDBACK}).  @{ui}
+
+
+     @{b}NOPATCH@{ub}          simply will prevent fIXnICE from patching system vectors.
+                      It shouldn't be useful, since fIXnICE power is mostly in patching
+                      exec thus every new process or priority change will get the correct
+                      nice value.
+                      Anyway, it may be used together with @{u}REFRESH@{uu} if fIXnICE
+                      patches give you troubles with some programs (read the @{" known bugs " link BUGS} section).
+                      Or it could be used alone just exploit the break signals services
+                      provided by fIXnICE when resident.
+                      @{u}Obviously the RESIDENT switch must be set, otherwise it won't@{uu}
+                      @{u}make much sense avoid patching and then quitting...@{uu} :)
+
+     @{b}SHOOT@{ub}            this option is for those who hate fIXnICE and its bugs :)
+                      It will simply run fIXnICE once, performing a single refresh on
+                      existing processes, without patching or anything.
+                      You could use it, for example, just to force every task into the
+                      rescheduling range (read the @{u}REFRESH@{uu} explaination about
+                      Executive pseudo-bug), with the "side effect" of updating all
+                      nices to correct values depending on their real priorities
+                      (after all, fIXnICE has been done just for this :) If you think
+                      a shoot mode without recalculating nices would be useful, let
+                      me know...)
+                      @{u}Guess what ? It can't be used together with the RESIDENT arg...@{uu}
+
+     @{b}OFFRANGE@{ub}         this damned option is more complicated to be explained
+                      than to be used...
+                      Briefly, it affects nice calculation at @{u}MINPRI@{uu} and
+                      @{u}MAXPRI@{uu} bounds: if it's on, only processes outside
+                      fIXnICE range will get nice -20 or 20, others inside the
+                      range will be from -19 to 19.
+                      It's useful with reschedulers that treats min/max nices as
+                      special cases, but could be anyway useful in certain situations.
+                      Read the @{u}MINPRI@{uu} and @{u}MAXPRI@{uu} explaination
+                      to see examples of how and when to use it.
+
+     @{b}NICEZERO@{ub}         this feature is new in version 1.1.
+                      The value specified by @{u}NICEZERO@{uu} will be given to
+                      every process with priority 0, and other priorities will
+                      be proportionally computed with the usual technique but
+                      positive and negative nice ranges will change.
+                      Experimenting with this feature is the best way to choose a suitable
+                      nice calculation for the own needs.
+                      @{u}Notice that the allowed range is -18..18 for OFFRANGE reasons. @{uu}
+                      @{i}Be careful with this option since reschedulers act differently @{ui}
+                      @{i}to positive nice values ! System performace loss may occur !  @{ui}
+
+                      @{i}example  @{ui}
+                      if @{u}MINPRI@{uu}=-30, @{u}MAXPRI@{uu}=10 and @{u}NICEZERO@{uu}=5
+                      then processes at priority 0 will get nice 5, negative processes
+                      will get nices 19..6 (19 or 20, depending on @{u}OFFRANGE@{uu}) and
+                      positive processes will get nice 4..-20.
+@endnode
+
+@node REQ " Requirements "
+
+@{b}@{u} Requirements @{ub}@{uu}
+
+Well, if you've already read how it works, what do you think you need ?
+Briefly:
+
+ - an Amiga without fIXnICE already installed
+ - an Executive version that doesn't do fIXnICE job :)
+ - an editor where to modify your startup-sequence
+ - lots of CPU-bound processes to see how fIXnICE works
+ - a 68020 or better (I'm not going to support 68000 at all, since I'm even
+   considering to support only superpipelined or superscalar processors)
+
+@endnode
+
+@node INSTALL " Installation "
+
+@{b}@{u} Installation @{ub}@{uu}
+
+I told you: copy it to c: !
+Did you think I was joking, or ?!
+
+@endnode
+
+@node FEEDBACK " Feedback "
+
+@{b}@{u} Feedback @{ub}@{uu}
+
+Since I don't know if this program would really improve average performance on
+every machine and enviroment, I would appreciate both enthusiastic mails by fans
+and (probably more sincere) mails by disgusted people puking because of the
+uselessness of such a tool. :)
+
+I thank in advance anyone reporting bugs dued to fIXnICE patches or programs
+that doesn't like to be niced or rescheduled.
+I would also be happy to support anyone proposing a new interesting feature to
+improve scheduling quality through fIXnICE.
+
+Look at the @{" contacts " link CONTACTS} page for my e-mail address.
+@endnode
+
+
+@node BUGS " Known bugs "
+
+@{b}@{u} Known bugs @{ub}@{uu}
+
+May sound lame (and probably it is), but fIXnICE, since its early version, has
+few known bugs, which I haven't been able neither to fix nor to understand why
+they occur.
+A first thought led me to blame the authors of those programs, but, who knows,
+maybe it's my fault.
+What is sure is that the only thing a bit "nasty" fIXnICE does is patching 2
+exec library vectors (SetTaskPri() and AddTask()), and I noticed that launching
+fIXnICE with the parameter @{" NOPATCH " link USAGE} no bugs occur.
+The following programs generate 680x0 exceptions (that is guru, if you don't
+use MCP), but don't crashes the system (you can suspend the process and
+everything will be fine):
+
+ - @{b}CrossDOSFileSystem@{ub}
+   As soon as PC0: is mounted, "PC0" process generates a Line-F emulation
+   exception (vector 0xB).
+
+ - @{b}ppc.library@{ub}
+   The first program that tries to start the PowerPC kernel (such as ElfLoadSeg)
+   makes one of the 68k-side handler processes die.
+   In particular, the "CTRLHandler" process generates a Privilege Violation
+   exception (vector 6).
+   Notice that WarpOS kernel (which is far much better), works perfectly
+   with fIXnICE, and it creates "Defiant" and "Babylon" processes on the 68k
+   side in the same way.
+
+
+Seems like crashes occur when calling AddTask(), since both the programs try to
+create new tasks/processes and it's there where they fail.
+The question is: do only these two programs create new processes ? And the
+others, why don't they crash ?
+This is the reason why I almost think it's not my fault...
+But what should be the reason ? What could they do so dirty to make AddTask()
+crash ?
+I have an hypothesis: the new AddTask() function (fIXnICE one, I mean) connects
+to Executive server to force a nice value to the just-born task: both the
+connection, the nice calulation and other stuff obviously take some more stack
+space. If the father process just fits in its stack space, there won't be enough
+room for 2 more calls.
+If this is the case, I wonder why there are still coders who are not able to
+add some stack to their programs (it's also well written in the RKM).
+
+
+@{b}NOTE@{ub}: My system is an Amiga 4000 with a CyberStormPPC 060/50 + 604e/200 and
+      an Ultra-Wide-SCSI HD connected to the controller on it.
+      32 MB EDO-RAM 60ns installed on the PowerUp board.
+      No gfx card, no audio card.
+      Test if the same troubles occur on other systems.
+      
+
+@endnode
+
+
+@node COPYRIGHT " Copyright and Distribution "
+
+@{b}@{u} Copyright (or supposed to) @{ub}@{uu}
+
+I really don't know a damned thing about legal stuff, etc. The only thing I
+know is that fIXnICE is free but it's basically a client of a shareware program
+(Executive by Petri Nordlund). And the worst thing is that, patching exec
+library, it makes a commercial OS and any application running clients of a
+shareware program... I'll surely end up in clink :)
+
+Anyway you need Executive to run fIXnICE, either the demo version or the full
+registered version (the latter would be much more better, since fIXnICE is
+designed to work at its best with a feedback rescheduling algorithm).
+I know I should not be the one telling you that, but consider registering to
+Executive (I tried but the author seems not to answer to e-mails, maybe he left
+Amiga ages ago and he doesn't mind Executive at all) since it's probably the
+best program ever written, and should be considered by everybody as part of the
+kernel.
+
+
+@{b}@{u} Distribution @{ub}@{uu}
+
+You can spread fIXnICE where you like, but remember to spread also this guide
+with it, at least because it's quite hard to use without.
+And, please, don't try to modify the archive.
+
+@endnode
+
+@node CONTACTS " Contacts "
+
+                                  .  · .
+                                  | .: .
+                                  o Oo O
+                                 _/\/\/\_
+            _____ __________  ___`\____/' _________      _____
+            \__'// __. `/'  \/_   \_L__/\/ __o /   \_____\`__/
+              \//  \___/__  /  \   \   '/ \___/_'\  \_   |\/
+                \__    T /  L  _\__ \  /__    T /_\    _/
+              -«·T·\____/\____/·dp·\__/···\____/···\__/··»-
+                 |       .e.l.V.e.N.e.l.E.v.e.n.     Y
+                 :                                   ·
+                 ·                                   .
+                 .
+
+     .  .. ...oO    tHE  oFFICIAL  >> eLVEN 11 <<  nEWS    Oo... ..  .
+
+- AGA, DIP, RIO and SLAT leave Vajrayana for Elven 11.
+- PARSEC leaves BioSyntetic Design for Elven 11.
+- BSD is dead.
+- "Another Rainy Day" released. Ranked 6th at The Party VI 4k-intro compo.
+- AGA changes his handle in MANTA.
+- "Smart" released. Ranked 5th at Symposium '97 demo compo.
+- DIP leaves Elven 11 and the scene.
+- MAT leaves Vajrayana for Elven 11.
+- Vajrayana is dead.
+- GURU TRASHER joins Elven 11.
+- "MatWB 3.1" released.
+- "AsmStartup2.7" released.
+- "MatWB 4.0" released.
+- SLAT leaves Elven 11 and the scene.
+- GURU TRASHER changes his handle in KERMIT.
+- KERMIT leaves Elven 11.
+- Infamia #4 released (not an E11 prod, though).
+- DARKMAN joins Elven 11 as a coder from Ram Jam.
+- Elven 11 at Spoletium Party 98. RIO ranked 6th at the Gfx compo.
+- PARSEC leaves Elven 11 (and the scene?).
+- "TIG97 Gallery" released using an internal version of VLSlib 2.0.
+- "fIXnICE 1.0" released.
+- "fIXnICE 1.1" released.
+
+
+ .  .. ...oO    tHE  oFFICIAL  >> eLVEN 11 <<  mEMBER  lIST    Oo... ..  .
+
+       +---------------+--------------------+--------------------------+
+       | hANDLE        : rOLE(S)            : eMAIL                    |
+       +===============+====================+==========================+
+       | Mat           : Graphician         | mat@nettaxi.com          |
+       +---------------+--------------------+--------------------------+
+       | Rio           | Graphician, Sysop  | rio.elven@usa.net        |
+       +---------------+--------------------+--------------------------+
+       | Manta         : Coder              | aspano@dsi.unive.it      |
+       +---------------+--------------------+--------------------------+
+       | Darkman       : Coder              | dmanrj@freenet.hut.fi    |
+       +---------------+--------------------+--------------------------+
+       | Calca         : Musician           |                          |
+       +===============+====================+==========================+
+
+
+.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.
+
+
+   .  .. ...oO    tHE  oFFICIAL  >> eLVEN 11 <<  wHQ  lIST    Oo... ..  .
+
+        .----------------------------------------------------------.
+        : wHQ:       Disaster Area - +39-11-9711343 (21.30->06.00) :
+        : sYSOP:     Rio                                           :
+        `----------------------------------------------------------'
+
+
+   .----------------------------------------------------------------.
+   | _ __ ______        /\_________  /\____________________ _____   |
+   |  _ __ ____ \______/   _____ _ \/   ____|    /  ____)  Y     \  |#
+   |       /  / \\____//     \/     \     \__  _/   ___)|| : /   \\ |#
+   |      //  \  \\   \_____ \\ -+-  \___ \\/ \\|      \||  /\____/ |#
+   |     //   /   \\  /    /  \\ ||   \ /  \\  \\      \\|  \       |#
+   |    /_________ /_/_________/_||    \____/___/\ _____/____\      |#
+   |                             |_____/          Y           [R!0] |#
+   `----------.--- - --- --  -   ---  --  -  --- -: -- ---.---------'#
+      ########|  __     ___  __ ____________  ___ .   __  |###########
+              | /_/\   /   \/  Y     \  ____)/   \   /_/\ |#
+            .:| \_\/  //    \  : /    \ ___)/    \\  \_\/ |#  Italian Scene
+          .:::|      // -+- \\  /\____/    \  -+- \\      |#:.Gathers Here!
+        .:::::|     /    |   \\ \   |      \\  |   \\     |#:::.
+      .:::::::|     \____|    \\_\   \ _____/__|     \    |#:::::.
+              |          |_____/      Y        |_____/    |#
+              `-----------------------:-------------------'
+       \  /             $y$0p : Rio / eLVEN 11               \  /
+        oO              (0$ : Calca                           oO
+       \__/     Fr0m 21:3o to 7:oo  Call +o39-11-9711343.    \__/
+
+
+.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.
+
+@endnode

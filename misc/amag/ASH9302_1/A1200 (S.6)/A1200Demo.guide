@@ -1,0 +1,409 @@
+@DATABASE 1200Demo.guide
+
+@NODE MAIN "Das 1200er Demo..."
+
+  Dies ist ein @{b} Demo @{ub} für den Amiga 1200.
+  
+  Es beherrscht:
+  
+    @{"    Locale   " link locale}
+    @{" Commodities " link commodities}
+    @{" AmigaGuide  " link AmigaGuide}
+    @{"    ARexx    " link ARexx}
+  
+  
+  Geschrieben wurde es von
+  @{"  PALADIN SOFTWARE  " link paladin}
+
+@ENDNODE
+
+
+@NODE paladin "PALADIN SOFTWARE"
+
+ @{b}@{u} PALADIN SOFTWARE @{ub}@{uu}
+         sind
+ 
+ Alexander Kochann     und    Oliver Reiff
+ Jakob Berhard-Str. 8         Haydnstr. 15
+ 69151 Dilsberg               69245 Bammental
+ 
+ 06223 / 74630                06223 / 5548
+ 
+ Fax: 06221 / 988602
+ EMail: kochann@pips01.informatik.uni-mannheim.de
+
+@ENDNODE
+
+@NODE AmigaGuide "Der Guide - Teil"
+ShowAmigaGuide
+
+	move.l	AgBase,d0
+	beq.s	.exit
+	
+	move.l	DosBase,a6
+	jsr	GetProgramDir(a6)
+	lea	MyNag_Lock,a0
+	move.l	d0,(a0)
+	beq.s	.exit
+	
+	move.l	AgBase,a6
+	lea	MyNag,a0
+	sub.l	a1,a1
+	jsr	OpenAmigaGuideA(a6)
+	
+	move.l	d0,a0
+	jsr	CloseAmigaGuide(a6)
+
+.exit	rts
+
+MyNag
+MyNag_Lock		dc.l	0
+MyNag_Name		dc.l	NagName
+MyNag_Screen		dc.l	0
+MyNag_ScreenName	dc.l	ScreenPubName
+MyNag_Port		dc.l	0
+MyNag_ClientPort	dc.l	0
+MyNag_BaseName		dc.l	BaseName
+MyNag_Flags		dc.l	0
+MyNag_Context		dc.l	0
+MyNag_Node		dc.l	NodeName
+MyNag_Line		dc.l	1
+MyNag_Extens		dc.l	0
+MyNag_Private		dc.l	0
+
+NodeName	dc.b	'MAIN',0
+NagName		dc.b	'txt:m&t/1200Demo.guide',0
+BaseName	dc.b	'Demo.guide',0
+@ENDNODE
+
+
+@NODE commodities "Der Commodity - Teil"
+CreateMsgPort	equ	-666
+CreateCxObj	equ	-30
+CxBroker	equ	-36
+AttachCxObj	equ	-84
+SetFilter	equ	-120
+
+	
+InitHotkey	
+	lea	NewBroker1,a5
+	
+	move.l	4.w,a6
+	jsr	CreateMsgPort(a6)
+	move.l	d0,20(a5)
+	beq.s	.exit
+	
+	move.l	CxBase,a6
+	move.l	a5,a0
+	moveq	#0,d0
+	jsr	CxBroker(a6)
+	lea	Broker1,a0
+	move.l	d0,(a0)
+	beq	Cx_FreePort
+	
+	moveq	#1,d0		CxFilter
+	sub.l	a0,a0
+	sub.l	a1,a1
+	jsr	CreateCxObj(a6)
+	tst.l	d0
+	beq	Cx_FreeBroker
+	move.l	d0,a2
+
+	move.l	d0,a0
+	lea	Hotkey_Text,a1
+	jsr	SetFilter(a6)
+	
+	moveq	#8,d0		CxCustom
+	lea	Hotkey_Routine,a0
+	sub.l	a1,a1
+	jsr	CreateCxObj(a6)
+	tst.l	d0
+	beq.s	Cx_FreeBroker
+	move.l	d0,a3
+
+	move.l	Broker1,a0
+	move.l	a2,a1
+	jsr	AttachCxObj(a6)
+
+	move.l	a2,a0
+	move.l	a3,a1
+	jsr	AttachCxObj(a6)		
+
+	moveq	#1,d0
+	bsr.s	Cx_Activate
+	
+.exit	rts
+
+NewBroker1
+	dc.b	5,0		Version
+	dc.l	BrokerName
+	dc.l	BrokerTitle
+	dc.l	BrokerText
+	dc.w	0
+	dc.w	4		Show/Hide
+	dc.b	0,0
+	dc.l	0		MsgPort
+	dc.w	0		Strukturende
+
+Broker1	dc.l	0
+
+Hotkey_Text	dc.b	'ctrl q',0
+BrokerName	dc.b	'1200-Demo',0
+	even
+*-------
+
+ActivateCxObj	equ	-42
+
+Cx_Activate
+	move.l	CxBase,a6
+	move.l	Broker1,a0
+	jsr	ActivateCxObj(a6)
+	rts
+
+*-------
+
+DeleteMsgPort	equ	-672
+RemoveCxObj	equ	-102
+DeleteCxObjAll	equ	-54
+
+
+FreeHotkey
+	move.l	CxBase,a6
+
+Cx_FreeBroker
+	move.l	Broker1,a0
+	jsr	RemoveCxObj(a6)
+
+	move.l	Broker1,a0
+	jsr	DeleteCxObjAll(a6)		
+
+Cx_FreePort
+	move.l	4.w,a6
+	lea	NewBroker1,a5
+	move.l	20(a5),a0
+	jsr	DeleteMsgPort(a6)
+	rts
+	
+*-------
+
+GetMsg		equ	-372
+ReplyMsg	equ	-378
+CxMsgID		equ	-150
+
+GetCxMsg
+	lea	NewBroker1,a0
+	move.l	20(a0),d0
+	beq.s	.exit
+	move.l	d0,a0
+	move.l	4.w,a6
+	jsr	GetMsg(a6)
+	move.l	d0,d6	
+	beq.s	.exit
+	
+	move.l	d0,a0
+	move.l	CxBase,a6
+	jsr	CxMsgID(a6)
+	move.l	d0,d2
+
+	move.l	4.w,a6
+	move.l	d6,a1
+	jsr	ReplyMsg(a6)
+	
+	cmp.l	#15,d2
+	beq.s	.disable
+	cmp.l	#17,d2
+	beq.s	.enable
+	cmp.l	#19,d2
+	beq.s	.appear
+*	cmp.l	#21,d2
+*	beq.s	.disappear
+	cmp.l	#23,d2
+	bne.s	.exit
+	
+.kill	moveq	#-1,d7
+	bra.s	.exit
+
+.disable
+	moveq	#0,d0
+	bsr	Cx_Activate
+	bra.s	.exit
+.enable	moveq	#1,d0
+	bsr	Cx_Activate
+.exit	rts
+
+.appear	bsr	ShowAmigaGuide
+	bra.s	.exit
+@ENDNODE
+
+@NODE locale "Der Locale - Teil"
+loclea	macro
+	pea	\1
+	bsr	GetString
+	move.l	(sp)+,\2
+	endm
+
+OpenLocale	equ	-156
+OpenCatalogA	equ	-150
+
+OpenCatalog
+	move.l	LocBase,d0
+	beq.s	.exit
+	move.l	d0,a6
+	sub.l	a0,a0
+	jsr	OpenLocale(a6)
+	lea	Locale1,a0
+	move.l	d0,(a0)
+	beq.s	.exit
+	
+	move.l	d0,a0
+	lea	CatName,a1
+	sub.l	a2,a2
+	jsr	OpenCatalogA(a6)
+	lea	Catalog1,a0
+	move.l	d0,(a0)
+
+.exit	rts
+
+Locale1		dc.l	0
+Catalog1	dc.l	0
+
+CatName		dc.b	'1200Demo.catalog',0
+	even
+
+*-------
+
+CloseCatalog	equ	-36
+CloseLocale	equ	-42
+
+FreeCatalog
+	move.l	LocBase,d0
+	beq.s	.exit
+	move.l	d0,a6
+	
+	move.l	Catalog1,a0
+	jsr	CloseCatalog(a6)
+	
+	move.l	Locale1,a0
+	jsr	CloseLocale(a6)
+
+.exit	rts
+
+*-------
+
+GetCatalogStr	equ	-72
+
+GetString
+	movem.l	d0-d1/a0-a1/a6,-(sp)
+	move.l	CxBase,d0
+	beq.s	.Ende
+	move.l	d0,a6
+	move.l	Catalog1,d0
+	beq.s	.Ende
+	move.l	24(sp),a1	String
+	moveq	#0,d0
+	move.l	a1,d1
+	lea	LOCALE_START,a0
+	sub.l	a0,d1
+	beq.s	.GetIt
+.Loop	tst.b	(a0)+
+	bne.s	.Ok
+	addq.l	#1,d0
+.Ok	subq.l	#1,d1
+	bne.s	.Loop
+.GetIt	move.l	Catalog1,a0
+	jsr	GetCatalogStr(a6)
+	move.l	d0,24(sp)
+.Ende	movem.l	(sp)+,d0-d1/a0-a1/a6
+	rts
+@ENDNODE
+
+
+@NODE ARexx "Der ARexx - Teil"
+AddPort		equ	-354
+CreateMsgPort	equ	-666
+LN_NAME		equ	10
+
+InitARexx	move.l	4.w,a6
+	jsr	CreateMsgPort(a6)
+	lea	ARexxPort,a0
+	move.l	d0,(a0)
+	beq.s	.exit
+	move.l	d0,a1
+	lea	ARexxPortName,a0
+	move.l	a0,LN_NAME(a1)
+	jsr	AddPort(a6)
+.exit	rts
+
+ARexxPort	dc.l	0
+ARexxPortName	dc.b	'1200DEMO_REXX',0
+Blabla_Text	dc.b	'SCREENTOFRONT',0
+Ende_Text	dc.b	'ENDE',0
+	even	
+*-------
+
+RemPort		equ	-360
+DeleteMsgPort	equ	-672
+
+FreeARexx
+	move.l	ARexxPort,d2
+	beq.s	.exit
+	move.l	4.w,a6
+	move.l	d2,a1
+	jsr	RemPort(a6)	RemPort
+	move.l	d2,a0
+	jsr	DeleteMsgPort(a6)
+.exit	rts
+
+*-------
+
+GetMsg		equ	-372
+ReplyMsg	equ	-378
+rm_ARG0		equ	40
+
+GetARexxMsg
+	move.l	ARexxPort,d0
+	beq.s	.exit
+
+	moveq	#0,d2
+
+	move.l	4.w,a6
+	move.l	d0,a0
+	jsr	GetMsg(a6)
+	tst.l	d0
+	beq.s	.exit
+	
+	move.l	d0,a2
+	move.l	rm_ARG0(a2),a3
+
+	lea	Blabla_Text,a0
+	bsr.s	CmpString
+	tst.l	d0
+	beq.s	.next
+	bsr	Hotkey_Routine
+	bra.s	.reply
+	
+.next	lea	Ende_Text,a0
+	bsr.s	CmpString
+	tst.l	d0
+	beq.s	.reply
+	moveq	#-1,d7
+
+.reply	move.l	a2,a1
+	jsr	ReplyMsg(a6)
+.exit	rts
+
+CmpString
+	move.l	a3,a1
+.loop	move.b	(a0)+,d0
+	beq.s	.null
+	bclr	#5,d0
+	cmp.b	(a1)+,d0
+	beq.s	.loop
+.bad	moveq	#0,d0
+	rts
+.null	tst.b	(a1)
+	bne.s	.bad
+	moveq	#-1,d0
+	rts
+
+@ENDNODE

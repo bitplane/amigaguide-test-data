@@ -1,0 +1,138 @@
+@database AmigaGuide.guide
+@master Guide für die Demos zur Library
+
+@node "MemberDemo" "MemberDemo"
+
+/*-------------------------------------*/
+/* Programm: Member Demo               */
+/*-------------------------------------*/
+/* Funktion: Es werden die User der    */
+/*           einzelnen Gruppen aus-    */
+/*           gegeben, bis alle Gruppen */
+/*           durch sind                */
+/*-------------------------------------*/
+
+/*-------- Standart Includes ----------*/
+
+#include <exec/exec.h>
+#include <utility/tagitem.h>
+#include <dos/dos.h>
+
+#include <clib/exec_protos.h>
+#include <clib/dos_protos.h>
+#include <pragmas/exec_pragmas.h>
+#include <pragmas/dos_pragmas.h>
+/*-------------------------------------*/
+
+/*----- AmBoSDataLibrary Includes -----*/
+
+#include <clib/AmBoSData_protos.h>
+#include <libraries/AmBoSTags.h>
+
+/*-------------------------------------*/
+
+/* für die Dos.Library             */
+/* kommt von der c.o  ;-)) bei SAS */
+
+extern struct Library *DOSBase;
+
+/* Festlegung der Variablen */
+
+char MitName[128];
+char GrupName[40];
+
+/* AmBoSDataLibrary öffnen */
+
+struct Library *ADL_Open(void)
+{
+  AmBoSDataBase = OpenLibrary("ambosdata.library",0L);
+  return (AmBoSDataBase);
+}
+
+/* AmBoSDataLibrary schließen */
+
+void ADL_Close(void)
+{
+  if(AmBoSDataBase)
+    CloseLibrary(AmBoSDataBase);
+}
+
+/*-------------------------------------*/
+/*   Ausgabe der User einer Gruppe     */
+/*-------------------------------------*/
+/* Parameter: Keine                    */
+/* Rückgabe :                          */
+/*            Immer Null               */
+/*-------------------------------------*/
+
+int main (void)
+{
+
+APTR Memb;
+APTR Grup;
+
+  if(! ADL_Open())  /* Eigene Öffnungs Routine */
+  {
+    /* Falls das Öffnen fehlschlug */
+
+    FPuts(Output()," Hallo, hallo, Irgenwas lupt hier nicht !\n");
+    FPuts(Output()," AmBoS muß laufen und die AmBoSDataLibrary\n");
+    FPuts(Output()," muß ebenfalls Installiert sein !\n");
+    return 0;
+  }
+
+  /* Erste Gruppe der Box holen */  
+
+  Grup = ADataSetTag(DATASET_First,DATATYPE_Gruppe,TAG_DONE);
+  while(Grup != 0)
+  {
+
+    /* Wenn Gruppen Name bekannt, dann ausgeben */
+
+    if(AGetAttrTag(Grup,GRUPPE_GruppenName,GrupName,TAG_DONE) != FALSE)
+    {
+      FPuts(Output(),"Gruppe :");
+      FPuts(Output(), GrupName);
+      FPuts(Output(),"\n");
+    }
+
+      /* Member auf die eingetragenen User holen */
+
+    Memb = ADataSetTag(DATASET_Sub,Grup,TAG_DONE);
+    while(Memb != 0)
+    {
+      /* Alle User der Gruppe ausgeben */
+
+      if(AGetAttrTag(Memb,MEMBER_MitliedName,MitName,TAG_DONE) != FALSE)
+      {
+        FPuts(Output(),"  ");
+        FPuts(Output(), MitName);
+        FPuts(Output(),"\n");
+      }
+
+       if(CheckSignal(SIGBREAKF_CTRL_C))    /* CTRL&C Checken */
+       {
+        ADataSetTag(DATASET_Free,Memb,DATASET_Free,Grup,TAG_DONE);
+        ADL_Close();
+        FPuts(Output(),"\nTschaui, muß das schon sein ?\n");
+        return (NULL);
+       }
+
+        /* Nächsten User holen */
+
+      Memb = ADataSetTag(DATASET_Next,Memb,DATASET_Free,Memb,TAG_DONE);
+    }
+      /* Nächste Gruppe holen */
+
+    Grup = ADataSetTag(DATASET_Next,Grup,DATASET_Free,Grup,TAG_DONE);
+  }
+    /* AmBoSData.Library wieder schließen */
+
+    ADL_Close();
+}
+
+			@{"Hauptmenü" link "AmBoSDataLibrary.guide/main" 0}
+	@{"Wollen wir mal das Demo Starten ?" system "run >NIL: Demo/MemberDemo >CON:0/0/635/150/Member_Demo(Abbruch_mit_CTRL&C)/WAIT/CLOSE"}
+
+@{fg fill}@{bg shine} Bitte klicken Sie auf Zurück, um Weiter zu machen !@{fg text}@{bg back}
+@endnode

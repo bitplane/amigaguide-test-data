@@ -1,0 +1,418 @@
+@Database
+@node MAIN "Miscellaneous"
+@TOC MusicWeb.GUIDE/MAIN
+
+Miscellaneous Contents:
+======================
+
+    @{" Some Ideas on using the MusicWeb      " LINK ideas }
+
+            @{"  Filtering and Splitting  " LINK ideas 88 }
+            @{"  MIDI Channels            " LINK ideas 169 }
+            @{"  Types of Packets         " LINK ideas 193 }
+            @{"  Recording and Playback   " LINK ideas 227 }
+            @{"  Sequences and MIDIFiles  " LINK ideas 293 }
+
+
+    @{" Module Process Priorities             " LINK priority }
+
+@endnode
+
+
+@node ideas_subs  "Subsections:"
+
+ "Ideas" Subsections:
+
+        @{"  Filtering and Splitting  " LINK ideas 88 }
+        @{"  MIDI Channels            " LINK ideas 169 }
+        @{"  Types of Packets         " LINK ideas 193 }
+        @{"  Recording and Playback   " LINK ideas 227 }
+        @{"  Sequences and MIDIFiles  " LINK ideas 293 }
+
+@endnode
+
+@node ideas  "Some Ideas on using the MusicWeb"
+
+      Direct links to @{" Subsections " LINK ideas_subs}
+
+
+    Unlike the more common variety of `Sequencer' program, which
+    provides a fixed but limited set of immediately available uses,
+    the MusicWeb is extremenly flexible, but requires that you build
+    your own configuration from a set of basic functions to do what
+    you want.  This is perhaps a new way of working, so you might like
+    some orientation.  Also, the functions and usefulness of the various
+    elements may not be immediately apparent, so I will try to give some
+    general guidelines here.
+
+    Bear in mind, though, that the MusicWeb is meant to be a partner
+    to creativity, so the only way to take full advantage of it is
+    to experiment!  Its flexibility makes this easy: you can rearrange
+    and rebuild your configuration as you try it out, until you get
+    the sound that's right.  We won't deal with the mechanics of building
+    a diagram here, or the details of modules; refer to the nain manuals
+    for these.  In this section we'll skim through some ideas and topics
+    that don't fit well under other headings but may help you to tie
+    the concepts together.
+
+    The trick to using the MusicWeb successfully is to understand how
+    the individual elements can work together to achieve a desired
+    result.  At the simplest level of course, to get MIDI from your
+    keyboard into the system, and send a -- probably transformed --
+    stream out to your other equipment, your diagram will need a
+    `MIDI In' element connected -- eventually -- to `MIDI Out'.
+    However, a lot may go on in the paths between these two.
+    Building up from a simple starting point -- branching off new
+    paths and adding in more elements -- you can end up with something
+    quite complex, but this needn't worry you, as you've created it
+    in a series of small, simple steps.
+
+    In fact for many purposes MIDI In or Out, or both, might even
+    be absent.  If you're playing a prerecorded piece, you might leave
+    out ~MIDI In', or if you're using internal voices only there might
+    be no `MIDI Out', all paths feeding `Instrument' elements.
+    (Incidentally, remember that MIDI In and Out are special in that
+    there can only be one of each in a diagram, but you can have as
+    many Instruments -- or any other element -- as you like.)
+
+    Some elements are simple enough to do what they're required to
+    on their own.  `Loudness' -- which alters the Velocity value
+    of the Note-on events passing through it --, and `Transpose'
+    -- for shifting notes up and down the scale --, are good examples.
+    Simply insert one of these between MIDI In and MIDI Out and you
+    can directly control that aspect of the event stream.  Don't
+    forget, too, that all elements have an output connector, so
+    that you don't have to terminate a path at, say, an Instrument:
+    it can be carried on through to provide further outputs, be
+    recorded, and so on.  In fact it is usually slightly more efficient
+    to put a string of elements on a single path than to make excessive
+    branches.
+
+    By `chaining' elements in a a path, you can apply successive
+    transformations and operations to the MIDI stream.  You could
+    perhaps build the path:  Midi In -> Instrument -> Transpose
+    -> MIDI Out, load some sample into the Instrument, and set the
+    Transpose to shift notes down an octave.  This would give you
+    a combination of an internal voice and your synth's output
+    (shifted).  Naturally you could equally well do: MIDI In ->
+    MIDI Out -> Transpose -> Instrument, for a different effect.
+
+
+    Instead of operating simply sequentially on the stream, you
+    can split the stream into several parallel ones with `branch points'.
+    As a start, you could branch the path from MIDI In, feed one fork
+    direct to MIDI Out, but insert a `Set Channel' in the other before
+    feeding it to MIDI Out also.  Then you would be driving two channels
+    of your synth at once with the same note.  (Or use a Transpose too,
+    and have them an octave apart).  And so on.
+
+
+    More significantly, a lot of specific functions are
+    achieved by particular combinations of elements.  Let's
+    look at the possibilities of Keyboard Range splitting as
+    an initial example.  (This is @{" Keyboard Split " LINK Examples.GUIDE/split} in the Examples.)
+
+    [I should point out before we get into this that there may be
+    some unfortunate confusion in the use of the term "Filter".
+    Elements in the Web that act on a data stream were originally called
+    Filters by analogy with fairly standard computer usage (a la unix).
+    Some elements in the MusicWeb are more specifically Filters, in
+    that they can "comb out" certain events -- and have "Filter" in
+    their label --, but even a simple Loudness element is a Filter
+    in the Web sense.]
+
+  Filtering and Splitting
+
+    One of the supplied modules is `Key Range', which has sliders for
+    setting upper and lower limits on a range of notes.  It also has
+    a cycle gadget labelled `Function:'.  By initial default, this
+    is set to `Block', and in this mode the element acts "stand alone"
+    simply to filter out all note events outside the set range.  So one
+    straightforward way to build a keyboard split would be to branch the
+    original path (with the forks eventually proceeding on to whatever
+    you wanted to do with the results of the split) and insert a Key
+    Range element in each branch, with its limits suitably set.
+
+    This might sometimes be an appropriate way to do it -- if we
+    wanted overlap for instance -- but we more probably want a true
+    split, where notes within the range go in one direction and those
+    outside it in the other; we don't want to change sliders in two
+    elements to adjust a single split range.  A better solution here
+    is to use both a (single) Key Range and a `MIDI Splitter' element
+    following it. Instead of using the default `Block' mode, we set
+    the Key Range cycle gadget to one of the `Mark...' settings (in
+    this simple case it doesn't matter which, as the MIDI Splitter
+    responds to all of them by default). Now, none of the events are
+    blocked out: instead, those outside the range are "marked", and
+    when they encounter the splitter are diverted down the alternate
+    path, while unmarked ones continue on the direct route.
+
+    But... now that we have the note events going where we want, what
+    about other events like the Sustain pedal (and anything else we
+    might want on both paths)?  They continue along the direct path, and
+    will never appear on the `diverted' one!  Well, a little elaboration
+    easily fixes this.  We precede the above elements with a `Msg Filter'
+    (which selects different classes of MIDI event messages in the same
+    sort of way as Key Filter) and another MIDI Split, and set them to
+    divert all the event types we want to have on both sides of the split;
+    then we merge them in at some convenient later point of each branch.
+    (Remember that any filter will accept up to three merging inputs, so
+    there will probably be several "convenient points".  If not, use
+    a `Join' element)
+
+    There are other `Filters' (in the restricted sense) that
+    respond to particular event properties in the same way. `Key Filter'
+    selects certain notes within the octave, and `Chan Filter' selects
+    a subset of MIDI channels.  `Vel Filter' marks note-on events with
+    greater than the set Velocity value; however it has no (fairly useless)
+    `Block' mode.  `Block Sys Msg' on the other hand doesn't do anything
+    but block MIDI System Messages (like "Clock" and "Active Sense") that
+    are often unneeded and can be an annoyance if you want to trigger a
+    recording for example.
+
+    For more complex setups, the availability of four separate Marks
+    may be useful, as each splitter may be set to respond to one or
+    any combination of them.  A splitter clears all the marks it is
+    set to respond to, but doesn't touch others, so a series of filters
+    can set a combination of marks on an event, which then have different
+    effects as it proceeds through its own sequence of splitters.
+
+
+    Right.  Now we have a path split into a couple of branches.
+    What do we do with it?  That is determined largely by your
+    imagination.  If you just want to drive different voices on
+    a Synth connected to MIDI Out, you can insert a `Set Channel'
+    element in each branch, set to the appropriate channel for each
+    voice, and merge them back onto the MIDI Out element.  Or you
+    might want one (or both) of the branches to drive two voices
+    of the Synth for a `fatter' sound: place yet another Set Channel
+    and connect it in a parallel path with the first.
+
+    Elaborate this as you like.  Maybe insert a `Transpose' to shift
+    one of the voices up or down an octave, or add in a short `Delay'.
+    Instead of -- or in addition to --  external channels, you could
+    direct some of the streams through `Instrument' elements to play
+    8SVX samples.  You can try out and modify each idea as you go.
+    As I said, experimentation is a `must' with the MusicWeb...
+
+  MIDI Channels
+
+    Internally, the MusicWeb doesn't pay much attention to the
+    Channel values of MIDI events, except for the two relevant modules,
+    `Set Channel' and `Chan Filter'.  Events retain the channel they
+    had on entry to the system, unless you specifically set them to
+    another with Set Channel.
+
+    Elements other than these two respond to all events that they are
+    concerned with, ignoring their channel.  `Instrument', for example,
+    plays all note-events that arrive -- you would make it respond to a
+    single channel by having an appropriate Chan Filter somewhere in its
+    incoming path.
+
+    Specific channels are mostly relevant when driving an external
+    instrument, unless for some reason you have more than one channel
+    coming in.  It is very likely that input to `MIDI In' will only be on
+    one channel, unless you have some external merging hardware, or have
+    used your keyboard's own split facilities, so you will be using
+    other properties of the events to select and manipulate (until you
+    want to send them back out).  If you do have separate channels
+    coming in, and you want to keep them apart, use Chan Filter and
+    MIDI Splitter combinations to do so.
+
+    One place though that you will be concerned with channels is when
+    playing a prerecorded file (or recording one).  The only way to keep
+    streams and voices separate there is by giving them separate channels.
+    Your configuration will need to include suitable channel setting and
+    filtering to handle this.
+
+
+  Types of Packets
+
+    In using the MusicWeb, it's useful to know something about the
+    way data is passed around the configuration.  One of the unique
+    features of the Web scheme is the way different types of data can
+    share the configuration -- even the same paths -- without conflicting.
+    Most of the packets which pass from element to element contain MIDI
+    events, but distinct from these are the `Sequence' packets that
+    some of the modules deal with.  (To be truthful, these contain
+    MIDI too, but in much larger chunks, and additionally have timing
+    and other information needed to play the contents as a sequence.)
+    Then (if you have the licensed version) you also have `Control
+    Messages'; these currently are just used for switching paths within
+    the configuration, but have the potential for controlling almost
+    any aspect of the setup.
+
+    Although all the modules in the MusicWeb's set process or respond
+    to MIDI packets, only those concerned with recording will pay any
+    attention to Sequence packets.  If you feed a Sequence packet to
+    an element like Transpose, for example, it just goes straight
+    through, so there's no harm in sharing a path like that.  However,
+    you do have to take care that by merging paths or something a Sequence
+    doesn't eventually end up where you don't want it to.
+
+    For instance, the single input connector on a `RePlay' element
+    serves several distinct functions: you can feed it a MIDI stream
+    to be recorded, but you can also send it a Sequence, directly from
+    another element, that will immediately become its new contents; then
+    again, if `Trigger' mode is set, *any* arriving packet will initiate
+    the triggered action. This can be useful -- you can have `Play'
+    triggered so that it starts automatically when a Sequence is supplied
+    -- but it could be very annoying if a Sequence accidentally arrived
+    and replaced what you had just recorded!  So share paths with care.
+
+  Recording and Playback
+
+    The record and playback faclities of the MusicWeb are very different
+    from the average Sequencer; in some ways more flexible, in others
+    more limited.  Taking the limitations first, the main one is that
+    there is no variable tempo playback -- sequences always play back
+    exactly as they were recorded.  You can't edit sequences, either:
+    the Web is oriented more to direct manipulation, so at the moment
+    you will still have to use another program to do editing.  Saving
+    your sequence as a MIDIFile is one way to do this.
+
+    On the other hand, as a `RePlay' element is just another element,
+    you can plug instances into your diagram anywhere, and have as
+    many of them as you like.  Playing a sequence in one element and
+    re-recording it in another with modifications or (live) additions
+    is trivial.  To ensure that the recordings at each stage remain
+    in step, you should make good use of the `triggered' Record mode:
+    use it when you record the original sequence, so that it begins
+    exactly on the first note you play, then again when you make the
+    copy, so ithat it is triggered by that same recorded event.
+
+    Sequencer programs usually have a number of parallel "tracks"
+    into which you can successively record parts of your piece
+    simultanously with the playback of previously recorded tracks.
+    The MusicWeb lacks such a built-in concept of course, but you
+    can get much the same effect by a configuration with several
+    RePlay elements working in parallel.  As long as you trigger
+    them all with the same event, they will play (or record) in
+    exact synchrony.  How you trigger is up to you, and to the
+    requirements of the moment; the first note from your keyboard
+    might be a convenient choice, or perhaps some other event you
+    can generate, such a a Program Change -- it doesn't have to be
+    a meaningful event.
+
+    One scheme for doing this that I find particularly useful is
+    to have an extra RePlay (i.e. one that isn't used for track
+    recording) set up as a "Lead-In".  You can use the `null' Control
+    Message this generates at the end of a sequence (see RePlay docs)
+    to trigger all the tracks at once.  What you do is to record a
+    short phrase -- or a metronome 4-beat perhaps -- that will give
+    you a lead in but not be recorded itself.  Then you loop this
+    continuously, adjusting the delay slider until the rhythm is
+    steady.  When you've got this to your satisfaction, you can switch
+    to a `once through' playback mode, set the triggers on the `track'
+    RePlay elements you want to run, start the lead-in again, and the
+    null message will be just at the right point to trigger all the
+    tracks. (You will have to separate out the control message from
+    the MIDI events so they don't themselves trigger anything -- or get
+    recorded.  A Msg Filter set to mark *all* events, and a MIDI Splitter,
+    achieve this easily.)  [This example also shows the problem of trying
+    to describe Web diagrams verbally!  If you're confused, look at the
+    "2-Track" configuration included in the examples.  Refer to the
+    description of that for more details too.]
+
+    Instead of putting RePlay elements in parallel, you can chain them
+    sequentially, using the same null-control-message technique.  This
+    way you could record successive sections of a piece in turn, and have
+    each trigger the next.  There are some subtleties to think about
+    though.  For one thing, the null message can be no earlier than
+    the last event in the sequence, so there's no way you can overlap
+    successive sequences this way.  If you want to start a sequence
+    before its predecessor has ended, you would have to have some
+    trigger recorded in the sequence (but remember Control Messages
+    are never recorded); again you could use the good old Program
+    Change or some such.
+
+  Sequences and MIDIFiles
+
+    A RePlay element itself can save a sequence to a file, or reload
+    it, but this file is in its own non-standard image format, so you
+    can't use it with any other program.  However it can send sequences
+    to other elements, and also receive them.  In particular, it can
+    communicate with the `Write MIDI File' and `Read MIDI File' modules
+    which handle the standard machine-independent MIDIfile format.
+
+    To be able to write MIDIfiles, simply connect the `Sequence' output
+    of the RePlay to a `Write MIDI File'.  Every time you click the
+    `Send' button in the RePlay's control panel, the current sequence
+    gets sent (as a single packet) to the other element, which pops
+    up a requester in which you can specify filename and directory.
+
+    Similarly, to read files, connect a ~Read MIDI File' output
+    connector to the input of your RePlay (using a `Join' if you
+    have other inputs as well).  A control panel button on the former
+    pops up the file selection requester, and the file that you read
+    in gets turned into a sequence and sent to the RePlay.
+
+    Of course you can also couple the Sequence output connector of one
+    RePlay to the input of another, to directly transfer a sequence.
+    You might want. for example, to move a sequence from the element
+    you recorded it on to another for playing back, so you could then
+    re-record while adding another layer.
+
+@endnode
+
+@node priority  "Module Process Priorities"
+
+    While the MusicWeb is running, there are quite a number of independent
+    processes alive in the machine.  As you probably know, such processes
+    can be set to different system `priorities' to determine which is
+    seen as the most important when the system has to arbitrate time
+    between them.
+
+    Most of the processes do not need any special consideration, and
+    can be left at the default (`0') priority, but there a few that
+    are best set higher to improve performance markedly.  To be specific,
+    they should have higher priority than Intuition (20), or you will get
+    stuttering in the MIDI stream every time you move, open, or close
+    a window.  The supplied `Run_WEB' script used by the startup icons
+    does this for you, but you may want to know the rationale.
+
+    The most important high-priority processes are the `Travellers'.
+    These do most of the work along the paths of the diagram, so they
+    had better not be slowed down.  They are invoked automatically by
+    the Web as needed, so the control program must be told in the command
+    line what value to use. This is achieved by the `TPRI' command line
+    option you will see in the script.
+
+    Most of the operations performed on the MIDI events are actually
+    done by procedures called by the Travellers themselves, so the
+    modules that are supplying those procedures don't need their own
+    high priority.  One or two, though, are data sources, or accept the
+    data into their own process, and so also should have their priority
+    boosted.  One of these of course is the `MIDILink' module that
+    provides `MIDI In' and `MIDI Out' and makes the actual connection
+    to the serial port.  `MIDI_Instr' is also normally run at high
+    priority.
+
+    `RePlay' may also be given a high priority to keep the sequence
+    smooth while windows are being moved and so on, but there is an
+    as-yet-unlocated glitch that will lock your system if you happen
+    to delete a high-priority RePlay while it is playing.  As long as
+    you stop Play first this isn't a problem, but to be on the safe
+    side it has been given an intermediate priority -- lower than
+    Intuition, but higher than normal programs -- in the distribution.
+
+    There is one other module -- `Delay' -- that really should also have
+    high priority, but Run_WEB does not set it.  Why?  Because you could
+    accidentally draw a diagram with a path looping back from the `Delayed'
+    output to the input, and if you have zero delay set on the slider,
+    feeding a packet to that configuration would immediately lock up
+    your system!  (The data would go round and round without ever giving
+    another task -- including Intuition, which manages the control panel
+    -- a chance.)  If you think you can avoid doing this, you may prefer
+    to edit Run_WEB to set its priority to 31 like the others.
+
+    (If you're ahead of me, you may have noticed that you can create
+    all sorts of other loops in the diagram if you want to, so you'll
+    wonder why those won't lock things up too.  Well, there is protection
+    built in that prevents the same `Traveller trip' going on forever,
+    but this is reset each time the trip starts, so that it doesn't
+    protect the Delay module -- as the Traveller starts from there --
+    from an endless loop.)
+
+@endnode
+

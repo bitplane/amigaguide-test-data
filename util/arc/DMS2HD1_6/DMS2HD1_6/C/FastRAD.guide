@@ -1,0 +1,181 @@
+@database FastRAD.guide
+@$VER: FastRAD.guide 1.1 (27.7.97)
+@node main "FastRAD.guide"
+
+
+
+
+
+============================================================
+                       July 27, 1997
+
+                     Torbjörn Andersson
+                          presents
+                        FastRAD 1.1
+
+                          Freeware
+============================================================
+
+
+
+
+
+1. Contents
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+@{"Contents    " link Main        } ............................................ 1
+@{"Introduction" link Introduction} ............................................ 2
+@{"Requirements" link Requirements} ............................................ 3
+@{"Usage       " link Usage       } ............................................ 4
+@{"History     " link History     } ............................................ 5
+@{"Distribution" link Distribution} ............................................ 6
+@{"Author      " link Author      } ............................................ 7
+
+
+@endnode
+@node Introduction
+
+2. Introduction
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+FastRAD will fool the recoverable RAM disk (RAD) to use fast
+memory instead of chip memory. Three things are done to
+accomplish this:
+
+1. exec.library/AllocMem() is patched. When RAD tries to
+allocate memory for the disk data, it asks for memory of
+type MEMF_KICK (which means chip memory on most systems).
+The patch simply clears this flag, so the best memory
+available will be allocated and returned to RAD instead of
+chip memory.
+
+This will make RAD use fast memory happily, but it won't
+survive a reboot.
+
+2. exec.library/SumKickData() is patched. It will be called
+right after RAD has added the memory previously allocated to
+the KickMem list. The patch changes the specified number of
+memory references by RAD, so Exec won't try to allocate the
+fast memory on a reboot. Since the memory isn't added at
+that time, the allocation would fail if this isn't done, and
+thus RAD (actually everything in the KickTag list) would be
+ignored.
+
+Now the problem is that the memory is free for anyone to
+allocate and use.
+
+3. A resident tag is also installed. When it's run at reboot
+it looks for all structures in the KickMem list that was
+added by different RAD units, and tries to allocate the
+memory that Exec couldn't allocate. If this fails, an alert
+is displayed.
+
+This should do it.
+
+
+@endnode
+@node Requirements
+
+3. Requirements
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+FastRAD requires AmigaOS 3.0 or higher.
+
+
+@endnode
+@node Usage
+
+4. Usage
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+FastRAD cannot be used from Workbench. Note that FastRAD
+must run before the RAD disk(s) it should patch are added
+to the system. Early in S:Startup-Sequence is probably the
+best place to start FastRAD. The CLI usage is:
+
+NAME/A/M,KILL/S,PRI/N
+
+
+Example:
+
+FastRAD RAD:
+
+
+Explanation of options:
+
+NAME
+The name(s) of the RAD disk(s) you will mount and use,
+and want to have in fast memory. The case of the characters
+doesn't matter. The colon (:) character can be left out.
+
+KILL
+The SumKickData() patch will remove RAD from the KickMem and
+KickTag lists. Thus, RAD will not survive a reboot.
+
+PRI
+Priority of the resident tag FastRAD installs. It allocates
+the memory RAD uses at reboot. If the allocation fails, an
+alert will be displayed to inform about this.
+     By default the priority is two less than the priority
+of intuition.library. If it for some reason is necessary to
+do the allocation earlier the priority can be raised. But if
+intuition.library isn't initialized you will not see any
+alert if the allocation still fails.
+     After an alert, the variables in ExecBase that hold
+information about resident things are cleared (i.e.
+ColdCapture, CoolCapture, WarmCapture, KickTagPtr and
+KickMemPtr), and then the machine is rebooted again.
+     If the KILL option is used, no resident tag will be
+installed, and this option is ignored.
+     This option has no effect if FastRAD has run earlier
+and already installed its resident tag.
+
+
+@endnode
+@node History
+
+5. History
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+1.0 (16.7.97)
+· First release.
+
+1.1 (27.7.97)
+· Added KILL option.
+
+
+@endnode
+@node Distribution
+
+6. Distribution
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+No commercial usage of FastRAD is allowed without written
+permission from the author. Other distribution is allowed if
+no files in the original distribution are removed or
+modified.
+
+
+@endnode
+@node Author
+
+7. Author
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+FastRAD executable and documentation are made by and
+copyright © 1997 Torbjörn A. Andersson.
+All Rights Reserved.
+
+
+Snail mail:
+Torbjörn Andersson
+Knöppletorp 4379
+S-380 31 LÄCKEBY
+SWEDEN
+
+Email:
+d95ta@efd.lth.se
+
+Home page:
+http://www.efd.lth.se/~d95ta
+
+
+
+
+
+                                          I love you - AMIGA
+
+@endnode

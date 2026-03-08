@@ -1,0 +1,282 @@
+@database http-handler.guide
+@$VER: http-handler.guide 1.6 (28.01.2007)
+@wordwrap
+
+@node Main "http-handler"
+http-handler
+============
+
+@{"Disclaimer    " link disclaimer}
+
+@{"Introduction  " link intro}
+@{"Requirements  " link require}
+@{"Installation  " link install}
+@{"Configuration " link startup}
+
+@{"Features      " link features}
+@{"Compatibility " link compat}
+@{"Developer Info" link dev}
+
+@{"Known issues  " link bugs}
+@{"Future        " link future}
+@{"History       " link history}
+@{"Contact       " link contact}
+@{"Thanks        " link thanks}
+@endnode
+
+@node disclaimer "Disclaimer"
+This software ("http-handler") is  provided "as-is" without warranty of any kind.  I cannot and will not be held responsible for any damage, loss of data etc that may occur while using this software.  In particular, it is not guaranteed to be free of defects, bugs or security vulnerabilities.  If you do not agree to these terms, please delete this software, original archive and any copies.
+
+This product includes software developed by the Apache Software Foundation (http://www.apache.org/).  The licence is reproduced below.  The affected component is solely the base64 encoder for basic HTTP authentication:
+
+/* ====================================================================
+ * The Apache Software License, Version 1.1
+ *
+ * Copyright (c) 2000 The Apache Software Foundation.  All rights
+ * reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ * 3. The end-user documentation included with the redistribution,
+ *    if any, must include the following acknowledgment:
+ *       "This product includes software developed by the
+ *        Apache Software Foundation (http://www.apache.org/)."
+ *    Alternately, this acknowledgment may appear in the software itself,
+ *    if and wherever such third-party acknowledgments normally appear.
+ *
+ * 4. The names "Apache" and "Apache Software Foundation" must
+ *    not be used to endorse or promote products derived from this
+ *    software without prior written permission. For written
+ *    permission, please contact apache@apache.org.
+ *
+ * 5. Products derived from this software may not be called "Apache",
+ *    nor may "Apache" appear in their name, without prior written
+ *    permission of the Apache Software Foundation.
+ *
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+ * USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ * ====================================================================
+ *
+ * This software consists of voluntary contributions made by many
+ * individuals on behalf of the Apache Software Foundation.  For more
+ * information on the Apache Software Foundation, please see
+ * <http://www.apache.org/>.
+ *
+ * Portions of this software are based upon public domain software
+ * originally written at the National Center for Supercomputing Applications,
+ * University of Illinois, Urbana-Champaign.
+ */
+
+
+@endnode
+
+@node intro "Introduction"
+Several years ago, I happened on a little handler called http-handler 0.1 for 68k AmigaOS.  It became a permanent fixture on my hard drive, although it wasn't the most useful thing in the world (all I could get it to work with was the Type command, and the html.datatype would happily drag pictures off the web with it) it was occasionally useful and showed the flexibility of the device system.
+
+Unfortunately, this little handler wasn't well-known at the time and quickly passed into obscurity.  Time passed, and I started writing a program that dragged XML files down from the web.  I started using files I had downloaded, and then decided to try using the old http-handler to get the files directly - a lazy programmer's solution to writing TCP/IP code.  Of course, it worked, and rather than implement any HTTP download facility within the program (although that might come later), I thought about writing a new http-handler that had more capabilities than the old one.
+
+A quick look at the old version in a hex editor revealed that it used the virtual TCP: device.  Experience taught me that it only supported Open(MODE_OLDFILE), Read() and Close().
+
+My version of the http-handler is more advanced.  It uses bsdsocket.library directly and supports Open(all modes), Read(), Close() and Seek().  It will also happily follow 301 and 302 HTTP redirects and work through a proxy server, as well as being able to read from secure sites.  Hopefully it will encourage development of clients that get their data over HTTP, by people that have no or little knowledge of TCP/IP programming or don't want to get bogged down by the network side of things.
+
+Examples of usage:
+
+Copy an archive from Aminet to the RAM disk:
+copy http://www.aminet.net/comm/tcp/facts.lha ram:facts.lha
+(NB: you @{b}must@{ub} specify a filename for the destination to avoid a recoverable alert from the Copy command)
+
+You can even unarchive direct from the web by putting the URL into Unarc's Archive gadget.
+
+Read PDFs (very slowly), without downloading them first, with AmiPDF.
+
+Unfortunately, although in conjunction with html.datatype it will enable you to view external images embedded in local documents, it does not allow you to use Multiview as a simple web browser.
+@endnode
+
+@node require "Requirements"
+Requirements:
+* AmigaOS 4.0 pre-release update 3 or above
+* A working TCP/IP stack and network connection or dial-up
+
+Optional but recommended:
+* z.library - will increase transfer speeds by enabling http-handler to support gzip and deflate compression.
+* AmiSSL v3 - for HTTPS support
+@endnode
+
+@node features "Features"
+* Allows access to web-hosted files via a virtual HTTP: device.
+* Also supports secure sites with AmiSSL and a virtual HTTPS: device.
+* Basic authentication supported using an addressing scheme like "http://user:pass@www.domain.com"
+* Supports Open(), Read(), Close() and Seek().
+* Implements HTTP redirects (301,302,307) as soft-links - even works with redirects that point to local files.
+* Optionally supports gzip content-encoding for faster download times, if z.library is installed.
+* Will work through a proxy server.
+* Can connect to HTTP services running on ports other than the default.
+@endnode
+
+@node install "Installation"
+Use the supplied installation script.
+
+Alternatively, copy http-handler to L: and HTTP and HTTPS to DEVS:DOSDrivers.  Modify the STARTUP tooltype as per @{"configuration" link startup}, if necessary.
+
+Double-clicking HTTP or rebooting will mount HTTP:.  From then on, you will be able to access web-hosted files as if they are on your local machine.  eg. "type http://www.aminet.net/RECENT" will show you Aminet's recent uploads.
+
+There is also a little script included called "multiviewhttp".  This takes one argument - the url to a picture - and will launch Multiview and display it.  This requires the simplehtml.datatype.
+@endnode
+
+@node startup "Configuration"
+Configuration is handled through the STARTUP variable in the mountlist.  It is easiest just to add or modify it as a tooltype in the mountlist icon for HTTP(S).
+
+It uses standard ReadArgs style parsing, the template is:
+PROXY/K,TIMEOUT/K/N
+
+@{b}PROXY@{ub}: This is the proxy server you use to access the Internet.  You can specify your credentials for "basic" authentication, as well as the port, using the notation: http://user:pass@proxy.domain:port
+
+@{b}TIMEOUT@{ub}: This is the timeout in seconds for network operations.  Default is 5, HTTPS tends to require longer.
+
+Example: Startup = PROXY http://proxy.domain.com:8080 TIMEOUT 30
+Will set the proxy server to proxy.domain.com port 8080, and a 30 second timeout.
+
+@endnode
+
+@node compat "Compatibility"
+Most things that work with local files should have no problems with http-handler.  However, a lot of programs insist on locking the file they are trying to access - this will not work with http-handler.  For obvious reasons, writing is not supported!
+
+On the HTTP side, http-handler supports 301, 302 and 307 responses as soft-links and handles 404 and 403 with relevant error codes.  Other HTTP result codes are unknown.  Chunked transfer-encoding is supported.  gzip content-encoding is enabled and supported automatically if z.library is installed.
+
+Known to not work:
+@{b}Notepad@{ub} - Requires ACTION_EXAMINE_FH, which is not implemented as it makes AmiPDF crash.
+@{b}Multiview@{ub} - also other picture viewers.  Requires locking.  Use the multiviewhttp script in the archive for a similar effect.
+@{b}LhA@{ub} - requires locking
+
+Known to have problems:
+@{b}Copy@{ub} - Copying a file without specifying a destination filename causes a recoverable alert, due to ACTION_PARENT_FH not being implemented as it causes AmiPDF to hang on exit.
+@endnode
+
+@node dev "Development Info"
+Adding support for web-sourced files is as easy as opening them from a local drive.  dos.library's open, read, close and seek functions will all work with http-handler.  Note that Seek() may fail with certain web servers or files.  In fact, use of Seek() on HTTP is strongly discouraged and if you are developing an app which will rely heavily on it, it is much better to hand-craft the HTTP code yourself for maximum efficiency (http-handler has to support the generic case, and has no caching yet)
+
+If you want to ensure compatibility, avoid unsupported commands!
+
+Supported packets:
+ACTION_FINDINPUT   }
+ACTION_FINDUPDATE  } Open()
+ACTION_FINDOUTPUT  }
+ACTION_END           Close()
+ACTION_READ          Read() etc
+ACTION_READ_LINK
+ACTION_SEEK          Seek()
+ACTION_SHUTDOWN      DismountDevice()
+@{"HTTPACTION_READ_HEADER" link custompackets}
+
+Most of the other packets are implemented on the v2 beta versions (when a WebDAV URL is specified in the mountlist), as they require locking.  If you need a lock-capable build for any reason please use a v2 beta and enable locking with httpmode, but be prepared for problems on normal web resources.
+
+rx3h.library gives ARexx some extra commands for working with http-handler.
+@endnode
+
+@node custompackets "Custom DOS packets supported by http-handler"
+HTTPACTION_READ_HEADER   2050
+ARG1:  NULL  Not used
+ARG2:  CPTR  Full URL
+ARG3:  APTR  Buffer for header data
+ARG4:  LONG  Size of buffer in bytes
+
+RES1:  LONG  Actual length of string, -1 for error.  If the string doesn't fit, as much as possible will be put into the buffer.
+RES2:  CODE  Failure code
+
+This is a custom action which returns the header of a URL, as returned by the HEAD HTTP method.  It does not check the HTTP result code, so headers that inform of errors or redirects etc will be received by the calling application.
+
+@endnode
+
+@node bugs "Known problems"
+@{i}Copying from HTTP: without specifying a filename for the destination causes a recoverable alert.@{ui}
+Copy appears to expect to be able to call ACTION_PARENT_FH from the source file's handler.  I can suppress this by supporting that command (faked implementation - this does not make the copy work), but then AmiPDF hangs on exit.
+@endnode
+
+@node future "Future plans"
+Some thoughts for later versions, in no particular order:
+
+Share v1 and v2 codebase to make maintaining two versions significantly easier!
+
+Caching
+WebDAV - implemented in v2 betas available from os4depot, currently unstable and do not support authentication or SSL [http://amigaworld.net/modules/newbb/viewtopic.php?topic_id=17775&forum=32]
+Asynchronous support (current version blocks other users of http-handler while reading is in process, however as programs tend to read data in small chunks this isn't as bad a problem as you might think)
+Authentication - both for proxies and individual web pages (needed for WebDAV) - basic implementation in v2.4beta and v1.8
+Use codesets.library to translate pages into local charset
+@endnode
+
+@node history "History"
+1.9 (28.01.2007)
+* Fixed Seek(), which I broke in some past version.
+* Added proxy authentication (not tested).  NB: You must now add http:// to the start of your proxy server name!
+
+1.8 (17.12.2006)
+* Added basic authentication using http://user:pass@domain notation.
+
+[2.4beta (25.10.2006) - Implemented v1.7 changes and added basic auth *beta2]
+
+1.7 (07.09.2006)
+* Fixed a memory leak on exit.
+
+1.6 (30.08.2006)
+* No longer accepts deflate encoding, as the specification has been misinterpreted and, although I asked for gzip in preference, was still getting headerless deflate data instead.
+* Some files were being copied down incomplete, was affecting chunked zlib data and zlib data with a content-length specified, fixed these and also removed the EOF check as the server terminates the connection when EOF is reached, making this code unnecessary.
+
+1.5 (26.08.2006)
+* Changed Startup variable parsing to that used for the v2 betas - timeout is now configurable
+* Added a custom packet 2050 to get the headers of a URL
+* Now also supports 307 redirects
+
+1.4 (29.07.2006)
+* Added HTTPS support using AmiSSL v3
+* Increased timeout to five seconds
+
+[2.3beta (27.07.2006) - Was missing some SSL data, fixed]
+[2.2beta (26.07.2006) - Added SSL]
+[2.1beta (13.06.2006) - WebDAV test version, no authentication/SSL *beta1]
+
+1.3 (21.02.2006)
+* z.library was still being used even if the interface didn't open
+* bug meant that the timeout wasn't being set, now times out after three seconds of inactivity
+* removed most of the debugging output
+* tidied up the source
+
+1.2 (19.02.2006)
+first release
+@endnode
+
+@node contact "Contact"
+Please contact me with any problems or suggestions.
+Chris Young chris@unsatisfactorysoftware.co.uk
+
+Any updates to this documentation or software can be found at http://www.unsatisfactorysoftware.co.uk or on os4depot and Aminet.
+@endnode
+
+@node thanks "Thanks"
+I would like to thank Olaf Barthel and Colin Wenzel for putting up with my stupid questions while I was writing this.
+
+Thank-yous should also go to Oliver Wagner (whom I imagine will be pleased that his code has helped create OS4 native software :)) and Steven Dick/Sami Tikka whose code snippets I borrowed, reused and hacked around in various parts of http-handler.
+
+A big "shout out" goes to Paul Heams for testing and helping, and Martin Merz for the icons I used in this package.
+
+This product includes software developed by the Apache Software Foundation (http://www.apache.org/).
+@endnode

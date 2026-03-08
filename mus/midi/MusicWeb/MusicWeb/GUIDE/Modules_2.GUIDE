@@ -1,0 +1,369 @@
+@Database
+
+@node MAIN "Modules_2.GUIDE
+
+
+        Access this file from @{" Modules.GUIDE " LINK Modules.GUIDE/MAIN }
+        to browse under AmigaGuide
+
+@endnode
+
+
+@node midi_gen  "Generate MIDI"
+
+  Generate MIDI [MIDIGen]
+
+                Generates arbitrary single MIDI messages according to
+                the settings of its sliders.  A single event is generated
+                on the `MIDI' output connector each time the `Send' button
+                is clicked or any event (MIDI or otherwise) arrives at
+                the `Trigger' input connector.
+
+                To make use of this module you will need to know the
+                MIDI code that you wish to generate.  Caution: if
+                you are careless, you could generate invalid messages
+                that might confuse your equipment.
+
+                Note that triggering (at the input) is based on *packets*
+                rather than individual events, thus several `simultaneous'
+                MIDI messages contained in a single packet will only
+                trigger one output.
+
+@endnode
+
+@node noteoff  "Note Off"
+
+  Note Off      [NoteOff]
+
+                Coverts all Note On events received into Note off.
+                All other events are discarded.
+
+                A typical use for this element would be in conjuction
+                with a Delay (and other elements such as a Msg Filter),
+                to clip all notes in the path to a fixed length.
+
+@endnode
+
+@node ptscale  "Scale PitchBend/AfterTouch"
+
+  Scale Pitch/Touch   [PTScale]
+
+                Scales either Pitch-Bend or AfterTouch events by
+                the slider (percentage) value; select which type of
+                event is to be scaled with the cycle gadget.
+                (Just to make it clear, this element will not *generate*
+                Pitch-Bend or AfterTouch events -- it will only adjust
+                the scaling of those produced by a keyboard controller.)
+
+                Pitch-Bend values are treated as 14-bit, with a centre
+                point of 64/0 (high/low byte).
+
+                In `Touch' mode, both PolyKey and Overall Pressure
+                events will be scaled.
+
+@endnode
+
+@node chan_f   "Channel Filter"
+
+  Chan Filter   [ChanFilter]
+
+                Filters events with specified channel values; filtered
+                notes may be blocked, or marked for diversion by a later
+                @{" Split " LINK Modules_1.GUIDE/split} element, as selected by the cycle gadget at
+                the top if its control panel.
+                Also see @{" Marks " LINK Modules.GUIDE/mark_setting} for more details on that subject.
+
+                There is a button on the control panel for each channel
+                to be filtered.
+
+@endnode
+
+@node vel_f    "Velocity Filter"
+
+  Velocity Filter    [VelFilter]
+
+                Marks all Note-On events that have a Velocity value
+                greater than or equal to the slider setting to be diverted
+                by a later @{" Split " LINK Modules_1.GUIDE/split} element.
+                See @{" Marks " LINK Modules.GUIDE/mark_setting} for more details.
+
+                The specific mark to be applied is set by the Cycle
+                gadget in the panel. Note that this gadget does not have a
+                `Block' setting, unlike most of the other filters, because
+                this is not really a useful alternative.
+
+@endnode
+
+@node joycontrol "GamePort Control"
+
+  GamePort Control  [JoyControl]
+
+                This module converts switch closures (and openings)
+                on Gameport no. 2 into @{" Control Messages " LINK Modules.GUIDE/MCTL} that will drive
+                the @{" MIDISwitch " LINK Modules_1.GUIDE/switch} module.  There is a fixed relation between
+                the connector pins and the Switch message number as
+                follows:
+
+                    `Fire' button ON    generates code  0
+                    `Stick Right' ON                    1
+                    `Stick Down'  ON                    2
+                    `Stick Left'  ON                    3
+                    `Stick Up'    ON                    4
+                    `Fire' button OFF   generates code  5
+                    `Stick Right' OFF                   6
+                    `Stick Down'  OFF                   7
+                    `Stick Left'  OFF                   8
+                    `Stick Up'    OFF                   9
+
+                (Note that the current MIDISwitch module has no selection
+                buttons for 8 or 9, so these aren't much use for now.)
+                Other possible pins on the gameport are undefined at
+                the moment.
+
+                This module is really intended for folks who are willing
+                to wire up their own foot-pedals and so on to the gameport.
+                (9-pin connectors are widely available.  See your Amiga
+                manual for pin connections.)
+
+                Note that only one of these elements can be placed
+                (obviously).  There is a control panel, but all it does
+                is duplicate the four buttons on the `Selector' element
+                (from which this module was derived (:-)).
+
+
+@endnode
+
+@node serialize "Serialize"
+
+  Serialize     [Serialize]
+
+                This module ensures that every note on every channel
+                receives an ordered sequence of note-on/note-offs -- in
+                other words it makes sure that, for each note-on, that
+                note is off before the note-on is transmitted; it does
+                so by keeping a count of ons and offs, and inserting a
+                note-off if there is currently an excess of ons.  If it
+                does have to insert note-offs, for each time that it does
+                so it will discard the matching note-off that actually
+                arrives later, leaving one final valid one to turn off
+                the note the last time.  It has no control panel.
+
+                The reason this element is sometimes needed is that you
+                can have several paths -- perhaps with different delays --
+                driving the same instrument, and if track is not kept
+                of the sequence, notes can be turned off prematurely by
+                off-events on another path.  This module ensures that
+                the last instance of the note will sound until the correct
+                matching note-off arrives.  It will. of course, not work
+                if you have suppressed off-events on any of the paths!
+
+                The current version of this module only handles note
+                events.  It does not correct the ordering of other
+                events, such as pedal controllers (they are just passed
+                unaffected).
+
+@endnode
+
+@node replay   "RePlay"
+
+  RePlay        [RePlay]
+
+                This is a simple recorder for MIDI event sequences.
+                (It is not however a "Sequencer" in the accepted sense
+                of the word -- though modules still to come may have
+                this capability.  No editing of recorded sequences is
+                yet provided.) Recorded sequences can be saved to file
+                and later loaded for playback.  (The file is not in any
+                standard format, so it can't be exchanged with other
+                programs.  Recorded sequences may however be sent to
+                other modules such as a standard MIDIfile writer; it
+                will also accept sequences from other elements, for
+                example a MIDIfile reader, or even another RePlay element.
+                (A Sequence is passed in these cases as a single packet,
+                not as a string of MIDI events.)
+
+                It is a multiconnector element with one filter (in and out)
+                connector for the data stream to be recorded (`Original')
+                and two source connectors: `Playback' for the replay
+                output, and `Sequence' for transmission of complete
+                sequence packets.  The `Original' input will also accept
+                sequence packets and trigger events (see below).
+
+              Control panel:
+
+                `Event Space:' is a numeric entry gadget that specifies
+                how much space is allocated for event recording.  It is
+                initially set fairly small -- 500 events --, to avoid
+                using up memory unnecessarily, but you will have to set
+                it larger to record anything lengthy. (Two events per note
+                -- on and off -- plus such things as pedal actions.)
+                Directly below this is a display of the actual number
+                of events recorded.  Note however that this is *not*
+                updated until recording stops -- it isn't a real-time
+                meter.
+
+                `Sys Mes Too' is provided in case you should possibly
+                want to record MIDI System messages as well.  Normally
+                you will not want this because it is likely to just waste
+                space.  By default they are ignored. (This button only
+                affects recording.)
+
+                The two columns of buttons headed `Record' and `Play'
+                control these respective functions.  The top button
+                of each column is a start/stop toggle, and also
+                indicates the current state of the function -- which
+                may depend on various other events, such as triggering.
+                (Gadget checked means active.)  The other buttons in
+                each column similarly reflect their current state.
+
+                The `Restart' toggle button determines whether its
+                respective function should return to the beginning
+                the next time it is started.  For the Play function
+                only, it will also do an immediate restart if the sequence
+                is currently being played; the button in the Record
+                column only affects the next start (though it may be set
+                at any time).  If you change your mind before the setting
+                takes effect, you can toggle it off again to cancel;
+                it doesn't act until the actual moment of starting.
+                It is automatically cancelled when it does take effect.
+
+                If the `Triggered' toggle is set, the next event
+                (*whatever* it is) arriving on the `Original' connector
+                will start the function.  Again, it is cancelled when the
+                trigger actually occurs.  Points to note if you use this
+                button: 1) You will want to block system events before they
+                reach the input, because they will trigger even though they
+                are *not* recorded!  2) As any packet can act as a trigger,
+                you can use a Control Message or a Sequence packet to
+                start the activity.  This last is useful when you want
+                to play a MIDIfile the moment it is loaded and passed to
+                the Replay element.  3) The RePlay element is perfectly
+                happy to both record and playback at the same time, so if
+                you are recording, don't forget to clear the Play trigger
+                first (and doubtless vice versa, unless you are playing
+                really strange games)!
+
+                On the right hand side of the `Play' column there is
+                a cycle gadget that controls what happens at the end of
+                a playing sequence.  (It has no effect on behaviour if you
+                stop and resume a sequence in the middle.)  It has four
+                selections:
+
+                    `Loop'  -- Forces `Restart' to be set automatically
+                            each time the end of the sequence is reached
+                            so the next start returns to the beginning.
+                            The start itself is not automatic -- it must
+                            be manual or from a trigger.  If you stop
+                            playback before the end of the sequence,
+                            it does *not* automatically go from the
+                            beginning when you resume; if you want to
+                            restart at that point, click the `Restart'
+                            button.
+
+                    `Trig'  -- Sets both `Restart' and `Triggered' when
+                            the end of the sequence is reached, so that
+                            the next incoming event will start the sequence
+                            again.
+
+                    `Once'  -- Play stops when the end of the sequence
+                            is reached and will *not* return to the
+                            beginning until `Restart' is selected.
+
+                    `Cont'  -- Continuous Play: once started, the
+                            sequence is cycled through continuously
+                            until either Play is toggled off or the mode
+                            is changed.  The pause between the end of
+                            the sequence and the start of the repeat is
+                            adjustable by the `Delay' slider (below).
+
+                The value of  the `Delay' slider on the right is applied
+                to the end of the sequence, and has a number of effects:
+                First, it controls the pause (in 600ths sec) between
+                sequence repetitions in `Cont' mode.  Further, this
+                value is recorded in a sequence file if it is saved
+                (and is equated to the `End-of-Track' marker by the
+                modules that process standard MIDIfiles); when a sequence
+                is loaded again, the slider is initialized to the recorded
+                value.  Finally, the RePlay element emits a `null' control
+                message after this delay at the end of a played sequence
+                (in all modes); this might typically be used (after
+                suitable filtering) to trigger another RePlay element.
+
+                At the bottom of the panel are the `Load...' and `Save...'
+                buttons.  Each calls up a file requester where you can
+                provide the file name you desire.  [At the moment you
+                are given no protection against overwriting an existing
+                file.  This will come later.]  Note that you can specify
+                a default directory in the command line that starts the
+                module (keyword `DIR').
+
+                The `SEND' button just above will transmit the current
+                sequence out the `Sequence' connector.  This can be
+                connected to a `Write MIDI File' element for example,
+                or to the (`Original') input of another Replay to
+                duplicate the sequence there.
+
+
+              Notes:
+
+                The span of a recorded sequence extends from the moment
+                `Record' is activated to the last event received before
+                recording is stopped.  Thus the delay before sounding
+                the first note on playback is identical to the interval
+                between record activation and its original arrival.
+                On the other hand there is never an interval between
+                the last event and the sequence end -- *except* that
+                set by the `Delay' slider.  This means that there is no
+                hurry to stop recording after you finish playing; if
+                you want to loop the result, you can use the slider to
+                adjust the rhythm. (You may have to be concerned with
+                the duration of the last note, though, as there can't
+                be overlap.)
+
+                As should be apparent from the existence of the
+                `Restart' buttons, you can pause and resume both
+                recording and playback, without having to return
+                to the beginning.  Once stopped, the function remembers
+                where it is until it is resumed again; only if `Restart'
+                is set at the moment it is resumed will it return to
+                the beginning (unless the storage space is changed
+                or a new file is loaded).  This means for example that
+                you can record a segment, play it back (or part of it)
+                and then resume recording to add on to the end. You
+                can set recording to be triggered if you like, play
+                back the segment, and take up playing yourself as the
+                segment ends.  (Best to save it first, though!)
+                Once you restart a recording from the beginning,
+                all previous stuff will be lost.
+
+                The size of the file written from a sequence is
+                determined by the sequence -- not by the total space
+                you have allocated, so there is no harm in setting
+                a large Event Space if you have room.  If you Load
+                a file without allocating enough space first, the
+                buffer will be expanded suitably (provided there's
+                room in memory, of course...).
+
+                If you change the size of an Event Space that contains
+                data, events won't be lost except by truncation at the
+                end if you should set it too small.  (Be aware, that the
+                end-delay is kept as an extra `event' in the buffer, so
+                you will chop this off first!)
+
+                After loading a sequence from a file, the recording
+                position is left at its end, so you can add to it.
+                Playback is positioned at the start.  However, you can't
+                currently directly load one file as a continuation of
+                another already in memory.  If you want to do this,
+                you can chain two RePlay elements and play sequences
+                *sequentially* from one to the other.  (Passing a
+                sequence packet doesn't append either.)
+
+                By the way -- if you are attempting to synchronize
+                a playback by starting it at the appropriate time
+                with the `Play' button, remember that the moment of
+                actuation is the button's release, not the press!
+
+
+@endnode
+

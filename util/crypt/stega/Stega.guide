@@ -1,0 +1,395 @@
+@database Stega.guide
+@author "Lyle Zapato"
+@(c) "Copyright © 1995-96 Lyle Zapato"
+@$VER: Stega.guide 1.03 (03.15.95)
+@node Main "Stega Help"
+
+                       Stega v1.03
+                LSB Steganographic Utility
+
+
+             Copyright © 1995-96, Lyle Zapato
+                   All rights reserved
+
+                Release date 15 March 1996
+
+
+                       User Manual
+
+      @{" Introduction     " link Introduction} What is Stega?
+
+      @{" Usage            " link Use} Stega usage syntax
+         @{" Hiding        " link Hide} Hiding mesages
+         @{" Extracting    " link Ext} Removing messages
+         @{" Viewing       " link View} Viewing mesages
+         @{" Carriers      " link Car} Supported carriers
+         @{" Messages      " link Mess} Supported messages
+         @{" Hints & Tips  " link Hint} Things to do with Stega
+
+      @{" Future           " link Future} To be implemented
+      @{" Signatures       " link PGP} PGP verification
+      @{" Bugs/Limitations " link Bugs} Things you should know
+      @{" Lyle Zapato      " link About} About the author
+      @{" Legalities       " link Leg} Annoying Mumbo-Jumbo
+      @{" History          " link History} New in this version
+
+@endnode
+
+@node Introduction "Stega: About Steganography and Stega"
+
+- Steganography
+
+Steganography is the process of hiding one thing inside of another.
+The purpose of this is to transmit information without people knowing
+you are doing so by placing the important/secret information inside
+something innocuous.
+
+Steganography isn't the same as cryptography, as the security of a
+steganographicaly transmited message lies in people's ignorance of its
+existance.  However, the two can and should be used in tandem.
+Encrypting a message prior to hiding it will make sure that if someone
+does find it, they won't be able to read it.  But why bother to hide it
+if you have strong encryption?  Well, sometimes the people in power, be
+they the government or an employer, don't like it when those under them
+communicate in a way that they can't easily pry into.  Even if the 
+information being sent is harmless to them, or just plain none of their
+business, they will still place a burden of guilt on the sender for
+acting covertly.  If those same people couldn't care less about someone
+sending pictures of Cindy Crawford, samples from Monty Python, or other
+types of ubiquitous net-noise, then by hiding the transmission inside
+those things a person could conduct their business without being
+bothered by someone else's power trip.
+
+- How Stega Works
+
+Stega uses the Least Significant Bits (LSB) in sound samples and true
+color images to hide the bits of a message.
+
+The LSB is the binary equivalent of the ones place.  Just as the ones
+place is less significant to the overall value of a decimal number than
+the tens or hundreds place, so too is the LSB not as significant as the
+other bits in a binary number.  Changing the value of the LSB will only
+change the overall value of the number by 1.  In an 8-bit number, which
+can have a value from 0-255, changing the LSB will change the overall
+value by only 1/256th.  For most things we preceive, a difference of
+1/256th is just too small to notice.
+
+Lets say we have 3 pixels from a 24-bit picture:
+
+     RED    GREEN     BLUE       PIXEL COLOR
+  --------------------------------------------
+  11111111 00000000 00000000  -  Red
+  11111111 11111111 11111111  -  White
+  00000000 00000000 11111111  -  Blue
+
+Notice that the pixels are made up of three 8-bit numbers, one each for
+the red, green, and blue color values.  The LSB is the right-most bit.
+Now, we want to hide the letter 'A' inside those pixels.  To do that we
+take each bit of the character (ASCII characters are made up of 8-bits)
+and place them, one-by-one, inside the LSBs of the color registers for
+each pixel:
+
+  A = 65 = 01000001
+
+  11111110 00000001 00000000  -  Redish
+  11111110 11111110 11111110  -  Whiteish
+  00000000 00000001 11111111  -  Blueish
+
+We end up with pixels who's colors are very close to the original, so
+close your eye wouldn't notice the difference in most situations.
+
+[Note that this will only work with 24-bit color and 8-bit grey scale
+images since enough gradations of color/greyness are needed in order
+for the change to be unnoticable.]
+
+This works the same for sound samples (it's just easier to illustrate
+with images.)  In an 8-bit sample, each sample is made up of 8 bits
+(duh) and has a LSB.  The value of a sample represents the volume
+of the sound at a given point in time and a 1/256th difference in
+volume is hard for the human ear to hear.
+
+- Technical Notes
+
+The size of the message is hidden with the message for use when
+extracting.  It is converted into three bytes and hidden inside the
+carrier just as the message bytes are.
+
+To get the size of the message, take the first 3 extracted bytes and use
+the following formula:
+
+   size (in bytes) = byte1 + (byte2 * 256) + (byte3 * 65536)
+
+[Note this allows for a message size up to 16.7 million bytes.]
+
+@endnode
+
+@node About "Stega: About the author"
+
+The author is Lyle Zapato.
+
+That is all you need to know.
+
+@endnode
+
+@node Car "Stega: Carriers"
+
+For lack of a better name, the thing in which you hide a message is
+called the carrier.  Stega currently is known to support only the
+following types of carrier:
+
+ · Sound samples
+   - IFF-8SVX 8-bit
+   - RIFF-WAVE 8/16-bit (Windows .WAV files)
+ · Images
+   - uncompressed 24-bit IFF-ILBM
+   - IFF-DEEP
+
+Stega might work with some other types of IFF file formats, but it
+doesn't yet support compression.  Stega looks for a BODY chunk in
+the IFF file and starts doing it's thing there, so if a format
+doesn't have a BODY chunk it won't work.
+
+@endnode
+
+@node Hint "Stega: Hints & Tips"
+
+CONVERTING CARRIER:
+
+ You can convert the carrier to and from different file formats
+ (8SVX to WAV, WAV to .au, DEEP to ILBM, etc.) and the message will
+ remain intact.
+
+ NOTE: this is only true for LOSSLESS file formats.  JPEG and MPEG
+ and other LOSSY (is that a word?) formats will remove subtlety
+ (ie your message) and as such are unsuitable.
+
+ To extract the message from the converted carrier, you will need
+ to convert it to a supported file format if it isn't so already.
+ example:
+
+ 8SVX + message = 8SVX(message) -> WAV(message) = WAV + message
+
+HIDING ENCRYPTED MESSAGES:
+
+ Since the output of encryption programs such as PGP usually have
+ headers and other information attached that let the program know
+ that it is an encrypted file, detecting encrypted messages hiden
+ in carriers is only a matter of searching for that header info,
+ something that a script could do automatically (this is also
+ generally true for any situation where someone has a bit of the
+ unhidden message.)  To make your encrypted messages easier to
+ hide, use some method that will remove the headers.
+
+ One program that will do this for PGP output is called Stealth
+ by Henry Hastur, which is available on Unix, PCs and Amigas
+ (maybe more... the version I have, v1.0, is from 1994.)  Good
+ luck trying to find it, since the author didn't include any
+ address to reach him (hmmmm...  sounds familiar :)
+
+@endnode
+
+@node Mess "Stega: Messages"
+
+A message is whatever you want to hide.  It may be text, data, an
+executable program, or anything else made up of bits (this means
+things such as elephants and soap aren't legal messages, sorry.)
+
+@endnode
+
+@node Use "Stega: Usage"
+
+USAGE: Stega [-<options>] <command> <carrier> [<message>] [destination]
+
+ COMMANDS:
+
+   H - @{" Hide " link Hide}
+   X - @{" Extract " link Ext}
+   V - @{" View " link View}
+
+ OPTIONS:
+
+   q - Quiet: don't print any disgnostic information.
+
+ CARRIER:
+
+   Complete path of @{" Carrier " link Car}.
+
+ MESSAGE:
+
+   Complete path of @{" Message " link Mess}.
+
+ DESTINATION:
+
+   Default destination is "RAM:encrypt" when hiding and "RAM:decrypt"
+   when extracting.
+
+@endnode
+
+@node Hide "Stega: Hiding"
+
+The Hide command is used to hide a message inside a carrier.
+
+ Example usage:
+
+   Stega h Sounds:Bevis Work:text/MySecretPlan RAM:Bevis
+
+   - Hides the file "Work:text/MySecretPlan" inside "Sounds:Bevis"
+     and saves to "RAM:Bevis".
+
+   Stega h Sounds:Butthead c:MyProgram
+
+   - Hides the program "c:MyProgram" inside "Sounds:Butthead" and
+     saves to the default destination "RAM:encrypt".
+
+@endnode
+
+@node Ext "Stega: Extraction"
+
+The Extract command is used to read a message from a carrier and save
+it to a file.
+
+ Example usage:
+
+   Stega x Sounds:Butthead c:MyProgram
+
+   - extracts the message from "Sounds:Butthead" and saves it to the
+     file "c:MyProgram"
+
+   Stega x RAM:Bevis
+
+   - extracts the message from "RAM:Bevis" and saves it to the default
+     destination "RAM:decrypt".
+
+@endnode
+
+@node View "Stega: Viewing"
+
+The View command prints the hiden message to the shell from which Stega
+was run.  It is also possible to use a pipe to redirect the output to
+a printer.
+
+View should only be used for text messages.  Using it with binary
+mesages will result in garbage being printed and probably a system beep
+or two.  Although harmless, this is annoying and should be avoided.
+
+ Example usage:
+
+   Stega v RAM:Screams
+
+   - Reads hidden text in file "RAM:Screams" and displays in the shell.
+
+   Stega -q v Work:GenericMPython > PRT:
+
+   - Reads hidden text in file "Work:GenericMPython" and sends it to
+     the printer without any diagnostic information (-q).
+
+@endnode
+
+@node Future "Stega: Future"
+
+- Support for compressed formats
+- support for DEMs (Digital Elevation Maps) if possible
+
+@endnode
+
+@node Bugs "Stega: Bugs & Limitations"
+
+BUGS:
+ - none yet known
+
+LIMITS:
+ - no support for compression
+
+@endnode
+
+@node History "Stega: History"
+1.0b - initial release
+1.01 - added RIFF-WAVE compatability
+     - recognizes weather or not an ILBM is compressed
+       (still won't use compressed ones, though)
+     - general cleaning up of the IFF/RIFF parsing code
+1.02 - fixed problem with the encoding of the message size
+       Wouldn't work properly with sizes 512 <> 256
+     - Another problem with message size fixed... It is now
+       not quite compatable with earlier releases. DANG!  Oh
+       well... it works better now.
+     - changed command names (encrypt=hide, decrypt=extract,
+       read=view.) so that it makes more sense.  Old commands
+       still work (EDR).
+     - created AmigaGuide documentation
+1.03 - added IFF-DEEP compatability
+@endnode
+
+@node Leg "Stega: Legal Stuff"
+
+Stega copyright © 1995-96 Lyle Zapato, all rights reserved
+
+Stega is copyrighted freeware.
+
+It may be freely distributed as long as this document (Stega.guide)
+is kept with it.  Stega may not be used for military or comercial
+purposes.  Nor may it be used for temporary relief of minor back
+aches, but that's another story.
+
+There is no guarantee, expressed or implyed, as to the ability or
+suitability of Stega.  The author, Lyle Zapato, takes no
+responsibility for the use or misuse of Stega.  Nor does he take
+any responsibility for the rise in the price of paper, but that's
+another story.
+
+NOTE: The exportation of cryptography from the USA is governed by
+the same trade sanctions as sidewinder missiles and germ-warfare
+agents.  As far as I know, steganography is not included with
+cryptography in these matters, but I may be wrong.  In any case,
+Lyle Zapato shall not be held accountable for the egregious
+transgression of any exportation regulations by miscreants who
+failed to heed the above warning and either didn't check to see
+if what they were doing was legal or, knowing full well the
+illegality of such actions, went ahead and did them anyway. Lyle
+Zapato denounces such actions as counter to the greater good and
+joins with the regulatory body pertinent in such matters in
+agreeing that the perpetrators deserve whatever punishment the
+law decrees.  ALL HAIL THE NSA!!  VIVE EL HERMANO GRANDE!!
+(there, that should cover my ass.)
+
+@endnode
+
+@node PGP "Stega: PGP Signatures"
+
+Stega uses PGP signature files for authenticity verification.
+You will need PGP (Pretty Good Privacy), the public-key
+cryptographic program, in order to use these.
+
+Below is my (Lyle Zapato) signed public key.  Add it to your
+keyring by typing:
+
+   pgp Stega.guide
+
+To check if a signature (xxx.sig) matches its associated file,
+type:
+
+   pgp <filename>.sig <filename>
+
+PGP will warn you if the signature doesn't belong to the file
+or if it is not from me.
+
+If you have any trouble understanding or using the above
+instructions, please consult the PGP documentation.
+
+-----BEGIN PGP MESSAGE-----
+Version: 2.6.2
+
+owHrZJjKzMpgMEm1a9XS+Beze/atZGQs/sn83zfqvKxi+9XuU9a8Pl9/v1/93X/2
+4nDuA0onErjYQ1VcSyJPiKyda7SturjM8bFXV2+7rs/L3kfvXBJeHpzQEGn/cL+r
+5/6DpWFB4TX3nIqUeq+kqTl1H7z/9eLEZ5cOb5xz91NZ56dJWcEed1preFdu8Fyd
+UnPm6r7Q9e3P9CMq3sqJHF1bs5bRJYmjJLW4RC+xOJkBCHRBwMnV3dNPIcA9QCEg
+1MnH01nB2zVSwcnH39kbLM0VllpUnJmfZ6VgpGemZ8TFlRvo7OdY5Rzs6eTp6Ojo
+6uoYkFFRYBiRnlNpFFIY5hLkVBUcFOlh4JwSpJ+U4mee5G6YHJmYl6Ht72uQbGHo
+5sflbhJq6WsQFhXu4uXt51nh6xPpqu/n5V+V61IeUq7vlVxoGeVempIXHpxtbGpg
+nulk7O5rUBaZ6JQe7OEUmZjtwxVskOFsnmluaOgTVeihHeRsXOxs7pTun+1s6J2U
+FJJv4luUXeTuU1ISlZdhUGIZkeFlVpgToZ2ZlOVjVuDoGBrEVeJY4psaXpHj6VaQ
+kezuZpBUbmvLZVsU7OrPBfazq58LngABAA==
+=W+gj
+-----END PGP MESSAGE-----
+
+@endnode

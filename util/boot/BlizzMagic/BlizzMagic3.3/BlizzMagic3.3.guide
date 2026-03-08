@@ -1,0 +1,394 @@
+@DATABASE BlizzMagic.guide
+@$VER: guide for BlizzMagic 3.3 (02-01-97)
+@AUTHOR Jan Hlavaty (mamlason@tnet.cz)
+@node main "Welcome"
+                     @{B}BlizzMagic V3.3@{UB}
+
+  Kickstart ROM remapper for A1200 & all Blizzards i know :-)
+
+                     F R E E W A R E
+
+                    @{"   What's new    " link Whatsnew}
+                    @{"  Introduction   " link Introduction}
+                    @{"  Requirements   " link Requirements}
+                    @{"      Usage      " link Usage}
+                    @{"    Problems     " link Problems}
+                    @{"  Support Tools  " link Tools}
+                    @{"     Author      " link Author}
+                    @{"    History      " link History}
+                    @{"     Future      " link Future}
+@endnode
+@node Whatsnew "What's new?"
+
+This release is only a small bugfix, making BlizzMagic work
+on 1240 too... silly lea<>move bug :-)
+
+@endnode
+@node Introduction "What it does"
+
+  What it does?  Well, almost the same as many other #?kick programs -
+allows use of different Kickstart ROM than your computer actually has.
+But - it has some other features, that make this program more than just
+a softkicker.  One of the most interesting features is moving exec.library
+(which is one of the most heavily used libraries in system) base into
+fastram.  Because Blizzard's expansion RAM stays on the bus all the time,
+the only reason why system doesn't use it from the very start of system
+initialization is, that fastram is added into free memory list at "diag
+init" time, when "exec.library" is already fully initialized and can't be
+easily moved into fastram (although it IS possible - I did such a patch
+before).  So, BlizzMagic patches loaded ROM (since it's in RAM, and can be
+patched easily) and adds Blizzard's memory into free memory list BEFORE the
+final initialization of "exec.library".  Exec then uses fastram for
+everything automatically.
+
+  Another feature of this "fastram" patch is that it changes memory
+attributes of Blizzard's RAM to reflect it's real behaviour. This results in
+ability to store reset-surviving objects such as "RAD:" devices into this
+fastram. You can for example have four RAD: units now! This wasn't possible
+before because RAD: disk images had to be stored in chip-ram, which was the
+only memory available with required attributes. That's history now!
+You may even move CPU interrupt vectors to fastram using MOVEVBR option.
+If you need to use "prepareemul" or similar tool, you can stop using it now,
+because BlizzMagic can do even this for you :-)
+
+  There are also functions that affect behaviour of Blizzard Turbo board
+itself. You can skip that flashing pause on reset when Blizzard says "I'm
+here" - this is nice when you reboot often. You can also disable SCSI kit.
+This is good when you have SCSI kit with SIMM installed, but no SCSI devices
+connected. You can skip "1230scsi.device" initialization, saving few seconds
+of searching SCSI bus for devices on every reboot.
+
+  Most attractive use of BlizzMagic will probably be using a new 3.1 ROM
+on an old Commodore A1200 with 3.0 ROM. There is a @{"tool" link Tools} for grabbing ROM
+image from CD32 or A1200 Magic provided in BlizzMagic distribution archive.
+Warning! Don't use A4000 3.1 ROM's - these don't work in A1200! Also note
+that using a grabbed rom may be illegal, since it's copyrighted. I warned you.
+Maybe when you grab it from your own CD32 and don't use both at once... I'm
+not a lawyer but a programmer... do what you want with BlizzMagic, but YOU
+are responsible for that. Don't blame me!
+
+  You can even softkick a old-style 256k 1.3 ROM, but BlizzMagic can't
+patch such a ROM without having to know it exactly. This is because
+"exec.library" is not a real "resident module" in these old-style ROM's.
+This means you can't use any of the advanced features of BlizzMagic -
+exec->fast, flash skipping... Maybe I'll support this in future, but who
+wants to use 1.3 these days anyway? I deleted all software that doesn't
+work on 3.0 years ago... These were poorly programmed and thus weren't
+worth it anyway...
+
+  You can use all the features even when you don't want to softkick any
+ROM (when you already have 3.1 ROM, for example). Just use "*" as filename
+and BlizzMagic will use your original ROM. No problem!
+
+For detailed instructions on usage of BlizzMagic, see @{" Usage " link Usage} chapter.
+
+@endnode
+
+@node Requirements "What do you need"
+
+To be able to use "BlizzMagic", you need an Amiga 1200 with OS 2.0+
+equipped with phase5's Blizzard 1230, 1240 or 1260 and some FAST memory
+installed (4MB should be fine, I have 8MB). Blizzard should be configured
+via jumpers to enable its ROM->RAM remapping feature (MAPROM jumper) - see
+Blizzard's manual for this.
+
+Of course you need some ROM image too..  If you have an old A1200 with
+OS3.0, you can visit your friend who has a newer A1200 with OS3.1, and use
+provided "rom grabber" to grab his ROM when he has left for a while :-).
+CD32 is a good target for grabbing too.  So far I've tested these
+Kickstarts:
+
+40.68	(my machine's own ROM)
+39.106  (normal old A1200)
+37.175  (A500 version? no IDE)   \__ these didn't work on 1260
+37.350  (A600 one - IDE WORKS!!) /
+34.5	(??? I don't know much about this one)
+
+WARNING: DO NOT GRAB ROM on computer with BlizzMagic in use -
+BlizzMagic patches the ROM.  Such ROM would be unusable!  (As it
+jumps to RAM address, where resident part of BlizzMagic was
+located).  This is not a real problem, since one who uses BlizzMagic
+already has that ROM in a file :-)
+
+@endnode
+
+@node Usage "How to use it"
+
+Brief overview of usage:
+
+BlizzMagic <filename> <options>
+
+<filename> is a filename of your ROM file, or @{B}*@{UB} when you don't
+want to load any ROM.
+
+<options> is one or more of following:
+
+@{B}STARTUP@{UB} - specify this when you're putting BlizzMagic into
+startup-sequence. When this switch is specified, BlizzMagic will only
+load a new ROM when there's NO ROM loaded already. This means it will
+work only first time after power-on. Technically, BlizzMagic will only
+act when the ROM installed is equal to your original ROM.
+
+@{B}NOSKIPFLASH@{UB} - Turns off flash-skipping, which is ON by default.
+This has no effect on SCSI.
+
+@{B}NOSKIPOFF@{UB} - Turns off "2" key detection on 1230IV and also
+screen flashing on 1260. You won't be able to turn Blizzard off
+until power-off.
+
+@{B}MOVEVBR@{UB} - This does the same as similar option in FastExec -
+moves VBR vectors into fastram, resulting in slight speedup of interrupts.
+
+@{B}PREPAREEMUL@{UB} - This option replaces "prepareemul" tool from
+ShapeShifter. It moves start of chip-ram to $2000, so Mac emulators
+can use low memory for their system. This option automatically
+implies MOVEVBR.
+
+@{B}NOSCSI@{UB} - Turns off SCSI initialization. This means Z3/1230scsi.device
+won't appear at all and SCSI bus won't be searched for devices. Speeds
+up booting when no SCSI devices are connected.
+
+@{B}NORESIDENT@{UB} - Turns off resident part of BlizzMagic. This disables
+all other features (flash/off skipping, NOSCSI, exec->fastram, fastram
+attribute correction). Specified ROM is simply loaded over the currently
+installed one without any patching. This is also the case for old-style
+(1.3) ROMs, which can't be currently patched by BlizzMagic.
+
+@{B}FORCE@{UB} - Forces ROM replacement, even when both ROMs have
+the same version and revision. Mainly for debug purposes, but can be
+used for loading patched version of your normal ROM. Note that STARTUP
+switch overpowers FORCE - when both are specified, ROM won't be replaced
+when there is already some ROM installed, even with FORCE switch.
+
+
+Using BlizzMagic:
+
+When you want to use a new (maybe 3.1) ROM all the time, you may want
+to put BlizzMagic into your startup-sequence. It should be put
+as a @{B}first command@{UB} (even before SetPatch) in @{B}s:startup-sequence@{UB}, not
+in user-startup! Enter this at start of your s:startup-sequence:
+
+@{B}BlizzMagic @{UB}<filename>@{B} STARTUP@{UB}
+
+This will load a specified ROM when there's no rom installed already.
+STARTUP switch enables loading any rom later using BlizzMagic from Shell -
+It won't be replaced back when you have BlizzMagic in startup-sequence.
+
+When you don't want to load any ROM but still want to use BlizzMagic's
+features, put this at start of startup-sequence:
+
+@{B}BlizzMagic * STARTUP@{UB}
+
+This doesn't load any ROM, but moves exec to fast, fixes fast memory
+attributes and skips flashing.
+
+@{B}BlizzMagic * STARTUP NOSCSI@{UB}
+
+This does the same as the previous one, but also disables SCSI.
+
+When you want to restore your original ROM, use this from Shell:
+
+@{B}BlizzMagic * NORESIDENT@{UB}
+
+Note that in this case STARTUP switch won't keep BlizzMagic from loading
+ROM when it's in startup-sequence, as it sees there's no ROM installed.
+Also, you won't be able to restore ROM this way when you softkicked
+1.3, since BlizzMagic requires OS2.0+ for parsing arguments. Maybe
+I'll add a functionality on 1.3 for restoring ROM only (* NORESIDENT)
+in future.
+
+
+@endnode
+
+@node Author "Who cares about me, anyway?"
+
+Well, seems I've definitely decided to become a famous Amiga programmer,
+so take a note of my e-mail address. It hasz changed recently, because
+I changed to real ISP.
+
+                        mamlason@tnet.cz
+
+I'm also reachable at this address, but prefer above:
+
+                        hlavaty@amiga.cz
+
+
+The "Real" world address:
+
+                       Jan Hlavaty
+                      Tadzicka 1424
+                        Praha 10
+                          10100
+                      Czech Republic
+           (It's in central Europe, you dumb :-)
+
+I'm on IRC sometimes as "Mamlason"... I like giving away cookies :-)
+
+I would like to thank the following people:
+
+
+- Christer Bjarnemo for his ideas, opinions and moral support as well as
+other things I didn't mention here :-)
+
+- Stephen Evans ("Mr_Q") for launching suspicious code I DCC'ed him on his
+machine to provide me with essential information about Blizzard 1230III
+(it was not a virus - this time :-), and for being the first happy user of
+BlizzMagic on 1230III. He aslo bought 1240 recently and had to make
+tons of reboots when we were looking for that silly bug.
+
+- Helmut Kroeber, Rorderick (?  that's all I know about you),
+Luke Osbaldeston, Alessandro Zummo and all other people who emailed me
+(and will email me) for their comments and showing interest in my work.
+
+- "BillRiker" on IRC for the same as "Mr_Q", but on 1230 II
+
+- Harry Sintonen (author of BlizKick) for cloning BlizzMagic (Yeah!  I was
+first :-), thus making me believe it's worth it :-).  Isn't it nice many
+Amiga programs exist in pairs, making each other want to be better than the
+other?  Well, rivalry is a strong motivation, thanks for that :-) (as this
+is the only motivation that works on ME - I'm very lazy otherwise)
+
+- Any other persons/entities I forgot that exist on IRC or in general
+cyberspace, that helped me by discussing and/or beta-testing BlizzMagic.
+
+- Michal Suk from Atlantida for borrowing me Blizzard 1260 for a weekend,
+thus allowing me to make BlizzMagic work perfectly on 1260.
+
+@endnode
+
+
+
+@node Problems "Possible trouble with BlizzMagic"
+
+There are some tips for using blizzmagic:
+
+- When putting BlizzMagic into startup-sequence, always put it
+at the very first line, before SetPatch. Specify STARTUP switch there.
+
+- Do not use conflicting programs at once with BlizzMagic in
+startup-sequence.  These may be "FastExec", "PrepareEmul" or similar tools
+which change something and then reboot.  Such programs can get into fight
+with BlizzMagic easily and there is NO need to run them now, as BlizzMagic
+can do the same :-)
+
+- Check that ROM you're going to use is for A1200. Couple of people reported
+problems using A4000's one.
+
+- I had problems with some <3.0 ROMs on 1260. I think these won't
+work at all and shouldn't be used.
+
+- Someone reported that BlizzMagic doesn't work with his old shitty
+harddrive.  HDD just disappeared and screen requesting bootdisk popped up.
+This is because Amiga initializes too fast, so silly harddrive used
+to PeeCee's several-minutes-selftest just isn't responding at this
+time. If this is the case, try cutting RESET line (1, usually pained red)
+to hdd. If that fails, try not to skip flashing pause (NOSKIPFLASH).
+If that fails too, throw HDD out thru window and get a real one :-)
+
+
+@endnode
+
+
+
+@node History "What happened since..."
+
+V1.0:  First public release, for Blizzard 1230 IV only...
+       Used overlay trick which confused most programs patching
+       LoadSeg(). Not bad, but...
+
+V2.0:  Complete rewrite and concept change, now supports 256k ROMs
+       and checks for ROM loaded. Still for Blizzard 1230IV only... :-(
+       Released on coverdisk of Czech magazine for Amiga users "AMIGA Review"
+
+V2.1:  I catched a 1230III owner on IRC finally (hi Mr_Q) and adapted
+       BlizzMagic to use 1230III too. Now supports versions III and IV.
+       Still no bugs found.
+
+V2.2:  Someone wrote to me it could be very nice feature to make BlizzMagic
+       copy exec to fast ram, since using "fastexec" and "BlizzMagic"
+       together results in two reboots. I was surprised that the first
+       attempt I made was successful - one evening work :-). Only 1.3
+       seems to dislike my way using romtags, so no fast exec on v34...
+
+V2.3:  I discovered that Blizzard's RAM (at least on IV) doesn't go
+       away after reset - It's only unknown to the system until
+       diag init phase adds it to the free memory list.  I changed the
+       FASTEXEC mechanism and corrected fastram attributes to reflect
+       this - BlizzMagic adds fastram just before exec.library gets
+       initialized, thus effectively moves exec and system stack to fastram.
+       FASTEXEC doesn't use the KickMemPtr/KickTagPtr/KickCheckSum vectors
+       so that RAD: can be used and doesn't have to be in chip-ram.
+       Also "boot with no startup-sequence" can be used again.
+       Now you can have more than two RAD: units due to large amount
+       of suitable memory available.
+       Also added a feature to skip the one-second flashing pause
+       in Blizzard's initialization - BlizzMagic adds the memory
+       on its own and bypasses Blizzard's initialization. If you have
+       "scsi kit" installed, disable this using "NOSKIP" option.
+       Added a nice effect on reboot.
+
+V2.4:  I got my hands on unguarded 1260. BlizzMagic should work
+       on that too! I was surprised that 1260 has the same
+       product number as 1230IV... and it works the same way!
+       Unfortunately, there is still something wrong - i'll get this
+
+V2.5:  Found someone with 1230 II finally. BlizzMagic now supports
+       that too! Now there's only one left... and maybe 1260.
+       This is second public release on Aminet.
+
+V3.0:  Complete rewrite. Changed way of patching ROM - now there are
+       two patches: "exec.library" and "diag init" init vectors.
+       Now supports all models of Blizzard 1230. Added option
+       for skipping SCSI initialization. Added support for easy launching
+       of BlizzMagic from startup-sequence. Third Aminet release.
+
+V3.1:  BlizzMagic now fully works on 1260. Also added skipping
+       of "2" key detection on 1230IV and 1260. Now skips flashing
+       on 1260. Added checks of options of currently resident
+       BlizzMagic. BlizzMagic WILL reboot now when ROM's are same
+       but selected options are different. Should be another Aminet
+       release, but progress went too fast this time...
+
+V3.2:  Added option for moving VBR vectors into fastram. Added replacement
+       for "prepareemul" tool. Another Aminet release.
+
+V3.3:  Bugfix release - now should work on 1240 also.
+@endnode
+@node Future "Back to... no, that was another story."
+
+@{B}My future plans with BlizzMagic@{UB}
+
+I'll continue to develop BlizzMagic as long as someone wants it.
+So far, none requested this, so why should i bother :-)
+There are some possible improvements of BlizzMagic:
+
+- Support for rekicking back from 1.3 ROM
+
+- Add patch for 1230 I and II similar to "patch1230scsi"
+
+I also work on other assembly projects, but they're small
+(since it's too much work with assembler to make big projects,
+and as I said - I'm too lazy) and won't be probably released
+on Aminet.
+
+I'm also learning C/C++ to be ready for A/Box, so I'm developing
+a small game "FiveInLineTCP". It works already in 2player local
+mode, but i plan TCP/IP playing and won't release the game until
+I finish this. AmiTCP/Miami compatible.
+
+I hope you'll hear of me in the future :-)
+@endnode
+@node Tools "These small usable thingies"
+
+There are three little pig- err... tools provided with BlizzMagic:
+
+@{B}FixSum@{UB} - can be used to fix checksum of 512k ROM. Such
+(patched) rom can be used with NORESIDENT then.
+
+@{B}StealROM@{UB} - saves ROM of computer it's executed on into
+file named "GrabbedROM".
+
+@{B}ReconnectModules@{UB} - run this on ROM file - makes
+(very-very-little) speedup of ROM resident modules recognition.
+
+@endnode

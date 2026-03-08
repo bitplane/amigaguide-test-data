@@ -1,0 +1,453 @@
+@DATABASE speakfreely.guide
+
+@WIDTH 80
+
+@AUTHOR{Michael Cheng}
+
+@NODE MAIN "speakfreely.guide"
+
+unrealaudio  v0.1b
+
+Dodgy docs and dodgy program written/converted by @{" Michael Cheng " link "Author"}
+
+***** @{" Hacker's Release " link "Hackers"} *****
+
+@{" Introduction " link "Introduction"}
+@{" History " link "History"}
+@{" Terminology " link "Terminology"}
+@{" Requirements " link "Requirements"}
+@{" Getting Started " link "Getting Started"}
+@{" Amiga Specific Info " link "Amiga Specific Info"}
+@{" Sampling " link "Sampling"}
+@{" Compression/Bandwidth/Audio quality " link "Compression"}
+@{" Slirp/TIA Users " link "Slirp"}
+@{" Problems " link "Problems"}
+@{" Future " link "Future"}
+@{" Acknowledgements " link "Acknowledgements"}
+@{" Author " link "Author"}
+@{" Appendix " link "Appendix"}
+
+@ENDNODE
+
+@NODE "Hackers" "Hackers"
+
+This is a hackers release only!
+
+It's not complete. It doesn't have full functionality. I'm releasing for people
+to play with and make suggestions and contributions.
+
+This port of the unix software lacks some important features that some may feel
+are essential for an internet phone util.  For example, there is no in-built
+sampler support whatsoever, and there is no support for playing direct to the
+audio.device.
+
+BUT...
+
+This port includes the ability of the unix version to send and receive sound
+files, and with a bit of cunning nearly full functionality can be maintained. 
+It will require a little perseverence and some knowledge of the amiga.
+
+You aren't going to be spoon fed the info. Read the man pages and get a grasp on
+what's going on, and what options are available to you.
+
+I've included a couple of source files, which are the ones that are going to
+require the most work if we want to have native amiga audio hardware support.
+ (The complete source is available on the @{"web" link "Appendix"}.)
+
+soundbyte.c contains the majority of the sound output routines.  In the current
+port of this software, I've just butchered them all to be empty functions that
+return without doing anything. (Returning TRUE if required by the program).
+
+mike.c is where the sampling takes place.
+
+Suggestions on how to write similar functions for amigados are welcome.
+
+@ENDNODE
+
+@NODE "Introduction" "Introduction"
+
+I whinged, I bitched, I moaned. Did it get me anywhere? Nope.
+
+A cross-platform internet chat tool was all I wanted.  Using a readily available
+protocol like RTP, and a readily available codec like GSM or ADPCM and being able to
+talk to other computers.
+
+(Let me state clearly, right from the start, that I am not a programmer. I can't
+do GUIs.  I'm useless at programming native amiga devices.  One of these
+days I'll learn how to program for the audio device. But not today.)
+
+@{"SpeakFreely" link "appendix"} is a cross platform internet chat tool.  It exists for Windows
+and for unix machines.  This archive is a conversion of the unix version.
+
+@ENDNODE
+
+@NODE "History" "History"
+
+v0.1
+    24 August 1996  - Initial release
+                    - Port of speakfreely unix source version 6.1b
+                    - using ADE 960714
+                    - Made some source @{"Modifications" link "Modifications"}
+
+v0.1b
+    29 August 1996  - Wrote a simple GUI using Gui4Cli
+                    - Updated the docs in regards to
+                        + configuring slirp
+                        + sampling
+                        + aud: buffers
+
+
+@ENDNODE
+
+@NODE "Terminology" "Terminology"
+    codec - coder/decoder   compressor/decompressor
+    FIFO  - first in, first out
+    RTP   - Real-Time Transport Protocol (RFC1889)
+    GSM   - Global System for Mobile telecommunication (a sound codec)
+    ADPCM - Adaptive Pulse Code Modulation (a sound codec)
+    echo-server - simply rebroadcasts packets to their point of origin.
+    ADE   - Amiga Development Environment
+
+@ENDNODE
+
+@NODE "Requirements" "Requirements"
+    - a 68020+
+
+    - a net connection and a TCP stack.  Only tested with AmiTCP. Not too
+        sure on slirp/TIA compatability.
+
+    - The following programs will need to be installed correctly
+        (all can be found on aminet)
+
+        + ixemul43+         dev/gcc/ixemul
+        + audio-handler     mus/play/Audio-Handler.lha
+
+    - If you wish to use the direct unix port (which uses the less common
+        u-law AU format), or you want to experiment with getting sound
+        sampling working, you will probably need these as well
+
+        + FIFO-handler      util/misc/fifolib38_1.lha
+        + AmiSOX            mus/edit/AmiSOX33.lha
+
+        (I'm sorry about all these programs, but until I can put the audio
+        handler into the code directly it will have to be a dodgy hack)
+
+    - If you want to use the GUI you will also need to grab the programs
+
+        + Tbreak            util/cli/Tbreak.lha
+        + Gui4Cli           dev/gui/Gui4Cli.lha
+
+    - Plenty of stack. 40000 is my default stack. I know for sure that it'll
+        guru or alert if you leave the stack at (the default) 4000. 20000 seems
+        to be a good figure.
+
+@ENDNODE
+
+@NODE "Getting Started" "Getting Started"
+
+Be aware that this is a @{"Hacker's Release" link "hackers"} of the software. 
+There is:-
+        - no direct support for a sampler (but this can be worked around)
+        - no direct support for amiga sound hardware (workaroundable)
+        - work involved in getting it working.
+
+    1.  Read all the @{"man pages" link "man pages"} and the @{"web page" link "Appendix"}
+
+    2.  Read @{"Amiga Specific Info" link "Amiga Specific Info"}
+
+    3.  Install all the helper applications needed.
+
+    4.  Start the sfspeaker program, with the option enabled such that it will
+            pipe audio to the audio-handler and wait for audio to come:
+
+            sfspeaker.direct -raud:
+
+    5.  Open another CLI and bounce a test message off an @{"echo-server" link "terminology"}
+
+            sfmike -f rpcp.mit.edu woo.au
+
+    6.  Wait about 10 seconds for the audio to get back to you.
+
+
+
+NB For higher quality audio use an alternate step 4. I'm not entirely sure
+whether this is actually better. I think my ulaw->linear kludge in
+sfspeaker.direct may be OK.
+
+    4a: Set up named FIFO pipes for the sound so that amisox does the sound
+          conversion before feeding it to the audio-handler
+
+            sfspeaker -rfifo:inc/wmKe
+
+    4b: New CLI
+            sox -t ul fifo:inc/r -t iff aud:
+
+
+@ENDNODE
+
+@NODE "man pages" "man pages"
+
+Go read them in the man directory.  just 'more man/sfmike' etc
+
+@ENDNODE
+
+@NODE "Sampling" "Sampling"
+
+Due to this being a @{"Hacker's Version" link "hackers"} there isn't direct
+support for amiga samplers.  I don't even own one. (I've been testing with the
+Sun version of speakfreely).
+
+But it is possible to write a script with equivalent functionality.
+
+Under WB3+ you can use PIPEs (otherwise you can use FIFO from aminet)
+
+    - start the sampler recording by doing
+         agmsrecord HZ 8000 pipe:a
+
+    - start broadcasting by doing
+         sfmike.direct <host> pipe:a
+
+This still isn't perfect as agmsrecord tends to lock the audio.device even after
+you've quit it.
+
+@ENDNODE
+
+@NODE "Amiga Specific Info" "Amiga Specific Info"
+
+Due to the @{"Modifications" link "Modifications"} I've made to the unix source
+there are some particular warnings when using these programs.
+
+    stack  - give the programs plenty of stack. 20000 is a nice figure.
+
+    sfmike - never use sfmike without specifying a sound file to be sent. 
+             Otherwise, sfmike looks for some audio hardware which it doesn't have a clue
+             about, and will promptly guru
+
+    sfmike.direct - hacked to accept the more common 8bit linear Sun Audio
+                    sound files as input.
+
+    sfspeaker - always specify a file to which to save the sound (else it will
+                try to play the sound when I haven't told it about the sound hardware ie guru)
+
+            There are 2 versions of sfspeaker.
+                + sfspeaker - saves audio in 8bit u-law Sun audio format.  This
+                        is incompatible with Play16 and the audio-handler, and
+                        will need conversion with amisox.
+                + sfspeaker.direct - hacked version that outputs the more common
+                        8-bit linear Sun audio format. Really crappy conversion
+                        routine though. (The header of the output file is still
+                        marked as u-law so if you save to disk with this version
+                        then it will sound awful even if converted)
+
+    sfvod - this will not work due to the limitations of the amiga PERL port.
+            Included for completeness.
+
+    encryption - none of the encryption routines have been tried.
+
+    lpc compression - Offers real-time decompression on an 040 (Haven't
+                        tried compression yet, but it is very CPU intense)
+
+@ENDNODE
+
+@NODE "Slirp" "Slirp/TIA Users"
+
+This program has been successfully tried with Amitcp and Slirp.  To do so, you
+will need to redirect some of the SLIRP ports using either the telnet control
+CLI of slirp, or adding it to your .slirprc.  Add/Do the following in slirp
+    redir UDP 2074 2074
+    redir UDP 2075 2075
+    redir TCP 2076 2076
+
+Theses are the default ports re-routed from your host to your machine. If you
+are going to use non-standard ports, change it accordingly.
+
+
+I don't use TIA, nor do I have any decent docs for it, but you should be able to
+do a similar redirection of ports. Make sure you specify 2074 and 2075 as UDP
+ports.
+
+@ENDNODE
+
+
+@NODE "Modifications" "Modifications"
+
+Modifications to original source:
+
+    - Makefile
+        Manually set the -DMYDOMAIN switch to 'newcastle.edu.au' due to naff
+            getaddressbyhost() error
+
+    - adpcm/adpcm-u.o  had to be made by hand
+
+    - lpc/lpc.o had to be made by hand
+
+    - soundbyte.c got butchered mercilessly.  Commented out all the sound
+         initialization, shutdown and playing routines so that they all do
+         nothing.
+
+    - speaker.c modified slightly to compile sfspeaker.direct which outputs
+        8 bit linear Sun Audio
+
+    - mike.c modified slightly to compile sfmike.direct which will accept
+        8 bit linear Sun Audio as input.
+
+@ENDNODE
+
+
+@NODE "Problems" "Problems"
+
+    - There is a periodic pause
+
+    This is a problem with audio-handler.  The output is double buffered, but
+when it swaps buffers, there is a pause.  For small size buffers (0x8000) the
+pause is tiny, but frequent.  For large buffers (0x40000 is the largest) the
+pause is huge (3seconds??) but there's a longer time between pauses.
+
+    - If you hear just big pauses and little snippets of sound
+
+    Could be one of 2 things:
+        + Bad connection: try the '-c' option to halve bandwith requirements
+        + CPU too slow: try a lower overhead codec. ADPCM and/or '-c'
+
+    - If you can't seem to get the pipes to function
+
+    If you're unlucky, a program locked onto a pipe and is not letting
+it go, and yet not doing anything with it.  You'll just have to start the pipes
+with a different name   eg  fifo:inc2/r  etc
+
+    - Can't play the soundfile received with sfspeaker
+
+    The program outputs Sun Audio (.au) format files using 8bit u-law samples. 
+This will promptly crash Play16.  Convert the file with amisox.
+
+    - Problems with TIA
+
+    Speakfreely uses UDP packets. Not sure how this relates to TIA
+
+    - Audio sounds awful
+
+    Makesure you are trying to use audio of the correct format.
+        sfmike - requires u-law .au files
+        sfmike.direct - requires linear .au files
+        sfspeaker - outputs ulaw .au
+        sfspeaker.direct - outputs linear .au (but with a ulaw header that is
+                            ignored by aud: )
+
+    Also, there is a trade-off between bandwidth and processing power.  My
+        vanilla 1200 can barely do GSM encoding.  Asking it to do encoding and
+        decoding of GSM at the same time is silly.  Choose an easier compression
+        (such as ADPCM) but be aware that this increases your bandwidth
+        requirements.  When there isn't enough processing power or bandwidth
+        available, the audio will get choppy and may stop completely.
+
+    - AUD: buffers the sound.
+        Often sound is left in the buffer and is unplayed until something comes
+        into the buffer to force it out, or you quit the program that was
+        feeding audio to it.
+
+@ENDNODE
+
+@NODE "Compression" "Compression/Bandwidth/Audio quality"
+
+There's no such thing as a free lunch.  That basically summarizes the trade-off
+between these three factors: compression, bandwidth, audio quality.
+
+Compression
+
+    - the greater the compression, the more CPU power required
+            It's conceivable that a vanilla 1200 can do ADPCM decoding and
+            emcoding simultaneously in real time. A 40MHz 040 can do real time
+            GSM encoding and decoding, but only has the power to do LPC encoding
+            *OR* decoding. Not both.
+
+
+    - compression causes sound degradation.
+
+Bandwidth
+
+    - When the bit rate of the signals between yourself and your target host
+            are greater than your bandwidth, the sound-packets coming into your
+            machine arrive more slowly than you are playing them.  This will
+            cause gaps in your playing.
+
+Audio-quality
+
+    - compression causes sound degradation
+
+    - too little bandwidth will cause sound degradation ie breakup, pauses.
+
+
+In general
+
+Highest quality audio       ------------------->     Lowest quality audio
+Highest bandwidth           ------------------->     Lowest bandwidth
+Low CPU power               ------------------->     High CPU power.
+
+                      ADPCM   GSM        LPC   LPC10
+
+
+TIPS
+    - I have found half rate ADPCM (-f -c) to be acceptable
+    - Remember you can send and receive at different compression rates
+    - Even when you are only sending silence, you are still incurring the
+        penalty of compression.
+    - Play around with echo-servers (rpcp.mit.edu et al) to gauge what your
+        system is capable of
+    - Run 'sfspeaker' on your machine, and then run 'sfmike localhost sound'
+        to test your machine without using an echo server
+
+
+@ENDNODE
+
+@NODE "Future" "Future"
+
+The Future is in your hands.  If you feel you can implement any of the following
+or want to contribute to the program so it does, don't hesitate to contact me.
+Don't even hesitate to do it yourself. The unix source is freely available (See
+@{"Appendix" link "Appendix"}.
+
+Possibilities
+
+    - Direct audio.device support
+
+    - Direct sampler support
+
+@ENDNODE
+
+@NODE "Author" "Author"
+
+Mail me, Mail me, Mail me. Send me ideas, money, chocolate or a life.
+
+Michael Cheng
+memfc@alinga.newcastle.edu.au
+http://joffre.newcastle.edu.au/
+Cstar on #amiga
+
+@ENDNODE
+
+@NODE "Acknowledgements" "Acknowledgements"
+
+This little project wouldn't have been possible without the following people who
+write such useful stuff for the amiga.
+
+    John Walker (Kelvin@fourmilab.ch) for SpeakFreely
+    Matt Dillon et al for FIFO
+    Martin Brenner (martin@ego.oche.de) for Audio-Handler
+    Dana Cooper (dgc3@midway.uchicago.edu) for AmiSOX
+
+And the online testers.
+    Exec, Tachyon, KDThunder, ick.
+
+@ENDNODE
+
+@NODE "Appendix" "Appendix"
+
+GSM Page: http://kbs.cs.tu-berlin.de/~jutta/toast.html
+
+SpeakFreely Page: http://www.fourmilab.ch/speakfree/windows/speak_freely.html
+
+RTP: see RFC 1889
+
+
+@ENDNODE
+

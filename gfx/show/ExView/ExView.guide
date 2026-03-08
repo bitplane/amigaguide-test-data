@@ -1,0 +1,947 @@
+@DATABASE "exview.guide"
+
+@NODE Main "ExView Documentation"
+
+                               ExView V1.3
+                          Released June 28, 1998
+                           
+                  Copyright © 1997-1998 by Ryan Johnson
+                           All Rights Reserved.
+   
+   @{"Introduction        " link Intro} What is it?
+   @{"Changes             " link Changes} ExView version changes
+
+   @{"Startup Options     " link Startup} Getting started
+   @{"ExView GUI Reference" link GUI} What does that button do?
+   
+   @{"Development Info    " link DevInfo} For the curious...
+   @{"Author              " link Author} Contact info
+
+   @{"Acknowledgments     " link Nod} Thanks, and other copyrights
+   @{"Distribution, etc.  " link Legal} Legal stuff
+   
+@ENDNODE
+
+@NODE Intro "Introduction"
+      
+      ExView is a fast and dynamic IFF-ILBM viewer written for AmigaDOS
+   2.04+, with AGA Amigas in mind.
+      It was written with the SAS/C Development System V6.58, is fully
+   optimized and Amiga-specific (i.e., not riddled with excess ANSI code,
+   meaning a smaller and cleaner executable).
+   
+   @{b}REQUIREMENTS@{ub}   
+      - Any Amiga with AmigaDOS 2.04 (V37) or greater (AGA recommended)
+      - asl.library in LIBS: (older pre-V38 versions fully supported)
+
+   @{b}FEATURES@{ub}
+      - Lightning-fast decompression routines written in assembly
+      - XPK support for packed picture files (requires
+        xpkmaster.library in LIBS:) 
+      - Can display virtually any IFF-ILBM, including those with nested
+        FORMs
+      - Full support for ILBMs with color cycling.  Supports basic CRNG
+        chunk, as well as Deluxe Paint 4+ complex DRNG chunks
+      - A fully font-sensitive and iconify-able GUI
+      - Operates in many modes (e.g, through GUI and/or file-requester)
+      - Options can be saved to a configuration file and/or specified
+        at runtime via command-line or ToolTypes
+      - Full control over which Amiga-native monitors and display modes
+        are used, and their degrees of overscan
+      - An internally multitasking engine, for maximum flexibility
+
+   @{b}SHORTCOMINGS@{ub}
+      - It only views standard IFF-ILBMs
+      - Graphics cards aren't currently supported
+      (See @{"Development Info" link DevInfo})
+
+@ENDNODE
+
+@NODE Changes "ExView Version Changes" 
+
+   @{b}V1.3@{ub}
+
+   - Released June 28, 1998
+   - Now supports color cycling
+   - Support added for XPK
+   - New Options added:
+      - Preferred display mode can now be specified at startup via
+        DM=DISPLAYMODE/K shell option
+      - Auto Cycle (for color cycling)
+      - Use XPK
+   
+   - Bugs in previous verion:
+      - .info file failed to open for AppIcon when ExView was started
+        from relative paths (e.g., exview/ev vs. sys:utilities/exview/ev,
+        etc.).  Fixed.
+
+   @{b}V1.1@{ub} (April 21, 1998)
+
+   - Exits if another copy is already running at startup
+   - Now supports ToolTypes
+   - New options added:
+      - Exit option for Configuration Menu
+      - AutoSelect Display startup option
+
+   - Bugs in previous version:
+      - GUI Iconify button potentially left unghosted when AppIcon failed
+        to open (e.g., Workbench closed), which would hang ExView if
+        pressed.  Fixed.
+
+   @{b}V1.01@{ub} (April 13, 1998)
+
+   - Added EXIT/S command line option
+   
+   @{b}V1.0@{ub}
+
+   - Initial release,  May 16, 1997.
+
+@ENDNODE
+
+@NODE Startup "Startup Options"
+   
+   @{b}General@{ub}
+
+      Whenever ExView is started, its @{"Config File" link ConfigFile} is read in.  The
+   settings contained in this file have the lowest priority of all startup
+   options, and are overridden by any Workbench (ToolTypes) or Shell
+   arguments.
+
+   @{b}Workbench Startup@{ub}
+   
+      Quite simple really:  just double-click on its icon.  At this time,
+   individual pictures and/or volumes/directories may be selected for
+   immediate viewing by first selecting their icons (via shift-clicking or
+   lasso), and then shift-clicking on ExView.  Caveat: the @{"All Files" link AllFiles}
+   option must be on for volumes/dirs to be entered.
+
+      Workbench startup options: See @{"ToolTypes" link ToolTypes}.  
+   
+      Note: the ExView icons contain imbedded NewIcons imagery for all
+   such users.
+   
+   @{b}Shell Startup@{ub}
+   
+      Just type "ev" and hit return.  Any options specified will override
+   their states in the @{"Config File" link ConfigFile} (ToolTypes are ignored during
+   Shell-startup).  Without this file, the COMMANDLINEONLY switch will be
+   needed to override the defaults.  The following AmigaDOS template is
+   used (can be called up with "ev ?"):
+      
+      FILES/M, ALL/S, M=MONITORS/K, OSCAN=OVERSCAN/K, DB=DOUBLEBUFFER/S,
+      QV=QUICKVIEW/S, AC=AUTOCYCLE/S, FR=AUTOFILEREQUESTER/S,
+      AS=AUTOSELECTDISPLAY/S, DM=DISPLAYMODE/K, GUI/S,
+      XPK=USEXPK/S, EXIT/S, CL=COMMANDLINEONLY/S
+
+      Template particulars (for all you rusty or unknowing folk):
+          
+          "/M" == Multiple : Multiple arguments are permitted.
+          
+          "/S" == Switch   : The text preceding "/S" activates the 
+                             option.
+          
+          "/K" == Keyword  : Like a switch, but with its own argument,
+                             which may be given after an '=' or a space.
+                             (e.g., "oscan=none")
+          
+          "=" as in "OSCAN=OVERSCAN" : Means that typing "OSCAN" is
+                                       equivalent to typing "OVERSCAN"
+          
+          Note that switches/keywords are case-insensitive.
+          
+      
+      The options work as follows:
+      
+      @{b}FILES/M:@{ub}
+      
+         The file(s) or path(s) ExView will attempt to display.
+         If a path is specified (e.g., "gfx/images"), it will be
+         @{"scanned" link DiskScan} for compatible pictures.  AmigaDOS pattern
+         matching is fully supported.
+
+      @{b}ALL/S:@{ub}
+      
+         When a pattern or a straight path is specified, all
+         subdirectories encountered will entered and included
+         in the search.
+               
+         See also @{"All Files" link AllFiles}.
+      
+      @{b}M=MONITORS/K:@{ub}
+      
+         Takes an AmigaDOS pattern of the system monitors to enable
+         for image-viewing.  Monitors not matched by the pattern will be
+         disabled.
+                    
+         Examples: 
+            
+            "m=~(ntsc|pal)" Enables all monitors that are not
+                            exactly "ntsc" or "pal"
+             
+            "m=m#?" Enables all monitors beginning with an M
+                    (like Multiscan)
+                    
+         See GUI/@{"Monitors..." link Monitors...}.
+      
+      @{b}OSCAN=OVERSCAN/K:@{ub} 
+      
+         Takes a kind of Overscan for image-viewing.  May be one of:
+            
+            TEXT, GRAPHICS, MAXIMUM, VIDEO, or AUTO
+            
+         Note: only the first character entered is examined, so
+         "oscan=a" is equivalent to "oscan=auto".
+                        
+         See GUI/@{"Overscan" link Overscan}.
+                         
+      @{b}DB=DOUBLEBUFFER/S:@{ub}
+         
+         Enables the @{"Double Buffer" link DoubleBuffer} option.
+      
+      @{b}QV=QUICKVIEW/S:@{ub}
+         
+         Enables the @{"QuickView" link QuickView} option.
+      
+      @{b}AC=AUTOCYCLE/S:@{ub}
+
+         Enables the @{"Auto Cycle" link AutoCycle} option.
+
+      @{b}FR=AUTOFILEREQUESTER/S:@{ub}
+         
+         Enables the @{"Auto File-Requester" link AutoFileReq} option.
+      
+      @{b}AS=AUTOSELECTDISPLAY/S:@{ub}
+         
+         Enables the @{"AutoSelect Display" link AutoSelectDisplay} option.
+
+      @{b}DM=DISPLAYMODE/K@{ub}
+
+            Argument selects the "preferred mode" to display images with
+         when AutoSelect Display (see above) is turned off.  Syntax is
+         <monitor name>:<width>x<height> (case insensitive).
+
+         Examples:
+
+            "ntsc:1280x400", "super72:800x600", etc.
+
+         See GUI/@{"Select Display" link SelectDisplay...}.
+
+      @{b}GUI/S:@{ub}
+
+            Forces the @{"GUI" link GUI} to open initially, and enables the
+         @{"GUI On Startup" link GUIStartup} option.
+      
+      @{b}XPK=USEXPK/S:@{ub}
+
+         Enables the @{"Use XPK" link UseXPK} option.
+
+      @{b}EXIT/S:@{ub}
+
+         Enables @{"Exit Mode" link ExitMode}.
+
+      @{b}CL=COMMANDLINEONLY/S:@{ub}
+      
+            Causes ExView to go entirely by the command-line options,
+         ignoring its defaults and the config file.  Anything not
+         specified will be "off" when ExView loads, with the exception of
+         MONITORS (all will be enabled if not specified).  This is useful
+         when a particular default or config file setting is undesired.
+
+@ENDNODE
+
+@NODE ToolTypes "ToolTypes"
+
+      Any time ExView is started from Workbench, either as a default tool
+   from another icon, via shift-clicking other icons, or starting ExView
+   directly, the ToolTypes in ExView's icon will take effect.  ToolTypes
+   have priority over the @{"Config File" link ConfigFile}.
+
+      A ToolType can be removed by added parenthesis () around it, or
+   by modifying its text in any other way.  Options followed by an '='
+   take an argument, while the others act as switches.  ToolTypes text is
+   case insensitive, but upper case is preferable.
+
+      FYI: NewIcons imagery is stored as a series of "IMn=" ToolTypes,
+   which follow the text: "*** DON'T EDIT THE FOLLOWING LINES!! ***"
+   The NewIcons imagery may be removed by simply deleting all of these
+   lines, or using one of the many icon utilities available on Aminet
+   (e.g., the excellent "IconInstaller" by Tom Ekstrom).
+
+   
+   @{b}Available ExView ToolTypes:@{ub}
+   
+
+   @{b}TOOLTYPESONLY@{ub}
+
+         Causes ExView to go entirely by the provided ToolTypes, ignoring
+      its defaults and the config file.  Anything not specified will be
+      "off" when ExView loads, with the exception of MONITORS (all will be
+      enabled if not specified).  This is useful when a particular default
+      or config file setting is undesired.
+
+   @{b}ALLFILES@{ub}
+
+      Enables the @{"All Files" link AllFiles} option.
+
+   @{b}MONITORS=@{ub}
+   
+         This option behaves exactly like its command-line counterpart.
+      The argument is an AmigaDOS pattern of the system monitors to
+      enable.  The pattern must be enclosed in parenthesis () if any OR
+      '|' operators are present.  Any monitors not matched by the pattern
+      will be disabled.
+
+      Examples
+
+         MONITORS=(N#?) Enables all monitors starting with an 'N'
+                        (e.g., NTSC)
+
+         MONITORS=(MULTISCAN|SUPER72) Enables the Multiscan and
+                                      Super72 monitors.
+
+      See GUI/@{"Monitors..." link Monitors...}.
+
+   @{b}OVERSCAN=@{ub}
+
+      Takes a kind of Overscan for image-viewing.  May be one of:
+            
+         TEXT, GRAPHICS, MAXIMUM, VIDEO, or AUTO
+            
+      Note:  only the first character entered is examined, so
+      "OVERSCAN=A" is equivalent to "OVERSCAN=AUTO".
+                        
+      See GUI/@{"Overscan" link Overscan}.
+   
+   @{b}DOUBLEBUFFER@{ub}
+
+      Enables the @{"Double Buffer" link DoubleBuffer} option.
+
+   @{b}QUICKVIEW@{ub}
+
+      Enables the @{"QuickView" link QuickView} option.
+
+   @{b}AUTOCYCLE@{ub}
+
+      Enables the @{"Auto Cycle" link AutoCycle} option.
+
+   @{b}AUTOFILEREQUESTER@{ub}
+
+      Enables the @{"Auto File-Requester" link AutoFileReq} option.
+   
+   @{b}AUTOSELECTDISPLAY@{ub}
+   
+      Enables the @{"AutoSelect Display" link AutoSelectDisplay} option.
+
+   @{b}DISPLAYMODE=@{ub}
+
+         Argument selects the "preferred mode" to display images with when
+      AutoSelect Display (see above) is turned off.  Syntax is
+      <monitor name>:<width>x<height> (case insensitive).
+
+      Examples:
+
+         "ntsc:1280x400", "super72:800x600", etc.
+
+      See GUI/@{"Select Display" link SelectDisplay...}.
+   
+   @{b}GUI@{ub}
+   
+      Causes the @{"GUI" link GUI} to open initially.
+
+   @{b}USEXPK@{ub}
+
+      Enables the @{"Use XPK" link UseXPK} option.
+
+   @{b}EXIT@{ub}
+
+      Enables @{"Exit Mode" link ExitMode}.
+
+   @{b}INITIALPATTERN=@{ub}
+
+      Takes the pattern to appear in the file requester's pattern
+      gadget.
+
+   @{b}INITIALDRAWER=@{ub}
+
+      Takes the path to appear in the file requester's drawer gadget.
+
+@ENDNODE
+
+@NODE ExitMode "Exit Mode"
+
+      When enabled, and picture arguments were specified at startup,
+   either via Workbench or shell, ExView will quit after viewing the
+   specified image(s).  If no images are specified at startup, this
+   option will be ignored.
+
+      Note that the @{"GUI" link GUI} and @{"AppIcon" link AppIcon} are still available upon hitting
+   the right mouse button or the backspace key when viewing an image (see
+   @{"View" link View}).  The image queue can be extended by dropping icons on the
+   AppIcon, or making selections with the file requester at this time.
+
+@ENDNODE
+
+@NODE GUI "ExView GUI Reference"
+
+      On startup, ExView's main GUI window will open unless overridden by
+   the config file or command-line options/ToolTypes.  If the Workbench
+   is open at this time, an @{"AppIcon" link AppIcon} will also be opened.
+   
+   @{b}The Main GUI@{ub}
+   
+      @{"[]" link Quit}------------------------------------------
+      | @{" Load... " link Load...} @{"  View   " link View} @{" Unload  " link Unload} @{" Iconify " link Iconify} 
+      |
+      | @{"[---------------<Info Box>---------------]" link InfoBox}
+      | @{"[---------------<Mode Box>---------------]" link ModeBox}
+      |
+      | @{"    Monitors...     " link Monitors...} @{" Select Display...  " link SelectDisplay...}
+      |
+      | @{"Overscan" link Overscan} [@][-----] @{"AutoSelect Display" link AutoSelectDisplay} [X]
+      [---------------------------------------------
+   
+   ExView also has the following Configuration menu:
+      
+      [---------------------
+      | @{"Double Buffer      " link DoubleBuffer}
+      | @{"QuickView          " link QuickView}
+      | @{"AutoCycle          " link AutoCycle}
+      | @{"Auto File-Requester" link AutoFileReq}
+      | @{"All Files          " link AllFiles}
+      | @{"Use XPK            " link UseXPK}
+      | @{"Exit               " link Exit}
+      | @{"GUI (On Startup)   " link GUIStartup}
+      | --------------------
+      | @{"Save               " link Save}
+      [---------------------
+
+      Note that all GUI and menu options have keyboard-shortcuts.  For the
+   GUI simply press the keys designated by the underlined letters.  The
+   menu shortcuts are achieved by pressing and holding Right-Amiga before
+   the letters shown.
+   
+@ENDNODE
+
+@NODE Load... "ExView/GUI: Load..."
+
+      Brings up an ASL file requester for selecting images.  Multiple
+   files may be selected by holding down shift and selecting with the
+   left mouse button.  If nothing is selected, the contents of the
+   current requester directory may be viewed by either clicking View or
+   hitting return while in the file box (see @{"Disk Scans" link DiskScan}).  If the
+   Configuration Menu's @{"QuickView" link QuickView} option is on, the selection(s) will
+   be viewed immediately.  Otherwise, they'll be "passed through" the
+   GUI, allowing pre-selection of display attributes.  The image(s) may
+   then be viewed at any time with the GUI's View button.
+      
+      If one or more images are already in memory, the selection(s) will
+   be appended to the queue.
+      
+      Note: while the file requester's up, all ExView features will
+   remain fully functional, including the GUI, the Configuration Menu,
+   and the @{"AppIcon" link AppIcon}.
+
+@ENDNODE
+
+@NODE View "ExView/GUI: View"
+
+      Views the image currently detailed in the @{"Info Box" link InfoBox}.  Once the
+   image is being displayed, ExView's behavior is determined by:
+   
+   @{b}Left Mouse Button or Space Bar@{ub}
+   
+      The current image will be unloaded, and the next (if applicable)
+   will be processed.
+      
+      If @{"QuickView" link QuickView} is on, the next image will be displayed immediately,
+   without GUI intervention.  Additionally, if the @{"Double Buffer" link DoubleBuffer}
+   option is on, there will be a seamless transition from one image to
+   the next.
+   
+   @{b}Right Mouse Button or Backspace Key@{ub}
+   
+      The GUI will be brought forward, and the current image will be
+   preserved in memory.  The display options, etc., may then be
+   reconfigured, before viewing the image again at any time.
+
+   @{b}TAB Key@{ub}
+
+      Toggles color cycling (if applicable) on and off.  See also:
+   @{"Color Cycling" link Cycling}.
+
+@ENDNODE
+
+@NODE Unload "ExView/GUI: Unload"
+
+      Causes the current, and all queued images to be flushed from memory.
+   Also serves as an "abort" button during @{"Disk-Scans" link DiskScan}.
+   
+@ENDNODE
+
+@NODE Iconify "ExView/GUI: Iconify"
+
+      Closes the main GUI window, and if images are in memory, prompts
+   for them to be either unloaded or viewed.  The GUI may be reopened at
+   any time by either double-clicking on the @{"AppIcon" link AppIcon}, or hitting the
+   right mouse button while viewing an image.
+
+@ENDNODE
+
+@NODE InfoBox "ExView/GUI: Info Box"
+
+      If ExView is idle, a count of images viewed will be displayed here.
+   Otherwise, this area shows the number and name of the current image, and
+   its width, height, and depth.  The status of decrunching an XPK file
+   will also be displayed here.
+      
+      The numbering system works as follows:  If images are queued up
+   individually, file-by-file, "<current>/<last>" will be displayed.
+   Whenever a @{"Disk-Scan" link DiskScan} commences (where the boundaries are always
+   undefined), either "Scanning..." or, when an image is located,
+   "<current> [sub <number>]/<last>" will appear.  The "sub" part shows the
+   active image's number produced by the scan, from 1, with <current>
+   reflecting the position of the scan itself in the explicit, "outer" list
+   of files.
+      
+      @{b}Examples@{ub}
+         
+         "2/5: apicture.iff (320x200x8)"
+            
+            The image called "apicture.iff" is number 2 of 5 selected, and
+         is 320x200 pixels in size, and 8 bitplanes deep (256 colors).
+         
+         "3 [sub 5]/3: mypic.ham (320x400xHAM6)
+         
+            "mypic.ham" is the 5th of an unknown number of images scanned
+         from disk, is 320x400 pixels in size, and 6 bitplanes deep in HAM
+         mode.  The scan itself is the 3rd of 3 selections, which means
+         that viewing will stop when no more images can be located.
+
+         "Decrunching XPK ____ file (32768/262144)"
+
+            An XPK file is being decompressed.  The file type is displayed
+         in place of "____", and the parentheses enclose (bytes done /
+         bytes total).
+
+@ENDNODE
+
+@NODE ModeBox "ExView/GUI: Mode Box"
+
+      This area summarizes the display mode to be used with the current
+   image, showing the monitor, its resolution/dimensions, and overscan
+   type and dimensions if appropriate (i.e., only when the mode's
+   dimensions don't exactly match the current overscan-type's).  The mode
+   can be selected directly (see @{"Select Display..." link SelectDisplay...}), or dynamically
+   with the @{"AutoSelect Display" link AutoSelectDisplay} option.
+      
+   @{b}Examples@{ub}
+      
+      "NTSC: 320x200 (GRAPHICS/336x224)"
+      
+         The current image will be viewed with the NTSC monitor, in a
+       resolution of 320x200.  The actual display size is derived from
+       the GRAPHICS overscan-type's dimensions of 336x224.
+     
+      "PAL: 640x512 Laced"
+      
+         Display will be in PAL, at a resolution of 640x512, interlaced.
+      There will be no overscanning; the final display size is derived
+      from the shown dimensions.
+      
+      
+      Note that ALL dimensions in the Mode Box are nominal, and don't
+   necessarily convey the true dimensions of the image.  Final display
+   size is always derived from the nominal dimensions in this box.
+      
+@ENDNODE
+
+@NODE Monitors... "ExView/GUI: Monitors..."
+
+      Clicking on this will bring up a window containing all of the
+   Amiga-native monitors configured on the system, when 2 or more
+   exist.  Each selected (checked) monitor can be utilized by ExView
+   when viewing images.
+      
+      This option is nice when you want images to come up in a single
+   or limited set of monitors ONLY.
+
+@ENDNODE
+
+@NODE SelectDisplay... "ExView/GUI: Select Display..."
+
+      This option is only available when @{"AutoSelect Display" link AutoSelectDisplay} is switched
+   off.  It allows a specific display mode to be chosen, from a list of
+   all that are compatible with the current image.  Only modes whose
+   monitors are enabled will be displayed (determined by the GUI's
+   @{"Monitors" link Monitors...} option).
+     
+      The mode selected here is treated as the "preferred mode," and
+   will be used to view all subsequent images.  Note that the preferred
+   mode may need to be temporarily downgraded from time to time on pre-
+   AGA Amigas (e.g., a 640x400 preferred mode would change to 320x200
+   for images deeper than 4 bitplanes).  Also, if the preferred mode's
+   monitor is disabled, it will assume a different monitor (the topmost
+   enabled in the Monitors window) for the duration.
+   
+@ENDNODE
+
+@NODE Overscan "ExView/GUI: Overscan"
+
+      Clicking on this will cycle through ExView's overscan options,
+   which include the four basic overscan "types" available on the Amiga.
+   The options are:
+   
+      @{b}NONE@{ub}
+         
+         Display images in the nominal resolution of the current mode.
+      
+      @{b}TEXT and GRAPHICS@{ub}
+      
+         Selects a user-defined overscan type (via SYS:Prefs/Overscan).
+      
+      @{b}MAXIMUM@{ub}
+         
+         Selects the largest display fully supported by the OS.
+      
+      @{b}VIDEO@{ub}
+      
+         Selects the largest display supported by the hardware.
+      
+      @{b}AUTO@{ub}
+   
+         Instructs ExView to scan the above options automatically, and
+      select the one which best fits the current image.  This option will
+      sometimes produce a special "CUSTOM" display, derived from the
+      chosen best-fit type, and TEXT for optimal centering.
+
+@ENDNODE
+
+@NODE AutoSelectDisplay "ExView/GUI: AutoSelect Display"
+
+      Enabling this option causes ExView to scan all available display
+   modes and select the one which best fits the current image.  The
+   available modes are determined by the GUI's @{"Monitors" link Monitors...} option.
+
+      Disabling this option makes the @{"Select Display" link SelectDisplay...} option available for
+   selecting a preferred display mode.
+
+@ENDNODE
+
+@NODE Quit "ExView/GUI: Close-window"
+
+      Clicking this causes ExView to quit.  (If the file requester is open,
+   nothing happens.)
+
+@ENDNODE
+
+@NODE DoubleBuffer "ExView/Configuration Menu: Double Buffer"
+
+      This option produces a seamless transition from image to image, by
+   making use of a 2nd image-bitmap in memory.  This sequence will consume
+   more CHIP memory, but only during the actual transition itself.  Memory
+   usage otherwise is unaffected. 
+
+@ENDNODE
+
+@NODE QuickView "ExView/Configuration Menu: QuickView"
+      
+      QuickView causes images selected with either the @{"AppIcon" link AppIcon} or the
+   file requester to be displayed immediately, without GUI intervention.
+   This is nice when you don't want to configure the display settings on
+   a per-image basis.
+   
+      Note: When the GUI's iconified, QuickView is forced on.
+
+@ENDNODE
+
+@NODE AutoCycle "ExView/Configuration Menu: AutoCycle"
+
+      When this is set, images with color cycling will begin cycling
+   immediately upon viewing.  Cycling can be toggled on and off with the
+   TAB key.  See also: @{"Color Cycling" link Cycling}.
+
+@ENDNODE
+
+@NODE Cycling "ExView: Color Cycling"
+
+   Notes on color cycling:
+
+      ExView recognizes IFF CRNG and Deluxe Paint 4+ DRNG chunks.  ExView
+   does its best to determine whether images' ranges should be cycled or
+   not, although sometimes images will cycle when it seems like they
+   shouldn't.  Such images were either inadvertently saved from a paint
+   program with rate infomation attached to their range(s), or contain
+   damaged CRNG/DRNG chunks.  Immediate cycling can be avoided by disabling
+   the AutoCycle feature (under the configuration menu).
+
+@ENDNODE
+
+@NODE AutoFileReq "ExView/Configuration Menu: Auto File-Requester"
+
+      This option causes the file requester to open whenever no images
+   exist in memory, for continuous viewing.  This can happen when
+   ExView is first loaded, or whenever an image queue expires.  The GUI
+   may be iconified or not, which is nice when you want ExView to behave
+   like a "normal" image-viewer, GUI-less, with continuous file requester
+   activity.
+   
+      Disabling this option puts ExView into "quiet" mode, so that it
+   just waits for further instruction when there are no images.
+
+@ENDNODE
+
+@NODE AllFiles "ExView/Configuration Menu: All Files"
+
+      This option causes any subdirectories encountered during a
+   @{"Disk-Scan" link DiskScan} to be entered and scanned for pictures.  This option
+   allows an entire disk to be viewed by simply selecting its root
+   from either the file requester, or the @{"AppIcon" link AppIcon}.
+
+@ENDNODE
+
+@NODE UseXPK "ExView/Configuration Menu: Use XPK"
+
+      When this option is set, the XPK system will be utilized.  If
+   LIBS:xpkmaster.library is absent, this option will be ghosted.
+
+      ExView deals with XPK generically, to allow the XPK user preferences
+   to take full effect.  Starting with XPK v4.19, v38+ of the XFD system
+   can be used through XPK (as per preferences), and thus with ExView.  XFD
+   supports file formats such as PowerPacker, which aren't supported by
+   XPK.
+
+      Disabling this option provides a very slight speedup with non-picture
+   and non-picture XPK files during disk-scans (less CPU activity), but
+   provides a huge speedup with non-picture XFD files.  This is because
+   there's no way to identify the contents of an XFD-packed file without
+   decompressing it first, unlike XPK.  So if you have both XFD and XPK
+   systems, and have many XFD files imcompatible with ExView in your search
+   path(s), you may want to leave this option off.
+
+@ENDNODE
+
+@NODE Exit "ExView/Configuration Menu: Exit"
+
+      Setting this option enables ExView's @{"Exit Mode" link ExitMode}.  ExView will exit
+   after the final image in the current/next image queue.
+
+@ENDNODE
+
+@NODE GUIStartup "ExView/Configuration Menu: GUI (On Startup)"
+
+      This option only has meaning at startup time, and it causes the
+   GUI to open immediately.  If you deal primarily with the @{"AppIcon" link AppIcon},
+   you may want this option saved off (see Configuration Menu/@{"Save" link Save}).
+
+@ENDNODE
+
+@NODE Save "ExView/Configuration Menu: Save (configuration)"
+
+      This saves ExView's current settings to the @{"Config File" link ConfigFile}.
+   If no current config file exists, it will be saved to the location of
+   the ExView executable.  Once it exists, it may manually be moved to S:
+   if desired.  The following information is saved:
+   
+      -All settings in the Configuration Menu
+      
+      -State of the GUI:
+         -Which Amiga monitors are enabled
+         -The current overscan type
+         -The state of the AutoSelect Display option
+      
+      -The "preferred display-mode" (see GUI/@{"Select Display" link SelectDisplay...})
+      
+      -The drawer and pattern strings last entered into the file requester.
+       Relative paths in the drawer gadget will be saved fully expanded.
+      
+@ENDNODE
+
+@NODE DiskScan "Disk-Scans"
+
+   Disk-scans are caused by one of three things:
+      
+      1) files/patterns were entered for FILES/M during shell-startup,
+   
+      2) one or more directories were dropped on the @{"AppIcon" link AppIcon}, or
+      
+      3) the current file-requester directory contents are selected for 
+      viewing.
+   
+      To abort a disk-scan, hit the Unload button in the GUI.  NOTE: if
+   the @{"Double Buffer" link DoubleBuffer} option is on, an image may remain visible for
+   some time before the next is found.  To abort in this situation, hit
+   Left-Amiga N/M to get at the GUI, then click Unload.
+
+@ENDNODE
+
+@NODE ConfigFile "The Config. File"
+
+      This file (named "ExView.config") determines the state of ExView at
+   startup time.  It's searched for in two places:  first, in the location
+   of ExView ("EV") itself, then in S:.  Without this file, (i.e., by
+   default) ExView starts out as follows:
+   
+      -GUI is open
+      -Overscan type is set to AUTO
+      -All options in the Configuration Menu are on, except:
+          Auto File-Requester
+          Exit
+      
+      This setup constitutes the standard GUI-mode of operation.
+
+      The config file is written via the Configuration Menu/@{"Save" link Save} option.
+
+@ENDNODE
+
+@NODE AppIcon "ExView/AppIcon"
+
+      Unless the Workbench is closed, ExView's AppIcon will always open.
+   Its functions are as follows:
+   
+      -Activate and bring forward the GUI, or open it when it's iconified
+      -Receive the icons of volumes (disks), directories, and/or files for
+       ExView to display (Note: viewing the contents volumes and
+       directories may require the Configuration Menu's All Files option
+       to be on)
+
+      Note: File(s) dropped on the AppIcon will be appended to the current 
+   list of images in memory, if one exists.
+
+@ENDNODE
+
+@NODE DevInfo "ExView Development Information/Rambling"
+
+   @{b}Development Platform@{ub}
+
+      @{b}Hardware@{ub}
+      - Amiga 1200HD/40
+         - AmigaDOS 3.0 (V39)
+         - Blizzard 1230-II: full 68030 w/68882 both @ 50Mhz, with
+           SCSI-II DMA board and 16MB Fast ram (2x 8MB 60ns SIMMs)
+         - Quantum Fireball 1080s 1gb SCSI-II hard disk
+      (Not quite a PII400 with 64MB RAM and Voodoo2, but so what? :)
+
+      @{b}Software@{ub}
+      - SAS/C Development System v6.58
+   
+   @{b}Tested on@{ub}
+      - Amiga 4000, AmigaDOS 3.1/V40, 060/50, 2+112MB + CyberVision 64/4MB 
+        + DCTV
+      - Amiga 3000, AmigaDOS 3.1/V40, 030/25, 2+16MB + Picasso II/2MB
+      
+      Author's systems:
+      - A1200, AmigaDOS 3.0/V39, 030/50, 2+16MB
+      - A500, AmigaDOS 2.04/V37 000/7 (ha!) and 030/20, 1+0MB
+        and 1+3.5MB
+
+   @{b}History@{ub}
+
+      ExView was originally a crude but fast ILBM-reader (kind of an
+   experiment), which in early 1995 I decided to enhance with a GUI, and
+   a powerful display mode selection engine.  I wanted something that
+   could view IFFs under AmigaDOS 2.0 (V37) and up without a hitch,
+   always choosing the ideal display mode and giving the user manual
+   control if desired.  It was also mandatory to take full advantage of
+   3.0 and AGA, and their wealth of display modes.
+   
+      This is my first "serious" project on the Amiga, and thanks to my
+   insistence for a mega-stable, enforcer-hit-free etc. application
+   (sheesh!), coupled with my inexperience at the time, the original
+   ExView (released 5-97) took about two years to develop, working off
+   and on.  The fact that I decided to make it multitask internally in
+   early 1996 didn't help--this significantly extended the development
+   and especially the debugging (!) periods.
+
+   @{b}ExView Currently, and the Future@{ub}
+
+      As it stands, ExView is fast and quite stable--it can cope
+   with/adapt to even the most stressful and bizarre of conditions (at
+   least on the test systems).  This much I'm happy with.  However...
+
+      The internal multitasking is neat and all, but it's not really
+   necessary, and does marginally hamper ExView's speed--something very
+   important in an application. :) The only real "advantage" is being
+   able to use the file requester concurrently with the rest of the
+   program, but I'm not even sure how terribly useful that is.  ExView
+   currently has a total of four processes:  the parent process, and then
+   the AppIcon, GUI and file requester processes.  At first I thought it
+   would be an efficient and tidy way to go.  Little did I know just how
+   damn hard debugging/stabilizing this beast would be!  (Perhaps it was
+   just my inexperience.)
+
+      I'd eventually like to get it down to two processes, or perhaps
+   throw out the internal multitasking altogether if no one really cares
+   about the asynchronous file requester... This alone would reduce the
+   executable size, and improve performance.
+
+      Further, the fact that only 1 to 8-bit IFF-ILBMs are supported
+   is a tad archaic.  Something else that I've wanted to do since the
+   beginning is add lighting-fast support for at least IFF24, JPEG and
+   GIF file formats, and possibly the various ANIM formats (all
+   decompression routines would be written in hand-optimized assembler,
+   of course :).
+
+      I'd also like to go beyond Amiga-native displays and add support
+   for graphics cards' true-color display modes.
+
+      When all this will happen is up in the air, but I really do want
+   ExView to mature into something everyone can use, and not only people
+   with tons off IFF pictures laying around...  :)
+
+   @{b}Contacting Me@{ub}
+
+      See @{"Author" link Author}.
+
+@ENDNODE
+
+@NODE Author "Contacting the Author"
+
+      If you use/like ExView (or have any other comments), I'd like to
+   hear from you!  I can be reached by e-mail at @{b}ryanj@cwia.com@{ub}.
+
+@ENDNODE
+
+@NODE Nod "Acknowledgments"
+   
+   @{b}Thanks to:@{ub}
+   
+   - Charles for the slew of treacherous, ill-conceived (file
+   format-wise) IFFs!
+   - Big thanks to Lamar McLouth for the extensive testing on his (much
+   more powerful/expanded) Amiga(s), finding ExView useful, and for the
+   suggestions on improvement.
+
+   @{b}Other Copyrights/Acknowledgments@{ub}
+      
+   - SAS/C is a Copyright of SAS Institute Inc.
+   - People responsible for the XPK system include:  Dirk Stöcker, Bryan
+   Ford, Urban Dominik Müller and Christian von Roques
+   - XFD system originator: Georg Hörmann
+
+@ENDNODE
+
+@NODE Legal "Distribution, etc."
+
+   @{b}COPYRIGHT and DISTRIBUTION@{ub}
+
+      The ExView software and documentation are Copyright ©
+   1997-1889 by Ryan Johnson, All Rights Reserved.  It is being
+   distributed as Freeware, and is NOT public domain.  ExView may be
+   freely redistributed as long as the following conditions are met:
+   
+      - The distribution contains the following files, unaltered:
+         - EV
+         - EV.info
+         - ExView.guide
+         - ExView.guide.info
+         
+      - No fees beyond reasonable media fees are charged
+      
+   @{b}DISCLAIMER@{ub}
+      
+      ExView has been used thoroughly and tested rigorously.  However,
+   the author will not be held responsible for any damages resulting its
+   use or misuse.  This software is provided "AS IS" with no warranty of
+   any kind, either expressed or implied.
+   
+@ENDNODE

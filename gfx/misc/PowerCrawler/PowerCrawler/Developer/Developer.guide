@@ -1,0 +1,231 @@
+@DATABASE Developer
+@WIDTH 76
+@AUTHOR "Georg Steger"
+@TOC "Main"
+
+@NODE Main "Developing external Routines for PowerCrawler"
+                                    _________________________   __
+                                    \  _____________________/  / /
+                                    / /                       / /
+ ______________                    / /  __    __  __ __   __ / /_____ __
+ \___________  \                  / /  / /__ /  \/ // /_ / // // __ // /__
+            /  /                 / /  / ___// /\  // //// // // / ///    /
+      _____/  /                 / /  / /   / / / // //// // // /¯¯¯/ /¯¯¯
+     / ______/                 / /  / /    \ ¯¯ / \     // //  ¯¯// /
+    / /______ __   __ _____ __ \ \  ¯¯      ¯¯¯¯   ¯¯¯¯¯ ¯¯ ¯¯¯¯¯ ¯¯
+   / // __  // /_ / // __ // /__\ ¯¯¯¯¯¯¯¯\
+  / // / / // //// // / /// ___/ ¯¯¯¯¯¯¯¯¯¯
+ / // / / // //// // /¯¯¯/ /   
+/ //  ¯¯ / \ ¯ ¯ //  ¯¯// /           (C) Copyright 1997 by Georg Steger.
+¯¯ ¯¯¯¯¯¯   ¯¯¯¯¯ ¯¯¯¯¯ ¯¯                           All rights reserved!
+
+
+			@{" Map IO-Routines " LINK "MapIO"}
+			@{" Picture Loaders " LINK "PicLoaders"}
+@ENDNODE
+
+@NODE MapIO "Documetation for Map-IO Routines"
+@TOC "Main"
+
+	@{" Documentation  " LINK "Introduction"}
+
+	@{" Example Source " LINK "ExampleIO.s/Main"}
+	@{" Empty Source   " LINK "EmptyIO.s/Main"} 
+@ENDNODE
+
+@NODE PicLoaders "Documentation for external Picture-Loading-Routines"
+@TOC "Main"
+
+	@{" Documentation  " LINK "Introduction2"}
+@ENDNODE
+
+@NODE Introduction "How to code external IO-Routines"
+@TOC "MapIO"
+
+You have to use an Assembler to create IO-Routines for PowerCrawler. The
+code has to be saved in absolute mode (don't create Executables!!). It is
+very important to write it PC-relative and to initialize the variables be-
+cause the Routine is only loaded once. Include @{" PowerCrawler.i" LINK "include/misc/PowerCrawler.i/Main"} into the
+Source-Code!
+
+Your Routine must have the following header:
+
+
+	RECOGNITION:
+			dc.b	'PCEX'
+
+	ENTRY:
+			bra.s	Main		; must be 4 Bytes long!!!!
+			nop			; (therefore the »nop«)
+
+	ACTIONCODE:
+			dc.w	0		; You will find PC_IO_LOADMAP
+						; PC_IO_SAVEMAP or PC_IO_GETINFO here!
+
+	RETURNCODE:
+			dc.w	0		; Put PC_RETURN_???? here
+						; before leaving
+
+	RESERVED1:	dc.l	0		; DON'T LEAVE THIS OUT!!!!!
+	RESERVED2:	dc.l 	0		; "     "     "    "
+	RESERVED3:	dc.l	0		; "     "     "    "
+
+	ACTIONVAR:
+			dc.l	0		; Points to the Filename
+
+
+
+At @{B}4(sp)@{UB} you find a Pointer to the PCInformation-Structure (See @{" Include " LINK "include/misc/PowerCrawler.i/Main"}).
+
+@{U}The Loading-Function (@{B}PC_IO_LOADMAP@{UB}) must:@{UU}
+
+	- @{U}AllocVec@{UU} the memory for the new Map
+	- update the @{B}pci_MapData@{UB} Structure (part of PCInformation)
+	- make a @{U}FreeVec@{UU} of @{B}pci_MapBuffer@{UB} (if it is <> 0!!)
+	- update the @{B}pci_MapBuffer@{UB} Pointer (with the AllocVec's result)
+
+@{U}The Saving-Function (@{B}PC_IO_SAVEMAP@{UB}) finds out:@{UU}
+
+	- the Address of the MapBuffer in @{B}pci_MapBuffer@{UB}
+	- the Width, Height, # Layers ... of the Map in @{B}pci_MapData@{UB}
+
+@{U}The GetInfo-Function (@{B}PC_IO_GETINFO@{UB}) must:@{UU}
+
+	- set ACTIONVAR to the address of an Info-Text which PowerCrawler
+	  will display using EasyRequestArgs!
+
+The Routines have to be put in the "ExternalIO"-Directory!
+
+
+@{B}VERY IMPORTANT:@{UB}
+
+IO-Routines should only touch (read or write) the following parts of the
+PC Information Structure:
+
+	pci_MapData
+	pci_MapBuffer
+
+All the other stuff may (or may not) be free for access in future Versions
+of PowerCrawler (For Plugins or something like that). @{U}DONT TOUCH IT NOW!@{UU}
+
+@ENDNODE
+
+@NODE Introduction2 "How to code external Picture-Loaders for PowerCrawler"
+@TOC "PicLoaders"
+
+You have to use an Assembler to create Pic-Loader-Routines for PowerCrawler.
+The code has to be saved in absolute mode (don't create Executables!!). It
+is very important to write it PC-relative and to initialize the variables
+because the Routine is only loaded once. Include @{" PowerCrawler.i" LINK "include/misc/PowerCrawler.i/Main"} into the
+Source-Code!
+
+Your Routine must have the following header:
+
+
+	RECOGNITION:
+			dc.b	'PCEX'
+
+	ENTRY:
+			bra.s	Main		; must be 4 Bytes long!!!!
+			nop			; (therefore the »nop«)
+
+	ACTIONCODE:
+			dc.w	0		; You will find PC_PL_LOADPIC
+						; or PC_PL_GETINFO here!
+
+	RETURNCODE:
+			dc.w	0		; Put PC_RETURN_???? here
+						; before leaving
+
+	RESERVED1:	dc.l	0		; DON'T LEAVE THIS OUT!!!!!
+	RESERVED2:	dc.l 	0		; "     "     "    "
+	RESERVED3:	dc.l	0		; "     "     "    "
+
+	ACTIONVAR:
+			dc.l	0		; Points to the Filename of
+						  the Picture you should
+						  try to load
+
+
+At @{B}4(sp)@{UB} you find a Pointer to the PCInformation-Structure (See @{" Include " LINK "include/misc/PowerCrawler.i/Main"}).
+
+@{U}The Loading-Function (@{B}PC_PL_LOADPIC@{UB}) must:@{UU}
+
+	- Open a Screen using the following Tags:
+
+		SA_BEHIND,TRUE,
+		SA_WIDTH, <Width of the Picture>,
+		SA_HEIGHT, <Height of the Picture>,
+		SA_DEPTH, <# Planes of the Picture>,
+		SA_QUIET,TRUE,
+		SA_SHAREPENS,TRUE,
+		SA_DISPLAYID,<Value in @{B}pci_PicDisplayID@{UB}>,
+		SA_AUTOSCROLL,TRUE,
+		SA_OVERSCAN,<Value in @{B}pci_PicOverScanType@{UB}>
+
+	- On the Screen open a window using the following Tags:
+
+		WA_CUSTOMSCREEN,<Pointer to your Screen>
+		WA_LEFT,0,
+		WA_TOP,0,
+		WA_WIDTH,<Width of the Picture>,
+		WA_HEIGHT,<Height of the Picture>,
+		WA_BORDERLESS,TRUE,
+		WA_REPORTMOUSE,TRUE,
+		WA_RMBTRAP,TRUE,
+		WA_IDCMP,IDCMP_MOUSEBUTTONS|IDCMP_INACTIVEWINDOW|IDCMP_RAWKEY|
+				 IDCMP_MOUSEMOVE|IDCMP_VANILLAKEY
+
+	- Create a Colormap-Chunk (@{U}using AllocVec@{UU}) like the ones in
+	  IFF-Files
+
+	- If you support Masks then you have to:
+
+	    @{U}AllocBitmap@{UU}(<Width of PIC>,<Height of PIC>,<Planes of PIC>,???,<Bitmap of your Screen>)
+
+	  In the Bitmap each Pixel being a Mask-Pixel must be of Color
+	  (2^Planes)-1 [= each Bitplane set] and each Pixel not being Part
+	  of the Mask must be of Color 0 [= each Bitplane cleared].
+
+	  Example: 4 Bitplanes --> Mask-Pixel must be Color 15
+	  		       --> Non-Mask Pixel must be Color 0
+
+	- If loading is successfull then:
+
+		a) if @{B}pci_PicScreen@{UB}<>0 then:
+
+			- Close @{B}pci_PicScreen@{UB}->FirstWindow after having
+			  replied all outstanding Messages
+
+			- Close @{B}pci_PicScreen@{UB}
+
+		b) if @{B}pci_MaskBitmap@{UB}<>0 then make a @{U}FreeBitmap-Call@{UU} to it
+
+		c) if @{B}pci_PicColors@{UB}<>0 then make a @{U}FreeVec-Call@{UU} to it
+		
+		d) Update: @{B}pci_PicScreen@{UB} (pointer to your Screen)
+			   @{B}pci_PicColors@{UB} (pointer to your Colormap-Chunk)
+			   @{B}pci_PicPlanes@{UB} (# of Planes of the Picture)
+
+			   @{B}pci_MaskBitmap@{UB} (if you have created a Mask-Bitmap)
+
+		@{B}Note:@{UB} You don't need to set up the Palette of the Screen.
+			  PowerCrawler does that for you!
+
+@{U}The GetInfo-Function (@{B}PC_PL_GETINFO@{UB}) must:@{UU}
+
+	- set ACTIONVAR to the address of an Info-Text which PowerCrawler
+	  will display using EasyRequestArgs!
+
+
+
+The Routines have to be put in the "ExternalPL"-Directory!
+
+@{B}VERY IMPORTANT:@{UB}
+
+PL-Routines should only touch (read or write) the parts of the
+PC Information Structur mentioned above!
+
+All the other stuff may (or may not) be free for access in future Versions
+of PowerCrawler. @{U}DONT TOUCH IT NOW!@{UU}
+@ENDNODE

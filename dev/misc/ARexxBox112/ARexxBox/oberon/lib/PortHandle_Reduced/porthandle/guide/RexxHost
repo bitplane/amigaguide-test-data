@@ -1,0 +1,427 @@
+@database "RexxHost"
+@master "Work:src/Oberon/PortHandle/doc/RexxHost.doc"
+
+@Node Main "RexxHost.doc"
+    @{" --interface--() " Link "--interface--()"}
+    @{" Init() " Link "Init()"}
+    @{" RexxHost.CreateCommand() " Link "RexxHost.CreateCommand()"}
+    @{" RexxHost.FreeCommand() " Link "RexxHost.FreeCommand()"}
+    @{" RexxHost.Handle() " Link "RexxHost.Handle()"}
+    @{" RexxHost.HandleCommand() " Link "RexxHost.HandleCommand()"}
+    @{" RexxHost.HandleFunction() " Link "RexxHost.HandleFunction()"}
+    @{" RexxHost.HandleResult() " Link "RexxHost.HandleResult()"}
+    @{" RexxHost.MsgToRexx() " Link "RexxHost.MsgToRexx()"}
+    @{" RexxHost.ReplyMsg() " Link "RexxHost.ReplyMsg()"}
+    @{" RexxHost.SendCommand() " Link "RexxHost.SendCommand()"}
+    @{" RexxHost.Uninit() " Link "RexxHost.Uninit()"}
+@EndNode
+
+@Node "--interface--()" "RexxHost/--interface--"
+
+DEFINITION RexxHost;
+
+IMPORT
+  BT := BasicTypes,
+  d := Dos,
+  e := Exec,
+  P := PublicPorts,
+  rx := Rexx;
+
+TYPE
+  RexxHostPtr = POINTER TO RexxHost;
+  RexxHost = RECORD (P.PublicPort) 
+@{b}    replies : LONGINT;@{ub}
+@{b}    extension : ARRAY 10 OF CHAR;@{ub}
+@{b}    PROCEDURE (VAR rxh:RexxHost) ReplyMsg(rxmsg: rx.RexxMsgPtr; primary: LONG@{ub}
+INT; secondary: e.ADDRESS; result: BT.DynString);
+@{b}    PROCEDURE (VAR rxh:RexxHost) FreeCommand(rxmsg: rx.RexxMsgPtr);@{ub}
+@{b}    PROCEDURE (VAR rxh:RexxHost) CreateCommand(buff: ARRAY OF CHAR; fh: d.Fil@{ub}
+eHandlePtr): rx.RexxMsgPtr;
+@{b}    PROCEDURE (VAR rxh:RexxHost) MsgToRexx(rxCmdMsg: rx.RexxMsgPtr): rx.RexxM@{ub}
+sgPtr;
+@{b}    PROCEDURE (VAR rxh:RexxHost) HandleResult(rxCmdMsg: rx.RexxMsgPtr);@{ub}
+@{b}    PROCEDURE (VAR rxh:RexxHost) SendCommand(buff: ARRAY OF CHAR; fh: d.FileH@{ub}
+andlePtr): rx.RexxMsgPtr;
+@{b}    PROCEDURE (VAR rxh:RexxHost) HandleCommand(rxmsg: rx.RexxMsgPtr);@{ub}
+@{b}    PROCEDURE (VAR rxh:RexxHost) HandleFunction(rxmsg: rx.RexxMsgPtr);@{ub}
+@{b}    PROCEDURE (VAR rxh:RexxHost) Uninit;@{ub}
+@{b}    PROCEDURE (VAR rxh:RexxHost) Handle();@{ub}
+  END;
+
+CONST
+  HostClosingDown = "Host closing down";
+  errProgramNotFound = rx.err10001;
+  errNoFreeStore = rx.err10003;
+  errNotImplemented = rx.err10015;
+
+PROCEDURE Init(VAR rxport: RexxHost; basename: e.STRPTR; default: ARRAY OF CH
+AR; extension: ARRAY OF CHAR): BOOLEAN;
+PROCEDURE IsARexxReply(msg: e.MessagePtr): BOOLEAN;
+
+END RexxHost.
+
+@EndNode
+
+@Node "Init()" "RexxHost/Init"
+
+@{b}   NAME@{ub}
+       Init -- initialize a RexxHost
+
+@{b}   SYNOPSIS@{ub}
+       Init (VAR rxport: RexxHost;
+               basename: e.STRPTR;
+                default: ARRAY OF CHAR;
+              extension: ARRAY OF CHAR): BOOLEAN;
+
+@{b}   FUNCTION@{ub}
+       Creates port for using as ARexx port and does the necesary
+       settings.
+
+       The port name will be uppercase and may get an extension number
+       (see Ports.InitPublic()).
+
+@{b}   INPUTS@{ub}
+       rxport    - RexxHost to be initialized
+       basename  - points to a null terminated string
+       default   - name to be used if name is NIL or points to
+                   an empty string
+       extension - file name extension ARexx should use to find makros
+
+@{b}   RESULT@{ub}
+       FALSE if initialization failed
+
+@{b}   SEE ALSO@{ub}
+       Ports.InitPublic(), @{"RexxHost.Uninit()" Link "RexxHost.Uninit()"}
+
+@EndNode
+
+@Node "RexxHost.CreateCommand()" "RexxHost/RexxHost.CreateCommand"
+
+@{b}   NAME@{ub}
+       RexxHost.CreateCommand -- allocate & initialize rexxmsg    (method)
+                                 for a command
+
+@{b}   SYNOPSIS@{ub}
+       (VAR rxh: RexxHost) CreateCommand (command: ARRAY OF CHAR;
+                                       fh: d.FileHandlePtr): rx.RexxMsgPtr;
+@{b}   FUNCTION@{ub}
+       This function will create a @{"RexxMsg" Link "TEXT_INCLUDE:rexx/storage.h/Main" 99} structure for the given
+       RexxHost, create an Argstring from the command string and
+       use that string to initialize the message as a rx.rxComm type
+       with rx.rxResult requested.
+
+       The file handle will be used for both input and output.
+
+       You can use this function to create a standard ARexx command
+       with the additional possibility to set some extra parameters
+       before sending the command to ARexx using @{"RexxHost.MsgToRexx()" Link "RexxHost.MsgToRexx()"}.
+
+@{b}   INPUTS@{ub}
+       command - the command string
+       fh      - the input/output @{"FileHandle" Link "TEXT_INCLUDE:dos/dosextens.h/Main" 90} (see @{"dos.library/Open()" Link "dos/Open()"})
+
+@{b}   RESULTS@{ub}
+       rexxmsg - a pointer to the new @{"RexxMsg" Link "TEXT_INCLUDE:rexx/storage.h/Main" 99} structure
+
+@{b}   SEE ALSO@{ub}
+       @{"RexxHost.MsgToRexx()" Link "RexxHost.MsgToRexx()"}, @{"RexxHost.SendCommand()" Link "RexxHost.SendCommand()"},
+       @{"dos.library/Open()" Link "dos/Open()"}
+
+@EndNode
+
+@Node "RexxHost.FreeCommand()" "RexxHost/RexxHost.FreeCommand"
+
+@{b}   NAME@{ub}
+       RexxHost.FreeCommand -- free the associated memory of    (method)
+                               a @{"RexxMsg" Link "TEXT_INCLUDE:rexx/storage.h/Main" 99}
+
+@{b}   SYNOPSIS@{ub}
+       (VAR rxh: RexxHost) FreeCommand (rxmsg: rx.RexxMsgPtr);
+
+@{b}   FUNCTION@{ub}
+       This is basically a PD ARexx routine provided by William S. Hawes.
+
+       It frees all memory associated with a particular (previuosly sent)
+       ARexx message structure (result2, arg[0] ans the message itself). It
+       will also close any stdin/stdout channels associated to that message.
+
+       You normally shouldn't have to bother with this one because the
+       dispatcher will call it for you.
+
+@{b}   INPUTS@{ub}
+       rexxmsg - the rexx message to free
+
+@{b}   SEE ALSO@{ub}
+       @{"RexxHost.SendCommand()" Link "RexxHost.SendCommand()"}
+
+@EndNode
+
+@Node "RexxHost.Handle()" "RexxHost/RexxHost.Handle"
+
+@{b}   NAME@{ub}
+       RexxHost.Handle -- get ARexx command from RexxHost and      (method)
+                          execute it via RexxPort.HandleCommand()
+
+@{b}   SYNOPSIS@{ub}
+        (VAR rxh: RexxHost) Handle ();
+
+@{b}   FUNCTION@{ub}
+        Fetches all queued messages from the given RexxHost's
+        message port and calls RexxHost.HandleCommand for each message
+        of type rxComm.
+
+        If a reply for some previously (with @{"RexxHost.SendCommand()" Link "RexxHost.SendCommand()"})
+        sent command comes in, the counter variable for still outstanding
+        replies will be decreased by one and the @{"RexxMsg" Link "TEXT_INCLUDE:rexx/storage.h/Main" 99} and it's
+        associated memory will be freed by @{"RexxHost.FreeCommand()" Link "RexxHost.FreeCommand()"}.
+
+        In a subclass, you should just check for the signal of the host's
+        message port and call Handle() without actually getting the
+        message. All work will be done by the dispatcher ans HandleCommand().
+
+
+@{b}   SEE ALSO@{ub}
+        @{"RexxHost.HandleCommand()" Link "RexxHost.HandleCommand()"}, @{"RexxHost.SendCommand()" Link "RexxHost.SendCommand()"}, @{"Init()" Link "Init()"},
+
+@EndNode
+
+@Node "RexxHost.HandleCommand()" "RexxHost/RexxHost.HandleCommand"
+
+@{b}   NAME@{ub}
+        RexxHost.HandleCommand -- handle rexx command message   (method)
+
+@{b}   SYNOPSIS@{ub}
+        (VAR rxh: RexxHost) HandleCommand (rxmsg: rx.RexxMsgPtr);
+
+@{b}   FUNCTION@{ub}
+        Sets the messages primary result to 10 (error), the secondary
+        error code to 15 (not implemented) and replies the message.
+
+        In subclasses this method should handle the ARexx command suplied in
+        arg[0] and execute it.
+
+        HandleCommand MUST reply the message (e.g. using @{"RexxHost.ReplyMsg()" Link "RexxHost.ReplyMsg()"})
+.
+
+@{b}   INPUTS@{ub}
+        msg - the rexx message to be handled
+
+@{b}   SEE ALSO@{ub}
+        @{"RexxHost.Handle()" Link "RexxHost.Handle()"}, RexxHost.ReplyMsg();
+
+@EndNode
+
+@Node "RexxHost.HandleFunction()" "RexxHost/RexxHost.HandleFunction"
+
+@{b}   NAME@{ub}
+        RexxHost.HandleFunction -- handle rexx function message    (method)
+
+@{b}   SYNOPSIS@{ub}
+        (VAR rxh: RexxHost) HandleFunction (rxmsg: rx.RexxMsgPtr);
+
+@{b}   FUNCTION@{ub}
+        Sets the messages primary result to 5 (warn), the secondary
+        error code to 1 (program not found) and replies the message.
+
+        In subclasses this method should handle the ARexx function call
+        according to the ARexx documentation.
+
+        HandleFunction MUST reply the message (e.g. using @{"RexxHost.ReplyMsg()" Link "RexxHost.ReplyMsg()"}
+).
+
+@{b}   INPUTS@{ub}
+        msg - the rexx message to be handled
+
+@{b}   SEE ALSO@{ub}
+        @{"RexxHost.Handle()" Link "RexxHost.Handle()"}, @{"RexxHost.ReplyMsg()" Link "RexxHost.ReplyMsg()"}
+
+@EndNode
+
+@Node "RexxHost.HandleResult()" "RexxHost/RexxHost.HandleResult"
+
+@{b}   NAME@{ub}
+       RexxHost.HandleResult -- handle sent messages when   (abstact method)
+                                replied from ARexx
+
+@{b}   SYNOPSIS@{ub}
+       (VAR rxh: RexxHost) HandleResult (rxmsg: rx.RexxMsgPtr);
+
+@{b}   FUNCTION@{ub}
+       none.
+
+       This method can be overwritten in a subclass to handle
+       messages replied from ARexx. So you can put out error
+       messages, make statistics or what ever you want.
+
+       The method MUST NOT rely the rxmsg. This is done by the
+       functions which call HandleResult.
+
+@{b}   INPUTS@{ub}
+       rxmsg - an initialized ARexx message
+
+@{b}   SEE ALSO@{ub}
+       @{"RexxHost.Handle()" Link "RexxHost.Handle()"}, @{"RexxHost.Uninit()" Link "RexxHost.Uninit()"}, @{"RexxHost.FreeCommand()" Link "RexxHost.FreeCommand()"}
+
+@EndNode
+
+@Node "RexxHost.MsgToRexx()" "RexxHost/RexxHost.MsgToRexx"
+
+@{b}   NAME@{ub}
+       RexxHost.MsgToRexx -- send a prepared @{"RexxMsg" Link "TEXT_INCLUDE:rexx/storage.h/Main" 99} to the   (method)
+                             ARexx server
+
+@{b}   SYNOPSIS@{ub}
+       (VAR rxh: RexxHost) MsgToRexx (rxmsg: rx.RexxMsgPtr): rx.RexxMsgPtr;
+
+@{b}   FUNCTION@{ub}
+       MsgToRexx just sends the given @{"RexxMsg" Link "TEXT_INCLUDE:rexx/storage.h/Main" 99} to the ARexx
+       server process without changing any fields of the Msg.
+       It will also increment the counter for outstanding replies
+       in the RexxHost structure.
+
+       You can use this function together with CreateCommand()
+       to easily create customizable command messages for Rexx.
+
+@{b}   INPUTS@{ub}
+       rxmsg - an initialized ARexx message
+
+@{b}   RESULTS@{ub}
+       msg - the same as rexxmessage, just for easy further processing
+
+@{b}   SEE ALSO@{ub}
+       @{"RexxHost.CreateCommand()" Link "RexxHost.CreateCommand()"}, @{"RexxHost.SendCommand()" Link "RexxHost.SendCommand()"}
+
+@EndNode
+
+@Node "RexxHost.ReplyMsg()" "RexxHost/RexxHost.ReplyMsg"
+
+@{b}   NAME@{ub}
+        RexxHost.ReplyMsg -- reply a rexx message from rexxmast (method)
+
+@{b}   SYNOPSIS@{ub}
+        (VAR rxh: RexxHost) Replymsg (rxmsg: rx.RexxMsgPtr;
+                                    primary: LONGINT;
+                                  secondary: e.ADDRESS;
+                                     result: BT.DynString);
+
+@{b}   FUNCTION@{ub}
+        This is a PD ARexx routine provided by William S. Hawes.
+
+        It replies a given rexx message to the rexx master process,
+        filling in a primary and a secondary return code plus
+        optionally a supplied result string.
+
+        If the primary return code equals 0 the secondary return code
+        will become an ARexx string whichs value is take from result.
+        If result is NIL, secondary we be interpreted as Exec.STRPTR
+        and the ARexxstring will be creates from this value.
+
+        If primary is positive, secondary is interpreted as a LONGINT,
+        and used as secondary result code.
+
+        If primary is negative, secondary is interpreted as a Exec.STRPTR,
+        and an ARexx string will be creates from this value.
+
+        RC will become positive (or zero) in any case.
+
+        Creates an ARexx variable "RC2" for the secondary return code.
+        RC2 will only be assigned if the ARexx RESULT flag is set.
+
+@{b}   INPUTS@{ub}
+        rexxmsg   - the rexx message to reply
+        primary   - the primary return code (rc)
+        secondary - the secondary return code (rc2)
+        result    - the result string
+
+@{b}   NOTES@{ub}
+        The handling with primary and result/secondary is a bit tricky,
+        but needed for returning texts which are only Exec.STRPTR without
+        convering them to BT.DynArray.
+        So here is a small table how result ans secondary are interpreted:
+
+              primary | secondary   | result
+              --------+-------------+-------------
+                 0    |  ignored    | result text
+                 0    | result text |   NIL
+                > 0   | error code  | ignored
+                < 0   | error text  | ignored
+
+@{b}   SEE ALSO@{ub}
+        @{"RexxHost.SendCommand()" Link "RexxHost.SendCommand()"}, @{"RexxHost.FreeCommand()" Link "RexxHost.FreeCommand()"}
+
+@EndNode
+
+@Node "RexxHost.SendCommand()" "RexxHost/RexxHost.SendCommand"
+
+@{b}   NAME@{ub}
+       RexxHost.SendCommand -- invoke rexx command script     (method)
+
+@{b}   SYNOPSIS@{ub}
+       (VAR rxh: RexxHost) SendCommand (command: ARRAY OF CHAR;
+                              filehandle: d.FileHandlePtr): rx.RexxMsgPtr;
+
+@{b}   FUNCTION@{ub}
+       This is basically a PD ARexx routine provided by William
+       S. Hawes.
+
+       This function sends the given command string to the ARexx
+       master process for execution as an ARexx command. The
+       command string contains the file name of the ARexx script
+       to be started. If the filehandle is not NIL, it will be
+       used as stdin and stdout for the Rexx script. If it is
+       NIL, the Rexx program will use stdin/stdout of the
+       calling process.
+
+       If necessary, the extension (see @{"Init()" Link "Init()"}) will be added
+       to the file name.
+
+       Messages sent using this function will be replied to by
+       the ARexx master process as soon as the execution of the
+       command script stops. The application MUST NOT close
+       it's messageport before all replies have been received!
+       To simplify things, RexxHost does this book-keeping for you.
+       @{"RexxHost.Uninit()" Link "RexxHost.Uninit()"} will wait for all missing replies to
+       arrive before closing down the messageport.
+
+       The dispatcher will automagically detect any replies,
+       count them and do a @{"RexxHost.FreeCommand()" Link "RexxHost.FreeCommand()"} for each
+       reply, so you don't have to bother with this either.
+
+       Internally, this function is implemented using the two
+       more atomic functions @{"RexxHost.CreateCommand()" Link "RexxHost.CreateCommand()"} and
+       @{"RexxHost.MsgToRexx()" Link "RexxHost.MsgToRexx()"}.
+
+@{b}   INPUTS@{ub}
+       command    - the file name of the ARexx script
+       filehandle - Filehandle for stdin/stdout or NIL
+
+@{b}   RESULTS@{ub}
+       rexxmsg - the sent rexx message structure (for comparisons)
+
+@{b}   SEE ALSO@{ub}
+       @{"RexxHost.FreeCommand()" Link "RexxHost.FreeCommand()"}, @{"RexxHost.Uninit()" Link "RexxHost.Uninit()"}, @{"RexxHost.Handle()" Link "RexxHost.Handle()"}
+       @{"RexxHost.CreateCommand()" Link "RexxHost.CreateCommand()"}, @{"RexxHost.MsgToRexx()" Link "RexxHost.MsgToRexx()"}
+
+@EndNode
+
+@Node "RexxHost.Uninit()" "RexxHost/RexxHost.Uninit"
+
+@{b}   NAME@{ub}
+       RexxHost.Uninit -- close and free RexxHost                (method)
+
+@{b}   SYNOPSIS@{ub}
+       (VAR rxh: RexxHost) Uninit ();
+
+@{b}   FUNCTION@{ub}
+       Waits until replies for all pending ARexx commands have
+       been received and then closes the ARexx port and frees
+       all memory associated with that RexxHost structure.
+
+       All messages sent to a closing host will be replied
+       immediately with an error "Host closing down".
+
+@{b}   SEE ALSO@{ub}
+       @{"Init()" Link "Init()"}, @{"RexxHost.SendCommand()" Link "RexxHost.SendCommand()"}
+
+@EndNode
+

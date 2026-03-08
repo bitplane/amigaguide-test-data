@@ -1,0 +1,262 @@
+@database boss.guide
+@WIDTH 80
+@author "Vince Herried"
+@(c) "Copyright © 1996 Vincent Herried"
+@$VER: BOSS.guide 1 (02 03 96)
+@{JLEFT}
+@node MAIN "BOSS.guide"
+@{u}Contents@{uu}
+@{i}Version 1.0 (Feb 3, 96)@{ui}
+I.  INTRODUCTION
+    1.1 @{"Purpose"                LINK PURPOSE}
+    1.2 @{"System requirements"    LINK REQUIREMENTS    }
+    1.3 @{"Author"                 LINK AUTHOR}  
+II  OPERATION
+    2.1 @{"Installation"           LINK INSTALLATION    }
+    2.2 @{"Command line options"   LINK OPTIONS}
+    2.3 @{"Problems"               LINK PROBLEMS}  
+
+III PROGRAM DESCRIPTION
+    3.1 @{"BOSS protocol"          LINK PROTOCOL}
+    3.2 @{"Program logic"          LINK LOGIC}
+    3.3 @{"Future enhancements"    LINK FUTURE}
+    3.4 @{"Change history"         LINK HISTORY}  
+@ENDNODE
+@node PURPOSE "1.1 Purpose"
+@{u}1.1 Purpose@{uu}
+
+        This program was written to allow me to make backup copys of
+        the data in my Casio B.O.S.S. and to be able to reload this
+        data.
+
+        Copyright 1996 Vincent J. Herried.
+@endnode
+
+@node requirements "1.2 System Requirements"
+@{u}1.2 System Requirements@{uu}
+
+AMIGA:
+        Any model Amiga with a working serial port.
+
+        Any release of AmigaDos  V2.0 or above should work with this version
+        of BOSS.
+
+
+Casio BOSS:
+
+        According to the documentation for my SF-5300B you should be able to
+        use this program with most SF models.  The following models have been
+        tested:
+
+        SF-4600
+
+        SF-7500         Amiga -> BOSS transfers have problems above 4800 Baud.
+                        See @{"problems" link problems}
+
+        SF-5300B
+
+
+HARDWARE:
+
+        You need a serial interface between the connector on your BOSS and your
+        Amiga serial port.
+
+        Sources:
+
+                CASIO sells these adaptors with the software for either a peecee or 
+                a Mac.  Check with stores that sell the BOSS.
+
+                Traveling Software at
+                18702 North Creek Parkway
+                Bothell, WA 98011-9916
+                Sold both the interface and software also.
+
+
+        Build your own:
+
+                On aminet see hard/misc/mcc040.lha.  Contained in this package
+                There is an iff file with a schematic diagram of a simple hardware
+                interface that shouldn't cost more than $20.00 US.
+
+                Also on aminet see comm/misc/casio.lha.  This author has also built
+                his own interface and I expect to see construction documentation
+                soon.
+@endnode
+
+
+@node installation "2.1 Installation" 
+@{u}2.1 Installation@{uu}
+        Setup:
+
+        After connecting your serial interface (see @{"system requirements" link requirements})   
+        Set your BOSS to send and receive 8 bits no parity.
+        Set the baud rate on your BOSS to as fast as it will go.
+        The default for this program is 9600.
+
+        Make sure that the 2.5 mm plug that fits into your BOSS is all the way in.
+        My older interface from Traveling Software had a large handle on it
+        which prevented it from being properly connected to my SF-5300B.
+
+
+        more information:
+
+        Read your BOSS owners manual!
+
+
+@endnode
+
+@node options "2.2 Command line options"
+@{u}2.2 Command line options@{uu}
+@endnode
+
+@node problems "2.3 Problems"
+@{u}2.3 Problems@{uu}
+
+        Make sure the hardware communications parameters in your BOSS
+        match those you are using for this program.
+
+
+        If you have trouble sending data to your unit, try
+        dropping the baud rate.  My older SF7500 unit just didn't
+        want to sync up when the BAUD rate was set at 9600.
+        It worked fine when running at 4800.
+
+
+        You may get a message "unknown data type xxxx"
+        This means that your BOSS has a data type my program doesn't
+        understand.  It will still be able to backup and restore
+        the information to your BOSS, it just dosen't know what kind of
+        data it represents.
+
+        If you get this message, you can figure out what kind of data it represents
+        in several ways.  One way would be to tell your BOSS to send the amiga
+        just one kind of data at a time, then watch for the error message.
+        if you figure out what it represents, please send me a note.
+
+        An example, my newer BOSS 5300B has 'TODO' entrys.  By transmitting
+        just these TODO entrys, I figured them out and updated my program
+        to recognize them.  
+
+        Please help me expand this program with your
+        email.
+
+
+@{jright} 
+    See also @{"future" link future} @{"author" link author}        
+@endnode
+    
+@node protocol "3.1 BOSS protocol"
+@{u}3.1 BOSS protocol@{uu}
+
+        The serial I/O protocol is pretty simple.
+        It is started by the side that wants to transmit data.
+
+
+        1.  Poll state.
+
+        data sender:
+
+                transmit polling characters <CR LF>
+                read response for about 0.5 seconds.
+                if response is <XON> go to step 2.
+                else if retry limit exceeded stop with error message.
+                else goto 1.
+
+
+
+        data receiver:
+
+                read optionally if wait time exceeded, end with error message.
+                if poll is detected, transmit <XON> go to data receiver part of
+                step 2.
+
+
+
+        2.  Data transfer state.
+
+        data sender:
+
+                send first/next block of data.
+                read response.
+                if character received is <!> end the transmition.
+                if character received is <?> resend the block of data.
+                if character received is <#> and more data to send, go to step 2.
+                if no more data to send, transmit <!> and end.
+
+
+        data receiver:
+
+                read block of data and calculate checksum character.
+                if memory is full, send <!> and end.
+                if checksum in incorrect send <?> go to step 3.
+                if checksum is ok, transmit <#> and go to step 3.
+
+
+
+Notes:
+        All of the data is converted to printable ascii.
+        
+        Each block of data is preceeded with a colon, a control word 
+        and terminated with a checksum byte.
+
+        The checksum is a single byte that is zero minus the sum of all the
+        transmitted bytes except for the leading colon.
+@endnode
+
+@node logic "3.2 Program logic"
+@{u}3.2 Program logic@{uu}
+
+see @{"record types" link rectype}
+
+@endnode
+
+@node rectype "3.2.1 record types"
+@{U}3.2.1 Record types@{uu}
+
+#define mode_hilight            0x8000
+#define mode_phone              0x9000
+#define mode_remind             0x9100
+#define mode_expense            0x9200
+#define mode_memo               0xA000
+#define mode_schedule           0xB000
+#define mode_biz_card           0xC000
+#define mode_to_do              0xC100
+
+
+@endnode
+
+@node future "3.3 Future enhancements"
+@{u}3.3 Future enhancements@{uu}
+
+        o       Eventually I hope to have a gui interface and also
+                to build an editor so you can update the data at your Amiga.
+
+        o       Build an AREXX interface.  This will allow you to gather data
+                from another source (data base) and send it to your BOSS.
+
+        o       If you have suggestions for improvements or gotta have features
+                send me a note.
+
+@{jright}
+See also @{"author" link author}
+@endnode
+
+@node history "3.4 Change history"         
+@{u}3.4 Change history@{uu}
+
+        V1.0  Feb 3, 1996 - First public release.
+@endnode
+
+@node author "1.3 Author"    
+@{u}1.3 Author@{uu}
+
+
+        Vince Herried
+        1688 Staffordshire RD
+        Columbus, OH 43229-2167
+
+        vherried@cas.org
+
+
+@endnode
+

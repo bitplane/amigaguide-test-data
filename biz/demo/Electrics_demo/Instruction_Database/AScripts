@@ -1,0 +1,97 @@
+@DATABASE AScripts
+@AUTHOR Chris Sterne
+@$VER: "Electrics ARexx Scripts 1.0 7.2.1996"
+@REMARK Requires AmigaGuide.
+
+@REMARK *-------------------------------------------------------------*
+@REMARK *                     Writing ARexx Scripts                   *
+@REMARK *-------------------------------------------------------------*
+@NODE AScripts
+@TOC "Instructions/MAIN"
+@TITLE "ARexx Scripts"
+
+@{fg background}@{bg text} Introduction @{fg text}@{bg background}
+
+A simulation script is actually an ARexx program containing commands
+that are part of the ARexx command set, or those specific to Electrics
+programs.  A script is the preferred way to test a design, since it
+allows all external programs involved in the simulation to be set up
+at once, and complex Signal value sequences to be applied.  Any text
+editor may be used to write the script.
+
+The Amiga's RexxMast program must be running before a simulation script
+can be run.
+
+@{fg background}@{bg text} Script Directory @{fg text}@{bg background}
+
+All simulation scripts related to a design are stored in the "Scripts"
+sub-directory in the active Project Directory.  Only filenames with a
+".rexx" suffix are considered to be simulation scripts.
+
+@{fg background}@{bg text} Suggested Script Header @{fg text}@{bg background}
+
+The following is a suggested script header that may simplify the
+debugging of script problems.  It makes use of the Simulator program's
+ability to display the ARexx "RC" return code variable.
+
+/*-------------------------------------*/
+/* Suggested Simulation Script Header. */
+/*-------------------------------------*/
+
+RC   = 0
+SIGL = 0
+
+/*-----------------------------------------------------------*/
+/* If a error occurred, return the line number of the error. */
+/*-----------------------------------------------------------*/
+
+SYNTAX:
+  SIGNAL ON SYNTAX
+    if SIGL ~= 0 THEN DO
+    EXIT "Syntax Error on line" SIGL
+  END
+
+ERROR:
+  SIGNAL ON ERROR
+  if RC ~= 0 THEN DO
+    EXIT "Error Code" RC "on Line" SIGL
+  END
+
+/*---------------------------------------------------------*/
+/* First make sure the Electrics programs required for the */
+/* simulation are running.  Otherwise, return an error.    */
+/*---------------------------------------------------------*/
+
+address SIMULATOR.1 nop
+address VIEWER.1 nop
+
+@{fg background}@{bg text} Example Simulation Script @{fg text}@{bg background}
+
+The following is an example of a short simulation script that loads
+a project into the Simulator, sets up the Viewer, and runs a 
+simulation for a while.  Note that it may be necessary to use
+double-quotes at both ends of an Electrics program ARexx command
+(e.g. "open 74169") to prevent an ARexx syntax error. 
+
+/*-------------------*/
+/* Simulation Script */
+/*-------------------*/
+
+address SIMULATOR.1 "open 74169"
+address SIMULATOR.1 "create INPUT from D C B A"
+address SIMULATOR.1 "create OUTPUT from QD QC QB QA"
+address VIEWER.1 "view INPUT LOAD# UP_DN# ENP# ENT# CLK OUTPUT RCO#"
+address SIMULATOR.1 "connect VIEWER.1"
+address VIEWER.1 "radix INPUT HEX"
+
+address SIMULATOR.1 assign UP_DN# 1
+address SIMULATOR.1 assign LOAD# 0
+address SIMULATOR.1 assign INPUT 0000
+
+DO counter = 1 to 5
+  address SIMULATOR.1 run
+  address SIMULATOR.1 assign CLK 0
+  address SIMULATOR.1 run
+  address SIMULATOR.1 assign CLK 1
+  END
+@ENDNODE

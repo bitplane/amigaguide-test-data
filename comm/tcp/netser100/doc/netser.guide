@@ -1,0 +1,529 @@
+@DATABASE "netser.doc"
+
+@NODE MAIN "netser.doc"
+
+     =========================================================
+     netser V1.00 -- Virtual Serial Device Driver for Networks
+                         Documentation
+                     - September 18, 1994 -
+     =========================================================
+
+       Copyright (c) 1994 by Sam Yee.  All rights reserved.
+
+
+@{" Legal Stuff " Link Legal_Stuff}
+@{" Introduction " Link Introduction}
+@{" Demo Restrictions " Link Demo_Restrictions}
+@{" Requirements " Link Requirements}
+@{" Installation " Link Installation}
+@{" Configuration " Link Configuration}
+@{" How it works " Link How_it_works}
+@{" Using netser.device " Link Using_netser.device}
+@{" Logging " Link Logging}
+@{" Performance and Compatibility " Link Performance_and_Compatibility}
+@{" Future Plans " Link Future_Plans}
+@{" Acknowledgements " Link Acknowledgements}
+@{" Registration Form " Link Registration_Form}
+@{" Contact Address " Link Contact_Address}
+@ENDNODE
+
+@NODE Legal_Stuff "Legal Stuff"
+
+@{" Copyright " Link Copyright}
+@{" License Agreement " Link License_Agreement}
+@{" Disclaimer " Link Disclaimer}
+@ENDNODE
+
+@NODE Copyright "Copyright"
+
+The   program,  netser  and  its  associated  files  are  written  and
+copyrighted  by  Sam  Yee.   netser  is SHAREWARE and the UNREGISTERED
+version  of  netser  may be distributed freely providing the following
+restrictions are satisfied:
+
+o Distributors may not charge more than the cost of a diskette used in
+  the distribution of this program.
+
+o Distributors may only distribute the unmodified copy of the original
+  program, along with its documentation, and copyright notices intact.
+
+o Commercial  distribution  is  only  possible with written permission
+  from the author.
+
+@ENDNODE
+
+@NODE License_Agreement "License Agreement"
+
+The   REGISTERED   versions   of  netser  may  not  be  redistributed.
+Redistribution  is  illegal,  immoral,  and  strictly prohibited.  The
+licensed keyfile may be used on more than one machine if you own those
+machines and that they are not for business use.  Otherwise, different
+keyfiles are required for each machine.
+
+@ENDNODE
+
+@NODE Disclaimer "Disclaimer"
+
+This   program  and  its  documentation  are  provided  "as  is".   No
+warranties  are  made  with  respect  to  the  accuracy,  reliability,
+performance  or  operation  of this software and information.  You are
+using this program at your own risk.  The author is not liable for any
+damages that may have been caused by using this software.
+
+
+@ENDNODE
+
+@NODE Introduction "Introduction"
+
+netser is a virtual device driver for accessing remote serial ports as
+if  they  were  local.   Currently,  it  only supports TCP/IP with the
+AmiTCP  package.   Support  for  other  packages  are planned.  netser
+emulates  low-level  serial  device  commands  over the network.  As a
+result,  your telecommunication (or "comm") program does not know, nor
+does  it  care, where your serial port is really located.  As you will
+see,  netser  allows  you  to  do things that have never been possible
+before!
+
+Suppose  you  are  running  a  two  machine  network at home through a
+parallel  port  or  Ethernet card.  Wouldn't it be nice if one machine
+could  access  the  other machine's serial port?  You can conveniently
+call out to a BBS on any of the machines.  You may even run a two line
+BBS  without buying a multi-serial card!  And if you want to run a big
+BBS, but you don't have enough expansion slots to populate with serial
+cards.   What  you  can do is get another (slower) machine and connect
+the  two together with Ethernet.  netser will allow the BBS machine to
+use the other machine's ports.
+
+With  netser  and  internet, you may run your favorite comm program on
+your  friend's  serial  port,  which may be half way across the world.
+This will save you long distance charges.
+
+Now  that  Amiga  LAN's  exist, it would be convenient to dedicate one
+machine  on the LAN to hold modems that may be accessible to any other
+machine on the LAN.  (This is commonly known as a modem pool.) It is a
+common thing on Unix LAN's.  Your company will no longer have to drill
+holes in the walls to equip each machine with a modem.  As a matter of
+fact,  since  not everybody needs a modem all the time, the modems can
+be  shared.   Any  way  you put it, your company saves money.  Because
+most modems nowadays come with FAX capabilities , you can now fax from
+anywhere!
+
+And  the  list of possibilities goes on and on.  The fact is, whatever
+you  do with the serial ports on your local machine, you can now do it
+with remote serial ports.  Only netser makes it possible!
+
+
+@ENDNODE
+
+@NODE Demo_Restrictions "Demo Restrictions"
+
+All restrictions apply to the server side of netser.
+
+The  demonstration version of netser allows connection time of 1 hour.
+When  the  time  expires,  your  comm  program  must  be  stopped  and
+restarted.   Furthermore, there is a limit of one device that could be
+opened by the server machine.
+
+When  you  register  the  time limit will be eliminated.  Registration
+type  A  allows  2 devices, type B allows 4 devices, and type C allows
+unlimited devices.
+
+To  register, please fill in the @{" Registration Form " Link Registration_Form} and send it along
+with the fee to the address in section @{" Contact Address " Link Contact_Address}.
+
+
+@ENDNODE
+
+@NODE Requirements "Requirements"
+
+netser  runs  on  any  Amiga(tm)  with version 2.04 of the OS, running
+AmiTCP.  It has been tested to work with AmiTCP 3.0, but may work with
+earlier versions.  netser uses very little memory (perhaps 50K).
+
+
+@ENDNODE
+
+@NODE Installation "Installation"
+
+The netser archive contains the following files:
+
+bin/netser          - client program used by devs/netser.device
+db/netser.imports   - device unit configuration for client
+db/netser.exports   - authorization file used by server
+devs/netser.device  - exec device driver to be opened by comm program
+serv/netserd        - server ("daemon") to be started by inetd
+doc/netser.doc      - documentation in text format
+doc/netser.guide    - documentation in AmigaGuide format
+s:netser.key        - registration keyfile for netser
+
+To install netser, unpack the archive into AMITCP:.
+
+For example:
+ 1> lha x DH0:netser100.lha AMITCP:
+
+Copy the device driver netser.device into devs:
+
+ 1> copy AMITCP:devs/netser.device devs: clone
+
+Add the following line to AMITCP:db/inetd.conf:
+
+netser    stream  tcp nowait root amitcp:serv/netserd
+
+Add the following line to AMITCP:db/services:
+
+netser          3000/tcp
+
+The port 3000 is used for mere convenience.  (Since I have an A3000, I
+thought  it  would  be  a good number.) As long as it doesn't conflict
+with your other services, you can set it to anything you like.
+ 
+If you are having problems installing, I'll be happy to help you.  See
+contact address at section @{" Contact Address " Link Contact_Address}.
+
+
+@ENDNODE
+
+@NODE Configuration "Configuration"
+
+netser.device     requires    two    configuration    files,    namely
+db/netser.imports,  and db/netser.exports.  In the files, a "#" or ";"
+forces  a line to be ignored.  db/netser.imports is used by the client
+machine, while db/netser.exports is used by the server machine.  Note,
+you should not use tabs in the config files to separate fields.
+
+db/netser.imports has the following format:
+
+# local  host[/port]     remote-device/unit  logfile
+# unit                   (wildcards OK)      ("" for none)
+# ----   ------------    ------------------  ---------------------
+  0      localhost       serial.device/0     "t:netser.log"
+  1      modempool       #?                  "t:netser.log"
+  3      123.45.67.89    oldser.device/0     "t:netser.log"
+  4      ""              serial.device/0     ""
+
+Field  1  is  the local unit number used by netser.device to determine
+how  connections are made.  The number can be between 0 and 2 billion,
+but  bare  in  mind  that comm programs typically allow units 0 to 99.
+Field  2  specifies  the machine name (or IP address) where the remote
+serial  port  is to be found.  The service port number is optional and
+if none is given, the default is used.  Field 3 is the device and unit
+of that serial port.  It may contain AmigaDOS wildcards.  If wildcards
+are  used  all  remotely  defined  devices  are tried until one can be
+opened.   Finally,  field 4 is the file where you want all the logs to
+be  stored.  File names with spaces must be enclosed in double quotes.
+Log files are opened in append mode.  If you do not want logging, just
+enter "".
+
+If  either  host[/port]  or  remote-device/unit is not given, a window
+will  be  opened  on  the  Workbench screen, allowing you to enter the
+missing  information.   Click  on Okay when you are done, or Cancel to
+force device open to fail.
+
+As  a  suggestion, you should configure a unit to use a serial port on
+the  local  machine  ("localhost").   This  will  test  if all network
+communication run smoothly.
+
+db/netser.exports has the following format:
+
+#    local           IP address     allow/    Use      startup cleanup logfile
+# device/unit        or pattern     deny   OwnDevUnit? command command ("" for 
+one)
+# -----------------  ----------     ------ ----------- ------- ------- --------
+-----
+  serial.device/0    *.*.*.*        allow      Y         ""      ""   "t:netser
+.log"
+  nullmodem.device/0 128.189.1.2    deny       N         ""      ""   ""
+
+Field  1  defines  the  device  and  unit of the serial port you allow
+clients  to  use.   Field  2 and 3 control authorization to the serial
+port.   Field  2  is  the  IP  address of the machine to grant or deny
+access.   AmigaDOS  wildcards may be used.  Field 3 determines whether
+access  should  be  denied  or  granted.   When  field  4 is set to Y,
+OwnDevUnit.library  will  be  used  (if  available)  when  opening the
+device.   If don't already know, OwnDevUnit.library allows programs to
+use  the  serial  port  in  an orderly fashion.  Field 5 specifies the
+command  to  execute  prior  to  opening the device.  The command must
+return  a  result  code of 0 or else the device will not be attempted.
+The  sixth field is the command that will be executed after the device
+is  closed.   If you don't want any commands to be run, just enter "".
+Field  7 specifies the file to which all logs will be written.  Again,
+enter "" for none.
+
+To  allow  more  than  one  machine  to  access  a serial port, simply
+duplicate the original line and change anything applicable, except for
+the device/unit.  For example:
+
+ serial.device/0 1.2.3.4 allow Y "" "" "t:netserd.log"
+ serial.device/0 1.2.3.5 allow Y "" "" "t:netserd.log"
+ serial.device/0 1.2.3.6 deny  Y "" "" "t:netserd.log"
+
+The  above allows hosts 1.2.3.4 and 1.2.3.5 to access serial.device/0,
+but not 1.2.3.6.
+
+
+@{" Modem Pool on a LAN " Link Modem_Pool_on_a_LAN}
+@ENDNODE
+
+@NODE Modem_Pool_on_a_LAN "Modem Pool on a LAN"
+
+On  every  machine in your LAN, the db/netser.imports file should look
+like:
+
+ 0   modempool   *   "t:netser.log"
+
+And  on the machine that holds all the serial ports, db/netser.exports
+should look like:
+
+serial.device/0 200.2.3.*   allow   Y   "" "" "t:netserd.log"
+serial.device/1 200.2.3.*   allow   Y   "" "" "t:netserd.log"
+serial.device/2 200.2.3.*   allow   Y   "" "" "t:netserd.log"
+serial.device/3 200.2.3.*   allow   Y   "" "" "t:netserd.log"
+...
+
+When  a client machine opens netser.device,0 all the serial devices in
+the  server  machine  (e.g.,  "modempool")  are attempted until one is
+opened  and quits if all of them are busy.  As you can see, only those
+machines in your domain are accessible to the serial ports.
+
+
+@ENDNODE
+
+@NODE How_it_works "How it works"
+
+The following diagram depicts the communication between the client and
+remote machine.
+
+<netser.device> <---> [netser] <-..-> [netserd] <---> [serial.device]
+(((((( LOCAL MACHINE ))))))))) (NET)  ((((((( REMOTE MACHINE ))))))))
+
+[netser]   and  [netserd]  are  used  to  connect  <netser.device>  to
+<serial.device>.  [netser] is the client, and [netserd] is the server.
+A   custom  and  efficient  protocol  is  used  between  [netser]  and
+[netserd].
+
+When  your comm program opens <netser.device> it launches [netser] and
+[netser] tries to connect to the remote machine.  When a connection is
+made,  inetd  launches [netserd].  [netserd] then checks authorization
+and opens the serial port.
+
+When  you  quite  your comm program, [netser] tells [netserd] to close
+the  serial port.  [netserd] then exits and terminates the connection.
+Finally, netser.device closes.
+
+
+@ENDNODE
+
+@NODE Using_netser.device "Using netser.device"
+
+To use netser.device, run your comm program the usual way.  Select the
+option   to   change   the   serial  device  and  unit.   Change  from
+"serial.device"   to   "netser.device".   Select  a  unit  defined  in
+db/netser.imports.   For  example,  if  you  use  the  definitions  in
+db/netser.imports  and  you  open  netser.device,3  you  are  actually
+opening oldser.device/0 at IP address 123.45.67.89.
+
+If  the remote serial port is opened successfully, you should see some
+information  about netser on your terminal and which remote device you
+are using.  This is actually sent from the netser server on the remote
+machine.
+
+
+@ENDNODE
+
+@NODE Logging "Logging"
+
+All  log  entries  have  a  time/date  stamp.  The log entry types are
+define as follows.
+
+Client Log Messages
+-------------------
+
+Trying <host>...
+    Client is trying to open connection with <host>
+
+Closing remote device
+    Comm program is closing netser.device
+
+select() error <code>
+    internal error <code> caused by select()
+
+Opening <host>:<deviceunit> results in <resultcode>
+    Opening <deviceunit> at <host> results in <resultcode>
+
+Connction closed by host (errno <code>)
+    netser server closed connection with client
+    error <code> is no error
+
+Connection lost: quit comm prog now!
+    unable to receive bytes from the host
+
+unknown host: <host>
+    <host> is not in your hosts file or your name server
+    try again with an IP address instead
+
+tcp/netser: unknown service
+    the host does not have the netser service defined in the
+    serices file
+
+socket() error
+    unable to open a socket
+
+connect() error
+    unable to connect to host at a particular port number
+    check your host name and port number and try again
+    port number 0 is the default
+
+Server Log Messages
+-------------------
+
+Ping timeout
+    client is dead
+    server currently pings the client once every 5 minutes
+
+select() error <code>
+    internal error <code> caused by select()
+
+Connection from <IP-address> (port <port>)
+    A service request is made by <IP-address> at remote <port>
+
+<deviceunit> already opened
+    an OpenDevice() call is made to <deviceunit> already
+
+Opening <device>/<unit> results in <result>
+    reports the <result> of calling OpenDevice() on <device>/<unit>
+
+bytes read: <read>; bytes written: <wrote>
+    i/o traffic
+
+Connection closed by client (errno <code>)
+    client closed connection
+    errno <code> 0 is no error
+
+Connection closed with client
+    we closed connection with client
+
+<device>/<unit>: access denied
+    client is denied of <device>/<unit>
+
+<device>/<unit>: access not declared
+    no access was granted for client to use <device>/<unit>
+
+
+@ENDNODE
+
+@NODE Performance_and_Compatibility "Performance and Compatibility"
+
+When  sending  characters  using netser you may feel a delay in having
+what  you  typed  echo  back.   This  is to be expected because of the
+inefficiencies  in  sending  bytes at a time instead of blocks, over a
+network.   netser.device has been tested with ZModem file transfers on
+a  14.4kps  V.32BIS  modem.   It  was achieving rates of 1600cps using
+localhost.   On  the  same files, using serial.device directly, it was
+getting  about the same speed.  And on a LAN, it was getting 238cps on
+a  2400  baud  modem.   Therefore, it is safe to say that your network
+speed  determines the effective speed on using a remote modem.  I have
+not  tested  netser  on bi-directional protocols, but would appreciate
+any reports.
+
+netser  is  very compatible with serial.device.  I can't say it's 100%
+because  I  can't prove it.  So far, I have tested it with NComm, VLT,
+and  Term  and it works fine.  All the official serial.device commands
+are  supported.   You  can  even  check if the remote modem has its CD
+light on.
+
+
+@ENDNODE
+
+@NODE Future_Plans "Future Plans"
+
+Currently, I only have AmiTCP development documentation, so I can only
+write  and  test netser for this package.  When I get enough developer
+information  and resources, and if there is enough demand, I will port
+netser  to  other  network  packages  on the Amiga, such as AS225(tm),
+Envoy(tm),  Enlan(tm), and Parnet.  Ports on Unix(tm), Windows(tm) NT,
+and  OS/2(tm)  are  a  possibility.   It  would  be really nice to use
+PC/Unix-Workstation serial ports as Amiga serial ports!
+
+
+@ENDNODE
+
+@NODE Acknowledgements "Acknowledgements"
+
+Thank-you's go to...
+
+ - My co-workers at Taurus Ventures Inc. for beta-testing netser;
+
+ - The AmiTCP group at Helsinki University for their great work;
+
+ - Stephan Sürken for Text2Guide, which made creating AmigaGuide
+   documents easy; and
+
+ - Marc Tooley (mtooley@sfu.ca) for beta-testing netser.
+
+
+@ENDNODE
+
+@NODE Registration_Form "Registration Form"
+
+----------------------- netser Registration --------------------------
+Surname___________________________ Given Name_________________________
+
+Company Name_________________ Type of Business________________________
+
+Street Address________________________________________________________
+
+City______________________________ Prov./State________________________
+
+Country___________________________ Postal/ZipCode_____________________
+
+E-Mail (please specify)_______________________________________________
+
+______________________________________________________________________
+
+Can the above e-mail address accept uuencode files?___
+
+Network software and hardware you are using?__________________________
+
+______________________________________________________________________
+
+Where did you download netser?________________________________________
+
+Version you have now__________________________________________________
+
+Please mark with "*".  Version you are registering:
+[ ] A. 2 devices ..........$25US
+[ ] B. 4 devices ..........$35US
+[ ] C. unlimited devices ..$50US
+
+Method of payment:
+[ ] Money order
+[ ] Personal cheque, please allow 3-4 weeks for clearance.
+    No personal cheques from outside of Canada.
+[ ] Cash.  Registered mail recommended.
+    I hold no responsibility for missing cash.
+
+I have read the section @{" Legal Stuff " Link Legal_Stuff} and agree with it.
+
+_________________________  ___________________________________________
+       (Date)                           (Signature)
+----------------------------------------------------------------------
+
+
+@ENDNODE
+
+@NODE Contact_Address "Contact Address"
+
+Registration  fees,  questions,  ideas,  comments,  bug  reports, etc.
+should go to:
+
+Snail Mail: Sam Yee
+            4595 Nanaimo St.
+            Vancouver, B.C.
+            Canada  V5N 5J5
+
+  Internet: samy@sfu.ca
+            sam_yee@res.com
+   FidoNet: 1:153/765 (Terra Firma BBS (604) 434-3665)
+
+@ENDNODE
+

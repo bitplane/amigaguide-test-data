@@ -1,0 +1,249 @@
+@database MakeMAUD
+@author Sami Klemola
+@remark ***************************************************************
+@remark ** This is an AmigaGuide document. Use Multiview to show it. **
+@remark ***************************************************************
+@node main MakeMAUD
+
+                               @{b}MakeMAUD, v2.00
+                               ---------------@{ub}
+
+MakeMAUD converts a raw audio file to a MAUD data file. MAUD is the
+file format used by the Toccata system and replayed by ex. Play16.
+MakeMAUD is freeware and freely distributable. ©1996 by Sami Klemola.
+SH-Ware and MakeMAUD are trademarks of Sami Klemola. All Rights Reserved.
+
+         @{" Command specification                " link MakeMAUD_1}
+         @{" Reading audio data from a CD         " link MakeMAUD_2}
+         @{" Contact addresses                    " link MakeMAUD_3}
+         @{" Version history                      " link MakeMAUD_4}
+
+@{b}Why is the archive called RAW3MAUD?@{ub}
+
+For long I have been very annoyed by the fact that almost everyone writing
+some kind of a converter will name his program "ThisToThat". This is OK, but
+when the "To" is changed to "2" things start to go very wrong. Apart from
+the fact that the preposition "to" and the numeral 2 sound a bit alike, they
+have absolutely nothing to do with each other and using 2 in the place of a
+"to" is really idiotic. Therefor, I decided to change the "To" to a 3
+instead, just to show you how stupid "RAW three MAUD" looks. Just as stupid
+would be "RAW two MAUD". Get my point? Stop doing it!
+@endnode
+@node MakeMAUD_1
+@title "Command specification"
+@{b}Command specification@{ub}
+
+                                @{b}MakeMAUD@{ub}
+
+@{i}Format:@{ui}           MakeMAUD <RawFile> <MAUDFile> [FREQ=FREQUENCY <Frequency>]
+                  [MONO] [8BIT] [SIGNED]
+
+@{i}Template:@{ui}         RAWFILE/A,MAUDFILE/A,FREQ=FREQUENCY/K/N,MONO/S,
+                  8BIT/S,SIGNED/S
+
+@{i}Purpose:@{ui}          To convert a raw audio file to a MAUD data file.
+
+@{i}Path:@{ui}             MakeMAUD/
+
+@{i}Specification:@{ui}
+
+MacroSystem GmbH introduced the MAUD format for sampled audio. It is part
+of the Interchange File Format (IFF) scheme. MAUD audio can be replayed
+using the MacroSystem Toccata sound card and the supplied software. There
+are also programs that replay it on the standard Amiga sound hardware, for
+example Play16. They can replay any kind of sound stored in a MAUD file.
+The sampled data in a MAUD file may be 8- or 16-bit, mono or stereo, sampled
+at any frequency and compressed even. For more information about the MAUD
+format, please refer to the documentation released by MacroSystem GmbH.
+
+MakeMAUD is a converter, that produces a MAUD file from raw data, which
+defaults to 16-bit stereo sound sampled at 44100 Hz (CD standard). Use the
+options to change the parameters. They will be written in the MAUD file,
+and the replay program will know what kind of audio the data chunk contains.
+MakeMAUD will simply write a MAUD header in the destination file and then
+copy the audio data from the source file, and if requested, convert each
+byte or swap the bytes of 16-bit sample words.
+
+The options
+
+         MONO     Defines 1-channel sound. All data bytes or words will
+                  be output through the same channel. Otherwise stereophonic
+                  sound is assumed, and every two bytes or words are
+                  expected to be a left and right channel pair, thus being
+                  output on different channels.
+
+         8BIT     Changes the sample resolution from 16 bits to 8 bits.
+                  Normally you would perhaps need this option, if you deal
+                  with conventional Amiga audio. However, if you digitize
+                  yourself using the Toccata sound card, the default will
+                  do for you. Reading digital data from a CD, may produce
+                  each one. Read later @{"more about this subject" link MakeMAUD_2}.
+
+         SIGNED   Your raw 8-bit data is probably signed, and as MAUD
+                  defines 8-bit data to be unsigned, it must be converted.
+                  If you know this is the case, or if the output from the
+                  MAUD file has static and poor sound quality, try doing
+                  the conversion again with this option set, and it will
+                  probably go away.
+
+IMPORTANT! The SIGNED option only works when converting 8-bit sample data.
+The option does something very different when converting 16-bit data.
+Instead of converting signed data to unsigned, it causes the bytes of
+each data word to be swapped. SCSIUtil outputs sample data from a CD
+in a manner that is incompatible with the Amiga. It has the Intel
+orientation of bytes, ie. the least significant byte leads. Use the SIGNED
+option to swap them.
+
+Note! The resulting MAUD file should have a "maud" extension. The Toccata
+software is very strict about it, and it REQUIRES it. To play a MAUD sound
+on the Toccata, you might want to try the shtp program. It is a shell based
+MAUD player, that uses the Toccata hardware via toccata.library to produce
+the sound. It will also show you the parameters of the sound, if you would
+like it to. The shtp accompanies MakeMAUD, and you will find it in this
+archive as well. You should really concider purchasing the Toccata sound
+card. Its sound quality is just fabulous! It plays even 8-bit sound much
+clearer than the Paula auntey.
+
+@{i}Examples:@{ui}
+
+    MakeMAUD Sound Sound.maud SIGNED
+
+This will convert a sound file called "Sound" consisting of raw sample
+data to a MAUD file called "Sound.maud". The raw data is signed, so it
+will be converted to unsigned values.
+
+    MakeMAUD Data Data.maud MONO 8BIT
+
+Converts 8-bit monophonic sound. It is assumed to be unsigned.
+
+    MakeMAUD Audio Audio.maud FREQUENCY 32000 8BIT
+
+This is 8-bit stereophonic sound digitized at 32000 Hz. Unsigned again.
+
+@{i}See also:@{ui}         Play16,SCSIUtil
+@endnode
+@node MakeMAUD_2
+@title "Reading audio data from a CD"
+@{b}Reading audio data from a CD@{ub}
+
+This is an interesting subject, and the thing that actually started this
+whole project. I needed a program to produce MAUD files from raw data read
+from a compact disk. There are only a few compact disk drives available,
+that support reading digital data from audio CDs. Mainly these are a few
+models from Sony and Toshiba. Mine is from the latter manufacturer. It is
+the XM-5201TA.
+
+The program for the job is SCSIUtil. It can do other tasks too, but this
+is the one of them we need here. You can read the contents of a CD-DA
+(compact disk - digital audio) by issuing the command:
+
+    SCSIUtil 6 -t
+
+This assumes that your CD drive is configured as unit 6. You will see
+a listing that looks like this:
+
+TOC len: 138
+First/last track: 1, 16
+#001: ADR:cur.posdt. no-pre-emphasis Dig.copy.prohb. Audio tr. 2Chan. 33
+#002: ADR:cur.posdt. no-pre-emphasis Dig.copy.prohb. Audio tr. 2Chan. 9670
+    <...>
+#006: ADR:cur.posdt. no-pre-emphasis Dig.copy.prohb. Audio tr. 2Chan. 53620
+#007: ADR:cur.posdt. no-pre-emphasis Dig.copy.prohb. Audio tr. 2Chan. 65095
+#008: ADR:cur.posdt. no-pre-emphasis Dig.copy.prohb. Audio tr. 2Chan. 74045
+#009: ADR:cur.posdt. no-pre-emphasis Dig.copy.prohb. Audio tr. 2Chan. 82245
+    <...>
+
+The length of the contents is 138 bytes, and the audio tracks on the
+disk range from 1 to 16. One line of information follows for each track
+ending to the starting sector of the track. It will be needed when reading
+the data. For more information about the TOC and related issues, look at
+the SCSIUtil documentation. I am using an Elvis Presley CD here, it is
+the "Greatest Number One Hits". You can use any CD you might have. I want
+to read track 7, title "All Shook Up".
+
+The -ds command does the reading. It needs to be supplied with the starting
+sector of the data to be read and the number of sectors to be read. You can
+calculate this from the beginning of the next track: 74045 - 65095 = 8950.
+The next value must be zero for correct sector length. The weird thing about
+SCSIUtil is, that in addition to not using AmigaDOS standard command line,
+it produces the output to stdout. This is common in the Unix, but NOT the
+way to operate on the Amiga. Anyway, redirect the output to a data file,
+where the raw digital audio will be written:
+
+    SCSIUtil 6 -ds 65095 8950 0 >data:AllShookUp.RAW
+
+This will take a while, and the file produced will be over 20 megabytes
+in this case, and may be bigger. Wait for the data to be read from the CD.
+At this point, you can play the sound if you let the player know exactly
+what kind of a sound it is:
+
+    Play16 data:AllShookUp.RAW FREQ 44100 TRACKS 2 BITS 16
+
+To convert the raw audio data file to MAUD format, apply this command:
+
+    MakeMAUD data:AllShookUp.RAW data:AllShookUp.maud SIGNED
+
+And then you will no longer need to supply the player the parameters
+describing the sound:
+
+    Play16 data:AllShookUp.maud
+
+This is the file produced by MakeMAUD:
+
+AllShookUp.maud         21050524 ----rwed Saturday  15:56:26
+
+Delete the original raw data file. You will need something like 50 megabytes
+or more to do this. The hard disk space required can be reduced by telling
+SCSIUtil to convert each 16-bit sample to an 8-bit sample. Do this by using
+the -D command instead. However, for some strange reason the weird program
+will not output stereo sound then. You will need to supply MakeMAUD the
+options MONO and 8BIT. The hard disk space required will only be 25 per
+cent of what it was earlier.
+
+I have some future plans in the field of digital audio. Read more about
+it below the @{"version history" link MakeMAUD_4} chapter.
+@endnode
+@node MakeMAUD_3
+@title "Contact addresses"
+@{b}Contact addresses@{ub}
+
+You may contact the author at
+
+         shadow@spider.compart.fi
+         sklemola@freenet.hut.fi
+
+or using FTN netmail
+
+         2:220/851@fidonet
+         39:262/1@amiganet
+         65:10/5@sakunet
+         81:4358/111@OS2-Net
+
+or by calling the author's BBS
+
+         Star Fleet TechnoBBS running TechnoBBS 0.93 on an A3000-030/25.
+@endnode
+@node MakeMAUD_4
+@title "Version history"
+@{b}Version history@{ub}
+
+V1.00    9.3.     First version. Only converts 16-bit stereo sound.
+
+V2.00    12.3.    Now takes in arguments to vary the parameters from
+                  that described above. Can now do mono and 8-bit too.
+                  Also will convert each sample from unsigned value
+                  if needed, and swap the bytes when converting 16-bit
+                  audio.
+
+@{b}Future plans@{ub}
+
+I would like to improve MakeMAUD to support compression, and add code to do
+"resampling" or something to change the sample frequency. Some sort of
+a front end for all the different programs would also be a good idea.
+Concidering the fact that SCSIUtil is a difficult program to use and very
+non-Amiga-like too (and needs a LOT of memory), I might write a completely
+new program to do the exact job of reading audio data from a CD-DA. I will
+then also cover more ground in the documentation on the subject. Send me
+mail and let me know what YOU would like.
+@endnode
+

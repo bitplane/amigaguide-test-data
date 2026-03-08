@@ -1,0 +1,587 @@
+@DATABASE GPatch.guide
+@MASTER GPatch.guide
+@$VER: 2.6
+@AUTHOR "Ralf Gruner"
+@(c) "© 1997-2002 Ralf Gruner, Großschönau, Germany"
+@INDEX "Index"
+
+@NODE "Main" "GPatch Manual"
+@{JRIGHT}***RGR***
+@{JCENTER}
+@{b}@{u}GCompare / GPatch:@{ub}  The patch system for program updates@{uu}
+
+Version 3.0
+
+Author: Ralf Gruner
+
+
+@{JLEFT}
+@{LINDENT 3}
+
+@{" Introduction " LINK "Introduction" 0}
+@{" GCompare " LINK "GCompare" 0}
+@{" GPatch " LINK "GPatch" 0}
+@{" Tips " LINK "Tips" 0}
+@{" Technical Details " LINK "Details" 0}
+@{" Examples " LINK "Examples" 0}
+@{" Versions for other operating systems and PPC " LINK "IX Windows PPC" 0}
+@{" Copyright, Distribution, Disclaimer " LINK "Copyright" 0}
+@{" Credits " LINK "Credits" 0}
+@{" History " LINK "GPatchHistory.guide/MAIN"}
+
+
+
+@ENDNODE
+
+@NODE "Introduction" "Introduction"
+@SMARTWRAP
+@{LINDENT 1}
+
+@{B}Introduction@{UB}
+
+
+GCompare generates patch files for the distribution of updates for any files.
+
+Such a patch file contains only the differences between the old and the new
+files. This reduces considerably the size of the data you have to distribute. 
+
+
+GPatch applies these patches.
+
+
+The features of GCompare/GPatch are:
+
+@{LINDENT 2} @{PARI -1}
+
+-The patch file can contain patches for any number of files.
+So you can distribute the update for a lot of versions in one file.
+If the directory structure of your product is unchanged, then the patcher
+will find the required patches without any additional actions of your update
+script.
+And you can put the patches for different files of your product in one
+patch file.
+
+
+-If the patchfile contains the changes from each version of your program to
+the next then it is not necessary to store all old versions.
+
+
+-The format of the patchfile is very high optimized.
+GCompare can try some different coding algorithms and select that with the
+shortest result.
+
+I do not know too many similar programs, but I think in the most cases
+GCompare produces the shortest patch files of all available patch programs.
+
+
+-To avoid corrupt files, the programs contain a very safe error checking
+(CRC32 signatures for all files). So you can be sure that the result of the
+patch process is perfect if no error messages appear.
+
+
+-GCompare searches matching data in the entire file, not only in a relative
+area. I think, it is at the moment the only one doing that.
+
+But because such a search is a laborious process, the program uses a three-dimensional
+search array and can do it in a relative short time. If it cannot find enough
+memory for the array, it uses a two- or one-dimensional array.
+
+
+
+
+@ENDNODE
+
+
+
+@NODE "GCompare" "GCompare"
+@SMARTWRAP
+@{LINDENT 1}
+
+@{B}GCompare@{UB}
+
+
+GCompare is a shell command. The format is
+
+
+
+GCompare <old file> <new file> <patch file> [MODE <n> [VARY <n>] | AUTO [DEEP]] [VERBOSE] [mem128 | mem256]
+
+
+
+GCompare compares the old file with the new file and stores all changes in
+the patch file.
+
+If GCompare finds an existing patch file, then it appends the patches
+after a check on whether the patch file do not contain already patches for
+the old file.
+
+If a patch file already exists, then GCompare searches for matching data
+in this file too.
+
+Later GPatch can build the new file using the old file and the patch file.
+
+
+In case of errors GCompare displays an error message.
+
+Any fatal error produces a return code of 15, and if the result is a corrupt
+patch file then it will be deleted.
+
+
+The options @{B}MODE@{UB}, @{B}VARY@{UB}, @{B}AUTO@{UB} and @{B}DEEP@{UB} select the operating mode.
+
+Without any option GCompare works in its mode 3. This will
+produce a useful result for all files.
+
+
+With the option @{B}AUTO@{UB} GCompare selects the optimal type. The additional
+argument @{B}DEEP@{UB} varies the value for the minimum size of matching data from
+-1 to 1.
+
+With AUTO DEEP GCompare produces the shortest possible patch file.
+
+If you additional type the option @{B}VERBOSE@{UB} then GCompare tells you the
+settings for the best result after the compare passes.
+
+
+With the option @{B}MODE@{UB} you can select the file format immediately.
+The MODE values <n> can be the numbers 1 to 4.
+
+The option @{B}VARY@{UB} changes the internal minimum values for accepting data
+as match blocks (automatically tested in the DEEP mode). The minimum is -3.
+
+
+With the option @{B}VERBOSE@{UB} GCompare prints in all operating modes but AUTO
+a detailed list of the patch data.
+
+
+GCompare needs enough free memory for old file, new file and the patch file.
+
+The search speed of GCompare depends now on the remaining memory.
+
+The fastest search algorithm needs altogether 9 times the filesize of the
+old file plus 128 MB.
+
+The search algorithm based on a two-dimensional array needs altogether
+9 times the filesize of the old file plus 514 KB. (This was the fastest
+algorithm used in GCompare 2.)
+
+The simple list search needs altogether 9 times the filesize of the
+old file plus 2 KB.
+
+If GCompare can not allocate this memory too, then it works in
+the mode 3 using linear search.
+
+
+For the search in the already existing patch file it is the same.
+
+The fastest search needs 9 times the filesize of the patch file plus 128 MB,
+the search by the two-dimenional array needs 9 times the filesize of the patch
+file plus 514 KB and the simple search needs 9 times the filesize plus 2 KB.
+
+If this memory is not available then GCompare searches only in the old file.
+
+
+The options @{B}mem128@{UB} or @{B}mem256@{UB} prevent GCompare from using both
+or one of the 128 MB search arrays. You need this on systems with virtual memory,
+because the search algorithm works only fast using real memory.
+
+So you should have @{I}more@{UI} than 128 MB physical memory to build a new
+patch file with the fast search algorithm. To append new patch data to an
+existing patch file you should have more than 256 MB.
+
+Example: If you want to append data to a patch file for an 100 KB file, using
+a WinUAE machine with 256 MB RAM, then GCompare needs 129 MB for the fast search
+in the file and additional 128 MB for the search in the patch file. The computer
+has no 257 MB (running Windows, the emulator and AmigaOS the remaining memory is
+approximately 200 MB) and the search would run partially in the virtual memory of
+Windows. Therefore in this case you should use the option mem256. Then GCompare would
+use the 128 MB array only for the search in the old file, the search in the
+patch file would use a 512 KB array.
+
+
+
+
+@ENDNODE
+
+
+@NODE "GPatch" "GPatch"
+@SMARTWRAP
+@{LINDENT 1}
+
+@{B}GPatch@{UB}
+
+
+GPatch is a shell command. The format is
+
+
+
+GPatch <old file> <patch file> [<new file> | DIRECT [BACKUP <backupfile>]] [RECURSIVE] [NOVERSION | QUIET]
+
+
+
+GPatch creates the new file using the old file and the patch file.
+
+It selects the matching patches by file size and CRC signature of the old
+file.
+
+
+In case of errors GPatch displays an error message.
+
+Any fatal error produces a return code of 15, and if the result is a corrupt
+new file then it will be deleted.
+
+
+Instead of the file name of the new file you can use the option @{B}DIRECT@{UB}.
+Then GPatch will build the new file in a temporary file and replaces the old file
+with this.
+
+With the additional option @{B}BACKUP@{UB} you can specify a file name for a
+backup of the old file.
+
+
+The argument @{B}RECURSIVE@{UB} selects the recursive operating mode. In this mode
+GPatch tries again to patch after each successful patch until no matching
+patches are found, using the new file as old file.
+
+You can use this operating mode if you do not want to store all your old
+program versions.
+
+Then the patch file should not contain the changes of all old versions
+to the newest version, but the changes from each version to the next.
+
+
+The argument @{B}NOVERSION@{UB} suppresses the version information print and the
+argument @{B}QUIET@{UB} suppresses all text output (except error messages).
+
+
+@ENDNODE
+
+
+@NODE "Tips" "Tips"
+@SMARTWRAP
+@{LINDENT 1}
+
+@{B}Discussion and tips@{UB}
+
+
+I have got some mail about the speed and the size of the resulting patch
+file.
+Some of you found the patch file size much shorter than of other patchers,
+some of you not, and almost all want a faster compare program.
+
+
+Since version 3 we should not have to speak about speed any more. I have
+not yet seen a program that can do such a search faster.
+
+Of course not all Amiga users have 512 MB memory yet. But with Amithlon or
+UAE this is no problem, and so I think, the search based on a three-dimensional
+array is useful in the 68k version of GCompare too. If you don't have this
+memory, then nevertheless you can use the program, it works just slower.
+
+
+Because it is impossible to develop a format of the patch file with always
+the shortest result (because the file size depends on the distance of the
+matching data and the way to address it) GCompare has four algorithms.
+
+The optimizer (activated with AUTO) selects the best format, but this takes
+four times of computing time.
+
+The results of the DEEP mode depends on the compared files. In much cases
+DEEP produces the same results.
+
+
+If you want not wait for the optimizer then I suggest you MODE 3 (the default mode).
+In the most cases this provides a good result.
+
+
+If you compare the results of GCompare with the results of other programs,
+you should do this with compressed versions of the patch files too. GCompare
+has no built in compression (different from other compare programs with run
+length encoding), because I think all distribution files will always be
+compressed before they are published and double compressing would decrease
+the effectivity.
+
+
+GCompare searches matching data in the patch file too if it already exists.
+The more patches of different versions of the same program the patch file
+contains, the more effective the resulting patch file will be, compared with
+single patch files.
+
+If the versions differ not much, then you should store the changes from one
+version to the next in the patch file and run GPatch in the recursive mode.
+So the patch file will be very small.
+
+
+
+GPatch can not handle the old GCompare file formats (I want a small patch
+program). If you need an older GPatch, then use one of the included versions
+1.4, 1.6 or 2.6. from the drawer bin/old.
+
+If GPatch detects an old patch file then it tells you which version you need.
+
+
+@ENDNODE
+
+@NODE "Details" "Technical Details"
+@SMARTWRAP
+@{LINDENT 1}
+
+@{B}Technical Details@{UB}
+
+
+Mode 1 and 2 produce better results for files of any type, whereas mode 3
+and 4 are better for program files.
+
+
+@{B}MODE 1@{UB}
+
+
+Mode 1 is the most effective if the most changes are shorter than 128 bytes.
+
+
+@{B}MODE 2@{UB}
+
+
+Mode 2 is the most effective for many very small changes.
+
+
+@{B}MODE 3@{UB}
+
+
+Mode 3 is the most effective for program files with many small changes (shorter
+than 32 bytes).
+
+
+@{B}MODE 4@{UB}
+
+
+Mode 4 is suited for program files too, but better for larger changes.
+
+
+
+------
+
+
+After its work GCompare lists some data about the patch file.
+The listed values are all information stored in the patch file about your
+files.
+
+The "type" value is the coding algorithm selected by the MODE argument.
+If you want to know, which value for VARY GCompare has selected in the
+AUTO DEEP mode, then type the VERBOSE option.
+
+
+To distinguish the patch data of different files GPatch uses the file
+size and the CRC signature. The version data or file names are not used.
+This method is safe, because GCompare use it too to check whether patch data
+for a file already exist before it appends new.
+
+
+
+@ENDNODE
+
+@NODE "Examples" "Examples"
+@SMARTWRAP
+@{LINDENT 1}
+
+@{B}Examples@{UB}
+
+
+
+As GCompare example I have included scripts for a fictive program in the
+drawer "ExampleScripts".
+
+
+@{" MakePatchFile " LINK "ExampleScripts/MakePatchFile/MAIN"} creates
+the patch file
+and @{" UpdateMyProgram " LINK "ExampleScripts/UpdateMyProgram/MAIN"} applies
+the patches.
+
+
+The old versions of the example program "MyProgram" are in "Archive". The
+patches for the program and a manual "MyProgram.readme" will be applied on the
+distribution disk "MyProgram".
+
+
+
+And for fast trials there is
+the @{" CompareScript " LINK "ExampleScripts/CompareScript/MAIN"} to
+use GCompare without the need to type shell commands.
+
+
+
+The script @{" GCompareAdd " LINK "ExampleScripts/GCompareAdd/MAIN"} can
+be used with the same arguments as GCompare.
+
+It is useful to append new versions of a file to a patch file
+containig the changes from one version to the next.
+
+You have only to archive the oldest file version then, and you can rebuild
+all other versions from the patch file by using GPatch again, until you have
+the version you want.
+
+In the recursive mode GPatch builds the latest version of the file.
+
+
+I have received an installer example script from Thomas Baust. This script
+has the name  @{" UpdateMyProgram.installer " LINK "ExampleScripts/UpdateMyProgram.installer/MAIN"} and
+it patches a program "MyProgram" in a drawer selected by the user.
+The comments and dialog texts are in German language.
+
+
+@ENDNODE
+
+
+@NODE "IX Windows PPC" "Versions for other operating systems"
+@SMARTWRAP
+@{LINDENT 1}
+
+@{B}Versions for other operating systems and PPC@{UB}
+
+
+The Aminet archive misc/emu/gpatchix.tgz contains versions of GCompare and
+GPatch for some IX computer platforms.
+
+The used compiler and the operating systems you can find
+in the text file Machines.readme in this archive.
+
+
+The Aminet archive misc/emu/gpatchwin.zip contains versions for
+Windows95/98/NT.
+
+
+The Unix and Windows archives contain this manual converted to HTML
+(using GuideML). All information apply to this versions too except for
+the example scripts not included in the archives.
+
+
+
+The drawer bin contains PowerUP and WarpUp versions of GCompare
+(GComparePPC, GCompareWOS). The PowerUP version was compiled using
+SAS/C and the WarpUP version using VBCC WOS Beta 0.6.
+
+
+@ENDNODE
+
+@NODE "Copyright" "Copyright, Distribution, Disclaimer"
+@SMARTWRAP
+@{LINDENT 1}
+
+@{B}Copyright@{UB}
+
+
+GCompare and GPatch are Copyright © 1997-2002
+
+
+Ralf Gruner, An der Sense 5a, D-02779 Großschönau, Germany
+
+ralf.gruner@t-online.de
+
+
+
+@{B}Distribution@{UB}
+
+
+GCompare and GPatch for Amiga are freeware programs. You can use it for all
+your needs without restrictions. Also use for commercial products is free.
+
+
+If you want to see future updates of the programs, please send me an email
+that you use the programs. There are some things to improve yet, but if nobody
+need it I can do other things.
+
+Any comments are welcome.
+
+
+
+The versions for other operating systems are only for non-commercial
+purposes freeware. For any commercial usage please contact me.
+
+
+
+@{B}Disclaimer@{UB}
+
+
+THIS PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTY
+OF FITNESS FOR A PARTICULAR PURPOSE.  THOUGH EVERY CARE HAS BEEN TAKEN TO
+MAKE THIS PROGRAM SYSTEM-FRIENDLY AND BUGS-FREE, THE ENTIRE RISK AS TO THE
+RESULTS, RELIABILITY AND PERFORMANCE OF THIS PROGRAM IS ASSUMED BY YOU.
+
+
+@ENDNODE
+
+@NODE "Credits" "Credits"
+@{LINDENT 1}
+@SMARTWRAP
+
+@{B}Credits@{UB}
+
+
+@{" I " LINK "Copyright" 0} have to thank
+Dirk Stöcker for his extensive debugging, the idea of the recursive mode of GPatch,
+most of the IX and PPC ports and the function for the relocation hunk encoding.
+
+
+
+@ENDNODE
+
+@NODE "Index" "Index"
+@{LINDENT 1}
+
+@{B}Index@{UB}
+@SMARTWRAP
+
+
+C
+
+@{" Copyright " LINK "Copyright" 0}
+
+
+E
+
+@{" Examples " LINK "Examples" 0}
+
+
+G
+
+@{" GCompare " LINK "GCompare" 0}
+
+@{" GPatch " LINK "GPatch" 0}
+
+@{" GPatch 1.4 / 1.6 / 2.6 " LINK "Tips" 0}
+
+
+H
+
+@{" Tips " LINK "Tips" 0}
+
+@{" History " LINK "GPatchHistory.guide/MAIN"}
+
+
+M
+
+@{" MODE " LINK "Details" 0}
+
+
+P
+
+@{" PPC version " LINK "IX Windows PPC" 0}
+
+
+U
+
+@{" UNIX versions " LINK "IX Windows PPC" 0}
+
+
+W
+
+@{" Windows version " LINK "IX Windows PPC" 0}
+
+
+
+
+@ENDNODE
+
+
+

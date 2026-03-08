@@ -1,0 +1,939 @@
+@DATABASE "ASpringies"
+@MASTER "ASpringies.guide"
+@AUTHOR "Torsten Klein"
+@(C) "Copyright © 1994 Torsten Klein"
+@VER: ASpringies.guide 1.0 (29.07.94)
+@WIDTH 87
+@NODE Main "ASpringies.guide"
+__________ _________ ________ _______ ______ _____ ____ ___ __ _
+
+	ASpringies - An interactive mass and spring simulator
+      _ __ ___ ____ _____ ______ _______ ________ _________ __________
+
+
+		 Copyright (c) 1994 by Torsten Klein
+
+			     Version 1.0
+			 first public release
+
+
+
+  ASpringies comes with ABSOLUTELY NO WARRANTY; for details see
+@{" Disclaimer " LINK "Disclaimer"}.  This is free software, and you are
+welcome to redistribute it under certain conditions; please read the
+file "COPYING" for details.
+
+Background 
+
+	@{" What is it?   " LINK "What is it?"}
+	@{" Requirements  " LINK "Requirements"}
+	@{" Caveats       " LINK "Caveats"}
+	@{" Masses        " LINK "Masses"}
+	@{" Springs       " LINK "Springs"}
+	@{" Forces        " LINK "Forces"}
+	@{" Sticky Stuff  " LINK "Sticky Stuff"}
+	@{" Numerics      " LINK "Numerics"}
+	@{" Walls         " LINK "Walls"}
+
+Reference
+
+	@{" Editing Modes " LINK "Editing Modes"}
+	@{" Gadgets       " LINK "Gadgets"}
+	@{" Menus         " LINK "Menus"}
+	@{" File Format   " LINK "File Format"}
+	@{" Commodities   " LINK "Commodities"}
+	@{" ARexx         " LINK "ARexx"}
+
+Appendix
+
+	@{" History       " LINK "History"}
+	@{" Future        " LINK "Future"}
+	@{" Author        " LINK "Author"}
+	@{" Disclaimer    " LINK "Disclaimer"}
+
+______________________________________________________________________
+
+@ENDNODE
+
+@NODE "What is it?" "ASpringies.guide/What is it?"
+
+ What is it?
+ -----------
+
+  ASpringies is a simulator  which allows you to interactively  create
+and edit a system of masses and springs.  The parameters of the masses
+and springs (such as mass elasticity and spring K) as well as those of
+the  surrounding  system (such  as  air viscosity and gravity) can  be
+changed.  These systems can be loaded and saved into a file.
+
+  I  guess  you  could  use ASpringies for real  work, but it's really
+intended to be a time waster.
+
+@ENDNODE
+
+
+@NODE "Requirements" "ASpringies.guide/Requirements"
+
+ Requirements
+ ------------
+
+
+Kickstart V37 (2.0) or above, of course
+
+  If you want to use the screen mode requester, you must at least have
+asl.library V38 of Workbench 2.1.
+
+
+MUI (Magic User Interface, version 2.2 or above(1))
+
+  ASpringies' user interface is built upon MUI; since it is no  longer
+allowed to  distribute  parts  of MUI, you have to  get and install it
+yourself.  Please read the file 'ReadMe.mui' that came with ASpringies
+on how to obtain it.
+
+
+A Floting Point Coprocessor (FPU), or standard 68040 and above
+
+  The differential equation solver of ASpringies does LOADS of  number
+crunching.  Without such  a beast, ASpringies won't be able to perform
+animation  at a  reasonable  speed. You  may recompile  the  code  for
+non-FPU systems, but don't expect much fun (2).
+
+
+----------------
+
+1 ASpringies only makes use of features that were present in the
+first public release of MUI, but a recompilation under V2.2 now requires
+the user to have version 2.2 installed, too.
+
+2 On  my A4000/40,  ASpringies  spends about  80% of  its  cpu time in
+numerics, 15% are used for graphics rendering. I'd really  love to see
+it on a 68060...
+
+@ENDNODE
+
+@NODE "Caveats" "ASpringies.guide/Caveats"
+
+ Caveats
+ -------
+
+  ASpringies'  way of double buffering the animation screen isn't 100%
+system compliant(*).  It works  on any Amiga with the  OLD, ECS or AGA
+chipset, but owners of additional graphics hardware should be careful.
+
+  Set  your graphics board  to the most compatible intuition emulation
+or switch it to bypass mode.
+
+  I  am  very sorry for this, but I couldn't yet find  out  any system
+compliant method of double buffering  for Kickstart  version 2.x which
+lets  me use (clipping) layers on both  displays,  except  for  simple
+screen or  window switching, which is unacceptable.  Please contact me
+if you know a better method (see @{"Author" LINK "Author"}).
+
+  ASpringies suffers from the same numerical problems  that xspringies
+had,  some objects  tend  to "blow  up"  when the  time  step  or  the
+viscosity  is  set too  high.  Please  see @{"  Global Settings " LINK
+"Global Settings"} for details.
+
+  When an object is blown up,  the current state is lost  and you will
+have  to reset  ASpringies, so  do a snapshot  frequently when you are
+editing a system.
+
+
+----------------
+
+  (*)  ASpringies opens a standard screen with a  borderless  backdrop
+window on it, allocates a second bitmap and raster  memory of the same
+size, and finally creates a BehindLayer  which is linked to the custom
+bitmap.   To switch the displays ASpringies sets  the screens RastPort
+to either that of the backdrop window or the custom RastPort, which is
+contained  in  the  BehindLayer  structure.  This  is  followed  by  a
+MakeScreen() and  ReThinkDisplay() system call, which also  cares  for
+synchronity  with  the  monitor's  vertical  blank  period.   However,
+Commodore discourages the use of custom layers with intuition screens,
+this may lead to problems with some grapics boards.
+
+@ENDNODE
+
+@NODE "Masses" "ASpringies.guide/Masses"
+
+ Masses
+ ------
+
+  Accelerations on the masses are calculated according to gravity (and
+other special forces), viscous forces, and by forces from the springs.
+When a mass collides with a wall, its velocity in the direction of the
+wall  is  reversed.   The  resulting  velocity  is  multiplied by  the
+Elasticity of the mass.   So, an elasticity of 0.0 causes an inelastic
+collision (it stops on the wall), and an  elasticity of 1.0 results in
+an  elastic  collision.   If  a mass is  fixed, all  forces  on it are
+ignored.  It  simply does  not move.  Think of  it as a nail (a really
+good one).
+
+@ENDNODE
+
+
+@NODE "Springs" "ASpringies.guide/Springs"
+
+ Springs
+ -------
+
+  A spring has three  parameters associated with  it.   Kspring, Kdamp
+and rest length.  The spring force is calculated as follows (according
+to Hooke's law):
+
+	  F = - Kspring * (length - rest length) - Kdamp  *
+		    (velocity in spring direction)
+
+@ENDNODE
+
+@NODE "Forces" "ASpringies.guide/Forces"
+
+ Forces
+ ------
+
+  There are four  special forces.   They  can be  turned on and off by
+clicking the  "active"  checkmark  in  their  appropriate  box.   When
+checked, the force is on.  Each of  these  forces  has  two parameters
+associated with it (for example, magnitude and direction for gravity).
+To activate them, check the corresponding "active" checkbox.
+
+  There are four forces that can be  enabled:
+
+  "Gravity" acts in the familiar manner.  It accelerates masses by the
+value specified by "gravity" in  a direction specified by "direction".
+The  direction  is measured in  degrees, with 0.0 degrees being  down,
+increasing counter-clockwise.
+
+  "Center"  is a bit  strange,  and  isn't real.   It's  a force which
+attracts the center of  mass  of  all the  objects toward  the  center
+point.  It has a magnitude and a damping coefficient. (see @{" Control
+" LINK "Control"})
+
+  "PtAttract" is  a force which attracts all  masses toward the center
+point.  This force has a magnitude and an exponent associated with it.
+The exponent is  simply how the force relation works.  A  value of 2.0
+means inverse-square force (the force is inversely proportional to the
+distance squared).  A value of 0.0 (1) is a constant force independent
+of position.  If the Magnitude of this force is negative, it becomes a
+repulsion force. (see @{" Control " LINK "Control"})
+
+  "WallForce"  is  a wall repulsion  force.  Masses are repelled by  a
+force from  each  wall  that is on.   This  force  has a magnitude and
+exponent (2)  associated with  it.  The Exponent behaves  similarly to
+that of the third force.
+
+  For  the most  part,  most  everything  obeys  f  =  ma.   The  only
+exceptions are wall bounces and  wall  stickiness.  Another unphysical
+aspect  is found  in  some of the special forces (the second and third
+ones).  If a center point exists, that mass does not receive any force
+response from other masses due to the special force.   In other words,
+these two special forces are not _equal and opposite_ forces.  They're
+pretty much just unreal.
+
+
+----------------
+
+1  This force internally needs pow() function calls (raise a number to
+another  number  power), but since  these are not  implemented  in the
+68040 processor's FPU, they deathly slow the animation down.  For this
+reason, an  optimization  was made: when "Expo"  is set to its initial
+value of 0.0, the pow()-Function call is  skipped.
+
+2  As above, but here the optimization is done for Expo = 1.0.
+ 
+@ENDNODE
+
+@NODE "Sticky Stuff" "ASpringies.guide/Sticky Stuff"
+
+ Sticky stuff
+ ------------
+
+  "Viscosity"  is a viscous drag force which applies a resistive force
+on the masses proportional to their velocity.
+
+  "Stickiness" is not a real force.  When a mass hits a wall, it loses
+part of its velocity component in the  direction of  the  wall (in  an
+amount proportional to  the  stickiness).   If  it  loses all of  this
+component, it remains stuck to the wall.  It will remain  stuck to the
+wall  until  a  force  (which  exceeds  an  amount proportional to the
+Stickiness) pulls it off the wall.
+
+@ENDNODE
+
+@NODE "Numerics" "ASpringies.guide/Numerics"
+
+ Numerics
+ --------
+
+  The  internals of ASpringies consist  of a fourth  order Runge-Kutta
+(RK4) differental equation  solver.   Consult a Numerical Methods text
+for more information.  The "time step"  that is used  by  this  solver
+(the dt) can be set using the corresponging gadget.
+
+  The solver  can be selectively made into an adaptive RK4 solver.  An
+adaptive solver chooses the best time step value according to an error
+calculation.  The  error  is not allowed  to  exceed  the  "precision"
+value.  Lower precision values  result  in smaller  time steps.  While
+this  is more accurate, the simulation  runs slower.   You will notice
+that some objects will tend  to "blow up" easily.  This is because the
+objects are unstable, or are sensitive  to small numerical errors.  An
+object will tend  to "blow up" less with smaller time steps.  By using
+an adaptive solver, the simulation can be made more accurate only when
+necessary.   This  results  in  a  more stable system which runs  at a
+reasonable speed.
+
+@ENDNODE
+
+@NODE "Walls" "ASpringies.guide/Walls"
+
+ Walls
+ -----
+
+  There are four walls.  In case you  haven't guessed by now, they are
+the top, left, right and bottom walls.  They are located at the screen
+boundaries. Individual walls can be  enabled and disabled  by checking
+the corresponding checkboxes. A thin line along a boundary is drawn to
+indicate an activated wall.
+
+  Walls are  only one-way.  An object  moving from the screen toward a
+wall will  bounce off the wall.  But  an object moving from off screen
+toward the screen will pass through the walls.
+
+@ENDNODE
+
+@NODE "Editing modes" "ASpringies.guide/Editing modes"
+
+ Editing modes
+ -------------
+
+  There are  three main modes in ASpringies.  These are "Edit", "Mass"
+and "Spring".   In Edit  mode, you can select, move and throw objects.
+In Mass mode,  you  can create masses.  In Spring mode, you can create
+springs and tug on an object with a spring connected to the mouse.
+
+@{" Edit   " LINK "Edit"}
+@{" Mass   " LINK "Mass"}
+@{" Spring " LINK "Spring"}
+
+@{" Window Activation " LINK "Window Activation"}
+
+@ENDNODE
+
+@NODE "Edit" "ASpringies.guide/Edit"
+
+ Edit mode
+ ---------
+
+ - Left mouse button selects objects.
+
+  If you  click on  or  near an object,  it becomes selected,  and all
+other  objects  become  unselected.  If  you  hold  down  shift  while
+clicking, the object becomes selected (or unselected if it was already
+selected), and all other objects remain the same.  If you do not click
+near an object, dragging the mouse causes a selection  box to  appear.
+Anything within  the selection box when the  mouse is released becomes
+selected.  All other  masses become  unselected, unless the shift  key
+was held down for the initial click.
+
+  If  any of the "Mass, "Elas", "KSpr", "Kdmp", or "Fixed Mass" values
+is  the same for all selected objects, the correspondig gadget  in the
+"S&M Settings" group will be updated.
+
+
+ - Middle Mouse button moves objects (*).
+
+  All selected objects move with the mouse.  The  masses are frozen in
+their  positions  after  the  initial click.   They  continue to  move
+relative to the mouse movement until the middle button is released.
+
+
+ - Right mouse button throws objects.
+ 
+  This acts the same way  as  moving objects with  the middle  button,
+except for the fact  that the  mouse velocity  is transferred  to  all
+selected objects  when  the right  mouse button is released.  Note:  a
+good way to stop  an  object from  moving is to  simply select it  and
+click the right mouse button.
+
+  Please read the @{" Window Activaton " LINK "Window Activation"} help page concerning
+middle and right mouse button clicks.
+
+----------------
+
+  (*) Users of two button mice may simulate the middle mouse button by
+pressing  the  left or right mouse button while holding down any 'alt'
+key.
+
+@ENDNODE
+
+@NODE "Mass" "ASpringies.guide/Mass"
+
+ Mass mode
+ ---------
+
+  When you click with  the mouse, a mass appears.  The  mass  takes on
+the values of the "mass" and "elasticity (Elas)" gadgets.  The mass is
+placed when the mouse button is released.
+
+@ENDNODE
+
+@NODE "Spring" "ASpringies.guide/Spring"
+
+ Spring mode
+ -----------
+
+  When you click with the mouse, if there is a mass nearby, one end of
+a spring is connected to it.  The other end of the spring is connected
+to the  cursor until  the  mouse button  is released.   If no mass  is
+nearby when the spring is  released, the spring is discarded.  The new
+spring takes on the values of the "Kspr" and "Kdmp" gadgets.  The rest
+length of the spring is equal to the length of the spring when  it was
+created.
+
+ - Left mouse button  adds a  spring between two masses while actively
+affecting the first mass.
+
+ - Middle mouse button (*) adds  a  spring  between the first mass and
+the  cursor,  actively  affecting  the  first  mass.   The  spring  is
+discarded when the mouse button is released.
+
+ - Right mouse button  adds a spring between two  masses.   The  first
+mass is not affected by the  spring until the spring is in place after
+the mouse is released.
+
+  Please read the @{" Window Activaton " LINK "Window Activation"} help page concerning
+middle and right mouse button clicks.
+
+----------------
+
+  (*) Users of two button mice may simulate the middle mouse button by
+pressing  the  left or right mouse button while holding down any 'alt'
+key.
+
+@ENDNODE
+
+@NODE "Window Activation" "ASpringies.guide/Window Activation"
+
+ Window Activation
+ -----------------
+
+  Please note  that  the animation  screen has to be activated  before
+middle or right mouse button clicks are recognized. However, the first
+left mouse  button click on a non-active window will not only activate
+it, but is also sent  to the window's message port.  This implies that
+if you  have some objects selected, activate ASpringies' control panel
+to  do some modifications  and then  try  to  reactivate the animation
+window for e.g.  moving the objects, that left click will also trigger
+a new selection.
+
+  To avoid this, either  use the  <space> key to toggle windows, which
+performs  an  automatic  activation  (recommended),  or  activate  the
+animation  window with  a  <left alt>-<left-amiga> keystroke while the
+pointer is over it. You may also use  the AutoActivate commodity which
+came with your Workbench.
+
+@ENDNODE
+
+@NODE "Gadgets" "ASpringies.guide/Gadgets"
+
+ Gadgets
+ -------
+
+  Since the user  interface of ASpringies is maintained  by MUI (Magic
+User Interface),  the  buttons, radio buttons,  and checkboxes may not
+only be activated by pressing the corresponding (underlined) character
+on the keyboard,  but  also by browsing  around  using  the  <TAB> and
+<shift>  <TAB> keys. Please  see  your MUI  documentation  for further
+details.
+
+  The  gadgets  for floating point  values are used like normal string
+gadgets, but they  behave a  bit differently:  each time you  change a
+value and press <RETURN>, ASpringies checks if it is a legal  floating
+point number, and if not, tries to guess what you meant. Values beyond
+the corresponding lower and upper bounds get clipped.
+
+@{" Edit Mode       " LINK "Editing Modes"}
+@{" Walls           " LINK "Walls"}
+@{" Control         " LINK "Control"}
+@{" S&M settings    " LINK "S&M settings"}
+@{" Global Settings " LINK "Global Settings"}
+@{" Forces          " LINK "Forces"}
+
+@ENDNODE
+
+
+@NODE "Control" "ASpringies.guide/Control"
+
+ Control
+ -------
+
+  This group controls editing:	
+
+
+Select All
+
+  By pushing this button, all masses and springs are selected.
+
+
+Set Center
+
+  Some of the forces are applied relative to some specified origin, or
+center point.  By default, this  center point  is  the  center of  the
+screen.   It can be changed to be any one particular mass by selecting
+a single mass, and  pushing  this  button.  If no masses are selected,
+the current center is changed  to be the center of the screen.  Center
+points are drawn as an unfilled rectangle (see @{" Forces " LINK "Forces"}).
+
+
+SetRLen
+
+  Pressing this button changes the rest length of all selected springs
+to their current length (see @{" Springs " LINK "Springs"}).
+
+
+DrawSpring
+
+  This checkbox controls whether  or  not the springs are  drawn.   If
+there are a lot of  springs, animation may go faster  with this option
+on.  Sometimes an object will even look better with only the masses.
+
+
+Action 
+
+  The Action  checkbox  simply  turns on and  off the animation.  With
+Action turned off, ASpringies uses up little CPU time.
+
+
+Grid
+
+  When placing masses or springs, objects can be placed  in a gridlike
+fashion if  the  "Grid" slider  is set to  a value greater  than  one.
+Masses  will be separated  (vertically and horizontally) by the amount
+(pixels) specified by this slider.
+
+@ENDNODE
+
+
+@NODE "S&M settings" "ASpringies.guide/S&M settings"
+
+ Spring and Mass settings
+ ------------------------
+
+  The gadgets  in this group control the  physical attributes  of  the
+selected  masses and springs. Additionally, when  a new mass or spring
+is created, it will be initialized with these values.
+
+
+Mass, Elas
+
+  The "mass"  and "elasticity" of  a mass  can be changed by selecting
+the mass  and changing the values on these  gadgets (see @{"  Masses "
+LINK "Masses"}).
+
+
+Kspr, Kdmp
+
+  To change the "Kspring" or "Kdamp" of a spring, change the values of
+the gadgets when the spring  is  selected  (see  @{"  Springs  "  LINK
+"Springs"}).
+
+
+Fixed Mass
+
+   To make a mass fixed or unfixed, check or uncheck this checkbox
+while the mass is selected (see @{" Masses " LINK "Masses"}).
+
+@ENDNODE
+
+@NODE "Global Settings" "ASpringies.guide/Global Settings"
+
+ Global Settings
+ ---------------
+
+Visc
+
+  This one sets  the  "air viscosity". Values greater than 100 seem to
+let the objects blow up, so be careful (see @{" Sticky Stuff " LINK "Sticky Stuff"}).
+
+
+Stic
+
+  To change the stickiness of the walls, change this  value. This  one
+can make a lot of fun! (see @{" Sticky Stuff " LINK "Sticky Stuff"})
+
+
+Step
+
+  With this gadget you  may select the time step (dt)  that is used by
+the differential equation solver. Please be  careful  when selecting a
+value greater than 0.1, especially if there's only a few - the objects
+may blow up (see @{" Numerics " LINK "Numerics"}).
+
+
+Prec
+
+  When the AdaptTimeStep checkbox is activated, this value determines the 
+upper error limit for the adaptive RK4 solver (see @{" Numerics " LINK "Numerics"}).
+
+
+AdaptTimeStep
+
+  If checked, the adaptive RK4 solver  is used. When the animation  is
+running, the time  step (dt) value will be  updated continiously  (see
+@{" Numerics " LINK "Numerics"}).
+
+
+Frames/sec
+
+  This one simply displays the current animation speed, or precisely,
+the average speed over the last ten screen updates. It is disabled
+when the animation is not running.
+
+@ENDNODE
+
+
+@NODE "Menus" "ASpringies.guide/Menus"
+
+ Menus
+ -----
+
+Project menu		Edit Menu		State Menu
+------------		---------		----------
+
+@{" About...      " LINK "About"}		@{" Duplicate " LINK "Duplicate"}		@{" Restore... " LINK "States"}
+@{" Help...       " LINK "Help"}		@{" Delete    " LINK "Delete"}		@{" Snapshot   " LINK "States"}
+						@{" Reset...   " LINK "States"}
+@{" Load...       " LINK "Load&Save"}
+@{" Insert...     " LINK "Load&Save"}
+
+@{" Save          " LINK "Load&Save"}
+@{" Save as...    " LINK "Load&Save"}
+
+@{" Screen mode..." LINK "Screen mode"}
+@{" Quit...       " LINK "Quit"}
+
+@ENDNODE
+
+@NODE "About" "ASpringies.guide/About"
+
+ About
+ -----
+
+ This  displays a copyright notice and  a notice  about how to use the
+online help system.
+
+@ENDNODE
+
+@NODE "Help" "ASpringies.guide/Help"
+
+ Help
+ ----
+
+ This pops up the online help of ASpringies.
+
+@ENDNODE
+
+@NODE "Duplicate" "ASpringies.guide/Duplicate"
+
+ Duplicate
+ ---------
+
+  When the "Duplicate" menu item is selected, all selected masses  and
+springs  are  duplicated.   The  copy  is  left  in  the  same  place,
+unselected.
+
+@ENDNODE
+
+@NODE "Delete" "ASpringies.guide/Delete"
+
+ Delete
+ ------
+
+  By selecting "Delete", all selected objects  are deleted.  Note that
+if a  mass is deleted, all attached  springs are also deleted (even if
+they  were  not selected).  You can also do this by pressing the <DEL>
+key while the animation screen is activated.
+
+@ENDNODE
+
+@NODE "Load&Save" "ASpringies.guide/Load&Save"
+
+ Saving and Loading Files
+ ------------------------
+
+  The  system state can be saved to and loaded from  files.  The files
+are entered  via the standard system  file requester (ASL  or whatever
+you patched it into).  For consistency, the filenames should terminate
+with ".xsp".   When  a  file is  loaded or  saved, this  extension  is
+automatically added if not added by the user.
+
+  By selecting "Load" from the "Project" menu, a previously saved file
+can be loaded.  This will load up all the masses and springs that were
+saved, as well as the system parameters.   Any  previous state  before
+the load is cleared.
+
+  "Insert" is much like the "Load" menu, except that the current state
+is not cleared.  Instead, only  the masses and springs are loaded (the
+system  paramaters  are not changed),  and  are added  to  the current
+collection.  If no objects  are selected when  "Insert"  is  selected,
+then all the objects  in  the file are selected after they are loaded.
+
+  Selecting "Save" saves this information in the last  file you loaded
+from without any request. If you didn't load anything before, the file
+requester will pop up.
+
+  "Save as" acts like "Save" but always displays the file selector.
+
+  By default, the  directory  which contains the ASpringies  files  is
+present automatically,  it's the subdir called 'lib'  in the directory
+where ASpringies resides.
+
+  Cancelling the file requester leaves the system state untouched.  If
+a file error occurs (for example, the file does not exist),  a warning
+requester appears.
+
+@ENDNODE
+
+
+@NODE "States" "ASpringies.guide/States"
+
+ Saving and Restoring State
+ --------------------------
+
+  The state of the world (at least for ASpringies) includes all of the
+masses and springs, as well as the system parameters.
+
+  By selecting "Restore"  from the  "State"  Menu,  the the previously
+saved  system state  is  restored  (if no previous save was made,  the
+initial state is used).
+
+  By selecting  "Snapshot", the current system state is saved. This is
+useful for temporarily saving  a system configuration  that you do not
+feel like setting  up again (or  saving  to  a  file), that you  might
+disturb with experimentation.  If you break it, you can "Restore"  any
+number of times you like.
+
+  "Reset" sets ASpringies back  to its initial configuration.  All the
+masses and springs are removed, and the default system  parameters are
+used.
+
+  Selecting either "Restore" or "Reset" will also turn animation off.
+
+@ENDNODE
+
+
+@NODE "Screen mode" "ASpringies.guide/Screen mode"
+
+ Screen mode
+ -----------
+
+  This pops up a  requester where you may change  the display mode for
+the animation screen.  For compatibility reasons,  this information is
+not saved  to a  data file. The  initial screen  mode is your  default
+monitor id,  hires and interlaced.
+
+@ENDNODE
+
+@NODE "Quit" "ASpringies.guide/Quit"
+
+ Quit
+ ----
+
+  Select this menu item  if you want to quit ASpringies.  You may also
+quit ASpringies by clicking the window's  close gadget, pressing <Esc>
+or <ctrl> <c> in  the control window, via Commodities Exchange,  or by
+sending a "QUIT" command to its  AREXX port.  A confirmation requester
+will always appear.
+
+@ENDNODE
+
+
+@NODE "File Format" "ASpringies.guide/File Format"
+
+ File format
+ -----------
+
+  The ASpringies file format is human readable.  Each line consists of
+a  four letter command string,  followed  by the  parameters for  that
+command.   The file must start with  the command "#1.0".  Each of  the
+commands below is on a  line by  itself.  There  are  no  blank  lines
+allowed.  The file must end in a newline.
+
+  The file consists of the following commands:
+
+	cmas <current "Mass" value>
+	elas <current "Elasticity" value>
+	kspr <current "Kspring" value>
+	kdmp <current "Kdamp" value>
+	fixm <boolean value for "Fixed Mass">
+	shws <boolean value for "Show Springs">
+	cent <mass id number of center mass>
+
+  If there is no center mass  (i.e. - center of screen is to be used),
+then the value of -1 is used.
+
+
+	frce    <force id number> <boolean active> 
+		<parameter #1 value> <parameter #2 value>
+
+The <force id number> sequence is as follows:
+
+	0 - Gravity
+	1 - Center of mass attraction force
+	2 - Center attraction force
+	3 - Wall repulsion force
+
+
+	visc <current "Viscosity" value>
+	stck <current "Stickiness" value>
+	step <current "Time Step" value>
+	prec <current "Precision" value>
+	adpt <boolean value for "Adaptive Time Step">
+	gsnp <current "Grid Snap" value> <boolean enable>
+	wall <boolean top> <boolean left> <boolean right> <boolean bottom>
+	mass <mass id number> <x position value> <y position value> 
+	     <x velocity value> <y velocity value> <mass value> <elasticity value>
+
+  For each  mass,  the  <mass id number> must be  unique.  They do not
+need  to be in any order.  If a  mass is fixed, then the  <mass value>
+field is negated.
+
+
+	spng <spring id number> <mass #1 id number> <mass #2 id number>
+	     <Kspring value> <Kdamp value> <rest length value>
+
+  For each spring, the <spring id number> must be unique.  They do not
+need to be in any order.  The order of the <mass id  number>'s  is not
+important.
+
+
+  All  <values>  are floating  point  numbers.   All <id  numbers> are
+positive integers, and  all  <boolean>  values  are non-zero/zero  for
+True/False.  It  is  possible to feed ASpringies bogus values.  It may
+produce  interesting or  amusing  side effects, but will  most  likely
+cause an object to explode or ASpringies to crash.
+
+@ENDNODE
+
+
+@NODE "Commodities" "ASpringies.guide/Commodities"
+
+ Commodities interface
+ ---------------------
+
+  ASpringies  can  be controlled by the Commodities  Exchange program,
+but the  active/inactive control  doesn't work,  and  if you  hide the
+control panel, the animation screen will still be active.
+
+@ENDNODE
+
+
+@NODE "ARexx" "ASpringies.guide/ARexx"
+
+ ARexx interface
+ ---------------
+
+  ASpringies  has  some   ARexx   capabilities.   Its  port  is  named
+"ASPRINGIES.X" where X denotes the instance of ASpringies you  want to
+address (if there are multiple instances of ASpringies running). Thus,
+if there is one ASpringies running, its port name is "ASPRINGIES.1".
+
+  Please refer to your MUI (Magic User Interface)  documentation (file
+"MUI.guide", node  "Arexx") for  a description of  its  standard ARexx
+capabilities. There isn't much useful to do with it yet.
+
+@ENDNODE
+
+@NODE "History" "ASpringies.guide/History"
+
+ History of ASpringies
+ ---------------------
+
+  It all began in late 1992, when I played around  with  xspringies on
+the Dec workstations at the University  of Bielefeld, Germany.  It was
+very entertaining,  and I thought  that this program deserved an Amiga
+port.  When I decided to buy an  Amiga 4000/40  later that year,  this
+idea  turned out to  be  my  first  serious  programming  job on  that
+machine.   Using the the tools  listed below, programming was a  great
+fun, but due to my lazyness it took much too long to get  it ready for
+distribution -- about one year and six months.
+
+  Thanks  to the powerful  programming  tools  and  the  unique  Amiga
+operation system, ASpringies,  although consisting  of  only some more
+than 50kB executable, is  now (ahem) much  more comfortable  than  its
+ancestor, xspringies.
+
+  ASpringies was developed using the following hardware and tools:
+
+ o Standard A4000/40/6/200
+ o SAS/C Compiler 6.3
+ o MUI (Magic User Interface)
+ o Gnu Emacs editor (a must for at least every programmer!)
+ o RCS  (Revision Control System)
+ o much time and passion...
+
+Version history
+---------------
+
+Version 1.0: first public release
+
+@ENDNODE
+
+@NODE "Future" "ASpringies.guide/Future"
+
+ Future of ASpringies
+ --------------------
+
+  If I get any user  feedback, either  hypes  or flames,  I'll put out
+enhanced versions of  ASpringies. I suppose there are  still some bugs
+left or  things  to improve,  especially  ASpringies'  way  of  double
+buffering, which isn't 100% system compliant as of version 1.0.
+
+  So  *pleeeaaase* contact me if you  encounter  bugs, have ideas  for
+making ASpringies  better,  or  just  to tell  me if  you like it.  My
+address can be found in the node @{" Author " LINK "Author"}.
+
+@ENDNODE
+
+@NODE "Author" "ASpringies.guide/Author"
+
+ Author's address
+ ----------------
+
+	Torsten Klein
+	Große-Kurfürsten-Str. 1
+	33615 Bielefeld
+	Germany
+
+	email: torstenk@techfak.uni-bielefeld.de
+
+@ENDNODE
+
+@NODE "Disclaimer" "ASpringies.guide/Disclaimer"
+
+ Disclaimer
+ ----------
+
+    ASpringies - An interactive mass and spring simulator
+
+    This is the Amiga port of the program 'xspringies' by Douglas DeCarlo.
+    Copyright of the Amiga port ©1994 by @{" Torsten Klein " LINK "Author"}.
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 1, or (at your option)
+    any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+@ENDNODE
+
+

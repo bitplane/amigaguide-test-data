@@ -1,0 +1,296 @@
+@database StatRam.guide
+@author "Nicola Salmoria - Richard Waspe"
+@wordwrap
+-----------------------------------------------------------------------------
+@node MAIN StatRam
+
+             ==================================================
+                                @{b}StatRam 3.1@{ub}
+             Disco de RAM recuperable de N. Salmoria y R. Waspe
+
+               Traducción al castellano de @{"Dámaso D. Estévez" Link Trad}
+             ==================================================
+
+	@{" Introducción " Link Introducción}
+	@{" Instalación " Link Instalación}
+	@{" Configuración " Link Configuración}
+
+	@{" StatRam y PC-Task " Link FixPCTask}
+
+	@{" Suprimiendo una unidad " Link RemSD0}
+
+	@{" Consejos y trucos " Link Trucos}
+	@{" Preguntas y respuestas " Link Preguntas}
+
+	@{" Nota " Link Actualización} para usuarios de versiones anteriores
+
+	@{" Autores " Link Autores}
+	@{" Distribución " Link Distribución}
+	@{" Agradecimientos " Link Agradecimentos}
+
+	@{" Historia " Link Historia}
+@endnode
+-----------------------------------------------------------------------------
+@node Introducción
+
+  StatRam es una unidad de disco ram recuperable, o sea, que no pierde su contenido al reiniciar el equipo sin apagarlo: funciona en cualquier Amiga que use SO 2.04 o superior, soporta cualquier sistema de ficheros (tanto los normales de Amiga como otros del estilo por ejemplo de CrossDOS®), admite hasta diez unidades y funciona como si de un disco flexible se tratase (con el comando "diskcopy" por ejemplo).
+
+  Estas unidades son dinámicas, o sea, la memoria se reserva y libera según su uso lo haga necesario; además es probablemente la unidad ram más recuperable disponible, pues incluso cuando el sistema se cuelga no se pierde... ¡siempre que la zona de memoria donde reside sus contenidos no se corrompa!.
+@endnode
+-----------------------------------------------------------------------------
+@node Instalación
+
+  Esta sección explica la instalación de una unidad, perfectamente operativa, con StatRam.  Sus características pueden ser parcialmente modificadas: por ejemplo cambiar el tamaño de la unidad, emplear sistemas de ficheros alternativos,...; consulte la sección @{" Configuración " Link Configuración} para más detalles.
+
+	@{" Workbench 2.0 " Link 20Install}
+	@{" Workbench 2.1 y superiores " Link 21Install}
+@endnode
+-----------------------------------------------------------------------------
+@node 20Install "Instalación con Workbench 2.0"
+
+ · Copie el fichero "statram.device" en "DEVS:".
+
+ · Una el fichero llamado "@{i}mountlist@{ui}" (proporcionado en este paquete)
+   con "DEVS:Mountlist".  Esto puede lograrlo usando un editor como "Ed"
+   copiando el contenido del primero al final del segundo o, desde el CLI,
+   con la instrucción "type >> DEVS:Mountlist unidad:camino/@{i}mountlist@{ui}".
+
+ · Añada la línea
+	Mount SD0:
+   en el fichero "S:user-startup".
+
+ · Reinicie el equipo.
+@endnode
+-----------------------------------------------------------------------------
+@node 21Install "Instalación con Workbench 2.1 y superiores"
+
+ · Copie el fichero "statram.device" en "DEVS:".
+
+ · Arrastre el icono "SD0" al cajón "DEVS:DOSDrivers".
+
+ · Para montar la unidad pinche rápidamente dos veces
+   sobre el icono de SD0 o reinicie el equipo.
+@endnode
+-----------------------------------------------------------------------------
+@node Configuración
+
+  Puede controlar los siguientes aspectos de las unidades StatRam:
+
+	· Su tamaño
+	· El sistema de ficheros a emplear
+	· El tipo de memoria a emplear para almacenar los datos
+
+  Para ello basta modificar algunos parámetros en los ficheros que controlan el montaje de las unidades: si usa WorkBench 2.04 debe editar manualmente el fichero DEVS:Mountlist, en el resto de los casos debe modificar los Tipos de Herramientas de los iconos correspondientes contenidos en DEVS:DOSDrivers (en nuestro caso concreto SD0).
+
+  Puede montar hasta DIEZ unidades a la vez. Para crear un nuevo volumen, sólo debe duplicar uno de los ficheros que se acompañan de muestra (SD0 para volúmenes AmigaDOS, PC4 para volúmenes CrossDOS), cambiar el campo UNIT (nº de unidad) y modificar otros parámetros si lo desea.  Los parámetros modificables son:
+
+  UNIT
+
+      Corresponde al nº de dispositivo "statram.device" a emplear:
+    puede tomar un valor de 0 a 9.  @{b}Asegúrese de que cambia el campo
+    UNIT para cada unidad ya que no pueden existir dos volúmenes con el
+    mismo número de unidad.@{ub}
+
+  HIGHCYL
+  BLOCKSPERTRACK
+
+      Estos dos determinan el tamaño @{u}máximo@{uu} de SD0.  El dispositivo
+    reservará dinámicamente la memoria sólo cuando la necesite, aumentando
+    o disminuyendo su tamaño al copiar o borrar archivos en él
+    (nota importante: la @{i}reserva@{ui} dinámica está disponible con
+    cualquier sistema de ficheros; la @{i}liberación@{ui} de memoria dinámica
+    sin embargo está sólo disponible con los sistemas de ficheros propios
+    de Amiga... así un volumen que utilice CrossDOS crecerá al copiar
+    ficheros en él, pero no se reducirá de tamaño al borrar de él ficheros).
+
+      El tamaño total en Kilobytes de la unidad es (HIGHCYL+1)*BLOCKSPERTRACK.
+
+      @{b}Recuerde que es mucho mejor llenar el disco que quedarse sin
+    memoria libre para la unidad.  Asegúrese que no sobredimensiona la
+    unidad, u obtendrá errores de escritura cuando se quede la unidad
+    sin memoria libre.@{ub}
+
+      Usando los valores adecuados, puede con DiskCopy copiar discos
+    flexibles a RAM y viceversa; se trata de algo útil por ejemplo para
+    múltiples copias de un disco o para preparar discos de distribución.
+
+      Los valores apropiados son:
+
+                                        Tamaño  HIGHCYL   BLOCKSPERTRACK
+        Amiga Doble Densidad    (DD)      880K     79           11
+        Amiga Alta Densidad     (HD)     1760K     79           22
+        CrossDOS Doble Densidad (DD)      720K     79            9
+        CrossDOS Alta Densidad  (HD)     1440K     79           18
+
+  BUFMEMTYPE
+
+      Este valor determina qué tipo de memoria debe emplear StatRam
+    para la unidad.  Los valores posibles son:
+
+      1  Usar memoria Fast en primer lugar, Chip en último
+      3  Usar sólo memoria Chip
+      5  Usar sólo memoria Fast
+
+  DOSTYPE    @{i}(Campo sólo disponible con volúmenes AmigaDOS)@{ui}
+
+      Informa al sistema el sistema de ficheros a emplear
+    (puede dejar este campo con el valor por defecto);
+    los valores posibles son:
+
+      0x444F5300  Old  File System, también conocido como OFS y/o SFS
+      0x444F5301  Fast File System, también conocido como FFS
+      0x444F5302  Old  File System International
+      0x444F5303  Fast File System International
+      0x444F5304  Old  File System - Directory Cache (sólo con OS 3.0+)
+      0x444F5305  Fast File System - Directory Cache (sólo con OS 3.0+)
+
+      Percátese de que emplear caché de directorios (Directory Cache) no
+    aporta ninguna ventaja en los discos de RAM: (más bien todo lo contrario
+    pues actualmente ralentiza el acceso).
+@endnode
+-----------------------------------------------------------------------------
+@node FixPCTask
+
+  El emulador @{i}PC-Task@{ui} de Chris Hames se beneficia enormemente de los discos ram.  StatRam es compatible con PC-Task (debe usar un fichero mountlist como el suministrado "PC4") e incluso puede usar el volumen como unidad A: para arranques extra-rápidos.
+
+  Desafortunadamente, las versiones comprendidas de la 2.00 a la 2.03 tienen un error que les impide arrancar desde un dispositivo rápido como éste.  El error ha sido corregido en las versiones francesa y alemana, y puede ser corregido en versiones posteriores... mientras tanto, proporcionamos un "parche" llamado FixPCTask.  Lo único que debe hacer es ejecutarlo desde S:user-startup, y PC-Task podrá aprovechar, ahora sin problemas, un volumen StatRam.
+@endnode
+-----------------------------------------------------------------------------
+@node RemSD0
+
+  Si necesita la memoria para otras tareas, las unidades StatRam pueden ser inmediatamente eliminadas del sistema con:
+
+	@{i}RemSD0@{ui}               elimina la primera unidad StatRam.
+
+	@{i}RemSD0 nombre:@{ui}       elimina la unidad StatRam con el nombre especificado.
+@endnode
+-----------------------------------------------------------------------------
+@node Trucos "Consejos y trucos"
+
+  Conozco gente que ha sustituído el disco de ram estándar del sistema por este disco recuperable.  La operación es muy sencilla: basta renombrar SD0 como RAM y añadir las siguientes líneas al inicio del fichero startup-sequence, antes de hacer cualquier referencia a la unidad RAM: (pero después de SetPatch):
+
+	@{i}Assign ENV: SYS:
+	Assign RAM: DISMOUNT
+	Mount RAM:@{ui}
+
+(la línea "Assign ENV: SYS:" es necesaria ya que algunas versiones del comando "Mount" hacen aparecer la petición "Por favor, inserte el volumen ENV:".  Lo habitual es que ENV: sea asignado más tarde a RAM: en el propio fichero startup-sequence).
+
+  Ahora busque esta línea en el fichero "startup-sequence":
+
+	@{i}C:MakeDir RAM:T RAM:Clipboards RAM:ENV RAM:ENV/Sys@{ui}
+
+y reemplácela por:
+
+	@{i}C:MakeDir >NIL: RAM:T RAM:Clipboards RAM:ENV RAM:ENV/Sys@{ui}
+@endnode
+-----------------------------------------------------------------------------
+@node Preguntas "Preguntas y respuestas"
+
+P. @{b}¿Porqué a veces se producen errores de lectura/escritura
+   al ESCRIBIR en SD0:?@{ub}
+
+R. Posiblemente porque no hay memoria libre disponible, pues
+   el disco de RAM es demasiado grande.  Reduzca su tamaño con
+   el parámetro HIGHCYL (valor del cilindro superior).
+
+
+P. @{b}¿Porqué a veces se producen errores de lectura al LEER en SD0:?@{ub}
+
+R. Puede ser producido porque la memoria empleada por el
+   dispositivo para almacenar un sector con datos está corrupta.
+   Hay tres causas posibles:
+
+   · Se ha quedado previamente sin suficiente memoria libre, y por eso
+     StatRam informa a continuación de error de escritura (a la vez
+     que NO puede escribir los datos correspondientes en la unidad).
+     Para corregir el error, utilice una utilidad de reparación de
+     discos como @{i}DiskSalv 2@{ui} de Dave Haynie (la función Validar
+     es la más apropiada).
+
+   · Ha empleado un programa defectuoso que ha "machacado" la memoria
+     empleada por StatRam para almacenar los datos.
+
+   · Uno de sus chips de RAM está estropeado.  Compruebe la memoria con
+     un programa de diagnóstico.  Nota: los programas suministrados con
+     las tarjetas de memoria a menudo no detectan pequeños fallos
+     de un simple bit.
+     ¡Y no crea que no puede ocurrirle! ¡A mi me ha sucedido!
+@endnode
+-----------------------------------------------------------------------------
+@node Actualización
+
+  StatRam 3.0 es un programa completamente nuevo: incluso el nombre del dispositivo ha cambiado.  De hecho, si quiere actualizarse de una versión anterior, borre el dispositivo anterior (static.device), "KillSD0" y el fichero "mountlist", y proceda a reinstalar desde el principio el paquete.
+@endnode
+-----------------------------------------------------------------------------
+@node Autores
+
+  StatRam está basado originalmente en VD0: (un disco de ram recuperable muy popular de Perry S. Kivolowitz), siendo refinado y vuelto a escribir por:
+
+	Nicola Salmoria
+	Via Piemonte 11
+	53100 Siena
+	ITALY
+
+	Dirección Internet (E-Mail) : MC6489@mclink.it
+
+		y
+
+	Richard Waspe
+
+	Dirección Internet (E-Mail) : waspy@cix.compulink.co.uk
+	Dirección CbmNet            : rwaspe@hamlet.adsp.sub.org
+	Dirección Fidonet           : 2:250/151.40
+@endnode
+-----------------------------------------------------------------------------
+@node Distribución
+
+  Este software es del tipo @{i}FreeWare@{ui}, o sea, es de distribución libre y gratuíta, teniendo en cuenta que el contenido de este paquete debe permanecer intacto y que sólo se puede cobrar @{u}un pequeño recargo@{uu} por dicho trabajo de distribución.
+
+  Este software se proporciona "TAL CUAL" sin ningún tipo de garantía, tanto implícita como explícita.  Si decide emplearlo, tenga en cuenta que es usted quien asume todos los riesgos de su uso.
+@endnode
+-----------------------------------------------------------------------------
+@node Agradecimentos
+
+  Muchas gracias a mis ß-testeadores:
+
+	Ian Moran
+	Mark Fisher
+	Mike Walter
+	Steve Loughran
+	Bob Adams
+@endnode
+-----------------------------------------------------------------------------
+@node Historia
+
+Versión 3.1
+
+ · Corregido problema con el descompresor de discos Zoom: cuando se
+   descomprimía un fichero .zom sobre un volumen StatRam, la liberación de
+   memoria automática se producía anticipadamente provocando la corrupción
+   de los datos.
+
+ · Ahora se puede usar el sistema PFS de Michiel Pelt, bastando con
+   modificar los campos FileSystem y DosType apropiadamente.  La liberación
+   de memoria no está disponible, de manera similar a CrossDOS: el disco
+   aumenta de tamaño al escribir datos en él pero no se reduce nunca.
+
+ · Detectado y corregido un cuelgue del sistema muy espectacular
+   (con «fuegos artificiales») que a veces se producía cuando se
+   intentaba volver a montar un volúmen después de que fuese machacada
+   su tabla de bloques por otro volumen diferente.
+@endnode
+----------------------------------------------------------------------------
+@node Trad "Traducción al castellano"
+
+@{fg highlight}@{b}Traducción al español versión 1.0 (14-ABR-96)@{ub}@{fg text}
+
+  Este documento es de copiado y distribución gratuíta.  Su utilización es siempre bajo la responsabilidad del propio usuario asumiendo éste todos los riesgos (consulte la documentación original, por favor).
+
+	Dámaso Domínguez Estévez
+	Alonso Ojeda nº 7 - 1º
+	36.207 Vigo (Pontevedra)
+	SPAIN (EUROPE)
+
+  @{b}Nos vemos en la siguiente traducción 8^D...@{ub}
+@endnode
+-----------------------------------------------------------------------------

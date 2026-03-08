@@ -1,0 +1,265 @@
+@database cha_filter.guide
+@$VER: cha_filter.guide 1.2 (1999.12.11) © Claude Heiland-Allen
+
+@node main "cha_filter.guide"
+
+    @{" Introduction " link introduction}
+    @{" Usage        " link usage}
+    @{" Usage Map    " link usage_map}
+    @{" Examples     " link examples}
+    @{" Bugs         " link bugs}
+    @{" History      " link history}
+    @{" Developers   " link developers}
+    @{" Author       " link author}
+
+    NEW: uses OctaMED instrument numbers, added note on
+         allpass filters (see @{" Examples " link examples 40}), fixed table of
+         contents above.
+
+@endnode
+
+@node introduction "cha_filter.guide/Introduction"
+
+cha_filter is a plugin to add proper filtering capabilities
+to OctaMED SoundStudio / nsm.
+
+I got fed up with getting rubbish results from OSS's filter
+and boost.  cha_filter uses pro-quality filtering algorithms
+that are powerful and controllable (frequencies in Hz, none
+of this averaging / distance crap).
+
+Based on mkfilter/mkshape/mkaverage/gencode/genplot:
+  A. J. Fisher
+  fisher@minster.york.ac.uk
+
+@endnode
+
+@node usage "cha_filter.guide/Usage"
+
+cha_filter FROM/A,TO/A,RATE/K,VOLUME/K,BW=BUTTERWORTH/S,
+           CH=CHEBYSHEV/S,BE=BESSEL/S,RES=RESONATOR/S,
+           HP=HIGHPASS/S,LP=LOWPASS/S,BP=BANDPASS/S,
+           BS=BANDSTOP/S,AP=ALLPASS/S,NOTCH/S,
+           BLT=BILINEAR/S,MZT=MATCHEDZ/S,O=ORDER/K,
+           R=RIPPLE/K,F=FREQUENCY/K,LF=LOWFREQUENCY/K,
+           HF=HIGHFREQUENCY/K,Q=QFACTOR/K
+
+Looks complicated, but is in fact quite logical.  Check the
+@{" usage map " link usage_map} if you are not convinced.
+
+general:
+
+FROM        - the source sample number (1..1V)
+TO          - the destination sample number (1..1V)
+RATE        - the sample rate (if not specified then the
+              rate is taken from the default pitch of the
+              source sample (default C-3 = 16574 Hz))
+VOLUME      - volume factor (default 1.0, change this if the
+              output is too loud or too quiet)
+
+filters designed in the s-plane:
+
+BUTTERWORTH - "normal" filter (flat pass band)
+CHEBYSHEV   - steeper frequency cutoff slope but ripples in
+              the pass band (see RIPPLE)
+BESSEL      - linear phase response but shallower frequency
+              cutoff slope
+
+s-plane -> z-plane conversion methods:
+
+BILINEAR    - bilinear transform, generally preferred as the
+              frequency response is sharper
+MATCHEDZ    - matched z-transform, preserves the phase
+              response so use this for Bessel filters, but
+              aliasing can distort the frequency response
+
+s-plane filter shapes:
+
+HIGHPASS    - pass frequencies above FREQUENCY but not below
+LOWPASS     - pass frequencies below FREQUENCY but not above
+BANDSTOP    - pass frequencies below LOWFREQUENCY or above
+              HIGHFREQUENCY but not inbetween
+BANDPASS    - pass frequencies between LOWFREQUENCY and
+              HIGHFREQUENCY but not outside
+
+s-plane parameters:
+
+FREQUENCY       - center frequency in Hz
+LOWFREQUENCY    - lower frequency in Hz
+HIGHFREQUENCY   - higher frequency in Hz
+ORDER       - the order of the filter (1..16) (the frequency
+              response cutoff slope is 6 * order dB/octave)
+RIPPLE      - specifies Chebyshev passband ripple in dB
+              (must be less than 0.0)
+
+other filter types:
+
+RESONATOR   - simple filter
+
+resonator filter shapes:
+
+BANDPASS    - pass frequencies near FREQUENCY
+ALLPASS     - change phase response near FREQUENCY
+NOTCH       - eliminate FREQUENCY
+
+resonator parameters:
+
+FREQUENCY   - center frequency in Hz
+QFACTOR     - filter Q-factor (the higher the Q-factor the
+              more "local" to the frequency the effect is)
+
+@endnode
+
+@node usage_map "cha_filter.guide/Usage Map"
+
+Here is how the command line interface parameters are
+connected:
+
+                      /-- highpass --\\
+     bessel --\\      /                \\
+               \\    /---- lowpass  ----\\    /-- bilinear --\\
+butterworth ----}--{                    }--{                \\
+               /    \\---- bandstop ----/    \\-- matchedz ----\\
+  chebyshev --/      \\                /                       \\
+                      \\-- bandpass --/      /-- bandpass ------}--
+                                           /                  /
+  resonator ------------------------------{---- allpass  ----/
+                                           \\                /
+                                            \\-- notch    --/
+
+Notes:
+
+- s-plane filters need ORDER (1..16)
+- Chebyshev filters need RIPPLE (< 0.0 dB)
+- s-plane bandpass filters need LOW/HIGHFREQUENCY, all other
+  filters need FREQUENCY (>= 0.0 Hz)
+- resonators need QFACTOR (> 0.0)
+
+@endnode
+
+@node examples "cha_filter/Examples"
+
+As the CLI is a bit awkward, I thought I'd give lots of
+examples of usage.  First is the long version, then the
+short version of the same command.  All of the examples
+are with a sample rate of 16574 Hz (C-3).
+
+
+cha_filter from 1 to 2 butterworth bilinear lowpass frequency 250 order 4
+cha_filter 1 2 bw blt lp f 250 o 4
+    - simple lowpass filter
+
+cha_filter from 1 to 2 butterworth bilinear highpass frequency 800 order 4
+cha_filter 1 2 bw blt hp f 800 o 4
+    - simple highpass filter
+
+cha_filter from 1 to 2 butterworth bilinear bandpass lowfrequency 250 highfrequency 800 order 3
+cha_filter 1 2 bw blt bp lf 250 hf 800 o 3
+    - simple bandpass filter, (for these frequencies and
+      rate the highest stable order is 3)
+
+cha_filter from 1 to 2 chebyshev bilinear highpass frequency 4000 order 12 ripple -6
+cha_filter 1 2 ch blt hp f 4000 o 12 r -6
+    - extreme highpass filter, Chebyshev gives sharper cutoff
+
+cha_filter from 1 to 2 bessel matchedz lowpass frequency 500 order 1
+cha_filter 1 2 be mzt lp f 500 o 1
+    - gentle lowpass filter (takes the edge off the treble)
+
+cha_filter from 1 to 2 resonator bandpass frequency 300 qfactor 9 volume 0.5
+cha_filter 1 2 res bp f 300 q 9 v 0.5
+    - boost the bass, reducing the output volume to avoid
+      distortion
+
+cha_filter from 1 to 2 resonator bandpass frequency 600 qfactor 100 volume 2
+cha_filter 1 2 res bp f 600 q 100 v 2
+    - add (quite a lot of) resonance, increasing volume to
+      use the full range of the output sample
+
+cha_filter from 2 to 3 resonator notch frequency 600 qfactor 8 volume 4
+cha_filter 2 3 res notch f 600 q 8 v 4
+    - attempt to remove the added resonance
+
+cha_filter from 1 to 2 resonator allpass frequency 600 qfactor 10
+cha_filter 1 2 res ap f 400 q 100
+    - allpass filter (note: although all frequencies are
+      passed equally in the long term, the ear can detect
+      short term changes, so it will not sound the same.
+      The previous version of this guide said incorrectly
+      that it would sound the same - there is in fact a
+      "metallic ring".)
+
+@endnode
+
+@node bugs "cha_filter.guide/Bugs"
+
+- s-plane filters with high ORDER can be unstable
+    + use a lower ORDER and filter twice
+    + there is a possible fix for this bug, but that
+      requires a near rewrite of the filtering code (so that
+      will wait until the next version, if ever)
+
+- resonators with low QFACTOR are at the wrong frequency
+    + use a higher QFACTOR
+    + I will investigate this bug and hopefully fix it
+
+@endnode
+
+@node history "cha_filter.guide/History"
+
+Future (in priority order)
+  - fix s-plane limitation   \\ these might not both happen,
+  - speed up filtering code  / tell me which you prefer
+  - more filter types
+      - proportional-integral
+      - Hilbert transformer
+      - raised cosine
+      - moving average
+      - arbitrary FIR/IIR (for other programs)
+  - GUI
+      - set parameters nicely
+      - graphs of filter stuff
+          - s-plane diagram
+          - z-plane diagram
+          - amplitude/frequency response
+          - phase/frequency response
+          - Nyquist diagram
+
+1999.12.11 v1.2 aminet
+  - now uses OctaMED instrument numbering
+
+1999.09.28 v1.1 aminet, onelist.com/OctaMED-Amiga
+  - first version: BW/CH/BE/RES filters, CLI
+
+@endnode
+
+@node developers "cha_filter.guide/Developers"
+
+The source is not in this archive due to the large amount
+of code shared between my plugins, so download
+
+    aminet/mus/edit/cha_source.lha
+
+which also contains more info about the implementation of
+cha_filter, as well as OO-style E source code for all my
+plugins.
+
+@endnode
+
+@node author "cha_filter.guide/Author"
+
+Claude Heiland-Allen
+
+claude.heiland-allen@lincoln.oxford.ac.uk (preferred)
+cheilandallen@yahoo.co.uk (not checked regularly)
+(I am also on the mailing list OctaMED-Amiga@onelist.com)
+
+aminet/mus/edit/cha_#?
+(my useful programs)
+
+Studying for a BA in Mathematics and Computation at Oxford
+University (Lincoln College)
+
+@endnode
+
+@remark END: cha_filter.guide

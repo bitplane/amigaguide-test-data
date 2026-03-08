@@ -1,0 +1,1784 @@
+@database "msql"
+@master "Ram Disk:msql.doc"
+
+@Node Main "msql.doc"
+    @{" --background-- " Link "--background--"}
+    @{" --rexxhost-- " Link "--rexxhost--"}
+    @{" MsqlAddMHookA() " Link "MsqlAddMHookA()"}
+    @{" MsqlAllocConnection() " Link "MsqlAllocConnection()"}
+    @{" MsqlClose() " Link "MsqlClose()"}
+    @{" MsqlConnect() " Link "MsqlConnect()"}
+    @{" MsqlCopyDB() " Link "MsqlCopyDB()"}
+    @{" MsqlCreateDB() " Link "MsqlCreateDB()"}
+    @{" MsqlDataSeek() " Link "MsqlDataSeek()"}
+    @{" MsqlDateOffset() " Link "MsqlDateOffset()"}
+    @{" MsqlDateToUnixTime() " Link "MsqlDateToUnixTime()"}
+    @{" MsqlDiffDates() " Link "MsqlDiffDates()"}
+    @{" MsqlDiffTimes() " Link "MsqlDiffTimes()"}
+    @{" MsqlDropDB() " Link "MsqlDropDB()"}
+    @{" MsqlFetchField() " Link "MsqlFetchField()"}
+    @{" MsqlFetchRow() " Link "MsqlFetchRow()"}
+    @{" MsqlFieldSeek() " Link "MsqlFieldSeek()"}
+    @{" MsqlFreeConnection() " Link "MsqlFreeConnection()"}
+    @{" MsqlFreeResult() " Link "MsqlFreeResult()"}
+    @{" MsqlGetCharConf() " Link "MsqlGetCharConf()"}
+    @{" MsqlGetErrMsg() " Link "MsqlGetErrMsg()"}
+    @{" MsqlGetHostInfo() " Link "MsqlGetHostInfo()"}
+    @{" MsqlGetIntConf() " Link "MsqlGetIntConf()"}
+    @{" MsqlGetProtoInfo() " Link "MsqlGetProtoInfo()"}
+    @{" MsqlGetSequenceInfo() " Link "MsqlGetSequenceInfo()"}
+    @{" MsqlGetServerInfo() " Link "MsqlGetServerInfo()"}
+    @{" MsqlGetServerStats() " Link "MsqlGetServerStats()"}
+    @{" MsqlListDBs() " Link "MsqlListDBs()"}
+    @{" MsqlListFields() " Link "MsqlListFields()"}
+    @{" MsqlListIndex() " Link "MsqlListIndex()"}
+    @{" MsqlListTables() " Link "MsqlListTables()"}
+    @{" MsqlLoadConfigFile() " Link "MsqlLoadConfigFile()"}
+    @{" MsqlMoveDB() " Link "MsqlMoveDB()"}
+    @{" MsqlNumFields() " Link "MsqlNumFields()"}
+    @{" MsqlNumRows() " Link "MsqlNumRows()"}
+    @{" MsqlQuery() " Link "MsqlQuery()"}
+    @{" MsqlReloadAcls() " Link "MsqlReloadAcls()"}
+    @{" MsqlRemMHook() " Link "MsqlRemMHook()"}
+    @{" MsqlSelectDB() " Link "MsqlSelectDB()"}
+    @{" MsqlShutdown() " Link "MsqlShutdown()"}
+    @{" MsqlStoreResult() " Link "MsqlStoreResult()"}
+    @{" MsqlSumTimes() " Link "MsqlSumTimes()"}
+    @{" MsqlTimeToUnixTime() " Link "MsqlTimeToUnixTime()"}
+    @{" MsqlUnixTimeToDate() " Link "MsqlUnixTimeToDate()"}
+    @{" MsqlUnixTimeToTime() " Link "MsqlUnixTimeToTime()"}
+@EndNode
+
+@Node "--background--" "msql.library/--background--"
+
+@{b}    The msql.library is an Amiga shared library that grant access to a mSQL@{ub}
+@{b}    database engine over a TCP/IP network (ie include the mSQL client part).@{ub}
+
+@{b}    @{"MsqlNumRows()" Link "MsqlNumRows()"} & @{"MsqlNumFields()" Link "MsqlNumFields()"} are macros #defined in libraries/msql.h@{ub}
+@{b}    Please refer to the original documentation for more information.@{ub}
+
+@{b}   News from Version 5.3:@{ub}
+       - Include 2.0.7 code changes.
+
+@{b}   News from Version 5.2:@{ub}
+       - Fix a bug that make @{"MsqlUnixTimeToDate" Link "msql.guide/MsqlUnixTimeToDate"} unusable.
+       - Some code changes and bugs fix from the original
+         API (V2.0.5 & 2.0.6)
+
+@{b}   News from Version 5:@{ub}
+       - Some ARexx host bugs removed.
+       - ARexx allocation trace (Free all ARexx allocation with one
+         function).
+       - Add a hook monitoring system.
+
+@{b}   News from Version 4:@{ub}
+       - ARexx host.
+
+@{b}   News from Version 3:@{ub}
+       - Support the final mSQL2 protocol.
+
+@{b}   News from Version 2:@{ub}
+       - Client code included into the library (no external program required
+         any more).
+       - Functions that don't require a "real" connection like @{"MsqlDataSeek()" Link "MsqlDataSeek()"}
+         don't need a MsqlConnection argument anymore (this argument was
+         needed with the previous version to exchange information with the
+         external program).
+
+@{b}   Requirement:@{ub}
+       - A running TCP/IP stack (AmiTCP, Miami) to access distant DB server
+         or mUSD to only access a local mSQL server.
+
+@{b}   Note:@{ub}
+       - the ixemul.library is not used any more.
+       - Since new Times functions used static string in the original api,
+         the library keeps buffers for each process that open the library.
+         So, DON'T share the library base between process!
+
+@{b}    A large parts of this documentation comes from the original msql api@{ub}
+@{b}    documentation which is ©1998 Hughes Technologies Pty Ltd.@{ub}
+
+@{b}   msql.library is (C) Copyright 1999 Christophe Sollet, All rights Reserved@{ub}
+@EndNode
+
+@Node "--rexxhost--" "msql.library/--rexxhost--"
+
+@{b}   HOST INTERFACE  (V4)@{ub}
+       msql.library provides an ARexx function host interface that enables
+       ARexx programs to access mSQL Database server. The functions provided
+       by the interface are directly related to the functions described
+       herein.
+
+       The function host library vector is located at offset -30 from the
+       library. This is the value you provide to ARexx in the AddLib()
+       function call.
+
+@{b}   FUNCTIONS@{ub}
+       @{"MsqlAllocConnection" Link "msql.guide/MsqlAllocConnection"} ()
+       @{"MsqlClose" Link "msql.guide/MsqlClose"} (MSQLCONNECTION)
+       @{"MsqlConnect" Link "msql.guide/MsqlConnect"} (MSQLCONNECTION, STRING)
+       @{"MsqlCreateDB" Link "msql.guide/MsqlCreateDB"} (MSQLCONNECTION, STRING)
+       @{"MsqlDataSeek" Link "msql.guide/MsqlDataSeek"} (M_RESULT, INT)
+       @{"MsqlDropDB" Link "msql.guide/MsqlDropDB"} (MSQLCONNECTION, STRING)
+       @{"MsqlFetchField" Link "msql.guide/MsqlFetchField"} (M_RESULT)
+       @{"MsqlFetchRow" Link "msql.guide/MsqlFetchRow"} (M_RESULT)
+       @{"MsqlFieldSeek" Link "msql.guide/MsqlFieldSeek"} (M_RESULT, INT)
+       @{"MsqlFreeConnection" Link "msql.guide/MsqlFreeConnection"} (MSQLCONNECTION)
+       @{"MsqlFreeResult" Link "msql.guide/MsqlFreeResult"} (M_RESULT)
+       @{"MsqlGetErrMsg" Link "msql.guide/MsqlGetErrMsg"} (MSQLCONNECTION)
+       @{"MsqlGetHostInfo" Link "msql.guide/MsqlGetHostInfo"} (MSQLCONNECTION)
+       @{"MsqlGetProtoInfo" Link "msql.guide/MsqlGetProtoInfo"} (MSQLCONNECTION)
+       @{"MsqlGetServerInfo" Link "msql.guide/MsqlGetServerInfo"} (MSQLCONNECTION)
+       @{"MsqlListDBs" Link "msql.guide/MsqlListDBs"} (MSQLCONNECTION)
+       @{"MsqlListFields" Link "msql.guide/MsqlListFields"} (MSQLCONNECTION, STRING)
+       @{"MsqlListIndex" Link "msql.guide/MsqlListIndex"} (MSQLCONNECTION, STRING, STRING)
+       @{"MsqlListTables" Link "msql.guide/MsqlListTables"} (MSQLCONNECTION)
+       @{"MsqlLoadConfigFile" Link "msql.guide/MsqlLoadConfigFile"} (MSQLCONNECTION, STRING)
+       @{"MsqlNumFields" Link "msql.guide/MsqlNumFields"} (M_RESULT)
+       @{"MsqlNumRows" Link "msql.guide/MsqlNumRows"} (M_RESULT)
+       @{"MsqlQuery" Link "msql.guide/MsqlQuery"} (MSQLCONNECTION, STRING)
+       @{"MsqlReloadAcls" Link "msql.guide/MsqlReloadAcls"} (MSQLCONNECTION)
+       @{"MsqlSelectDB" Link "msql.guide/MsqlSelectDB"} (MSQLCONNECTION, STRING)
+       @{"MsqlShutdown" Link "msql.guide/MsqlShutdown"} (MSQLCONNECTION)
+       @{"MsqlStoreResult" Link "msql.guide/MsqlStoreResult"} (MSQLCONNECTION)
+
+@{b}   AREXX ONLY FUNCTIONS@{ub}
+       MsqlGetField (M_ROW, POS)
+           Get the field value at POS of a row
+ 
+       MsqlGetFieldInfo (M_FIELD, TYPE)
+           Get info "TYPE" on a field
+           TYPE can be: - "name"
+                        - "table"
+                        - "type"
+                        - "length"
+
+       MsqlIsNotNull (M_FIELD)
+       MsqlIsUnique (M_FIELD)
+           This two functions test flags of the field.
+
+@{b}   NOTES:@{ub}
+       The following functions return true on success:
+
+       @{"MsqlSelectDB" Link "msql.guide/MsqlSelectDB"}
+       @{"MsqlQuery" Link "msql.guide/MsqlQuery"}
+       @{"MsqlCreateDB" Link "msql.guide/MsqlCreateDB"}
+       @{"MsqlDropDB" Link "msql.guide/MsqlDropDB"}
+       @{"MsqlGetProtoInfo" Link "msql.guide/MsqlGetProtoInfo"}
+       @{"MsqlReloadAcls" Link "msql.guide/MsqlReloadAcls"}
+       @{"MsqlDataSeek" Link "msql.guide/MsqlDataSeek"}
+       @{"MsqlFieldSeek" Link "msql.guide/MsqlFieldSeek"}
+       @{"MsqlLoadConfigFile" Link "msql.guide/MsqlLoadConfigFile"}
+       
+       
+
+@EndNode
+
+@Node "MsqlAddMHookA()" "msql.library/MsqlAddMHookA"
+
+@{b}   NAME   @{ub}
+           MsqlAddMHookA --  add a library monitoring hook. (V5)
+           MsqlAddMHook -- Varargs stub for MsqlAddMHook. (V5)
+
+@{b}   SYNOPSIS@{ub}
+           success = MsqlAddMHookA(hook, TagItems)
+           D0                      A0    A1
+
+           @{"BOOL" Link "exec/types.h/Main" 68} MsqlAddMHookA(struct @{"Hook" Link "libraries/xpk.h/Main" 43} *, struct TagItems *);
+
+           success = MsqlAddMHook(hook, Tag1, ... )
+
+           @{"BOOL" Link "exec/types.h/Main" 68} MsqlAddMHook(struct @{"Hook" Link "libraries/xpk.h/Main" 43} *, @{"ULONG" Link "exec/types.h/Main" 36}, ... );
+
+@{b}   FUNCTION@{ub}
+           This function adds a callback hook to monitor each library call.
+           The hook will be called at each library function call and
+           return.
+
+           Hooks are called with the following parameters:
+
+           - A0:  struct @{"Hook" Link "libraries/xpk.h/Main" 43} *: your struct @{"Hook" Link "libraries/xpk.h/Main" 43}
+
+           - A2:  APTR: your callback handle
+
+           - A1: struct HookMessage *: a pointer to an initialized struct
+             HookMessage describing the  called library function.
+
+@{b}   INPUTS@{ub}
+           hook - callback hook
+           TagItems - none are defined for now, must be NULL
+
+@{b}   RESULT@{ub}
+           success - TRUE on success
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           The struct HookMessage is read-only!
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlRemMHook()" Link "MsqlRemMHook()"}
+
+@EndNode
+
+@Node "MsqlAllocConnection()" "msql.library/MsqlAllocConnection"
+
+@{b}   NAME   @{ub}
+           @{"MsqlAllocConnection" Link "msql.guide/MsqlAllocConnection"} -- Alloc a MsqlConnection structure
+
+@{b}   SYNOPSIS@{ub}
+           mc = MsqlAllocConnection()
+           D0
+
+           struct MsqlConnection *MsqlAllocConnection(void);
+
+@{b}   FUNCTION@{ub}
+           Alloc an MsqlConnection structure used by all other function.
+           A MsqlConnection structure must be created by each task that
+           access the msql.library
+
+@{b}   INPUTS@{ub}
+           none
+
+@{b}   RESULT@{ub}
+           mc - A ready-to-use structure or NULL on error.
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           You must use @{"MsqlFreeConnection" Link "msql.guide/MsqlFreeConnection"} to free the returned structure.
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlFreeConnection()" Link "MsqlFreeConnection()"}
+
+@EndNode
+
+@Node "MsqlClose()" "msql.library/MsqlClose"
+
+@{b}   NAME   @{ub}
+           @{"MsqlClose" Link "msql.guide/MsqlClose"} -- close a connection to the mSQL engine
+
+@{b}   SYNOPSIS@{ub}
+           MsqlClose(mc)
+                     A1
+
+           @{"void" Link "PopUpMenuClass.h/Main" 72} MsqlClose(struct MsqlConnection *);
+
+@{b}   FUNCTION@{ub}
+           The connection to the mSQL engine can be closed using msqlClose()
+           The function must be called with the MsqlConnection structure
+           returned by @{"MsqlConnect()" Link "MsqlConnect()"} when the initial connection was made.
+
+@{b}   INPUTS@{ub}
+           mc - a "connected" MsqlConnection
+
+@{b}   RESULT@{ub}
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlConnect()" Link "MsqlConnect()"}
+
+@EndNode
+
+@Node "MsqlConnect()" "msql.library/MsqlConnect"
+
+@{b}   NAME   @{ub}
+           @{"MsqlConnect" Link "msql.guide/MsqlConnect"} -- Forms an interconnection with the mSQL engine
+
+@{b}   SYNOPSIS@{ub}
+           mc = MsqlConnect(mc, host)
+           D0               A1  A0
+
+           struct MsqlConnection *
+                              MsqlConnect(struct MsqlConnection *, char *);
+
+@{b}   FUNCTION@{ub}
+           msqlConnect() forms an interconnection with the mSQL engine. The
+           host argument is the name or IP @{"address" Link "f2c.h/Main" 15} of the host running the
+           mSQL server. If NULL is specified as the host argument, a
+           connection is made to a server running on the localhost using the
+           UNIX domain socket /dev/msqld. If an error occurs, NULL is
+           returned and the external variable msqlErrMsg (returned by
+           @{"MsqlGetErrMsg()" Link "MsqlGetErrMsg()"}) will contain an appropriate text message.
+
+           If the connection is made to the server, the MsqlConnection is
+           filled with connecton information.
+
+@{b}   INPUTS@{ub}
+           mc - a MsqlConnection structure returned by @{"MsqlAllocConnection()" Link "MsqlAllocConnection()"}
+           host - the name or IP @{"address" Link "f2c.h/Main" 15} of the host running the mSQL server
+
+@{b}   RESULT@{ub}
+           mc - same as the input mc or NULL on error
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlClose()" Link "MsqlClose()"}
+
+@EndNode
+
+@Node "MsqlCopyDB()" "msql.library/MsqlCopyDB"
+
+@{b}   NAME   @{ub}
+           @{"MsqlCopyDB" Link "msql.guide/MsqlCopyDB"} -- Undocumented   (V3)
+
+@{b}   SYNOPSIS@{ub}
+           error = MsqlCopyDB(mc, fromDB, toDB)
+           D0                 A0  A1      A2        
+
+           int MsqlCopyDB(struct MsqlConnection *, char *, char *);
+
+@{b}   FUNCTION@{ub}
+           Undocumented.
+
+@{b}   INPUTS@{ub}
+           mc - a "connected" MsqlConnection structure
+           fromDB - ? :)
+           toDB - ? :)
+@{b}   RESULT@{ub}
+           error - -1 on error.
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlMoveDB()" Link "MsqlMoveDB()"}
+
+@EndNode
+
+@Node "MsqlCreateDB()" "msql.library/MsqlCreateDB"
+
+@{b}   NAME   @{ub}
+           @{"MsqlCreateDB" Link "msql.guide/MsqlCreateDB"} -- Create a new database
+
+@{b}   SYNOPSIS@{ub}
+           error = MsqlCreateDB(mc, name)
+           D0                   A1  A0
+
+           int MsqlCreateDB(struct MsqlConnection *, char *);
+
+@{b}   FUNCTION@{ub}
+           Create a new database on the connected server
+
+@{b}   INPUTS@{ub}
+           mc - a MsqlConnection
+           name - database name
+
+@{b}   RESULT@{ub}
+           error - -1 on error
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           It's an Admin function! This function isn't documented in the
+           original API.  
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlDataSeek()" "msql.library/MsqlDataSeek"
+
+@{b}   NAME   @{ub}
+           @{"MsqlDataSeek" Link "msql.guide/MsqlDataSeek"} -- Move the position of the data cursor
+
+@{b}   SYNOPSIS@{ub}
+           MsqlDataSeek(result, pos)
+                         A0      D0
+
+           @{"void" Link "PopUpMenuClass.h/Main" 72} MsqlDataSeek(m_result *, int);
+
+@{b}   FUNCTION@{ub}
+           The @{"m_result" Link "libraries/msql.h/Main" 45} structure contains a client side "cursor" that holds
+           information about the next row of data to be returned to the
+           calling program. MsqlDataSeek() can be used to move the position
+           of the data cursor. If it is called with a position of 0, the
+           next call to @{"MsqlFetchRow()" Link "MsqlFetchRow()"} will return the first row of data
+           returned by the server. The value of pos can be anywhere from 0
+           (the first row) and the number of rows in the table. If a seek is
+           made past the end of the table, the next call to @{"MsqlFetchRow()" Link "MsqlFetchRow()"}
+           will return a NULL.
+
+@{b}   INPUTS@{ub}
+           result - the @{"m_result" Link "libraries/msql.h/Main" 45} stucture to seek
+           pos - the position (0 to number of rows)
+
+@{b}   RESULT@{ub}
+           none
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlFetchRow()" Link "MsqlFetchRow()"}
+
+@EndNode
+
+@Node "MsqlDateOffset()" "msql.library/MsqlDateOffset"
+
+@{b}   NAME   @{ub}
+           @{"MsqlDateOffset" Link "msql.guide/MsqlDateOffset"} -- Produce a relative date  (V3)
+
+@{b}   SYNOPSIS@{ub}
+           date = MsqlDateOffset(sdate, dOff, mOff, yOff)
+           D0                     A0    D0    D1    D2
+
+           char *MsqlDateOffset(char *, int, int, int);
+
+@{b}   FUNCTION@{ub}
+           The MsqlDateOffset() function allows you to generate an mSQL date
+           string that is a specified period before or after a given date.
+           This routine will determine the correct date based on the varying
+           days of month.  It is also aware of leap years and the impact they
+           have on date ranges.  The new date is calculated using the
+           specified date and an offset value for the day, month and year.
+           The example below would determine tomorrow's date
+ 
+           clock = time();
+           today = MsqlUnixTimeToDate(clock);
+           tomorrow = MsqlDateOffset( today , @{"1" Link "setjmp.h/Main" 14} , 0 , 0 );
+
+@{b}   INPUTS@{ub}
+           sdate - starting date
+           dOff - day offset
+           mOff - month offset
+           yOff - year offset
+
+@{b}   RESULT@{ub}
+           date - new date
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           The returned string is statically declared in the API so you must
+           make a copy of it before you call the function again. Of course,
+           since msql.library is a shared library, each process have his own
+           buffer.
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlDiffTimes()" Link "MsqlDiffTimes()"}, @{"MsqlSumTimes()" Link "MsqlSumTimes()"}, @{"MsqlDiffDates()" Link "MsqlDiffDates()"}
+
+@EndNode
+
+@Node "MsqlDateToUnixTime()" "msql.library/MsqlDateToUnixTime"
+
+@{b}   NAME   @{ub}
+           @{"MsqlDateToUnixTime" Link "msql.guide/MsqlDateToUnixTime"} -- Convert mSQL date to an unix time value (V3)
+
+@{b}   SYNOPSIS@{ub}
+           time = MsqlDateToUnixTime(date)
+           D0                        A0
+
+           @{"time_t" Link "sys/commtime.h/Main" 12} MsqlDateToUnixTime(char *);
+
+@{b}   FUNCTION@{ub}
+           MsqlDateToUnixDate( ) converts an mSQL date format string into a
+           UNIX time value.  The mSQL date format is "DD-Mon-YYYY" (for
+           example "12-Jun-1997") while the returned value will be the number
+           of seconds since the UNIX epoch.  The mSQL date routines will
+           assume the 20th century if only 2 digits of the year value are
+           presented.  Although the valid range of mSQL dates is 31st Dec
+           4096bc to the 31st Dec 4096, the UNIX format cannot represent
+           dates prior to the 1st Jan 1970.
+
+@{b}   INPUTS@{ub}
+
+@{b}   RESULT@{ub}
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlUnixTimeToDate()" Link "MsqlUnixTimeToDate()"}, @{"MsqlTimeToUnixTime()" Link "MsqlTimeToUnixTime()"}, @{"MsqlUnixTimeToTime()" Link "MsqlUnixTimeToTime()"}
+
+@EndNode
+
+@Node "MsqlDiffDates()" "msql.library/MsqlDiffDates"
+
+@{b}   NAME   @{ub}
+           @{"MsqlDiffDates" Link "msql.guide/MsqlDiffDates"} -- determine days between two dates. (V3)
+
+@{b}   SYNOPSIS@{ub}
+           nbday = MsqlDiffDates(date1, date2)
+           D0                    A0     A1
+
+           int MsqlDiffDates(char *, char *);
+
+@{b}   FUNCTION@{ub}
+           The MsqlDiffDates() function can be used to determine the number
+           of days between two dates. Date1 must be less than date2 and the
+           two dates must be valid mSQL date formatted strings. In
+           conjunction with the @{"MsqlDiffTimes()" Link "MsqlDiffTimes()"} function it is possible to
+           determine a complete time difference between two pairs of times
+           and dates.
+
+@{b}   INPUTS@{ub}
+           date1 - a mSQL date formatted string.
+           date2 - another mSQL date formatted string.
+
+@{b}   RESULT@{ub}
+           nbday - the difference between date1 & date2.
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlDateOffset()" Link "MsqlDateOffset()"}, @{"MsqlSumTimes()" Link "MsqlSumTimes()"}, @{"MsqlDiffTimes()" Link "MsqlDiffTimes()"}
+
+@EndNode
+
+@Node "MsqlDiffTimes()" "msql.library/MsqlDiffTimes"
+
+@{b}   NAME   @{ub}
+           @{"MsqlDiffTimes" Link "msql.guide/MsqlDiffTimes"} -- determine the time diff between time values (V3)
+
+@{b}   SYNOPSIS@{ub}
+           time = MsqlDiffTimes(time1, time2)
+           D0                    A0     A1
+
+           char *MsqlDiffTimes(char *, char *);
+
+@{b}   FUNCTION@{ub}
+           To determine the time difference between two time values, the
+           MsqlDiffTimes() function can be used. The two time values must be
+           mSQL time formatted text strings and the returned value is also an
+           mSQL time string.  A restriction is placed on the times in that
+           time1 must be less than time2.
+
+@{b}   INPUTS@{ub}
+           time1 - a mSQL time formatted string.
+           time2 - another mSQL time formatted string.
+
+@{b}   RESULT@{ub}
+           time - the difference between time1 & time2.
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           The returned string is statically declared in the API so you must
+           make a copy of it before you call the function again. Of course,
+           since msql.library is a shared library, each process have his own
+           buffer.
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlSumTimes()" Link "MsqlSumTimes()"}, @{"MsqlDateOffset()" Link "MsqlDateOffset()"}, @{"MsqlDiffDates()" Link "MsqlDiffDates()"}
+
+@EndNode
+
+@Node "MsqlDropDB()" "msql.library/MsqlDropDB"
+
+@{b}   NAME   @{ub}
+           @{"MsqlDropDB" Link "msql.guide/MsqlDropDB"} -- Drop a database
+
+@{b}   SYNOPSIS@{ub}
+           error = MsqlDropDB(mc, name)
+           D0                 A1  A0
+
+           int MsqlDropDB(struct MsqlConnection *, char *);
+
+@{b}   FUNCTION@{ub}
+           Drop a database on the connected server
+
+@{b}   INPUTS@{ub}
+           mc - a MsqlConnection
+           name  - database name
+
+@{b}   RESULT@{ub}
+           error - -1 on error
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           It's an Admin function! This function isn't documented in the
+           original API.  
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlFetchField()" "msql.library/MsqlFetchField"
+
+@{b}   NAME   @{ub}
+           @{"MsqlFetchField" Link "msql.guide/MsqlFetchField"} -- Get information about the data fields selected
+
+@{b}   SYNOPSIS@{ub}
+           field = MsqlFetchField(result)
+           D0                      A0
+
+           @{"m_field" Link "libraries/msql.h/Main" 22} *MsqlFetchField(m_result *);
+
+@{b}   FUNCTION@{ub}
+           Along with the actual data rows, the server returns information
+           about the data fields selected. This information is made
+           available to the calling program via the MsqlFetchField()
+           function. Like @{"MsqlFetchRow()" Link "MsqlFetchRow()"}, this function returns one element
+           of information at a time and returns NULL when no further
+           information is available. The data is returned in a @{"m_field" Link "libraries/msql.h/Main" 22}
+           structure which contains the following information:
+
+           typedef struct
+           {
+               char    *name,      // name of field 
+                       *table;     // name of table 
+               int     type,       // data type of field 
+                       length,     // length in bytes of field
+                       flags;      // attribute flags 
+           } m_field;
+
+           Possible values for the type field are defined in msql.h.  Please
+           consult the header file if you wish to interpret the value of the
+           type or flags field of the @{"m_field" Link "libraries/msql.h/Main" 22} structure. 
+
+@{b}   INPUTS@{ub}
+           result - a previously returned result structure
+
+@{b}   RESULT@{ub}
+           field - data fields information or NULL when no further
+                   information is available
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlFetchRow()" Link "MsqlFetchRow()"}
+
+@EndNode
+
+@Node "MsqlFetchRow()" "msql.library/MsqlFetchRow"
+
+@{b}   NAME   @{ub}
+           @{"MsqlFetchRow" Link "msql.guide/MsqlFetchRow"} -- Access individual db rows returned by a select
+
+@{b}   SYNOPSIS@{ub}
+           row = MsqlFetchRow(result)
+           D0                  A0
+
+           @{"m_row" Link "libraries/msql.h/Main" 20} MsqlFetchRow(m_result *);
+
+@{b}   FUNCTION@{ub}
+           The individual database rows returned by a select are accessed
+           via the MsqlFetchRow() function.
+           The data is returned in a variable of type @{"m_row" Link "libraries/msql.h/Main" 20} which contains a
+           char pointer for each field in the row. For example, if a select
+           statement selected 3 fields from each row returned, the value of
+           the 3 fields would be assigned to elements [0], [1], and [2] of
+           the variable returned by MsqlFetchRow(). 
+
+@{b}   INPUTS@{ub}
+           result - the data to fetch
+
+@{b}   RESULT@{ub}
+           row - a row structure or NULL when the end of the data has been
+                 reached
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           A NULL value is represented as a NULL pointer in the row.
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+
+@EndNode
+
+@Node "MsqlFieldSeek()" "msql.library/MsqlFieldSeek"
+
+@{b}   NAME   @{ub}
+           @{"MsqlFieldSeek" Link "msql.guide/MsqlFieldSeek"} -- Move the field data cursor
+
+@{b}   SYNOPSIS@{ub}
+           MsqlFieldSeek(result, pos)
+                         A0      D0
+
+           @{"void" Link "PopUpMenuClass.h/Main" 72} MsqlFieldSeek(m_result *, int);
+
+@{b}   FUNCTION@{ub}
+           The result structure includes a "cursor" for the field data. It's
+           position can be moved using the MsqlFieldSeek() function. See
+           @{"MsqlDataSeek()" Link "MsqlDataSeek()"} for further details.
+
+@{b}   INPUTS@{ub}
+           result - the @{"m_result" Link "libraries/msql.h/Main" 45} structure to seek
+           pos - postion to move
+@{b}   RESULT@{ub}
+           none
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlDataSeek()" Link "MsqlDataSeek()"}
+
+@EndNode
+
+@Node "MsqlFreeConnection()" "msql.library/MsqlFreeConnection"
+
+@{b}   NAME   @{ub}
+           @{"MsqlFreeConnection" Link "msql.guide/MsqlFreeConnection"} -- Free a MsqlConnection structure
+
+@{b}   SYNOPSIS@{ub}
+           MsqlFreeConnection(mc)
+                              A0
+
+           @{"void" Link "PopUpMenuClass.h/Main" 72} MsqlFreeConnection(stuct MsqlConnection *);
+
+@{b}   FUNCTION@{ub}
+           Free a MsqlConnection structure returned by @{"MsqlAllocConnection" Link "msql.guide/MsqlAllocConnection"}.
+
+@{b}   INPUTS@{ub}
+           mc - a MsqlConnection
+
+@{b}   RESULT@{ub}
+           none
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlAllocConnection()" Link "MsqlAllocConnection()"}
+
+@EndNode
+
+@Node "MsqlFreeResult()" "msql.library/MsqlFreeResult"
+
+@{b}   NAME   @{ub}
+           @{"MsqlFreeResult" Link "msql.guide/MsqlFreeResult"} -- Free a query result
+
+@{b}   SYNOPSIS@{ub}
+           MsqlFreeResult(result)
+                           A0
+
+           @{"void" Link "PopUpMenuClass.h/Main" 72} MsqlFreeResult(m_result *);
+
+@{b}   FUNCTION@{ub}
+           When a program no longer requires the data associated with a
+           particular query result, the data must be freed using
+           MsqlFreeResult(). The result handle associated with the data, as
+           returned by @{"MsqlStoreResult()" Link "MsqlStoreResult()"} is passed to MsqlFreeResult() to
+           identify the data set to be freed.
+
+@{b}   INPUTS@{ub}
+           result - a @{"m_result" Link "libraries/msql.h/Main" 45} structure returned by @{"MsqlStoreResult()" Link "MsqlStoreResult()"}
+@{b}   RESULT@{ub}
+           none
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlStoreResult()" Link "MsqlStoreResult()"}
+
+@EndNode
+
+@Node "MsqlGetCharConf()" "msql.library/MsqlGetCharConf"
+
+@{b}   NAME   @{ub}
+           @{"MsqlGetCharConf" Link "msql.guide/MsqlGetCharConf"} -- Undocumented (used by msqladmin ?)   (V3)
+
+@{b}   SYNOPSIS@{ub}
+           x = MsqlGetCharConf(mc, y, z)
+           D0                  A1  A0 A2
+
+           int MsqlGetCharConf(struct MsqlConnection *, char *, char *);
+
+@{b}   FUNCTION@{ub}
+           Undocumented.
+
+@{b}   INPUTS@{ub}
+           mc - a MsqlConnection
+           y  - ???
+           z  - ???
+
+@{b}   RESULT@{ub}
+           x - ???
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           This is a private Msql API function. No information was given
+           about it.
+           This function is not part of the mSQL API.  Any use
+           of this function is discouraged as the interface may
+           change in future releases
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlGetErrMsg()" "msql.library/MsqlGetErrMsg"
+
+@{b}   NAME   @{ub}
+          @{"MsqlGetErrMsg" Link "msql.guide/MsqlGetErrMsg"} -- Get an error message
+
+@{b}   SYNOPSIS@{ub}
+           errmsg = MsqlGetErrMsg(mc)
+           D0                     A0
+
+           char *MsqlGetErrMsg(struct MsqlConnection *); 
+
+@{b}   FUNCTION@{ub}
+           If a msql function failed, an error message will be stored in an
+           internal buffer. This function return a pointer on this buffer.
+
+@{b}   INPUTS@{ub}
+           mc - a valid MsqlConnection structure
+
+@{b}   RESULT@{ub}
+           errmsg - a null terminated string describing a previous error
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           There is no guarantee as to the value returned from
+           MsqlGetErrMsg() after a successful operation.
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlGetHostInfo()" "msql.library/MsqlGetHostInfo"
+
+@{b}   NAME   @{ub}
+           @{"MsqlGetHostInfo" Link "msql.guide/MsqlGetHostInfo"} -- Undocumented
+
+@{b}   SYNOPSIS@{ub}
+           x = MsqlGetHostInfo(mc)
+           D0                  A0
+
+           char *MsqlGetHostInfo(struct MsqlConnection *);
+
+@{b}   FUNCTION@{ub}
+           Undocumented.
+
+@{b}   INPUTS@{ub}
+           mc - a MsqlConnection
+
+@{b}   RESULT@{ub}
+           x - ???
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           This is a private Msql API function. No information was given
+           about it.
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlGetIntConf()" "msql.library/MsqlGetIntConf"
+
+@{b}   NAME   @{ub}
+           @{"MsqlGetIntConf" Link "msql.guide/MsqlGetIntConf"} -- Undocumented (used by msqladmin ?)   (V3)
+
+@{b}   SYNOPSIS@{ub}
+           x = MsqlGetIntConf(mc, y, z)
+           D0                 A1  A0 A2
+
+           int MsqlGetIntConf(struct MsqlConnection *, char *, char *);
+
+@{b}   FUNCTION@{ub}
+           Undocumented.
+
+@{b}   INPUTS@{ub}
+           mc - a MsqlConnection
+           y  - ???
+           z  - ???
+
+@{b}   RESULT@{ub}
+           x - ???
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           This is a private Msql API function. No information was given
+           about it.
+           This function is not part of the mSQL API.  Any use
+           of this function is discouraged as the interface may
+           change in future releases
+
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlGetProtoInfo()" "msql.library/MsqlGetProtoInfo"
+
+@{b}   NAME   @{ub}
+           @{"MsqlGetProtoInfo" Link "msql.guide/MsqlGetProtoInfo"} -- Undocumented
+
+@{b}   SYNOPSIS@{ub}
+           x = MsqlGetProtoInfo(mc)
+           D0                   A0
+
+           int MsqlGetProtoInfo(struct MsqlConnection *);
+
+@{b}   FUNCTION@{ub}
+           Undocumented.
+
+@{b}   INPUTS@{ub}
+           mc - a MsqlConnection
+
+@{b}   RESULT@{ub}
+           x - ???
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           This is a private Msql API function. No information was given
+           about it.
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlGetSequenceInfo()" "msql.library/MsqlGetSequenceInfo"
+
+@{b}   NAME   @{ub}
+           @{"MsqlGetSequenceInfo" Link "msql.guide/MsqlGetSequenceInfo"} --  (V3)
+
+@{b}   SYNOPSIS@{ub}
+           seq = MsqlGetSequenceInfo(mc, table)
+           D0                        A0  A1
+
+           m_seq *MsqlGetSequenceInfo(struct MsqlConnection *, char *);
+
+@{b}   FUNCTION@{ub}
+
+@{b}   INPUTS@{ub}
+
+@{b}   RESULT@{ub}
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlGetServerInfo()" "msql.library/MsqlGetServerInfo"
+
+@{b}   NAME   @{ub}
+           @{"MsqlGetServerInfo" Link "msql.guide/MsqlGetServerInfo"} -- Undocumented
+
+@{b}   SYNOPSIS@{ub}
+           x = MsqlGetServerInfo(mc)
+           D0                    A0
+
+           char *MsqlGetServerInfo(struct MsqlConnection *);
+
+@{b}   FUNCTION@{ub}
+           Undocumented.
+
+@{b}   INPUTS@{ub}
+           mc - a MsqlConnection
+
+@{b}   RESULT@{ub}
+           x - ???
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           This is a private Msql API function. No information was given
+           about it.
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlGetServerStats()" "msql.library/MsqlGetServerStats"
+
+@{b}   NAME   @{ub}
+           @{"MsqlGetServerStats" Link "msql.guide/MsqlGetServerStats"} -- Private  (V3)
+
+@{b}   SYNOPSIS@{ub}
+           error = MsqlGetServerStats(mc, buffer, size)
+           D0                         A0  A1      D0	
+
+           int MsqlGetServerStats(struct MsqlConnection *, char *, ULONG);
+
+@{b}   FUNCTION@{ub}
+           Undocumented.
+
+@{b}   INPUTS@{ub}
+           mc - a "connected" MsqlConnection structure
+           buffer - output buffer
+           size - size of buffer
+@{b}   RESULT@{ub}
+           error - -1 on error
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           Original API writes to the standard output, not in a buffer.
+@{b}   BUGS@{ub}
+           
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlListDBs()" "msql.library/MsqlListDBs"
+
+@{b}   NAME   @{ub}
+           @{"MsqlListDBs" Link "msql.guide/MsqlListDBs"} -- return a list of existing database
+
+@{b}   SYNOPSIS@{ub}
+           result = MsqlListDBs(mc)
+           D0                   A0
+
+           @{"m_result" Link "libraries/msql.h/Main" 45} *MsqlListDBs(struct MsqlConnection *);
+
+@{b}   FUNCTION@{ub}
+           A list of the databases known to the mSQL engine can be obtained
+           via the MsqlListDBs() function. A result handle is returned to
+           the calling program that can be used to access the actual
+           database names. The individual names are accessed by calling
+           @{"MsqlFetchRow()" Link "MsqlFetchRow()"} passing it the result handle. The @{"m_row" Link "libraries/msql.h/Main" 20} data
+           structure returned by each call will contain one field being the
+           name of one of the available databases. As with all functions
+           that return a result handle, the data associated with the result
+           must be freed when it is no longer required using @{"MsqlFreeResult()" Link "MsqlFreeResult()"}
+.
+
+@{b}   INPUTS@{ub}
+           mc - a "connected" MsqlConnection
+
+@{b}   RESULT@{ub}
+           result - data containing the list of known dbs.
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlFetchRow()" Link "MsqlFetchRow()"}, @{"MsqlFreeResult()" Link "MsqlFreeResult()"}, @{"MsqlListTables()" Link "MsqlListTables()"}
+
+@EndNode
+
+@Node "MsqlListFields()" "msql.library/MsqlListFields"
+
+@{b}   NAME  @{ub}
+           @{"MsqlListFields" Link "msql.guide/MsqlListFields"} --  Get information about table fields
+
+@{b}   SYNOPSIS@{ub}
+           result = MsqlListFields(mc, tableName)
+           D0                      A0  A1
+
+           @{"m_result" Link "libraries/msql.h/Main" 45} *MsqlListFields(struct MsqlConnection *, char *);
+
+@{b}   FUNCTION@{ub}
+           Information about the fields in a particular table can be
+           obtained using MsqlListFields(). The function is called with the
+           name of a table in the current database as selected using
+           @{"MsqlSelectDB()" Link "MsqlSelectDB()"} and a result handle is returned to the caller.
+           Unlike @{"MsqlListDBs()" Link "MsqlListDBs()"} and @{"MsqlListTables()" Link "MsqlListTables()"}, the field information
+           is contained in field structures rather than data rows. It is
+           accessed using @{"MsqlFetchField()" Link "MsqlFetchField()"}. The result handle must be freed
+           when it is no longer needed by calling @{"MsqlFreeResult()" Link "MsqlFreeResult()"}.
+
+@{b}   INPUTS@{ub}
+           mc - a "connected" MsqlConnection
+           tableName - a null terminated string containing the name of the
+                       table
+@{b}   RESULT@{ub}
+           result - data about the table structure
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlSelectDB()" Link "MsqlSelectDB()"}, @{"MsqlFetchField()" Link "MsqlFetchField()"}, @{"MsqlFreeResult()" Link "MsqlFreeResult()"}
+
+@EndNode
+
+@Node "MsqlListIndex()" "msql.library/MsqlListIndex"
+
+@{b}   NAME   @{ub}
+           @{"MsqlListIndex" Link "msql.guide/MsqlListIndex"} -- Get the structure of a table index
+
+@{b}   SYNOPSIS@{ub}
+           result = MsqlListIndex(mc, tableName, index)
+           D0                     A2  A0         A1
+
+           @{"m_result" Link "libraries/msql.h/Main" 45} *MsqlListIndex(struct MsqlConnection *, char *, char *);
+
+@{b}   FUNCTION@{ub}
+           The structure of a table index can be obtained from the server
+           using the MsqlListIndex() function.  The result table returned
+           contains one field.
+           The first row of the result contains the symbolic name of the
+           index mechanism used to store the index.  Rows 2 and onwards
+           contain the name of the fields that comprise the index.
+           For example, if a compund index was defined as an AVL Tree index
+           and was based on the values of the fields first_name and
+           last_name, then the result table would look like: 
+               --------------
+               |   row[0]   |
+               |------------|
+               |    avl     |
+               |------------|
+               | first_name |
+               |------------|
+               | last_name  |
+               --------------
+
+           Currently the only valid index type is 'avl' signifying a memory
+           mapped AVL tree.
+
+@{b}   INPUTS@{ub}
+           mc - a "connected" MsqlConnection
+           tableName - a null terminated string containing the name of the
+                       table
+           index - a null terminated string containing the name of the index
+@{b}   RESULT@{ub}
+           result - index information
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlFreeResult()" Link "MsqlFreeResult()"}
+
+@EndNode
+
+@Node "MsqlListTables()" "msql.library/MsqlListTables"
+
+@{b}   NAME   @{ub}
+           @{"MsqlListTables" Link "msql.guide/MsqlListTables"} -- return a table list of selected database
+
+@{b}   SYNOPSIS@{ub}
+           result = MsqlListTables(mc)
+           D0                   A0
+
+           @{"m_result" Link "libraries/msql.h/Main" 45} *MsqlListTables(struct MsqlConnection *);
+
+@{b}   FUNCTION@{ub}
+           Once a database has been selected using @{"MsqlSelectDB()" Link "MsqlSelectDB()"}, a list of
+           the tables defined in that database can be retrieved using
+           MsqlListTables(). As with @{"MsqlListDBs()" Link "MsqlListDBs()"}, a result handle is
+           returned to the calling program and the names of the tables are
+           contained in data rows where element [0] of the row is the name
+           of one table in the current database. The result handle must be
+           freed when it is no longer needed by calling @{"MsqlFreeResult()" Link "MsqlFreeResult()"}.
+
+@{b}   INPUTS@{ub}
+           mc - a "connected" MsqlConnection
+
+@{b}   RESULT@{ub}
+           result - data containing a list of tables
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlFetchRow()" Link "MsqlFetchRow()"}, @{"MsqlFreeResult()" Link "MsqlFreeResult()"}, @{"MsqlSelectDB()" Link "MsqlSelectDB()"}, @{"MsqlListDBs()" Link "MsqlListDBs()"}
+
+@EndNode
+
+@Node "MsqlLoadConfigFile()" "msql.library/MsqlLoadConfigFile"
+
+@{b}   NAME   @{ub}
+           @{"MsqlLoadConfigFile" Link "msql.guide/MsqlLoadConfigFile"} -- Load a non-default configuration
+
+@{b}   SYNOPSIS@{ub}
+           error = MsqlLoadConfigFile(mc, file)
+           D0                         A1  A0
+
+           int MsqlLoadConfigFile(struct MsqlConnection *, char *);
+
+@{b}   FUNCTION@{ub}
+           The MsqlLoadConfigFile() function can be used to load a non-
+           default configuration file into your client application. The
+           configuration file can include information such as the TCP/IP and
+           UNIX ports on which the desired mSQL server will be running. The
+           file to be loaded is determined by the value of the file
+           parameter. If the value of the parameter is new, the
+           MsqlLoadConfigFile() function would search for the file in the
+           following places (and in the order specified).
+ 
+           Inst_Dir/new
+           Inst_Dir/new.conf
+           new
+ 
+           That is, if a file called "new" exists in the installation
+           directory, it is loaded.  Otherwise, an attempt will be made to
+           load a file called new.conf from the installation directory.  If
+           that fails, the filename specified is assumed to be a complete,
+           absolute pathname and an attempt to open the file is made.
+
+@{b}   INPUTS@{ub}
+           mc - a MsqlConnection
+           file  - a configuration file
+
+@{b}   RESULT@{ub}
+           error - @{"1" Link "setjmp.h/Main" 14} on failure, otherwise a value of 0 is returned
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlMoveDB()" "msql.library/MsqlMoveDB"
+
+@{b}   NAME   @{ub}
+           @{"MsqlMoveDB" Link "msql.guide/MsqlMoveDB"} -- Undocumented (V3)
+
+@{b}   SYNOPSIS@{ub}
+           x = MsqlMoveDB(mc, fromDB, toDB)
+           D0             A0  A1      A2        
+
+           int MsqlMoveDB(struct MsqlConnection *, char *, char *);
+
+@{b}   FUNCTION@{ub}
+           Undocumented.
+
+@{b}   INPUTS@{ub}
+           mc - a "connected" MsqlConnection structure.
+           fromDB - ?
+           toDB - ?
+@{b}   RESULT@{ub}
+           x - ?
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlCopyDB()" Link "MsqlCopyDB()"}
+
+@EndNode
+
+@Node "MsqlNumFields()" "msql.library/MsqlNumFields"
+
+@{b}   NAME   @{ub}
+           @{"MsqlNumFields" Link "msql.guide/MsqlNumFields"} -- Get the number of fields of a row
+
+@{b}   SYNOPSIS@{ub}
+           num = MsqlNumFields(result)
+           
+
+           int MsqlNumFields(m_result *);
+
+@{b}   FUNCTION@{ub}
+           The number of fields returned by a query can be ascertained by
+           calling MsqlNumFields() and passing it the result handle. The
+           value returned by MsqlNumFields() indicates the number of
+           elements in the data vector returned by @{"MsqlFetchRow()" Link "MsqlFetchRow()"}. It is
+           wise to check the number of fields returned before, as with all
+           arrays, accessing an element that is beyond the end of the data
+           vector can result in a segmentation fault (crash).
+
+@{b}   INPUTS@{ub}
+           result - a @{"m_result" Link "libraries/msql.h/Main" 45} data structure
+
+@{b}   RESULT@{ub}
+           num - the number of fields.
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           This function is not part of the msql.library but was defined
+           (#define) in msql/msql.h
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlNumRows()" "msql.library/MsqlNumRows"
+
+@{b}   NAME   @{ub}
+           @{"MsqlNumRows" Link "msql.guide/MsqlNumRows"} -- Get the number of rows of data
+
+@{b}   SYNOPSIS@{ub}
+           num = MsqlNumRows(result)
+           
+
+           int MsqlNumRows(m_result *);
+
+@{b}   FUNCTION@{ub}
+           The number of rows returned by a query can be found by calling
+           MsqlNumRows() and passing it the result handle returned by
+           @{"MsqlStoreResult()" Link "MsqlStoreResult()"}. The number of rows of data sent as a result of
+           the query is returned as an @{"integer" Link "f2c.h/Main" 14} value. If a select query
+           didn't match any data, MsqlNumRows() will indicate that the
+           result table has 0 rows (note: earlier versions of mSQL returned
+           a NULL result handle if no data was found. This has been
+           simplified and made more intuitive by returning a result handle
+           with 0 rows of result data)
+
+@{b}   INPUTS@{ub}
+           result - a @{"m_result" Link "libraries/msql.h/Main" 45} data structure
+
+@{b}   RESULT@{ub}
+           num - the number of rows.
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           This function is not part of the msql.library but was defined
+           (#define) in msql/msql.h
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlQuery()" "msql.library/MsqlQuery"
+
+@{b}   NAME   @{ub}
+           @{"MsqlQuery" Link "msql.guide/MsqlQuery"} -- send a sql query to the mSQL engine
+
+@{b}   SYNOPSIS@{ub}
+           error = MsqlQuerry(mc, query)
+           D0                 A1  A0 
+
+           int MsqlQuery(struct MsqlConnection *, char *);
+
+@{b}   FUNCTION@{ub}
+           A query in SQL terminology is not the same as a query in the
+           English language.  In English, the word query relates to asking a
+           question whereas in SQL a query is a valid SQL command.  It is a
+           common mistake that people believe that the msqlQuery function can
+           only be used to submit SELECT commands to the database engine.
+           In reality, msqlQuery can be used for any valid mSQL command
+           including SELECT, DELETE, UPDATE etc.
+           Queries are sent to the engine over the connection associated
+           with mc as plain text strings using MsqlQuery(). As usual, a
+           returned value of -1 indicates an error and msqlErrMsg will be
+           updated. 
+           If the query generates output from the engine, such as a SELECT
+           statement, the data is buffered in the API waiting for the
+           application to retrieve it. If the application submits another
+           query before it retrieves the data using msqlStoreResult(), the
+           buffer will be overwritten by any data generated by the new
+           query.
+
+           In previous versions of mSQL, the return value of msqlQuery() was
+           either -1 (indicating an error) or 0 (indicating success).  mSQL2
+           adds to these semantics by providing more information back to the
+           client application via the return code.  If the return code is
+           greater than 0, not only does it imply success, it also indicates
+           the number of rows "touched" by the query (i.e. the number of
+           rows returned by a SELECT, the number of rows modified by an
+           update, or the number of rows removed by a delete).
+
+@{b}   INPUTS@{ub}
+           mc - a "connected" MsqlConnection.
+           query - a SQL query.
+
+@{b}   RESULT@{ub}
+           error - == -1 on error.
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlReloadAcls()" "msql.library/MsqlReloadAcls"
+
+@{b}   NAME   @{ub}
+           @{"MsqlReloadAcls" Link "msql.guide/MsqlReloadAcls"} -- Force server to reload access list
+
+@{b}   SYNOPSIS@{ub}
+           x = MsqlReloadAcls(mc)
+           D0               A0
+
+           int MsqlReloadAcls(struct MsqlConnection *);
+
+@{b}   FUNCTION@{ub}
+           Force the server to reload the access list
+
+@{b}   INPUTS@{ub}
+           mc - a MsqlConnection
+
+@{b}   RESULT@{ub}
+           error - -1 on error
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           It's an Admin function! This function isn't documented in the
+           original API.  
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlRemMHook()" "msql.library/MsqlRemMHook"
+
+@{b}   NAME   @{ub}
+           MsqlRemMHook --  remove a library monitoring hook. (V5)
+
+@{b}   SYNOPSIS@{ub}
+           MsqlRemMHook(hook)
+                        A0
+
+           @{"void" Link "PopUpMenuClass.h/Main" 72} MsqlRemMHook(struct @{"Hook" Link "libraries/xpk.h/Main" 43} *);
+
+@{b}   FUNCTION@{ub}
+           Remove a callback hook previously installed by @{"MsqlAddMHookA()" Link "MsqlAddMHookA()"}.
+
+@{b}   INPUTS@{ub}
+           hook - an installed callback hook
+
+@{b}   RESULT@{ub}
+           none
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           You have to call MsqlMRemHook for each hook you have installed
+           before closing the msql.library.
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlAddMHookA()" Link "MsqlAddMHookA()"}
+
+@EndNode
+
+@Node "MsqlSelectDB()" "msql.library/MsqlSelectDB"
+
+@{b}   NAME   @{ub}
+           @{"MsqlSelectDB" Link "msql.guide/MsqlSelectDB"} -- instructs engine which database is to be accessed
+
+@{b}   SYNOPSIS@{ub}
+           error = MsqlSelectDB(mc, dbName)
+           D0                   A1  A0
+
+           int MsqlSelectDB(struct MsqlConnection *, char *);
+
+@{b}   FUNCTION@{ub}
+           Prior to submitting any queries, a database must be selected.
+           msqlSelectDB() instructs the engine which database is to be
+           accessed. msqlSelectDB() is called with the MsqlConnection
+           returned by @{"MsqlConnect()" Link "MsqlConnect()"} and the name of the desired database.
+           A return value of -1 indicates an error with msqlErrMsg set to a
+           text string representing the error. MsqlSelectDB() may be called
+           multiple times during a program's execution. Each time it is
+           called, the server will use the specified database for future
+           accesses. By calling msqlSelectDB() multiple times, a program can
+           switch between different databases during its execution.
+
+@{b}   INPUTS@{ub}
+           mc - a "connected" MsqlConnection.
+           dbName - the name of the database to select.
+
+@{b}   RESULT@{ub}
+           error - =-1 on error.
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlShutdown()" "msql.library/MsqlShutdown"
+
+@{b}   NAME   @{ub}
+           @{"MsqlShutdown" Link "msql.guide/MsqlShutdown"} -- Shutdown a mSQL server
+
+@{b}   SYNOPSIS@{ub}
+           x = MsqlShutdown(mc)
+           D0               A0
+
+           int MsqlShutdown(struct MsqlConnection *);
+
+@{b}   FUNCTION@{ub}
+           Shutdown the connected server
+
+@{b}   INPUTS@{ub}
+           mc - a MsqlConnection
+
+@{b}   RESULT@{ub}
+           error - -1 on error
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           It's an Admin function! This function isn't documented in the
+           original API.  
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+
+@EndNode
+
+@Node "MsqlStoreResult()" "msql.library/MsqlStoreResult"
+
+@{b}   NAME   @{ub}
+           @{"MsqlStoreResult" Link "msql.guide/MsqlStoreResult"} -- Store a query result
+
+@{b}   SYNOPSIS@{ub}
+           result = MsqlStoreResult(mc)
+           D0                       A0
+
+           @{"m_result" Link "libraries/msql.h/Main" 45} *MsqlStoreResult(struct MsqlConnection *);
+
+@{b}   FUNCTION@{ub}
+           Data returned by a SELECT query must be stored before another
+           query is submitted or it will be removed from the internal API
+           buffers. Data is stored using the MsqlStoreResult() function
+           which returns a result handle to the calling routines. The result
+           handle is a pointer to a @{"m_result" Link "libraries/msql.h/Main" 45} structure and is passed to
+           other API routines when access to the data is required. Once the
+           result handle is allocated, other queries may be submitted. A
+           program may have many result handles active simultaneously.
+
+@{b}   INPUTS@{ub}
+           mc - a MsqlConnection
+
+@{b}   RESULT@{ub}
+           result - result handle of the previous request
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlFreeResult()" Link "MsqlFreeResult()"}
+
+@EndNode
+
+@Node "MsqlSumTimes()" "msql.library/MsqlSumTimes"
+
+@{b}   NAME   @{ub}
+           @{"MsqlSumTimes" Link "msql.guide/MsqlSumTimes"} --  Sum two mSQL time (V3)
+
+@{b}   SYNOPSIS@{ub}
+           time = MsqlSumTimes(time1, time2)
+           D0                   A0     A1
+
+           char *MsqlSumTimes(char *, char *);
+
+@{b}   FUNCTION@{ub}
+           The MsqlSumTimes() routine provides a mechanism for performing
+           addition between two mSQL time formatted strings.  A literal
+           addition of the values is returned to the calling routine in mSQL
+           time format. As an example, calling @{"MsqlSumTimes" Link "msql.guide/MsqlSumTimes"} with the values
+           "1:30:25" and "13:15:40" would return "14:46:05".
+
+@{b}   INPUTS@{ub}
+           time1 - a mSQL time formatted string.
+           time2 - another mSQL time formatted string.
+
+@{b}   RESULT@{ub}
+           time - a literal addition of time1 & time2.
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           The returned string is statically declared in the API so you must
+           make a copy of it before you call the function again. Of course,
+           since msql.library is a shared library, each process have his own
+           buffer.
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlDiffTimes()" Link "MsqlDiffTimes()"}, @{"MsqlDateOffset()" Link "MsqlDateOffset()"}, @{"MsqlDiffDates()" Link "MsqlDiffDates()"}
+
+@EndNode
+
+@Node "MsqlTimeToUnixTime()" "msql.library/MsqlTimeToUnixTime"
+
+@{b}   NAME   @{ub}
+           @{"MsqlTimeToUnixTime" Link "msql.guide/MsqlTimeToUnixTime"} --  Convert mSQL time to unix time (V3)
+
+@{b}   SYNOPSIS@{ub}
+           time = MsqlTimeToUnixTime(date)
+           D0                        A0
+
+           @{"time_t" Link "sys/commtime.h/Main" 12} MsqlTimeToUnixTime(char *);
+
+@{b}   FUNCTION@{ub}
+           MsqlTimeToUnixTime( ) converts an mSQL time value to a standard
+           UNIX time value.  The mSQL time value must be a character string
+           in the 24 hour format of "HH:MM:SS" and the returned value will be
+           the number of seconds since @{"1" Link "setjmp.h/Main" 14} Jan 1970 (the normal UNIX format).
+
+@{b}   INPUTS@{ub}
+
+@{b}   RESULT@{ub}
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+       @{"MsqlUnixTimeToDate()" Link "MsqlUnixTimeToDate()"}, @{"MsqlUnixTimeToTime()" Link "MsqlUnixTimeToTime()"}, @{"MsqlDateToUnixTime()" Link "MsqlDateToUnixTime()"}
+
+@EndNode
+
+@Node "MsqlUnixTimeToDate()" "msql.library/MsqlUnixTimeToDate"
+
+@{b}   NAME   @{ub}
+           @{"MsqlUnixTimeToDate" Link "msql.guide/MsqlUnixTimeToDate"} -- Convert Unix time to mSQL date string  (V3)
+
+@{b}   SYNOPSIS@{ub}
+           date = MsqlUnixTimeToDate(clock)
+           D0                        D0
+
+           char *MsqlUnixTimeToDate(time_t);
+
+@{b}   FUNCTION@{ub}
+           MsqlUnixTimeToDate() converts a standard UNIX time value to an
+           mSQL date string. The time value is specified as seconds since the
+           UNIX epoch ( 1st Jan 1970) while the mSQL date string will contain
+           the date formatted as "DD-Mon-YYYY" (e.g. "12-Jun-1997"). The
+           returned string is statically declared in the API so you must make
+           a copy of it before you call the function again.
+
+@{b}   INPUTS@{ub}
+           clock - the time to convert
+
+@{b}   RESULT@{ub}
+           date - the clock "value" in a mSQL date format
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           The returned string is statically declared in the API so you must
+           make a copy of it before you call the function again. Of course,
+           since msql.library is a shared library, each process have his own
+           buffer.
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+       @{"MsqlTimeToUnixTime()" Link "MsqlTimeToUnixTime()"}, @{"MsqlUnixTimeToTime()" Link "MsqlUnixTimeToTime()"}, @{"MsqlDateToUnixTime()" Link "MsqlDateToUnixTime()"}
+
+@EndNode
+
+@Node "MsqlUnixTimeToTime()" "msql.library/MsqlUnixTimeToTime"
+
+@{b}   NAME   @{ub}
+           MsqlUnixTimeToTime -- Convert Unix time to mSQL time format (V3)
+
+@{b}   SYNOPSIS@{ub}
+           time = MsqlUnixTimeToTime(clock)
+           D0                        D0   
+
+           char *MsqlUnixTimeToTime(time_t);
+
+@{b}   FUNCTION@{ub}
+           MsqlUnixTimetoTime() converts a UNIX time value (seconds since the
+           UNIX epoch) into a character string representing the same time in
+           mSQL time format (i.e. "HH:MM:SS" 24 hour format).
+@{b}   INPUTS@{ub}
+           clock - the time to convert
+
+@{b}   RESULT@{ub}
+           time - the clock value in a mSQL time string format.
+
+@{b}   EXAMPLE@{ub}
+
+@{b}   NOTES@{ub}
+           The returned string is statically declared in the API so you must
+           make a copy of it before you call the function again. Of course,
+           since msql.library is a shared library, each process have his own
+           buffer.
+
+@{b}   BUGS@{ub}
+
+@{b}   SEE ALSO@{ub}
+           @{"MsqlUnixTimeToDate()" Link "MsqlUnixTimeToDate()"}, @{"MsqlTimeToUnixTime()" Link "MsqlTimeToUnixTime()"}, @{"MsqlDateToUnixTime()" Link "MsqlDateToUnixTime()"}
+
+@EndNode
+

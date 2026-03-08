@@ -1,0 +1,1039 @@
+@database AGAiff.guide
+@index INDEX
+@toc MAIN
+
+@node MAIN "AGAiff Docs"
+++************************************************************************++
+++									  ++
+++			A G A i f f	Version 1.0			  ++
+++									  ++
+++			     by Michael Krause				  ++
+++									  ++
+++************************************************************************++
+
+			01. @{"  Introduction   " LINK INTRODUCTION}
+			02. @{"  Installation   " LINK INSTALLATION}
+			03. @{"  Using AGAiff   " LINK USING}
+			04. @{"   Main Window   " LINK MAIN_WINDOW}
+			05. @{" Picture Screen  " LINK PICTURE_SCREEN}
+			06. @{"   Preferences   " LINK PREFERENCES}
+			07. @{"   ARexx Port    " LINK AREXX}
+			08. @{"     History     " LINK HISTORY}
+			09. @{"  What's left ?  " LINK COPYRIGHT}
+
+			10. @{"    I N D E X    " LINK INDEX}
+
+----------------------------------------------------------------------------
+
+                YOU MAY DO ANYTHING WITH THIS PROGRAM AS LONG AS
+                        ALL FILES ARE SPREAD TOGETHER !
+                           (also see <What's left ?>)
+
+----------------------------------------------------------------------------
+@endnode
+
+@node INTRODUCTION "AGAiff Introduction"
+AGAiff is an IFF-to-RAW converter which can load all ILBM graphics supported
+by the AGA chipset. It is also able to save 24 Bit colors and sprites wider
+than 16 pixels. Some features make this program quite attractive:
+
+ - Running entirely under OS
+ - Coded as a Commodity
+ - Coded completely in fast Assembler
+ - Font-sensitive User Interface
+ - <MANY> different save formats
+ - Powerful ARexx-Port, supporting all stuff from the GUI
+ - Runs even from small Assembler Workdisks if you don't need ARexx, Hotkey
+   and all Displaymodes
+ - ... and more !
+@endnode
+
+@node INSTALLATION "AGAiff Installation"
+@{u}AGAiff requires:@{uu}
+
+- MC68020
+- Kickstart 3.0 (Version 39)
+- LIBS:asl.library
+
+@{u}Making life much easier:@{uu}
+
+- LIBS:commodities.library
+- LIBS:rexxsyslib.library
+- RexxMaster running
+- Provided ARexx-Scripts in REXX:
+- HardDisk
+- Workbench running -> All displaymodes can be used..
+
+@{b}Note:@{ub}
+  To enable AA-ChipSet don't forget 'SetPatch' in your startup-sequence.
+  Nevertheless, AGAiff runs even on the old ChipSet !
+@endnode
+
+@node USING "AGAiff Using AGAiff"
+AGAiff can be started from both Workbench or CLI. When loading from WB,
+you can specify whether the window is to pop up immediately using the icon's
+tool type 'CX_POPUP=NO/YES'. If there's already a copy of AGAiff running,
+it's window is opened and brought to front - no second copy is run.
+@endnode
+
+@node MAIN_WINDOW "AGAiff Main Window"
+The upper left corner of the window represents a small @{"ScreenMode" LINK MW_SCRMODE} requester,
+showing all monitors/displaymodes available in the system. On the right side
+of that window you set the @{"Load Format" LINK MW_LOADFORMAT}, @{"Save Format" LINK MW_SAVEFORMAT} and @{"Colors Format" LINK MW_COLORSFORMAT}.
+Using the whole width is a text line showing messages and errors. Beneath it
+there are gadgets for loading and saving files, for @{"Running ARexx Scripts" LINK RUNNINGAREXX},
+removing the commodity from system and for changing the @{"Picture Size" LINK MW_PICSIZE} and
+@{"Save-Range" LINK MW_SAVERANGE}. To switch between this Window and the @{"Picture Screen" LINK PICTURE_SCREEN},
+use right mousebutton.
+@endnode
+
+@node MW_SCRMODE "AGAiff Main Window - Screen Mode Gadgets"
+The listview gadget shows all available monitors and displaymodes, like in
+DPaint AGA. The only difference is that you select HAM or Halfbrite in the
+Gadget below. If the program can't find any entries for this list - that's
+true when Workbench is not running - a default list is used. And here we
+have another advantage of this tool: It will support most future extensions
+on the chipset, because the graphics.library supports the code with the new
+displaymodes !
+Selecting 'RESHOW' when a picture is in memory forces AGAiff to redisplay
+it with the new attributes selected here. 'RESTORE' restores the old values.
+@endnode
+
+@node MW_PICSIZE "AGAiff Main Window - Picture Size Gadgets"
+This feature will be only useful, when RAW pictures are loaded and the
+original size has to be adjusted. And because you can't load RAWs, these
+gadgets are disabled. Sorry again.
+@endnode
+
+@node MW_SAVERANGE "AGAiff Main Window - Save Range Gadgets"
+If you don't want to save the whole picture, you can here select a range.
+After loading a picture, the range includes the whole picture.
+Yes, that's all.
+@endnode
+
+@node MW_LOADFORMAT "AGAiff Main Window - Load Format Gadget"
+This version does only support loading of IFF-ILBM graphics, so this Gadget
+is disabled. Sorry.
+@endnode
+
+@node MW_SAVEFORMAT "AGAiff Main Window - Save Format Gadgets"
+@{u} Upper gadget: @{uu}
+
+@{b}IFF-ILBM@{ub}
+	Not implemented yet.
+
+@{b}RAW Normal@{ub}
+	Saves raw, uncrunched data, one bitplane after the previous one,
+	beginning with the lowest-order plane.
+
+@{b}RAW Modulo@{ub}
+	(Often seen as 'RAW-BLIT')
+	The same as RAW normal, but the planes are interleaved, that means
+	e.g. when you have a 3 planes picture:
+		- 1. Line / 1. Plane
+		- 1. Line / 2. Plane
+		- 1. Line / 3. Plane
+		- 2. Line / 1. Plane
+		- 2. Line / 2. Plane
+		- etc.
+	That's the same as setting the SA_Interleaved tag when opening an
+	Intuition-Screen.
+
+@{b}No Picture@{ub}
+	Saves no bitplane data, and so lets you save pure color data.
+
+@{b}Copper@{ub}
+	Saves a copperlist according to the lower color gadget (12Bit or
+	24Bit), initializing the color values.
+	Note: No color data else is attached (Top/Bottom gadget) !
+
+@{b}Sprite@{ub}
+	Saves sprite data which is the same as RAW Modulo data, but with
+	Control data at the top and at the bottom. The control data's
+	length corresponds to the width of one line. Sprites must have
+	a width of 16, 32 or 64 pixels and a depth of 2 or 4 planes !
+	4-planed Sprites must be displayed using the attaching of two
+	Sprite channels, so it is divided into two sprites with each 2
+	planes. The sprite with the lower two planes is saved at first.
+
+@{b}Mask@{ub}
+	Saves mask data, where one pixel represents a pixel with a color
+	unlike 0 in the original picture. Saves the same plane copied for
+	each other plane in RAW Modulo format.
+	Note: No color data else is attached (Top/Bottom gadget) !
+
+@{b}Mask 1plane@{ub}
+	Same as before, but only 1 plane.
+
+@{u} Lower gadget: @{uu}
+
+@{b}File@{ub}
+	Saves a normal file
+
+@{b}dc.w@{ub}
+	Saves an ASCII Assembler data dump using the dc.w directive. In
+	the preferences you can specify what data width to use, that means
+	dc.b, dc.w or dc.l !
+
+@{u} P! - gadget: @{uu}
+	Opens the Save Format Preset Window. Look into the ARexx chapter for
+	details.
+@endnode
+
+@node MW_COLORSFORMAT "AGAiff Main Window - Color Format Gadgets"
+@{u} Upper gadget: @{uu}
+
+@{b}No Colors@{ub}
+	Don't append any color data.
+
+@{b}Top@{ub}
+	Attach color data at the top of the file.
+
+@{b}Bottom@{ub}
+	Append color data.
+
+@{u} Lower gadget: @{uu}
+
+@{b}12 Bit@{ub}
+	Only 12 Bit data, good old A500 style ( $000,$f00,$aaa etc.)
+
+@{b}24 Bit@{ub}
+	24 Bit data, as one longword per color, e.g.
+		$00ff0000 for red
+		$00ff8800 for brown etc.
+
+@{b}24 Bit HL@{ub}
+	24 Bit data, saves higher and lower nibble of the RGB values
+	separately, and that first all higher parts of all colors,
+	then all lower parts of them.
+
+@{b}24 Bit HLi@{ub}
+	Works as the one before, but 'interleaves' the High / Low data of
+	each color, that means: higher part of first color, lower part of
+	first color, higher part of second color, lower part of second
+	color etc.
+
+@{b}24 Bit LH@{ub}
+	Works as 24 Bit HL, but first saves lower part, then the higher
+	one.
+
+@{b}24 Bit LHi@{ub}
+	Works as 24 Bit HLi, but first saves lower part, then the higher
+	one.
+
+Pheew. So that's that.
+@endnode
+
+@node PICTURE_SCREEN "AGAiff Picture Screen"
+When you've loaded a picture, AGAiff tries to open a screen in the desired
+resolution and depth. The resolution is changed to a default resolution if
+needed. When this Screen is active, you can switch between there and the
+@{"Main Window" LINK MAIN_WINDOW} using the right mousebutton. Using the left one, you can select
+a range the save functions will operate on.
+@endnode
+
+@node PREFERENCES "AGAiff Preferences"
+@{b}Use Topaz/8@{ub}	Decides whether the program is font-sensitive.
+
+@{b}Data DC-Size@{ub}	Specifies the kind of data files written as 'dc.w'-Data will
+		have (dc.b / dc.w / dc.l).
+
+@{b}Use@{ub}		Activates the new selections.
+
+@{b}Close-Gadget@{ub}	Cancels the new selections.
+@endnode
+
+@node AREXX "AGAiff - ARexx Port"
+Control Functions
+	@{"USETOPAZ          " LINK RX_USETOPAZ}
+	@{"DCSIZE            " LINK RX_DCSIZE}
+	@{"VERSION           " LINK RX_VERSION}
+	@{"STATUS            " LINK RX_STATUS}
+	@{"QUIT              " LINK RX_QUIT}
+
+User Communication Functions
+	@{"REQUESTFILE       " LINK RX_REQUESTFILE}
+	@{"REQUEST           " LINK RX_REQUEST}
+	@{"TYPETEXT          " LINK RX_TYPETEXT}
+
+Graphical User Interface Control Functions
+	@{"LOCKGUI           " LINK RX_LOCKGUI}
+	@{"UNLOCKGUI         " LINK RX_UNLOCKGUI}
+	@{"SHOWGUI           " LINK RX_SHOWGUI}
+	@{"HIDEGUI           " LINK RX_HIDEGUI}
+
+Preset List Control Functions
+	@{"CLEARPRESETS      " LINK RX_CLEARPRESETS}
+	@{"ADDPRESET         " LINK RX_ADDPRESET}
+	@{"SETPRESET         " LINK RX_SETPRESET}
+
+ARexx List Control Functions
+	@{"CLEARAREXXMENU    " LINK RX_CLEARAREXXMENU}
+	@{"ADDAREXXMENUITEM  " LINK RX_ADDAREXXMENUITEM}
+
+I/O Functions
+	@{"LFORMAT           " LINK RX_LFORMAT}
+	@{"SFORMAT           " LINK RX_SFORMAT}
+	@{"CFORMAT           " LINK RX_CFORMAT}
+	@{"LOAD              " LINK RX_LOAD}
+	@{"SAVE              " LINK RX_SAVE}
+	@{"RESHOW            " LINK RX_RESHOW}
+	@{"NOSHOW            " LINK RX_NOSHOW}
+	@{"RESTORE           " LINK RX_RESTORE}
+
+Picture Modifying Functions
+	@{"PICSIZE           " LINK RX_PICSIZE}
+	@{"DEPTH             " LINK RX_DEPTH}
+	@{"DISPMODE          " LINK RX_DISPMODE}
+	@{"RANGE             " LINK RX_RANGE}
+
+ARexx Scripts provided with this package
+	@{"Startup           " LINK RXS_STARTUP}
+	@{"SaveRawAndCopper  " LINK RXS_SAVERAC}
+	@{"SaveSprites       " LINK RXS_SAVESPR}
+	@{"Info              " LINK RXS_INFO}
+
+	@{"How To Run Scripts" LINK RUNNINGAREXX}
+
+@{b}Note:@{ub}
+ Parameters in <>'s are decimal unsigned integer numbers !
+ Parameters in []'s are strings !
+ Parameters in {}'s don't need to be specified !
+@endnode
+
+@node RX_USETOPAZ "AGAiff - ARexx Commands"
+SYNTAX
+	UseTopaz {OFF}
+
+FUNCTION
+	Switches on / off fontsensitivity.
+
+INPUTS
+	If 'off' is specified, AGAiff uses the Workbench's Screen Font.
+	Else it uses topaz/8.
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+@endnode
+
+@node RX_DCSIZE "AGAiff - ARexx Commands"
+SYNTAX
+	DCSize <n>
+
+FUNCTION
+	Selects dc.x data size
+
+INPUTS
+	n:		0	Byte	(dc.b)
+			1	Word	(dc.w)
+			2	Long	(dc.l)
+
+RESULTS
+	RESULT	=
+	RC	= 0, or 10 if error
+
+BUGS
+
+SEE ALSO
+@endnode
+
+@node RX_VERSION "AGAiff - ARexx Commands"
+SYNTAX
+	Version
+
+FUNCTION
+	Returns a versionstring.
+
+INPUTS
+	None
+
+RESULTS
+	RESULT  = [versionstring]
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+@endnode
+
+@node RX_STATUS "AGAiff - ARexx Commands"
+SYNTAX
+	Status <n>
+
+FUNCTION
+	Returns information about AGAiff's status.
+
+INPUTS
+	n:	0	returns pathname of actual picture or empty string.
+		1	returns picture size (<X> <Y>)
+		2	returns depth
+		3	returns selected save range (<X1> <Y1> <X2> <Y2>)
+		4	returns	DisplayMode (decimal number)
+		5	-> "1" if GUI is hidden, else "0"
+		6	returns address and length of the original decrunched
+				ILBM data (RAW-Modulo) as (<address> <length>)
+
+RESULTS
+	RESULT	= [result as described above]
+	RC	= 0, or 10 in case of error (wrong <n>)
+
+BUGS
+
+SEE ALSO
+@endnode
+
+@node RX_QUIT "AGAiff - ARexx Commands"
+SYNTAX
+	Quit
+
+FUNCTION
+	Exit AGAiff and free all system resources.
+
+INPUTS
+	None
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+	Doesn't work.
+
+SEE ALSO
+@endnode
+
+@node RX_REQUESTFILE "AGAiff - ARexx Commands"
+SYNTAX
+	Requestfile [windowtitle]
+
+FUNCTION
+	Displays an ASL-Filerequester with the desired windowtitle
+
+INPUTS
+	windowtitle:	Title of the requesterwindow
+
+RESULTS
+	RESULT	= [pathname] or empty string
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+@endnode
+
+@node RX_REQUEST "AGAiff - ARexx Commands"
+SYNTAX
+	Request [text]
+
+FUNCTION
+	Displays a normal requester with OK / Cancel gadgets using the
+	Intuition/EasyRequestArgs function.
+
+INPUTS
+	text:		Requester text.
+
+RESULTS
+	RESULT	=
+	RC	= 1 for OK, 0 for Cancel
+
+BUGS
+
+SEE ALSO
+@endnode
+
+@node RX_TYPETEXT "AGAiff - ARexx Commands"
+SYNTAX
+	TypeText [text]
+
+FUNCTION
+	Prints a text into the Main Window's message line.
+
+INPUTS
+	text:		Textline to be printed. No LF's or similar.
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+@endnode
+
+
+@node RX_LOCKGUI "AGAiff - ARexx Commands"
+SYNTAX
+	LockGUI
+
+FUNCTION
+	Locks the Graphical User Interface, so that all clicks etc.
+	won't be noticed. Use this in ARexx scripts that must not be
+	interfered by the user.
+	This call uses a nest counter.
+
+INPUTS
+	None
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+	@{"UNLOCKGUI" LINK RX_UNLOCKGUI}
+@endnode
+
+@node RX_UNLOCKGUI "AGAiff - ARexx Commands"
+SYNTAX
+	UnlockGUI
+
+FUNCTION
+	Unlocks the GUI.
+
+INPUTS
+	None
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+	@{"LOCKGUI" LINK RX_LOCKGUI}
+@endnode
+
+@node RX_SHOWGUI "AGAiff - ARexx Commands"
+SYNTAX
+	ShowGUI
+
+FUNCTION
+	Opens the Main Window.
+
+INPUTS
+	None
+
+RESULTS
+	RESULT	=
+	RC	= 0 if success, 10 if error.
+
+BUGS
+
+SEE ALSO
+	@{"HIDEGUI" LINK RX_HIDEGUI}
+@endnode
+
+@node RX_HIDEGUI "AGAiff - ARexx Commands"
+SYNTAX
+	HideGUI
+
+FUNCTION
+	Closes the Main Window and unloads a possibly loaded picture.
+
+INPUTS
+	None
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+	@{"SHOWGUI" LINK RX_SHOWGUI}
+@endnode
+
+@node RX_CLEARPRESETS "AGAiff - ARexx Commands"
+SYNTAX
+	ClearPresets
+
+FUNCTION
+	Clears the save format preset list.
+
+INPUTS
+	None
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+	@{"ADDPRESET" LINK RX_ADDPRESET}, @{"SETPRESET" LINK RX_SETPRESET}
+@endnode
+
+@node RX_ADDPRESET "AGAiff - ARexx Commands"
+SYNTAX
+	AddPreset [name]
+
+FUNCTION
+	Adds a preset to the save format preset list. The actual save format
+	and color format gadgets are saved.
+
+INPUTS
+	name:		Name the preset will appear under.
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+	@{"CLEARPRESETS" LINK RX_CLEARPRESETS}, @{"SETPRESET" LINK RX_SETPRESET}
+@endnode
+
+@node RX_SETPRESET "AGAiff - ARexx Commands"
+SYNTAX
+	SetPreset [name]
+
+FUNCTION
+	Set the save format and color format gadgets according to the
+	preset called [name].
+
+INPUTS
+	name:		Preset to set up.
+
+RESULTS
+	RESULT	=
+	RC	= 0, or 10 if error (preset [name] doesn't exist)
+
+BUGS
+
+SEE ALSO
+	@{"CLEARPRESETS" LINK RX_CLEARPRESETS}, @{"ADDPRESET" LINK RX_ADDPRESET}
+@endnode
+
+@node RX_CLEARAREXXMENU "AGAiff - ARexx Commands"
+SYNTAX
+	ClearARexxMenu
+
+FUNCTION
+	Clears ARexx Menu List.
+
+INPUTS
+	None
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+	@{"ADDAREXXMENUITEM" LINK RX_ADDAREXXMENUITEM}
+@endnode
+
+@node RX_ADDAREXXMENUITEM "AGAiff - ARexx Commands"
+SYNTAX
+	AddARexxMenuItem [title] SCRIPT [scriptname without .agaiff]
+
+FUNCTION
+	Adds the item to the ARexx List.
+
+INPUTS
+	title:		Title to appear under in the ARexx List.
+	scriptname:	Corresponding script.
+	Note: 'SCRIPT' must be specified.
+
+RESULTS
+	RESULT	=
+	RC	= 0, or 10 if error
+
+BUGS
+
+SEE ALSO
+	@{"CLEARAREXXMENU" LINK RX_CLEARAREXXMENU}
+@endnode
+
+
+@node RX_LFORMAT "AGAiff - ARexx Commands"
+@{b}NOTE@{ub}
+	Not implemented yet.
+
+SYNTAX
+	LFormat [lformatstring]
+
+FUNCTION
+	Sets the load format.
+
+INPUTS
+	lformatstring:	IFF,RAWNORM,RAWBLIT
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+	@{"SFORMAT" LINK RX_SFORMAT}, @{"CFORMAT" LINK RX_CFORMAT}
+@endnode
+
+@node RX_SFORMAT "AGAiff - ARexx Commands"
+SYNTAX
+	SFormat [sformatstring]
+
+FUNCTION
+	Sets the save format
+
+INPUTS
+	sformatstring:	IFF,RAWNORM,RAWBLIT,COPPER,SPRITE,MASK,MASK1,NOPIC
+			FILE,DC
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+	@{"LFORMAT" LINK RX_LFORMAT}, @{"CFORMAT" LINK RX_CFORMAT}
+@endnode
+
+@node RX_CFORMAT "AGAiff - ARexx Commands"
+SYNTAX
+	CFormat [cformatstring]
+
+FUNCTION
+	Sets the colors format.
+
+INPUTS
+	cformatstring:	12BIT,24BIT,24BITLH,24BITLHI,24BITHL,24BITHLI
+			NOCOLS,TOP,BOTTOM
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+	@{"LFORMAT" LINK RX_LFORMAT}, @{"SFORMAT" LINK RX_SFORMAT}
+@endnode
+
+@node RX_LOAD "AGAiff - ARexx Commands"
+SYNTAX
+	Load [filename] {NOSHOW}
+
+FUNCTION
+	Loads a picture.
+
+INPUTS
+	filename:	Pathname of the picture.
+	NOSHOW:		If specified, don't show the picture.
+
+RESULTS
+	RESULT	=
+	RC	= 0, or 5 if Error (can't load file)
+
+BUGS
+
+SEE ALSO
+	@{"LFORMAT" LINK RX_LFORMAT}
+@endnode
+
+@node RX_SAVE "AGAiff - ARexx Commands"
+SYNTAX
+	Save [filename]
+
+FUNCTION
+	Saves a file.
+
+INPUTS
+	filename:	Pathname of the file.
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+	Doesn't return error codes.
+
+SEE ALSO
+	@{"SFORMAT" LINK RX_SFORMAT}, @{"CFORMAT" LINK RX_CFORMAT}
+@endnode
+
+@node RX_RESHOW "AGAiff - ARexx Commands"
+SYNTAX
+	Reshow
+
+FUNCTION
+	The same as the RESHOW button in the Main Window.
+
+INPUTS
+	None
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+	@{"NOSHOW" LINK RX_NOSHOW}, @{"RESTORE" LINK RX_RESTORE}
+@endnode
+
+@node RX_NOSHOW "AGAiff - ARexx Commands"
+SYNTAX
+	Noshow
+
+FUNCTION
+	Disable showing the picture until the next RESHOW.
+
+INPUTS
+	None
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+	@{"RESHOW" LINK RX_RESHOW}, @{"RESTORE" LINK RX_RESTORE}
+@endnode
+
+@node RX_RESTORE "AGAiff - ARexx Commands"
+SYNTAX
+	Restore
+
+FUNCTION
+	Restore the picture data like depth, picsize and displaymode and
+	do a RESHOW.
+
+INPUTS
+	None
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+	@{"RESHOW" LINK RX_RESHOW}
+@endnode
+
+@node RX_PICSIZE "AGAiff - ARexx Commands"
+@{b}NOTE@{ub}
+	Not implemented yet.
+
+SYNTAX
+	PicSize <x> <y>
+
+FUNCTION
+	Change Picture Size
+
+INPUTS
+	x:		X Size in pixels
+	y:		Y Size in pixels
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+	@{"DEPTH" LINK RX_DEPTH}, @{"DISPMODE" LINK RX_DISPMODE}
+@endnode
+
+@node RX_DEPTH "AGAiff - ARexx Commands"
+SYNTAX
+	Depth <a>
+
+FUNCTION
+	Set depth of the picture.
+
+INPUTS
+	a:		Depth.
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+	@{"PICSIZE" LINK RX_PICSIZE}, @{"DISPMODE" LINK RX_DISPMODE}
+@endnode
+
+@node RX_DISPMODE "AGAiff - ARexx Commands"
+SYNTAX
+	DispMode <a>
+
+FUNCTION
+	Set DisplayMode.
+
+INPUTS
+	a:		DisplayMode ID (decimal long int)
+
+RESULTS
+	RESULT	=
+	RC	= 0, or 5 if no picture was loaded.
+
+BUGS
+
+SEE ALSO
+	@{"DEPTH" LINK RX_DEPTH}, @{"PICSIZE" LINK RX_PICSIZE}
+@endnode
+
+@node RX_RANGE "AGAiff - ARexx Commands"
+SYNTAX
+	Range <x1> <y1> <x2> <y2> {FULLPIC}
+
+FUNCTION
+	Set save range.
+
+INPUTS
+	x1/y1:		One Corner of the range.
+	x2/y2:		Two Corner of the range. (?)
+	FULLPIC:	Specify this to select the whole picture.
+
+RESULTS
+	RESULT	=
+	RC	= 0
+
+BUGS
+
+SEE ALSO
+@endnode
+
+@node RXS_STARTUP "AGAiff - ARexx Script 'Startup.agaiff'"
+This script is called once when AGAiff was loaded. So you should put your
+Preferences, Presets and other Setup stuff here. The original script by me
+contains the most important save format settings and the ARexx Menu items
+for the rest of the scripts.
+@endnode
+
+@node RXS_SAVERAC "AGAiff - ARexx Script 'SaveRawAndCopper.agaiff'"
+This is an example of how easy AGAiff is to use with the ARexx Port. After
+loading a picture you just start this script, enter a filename and then
+you get a RAW-Normal picture and the corresponding 12 Bit Copperlist at
+once.
+@endnode
+
+@node RXS_SAVESPR "AGAiff - ARexx Script 'SaveSprites.agaiff'"
+This one is useful if you want to build large pictures using the sprite
+channels of the old chipset (16 pixel wide sprites). It splits a picture
+into different sprites, what you have to do on your own when using other
+IFF-Converters !
+@endnode
+
+@node RXS_INFO
+Simply shows how to use the STATUS command.
+@endnode
+
+@node RUNNINGAREXX "AGAiff - Running ARexx Scripts"
+In the script '@{"Startup.agaiff" LINK RX_STARTUP}' you should add some '@{"ADDAREXXMENUITEM" LINK RX_ADDAREXXMENUITEM}'
+entries. These will appear in the window you open with the ARexx-Button in
+the Main Window. When selecting one of them, the corresponding script is
+started immediately. Ofcourse you can start them from Shell using the 'rx'
+command.
+@endnode
+
+@node HISTORY "AGAiff Development History"
+@{u}Version 1.0 Release A (01-Mar-94)@{uu}
+	First public release.
+@endnode
+
+@node COPYRIGHT "AGAiff What's left ?"
+* Copyright !! Don't touch, don't look at, don't use, don't say it's name,
+  just @{b}S P R E A D@{ub} this program including the complete set of files:
+
+	REXX (dir)
+	   Info.agaiff
+	   Info.agaiff.info
+	   SaveRawAndCopper.agaiff
+	   SaveRawAndCopper.agaiff.info
+	   SaveSprites.agaiff
+	   SaveSprites.agaiff.info
+	   Startup.agaiff
+	   Startup.agaiff.info
+	REXX.info
+	AGAiff
+	AGAiff.info
+	AGAiff.guide
+	AGAiff.guide.info
+
+  YOU MAY DO ANYTHING WITH THIS PROGRAM AS LONG AS ALL FILES ARE SPREAD
+  TOGETHER !
+
+* I hope this code supports all future extensions on the graphics
+  chipset, because all handling is done via the graphics.library's
+  'DisplayInfoDataBase'. According to Commodore Frankfurt, the AAA chipset
+  is going to be out in Autumn 1994, so we'll see...
+
+* And this is the To-Do-List:
+   - IFF Saving
+   - Loading of RAW pictures
+@endnode
+
+@node INDEX "AGAiff Comprehensive Contents"
+Contents of this manual:
+	@{"Introduction                 " LINK INTRODUCTION}
+	@{"Installation                 " LINK INSTALLATION}
+	@{"Using AGAiff                 " LINK USING}
+	@{"Main Window                  " LINK MAIN_WINDOW}
+		@{"Screen Mode                  " LINK MW_SCRMODE}
+		@{"Picture Size                 " LINK MW_PICSIZE}
+		@{"Save Range                   " LINK MW_SAVERANGE}
+		@{"Load Format                  " LINK MW_LOADFORMAT}
+		@{"Save Format                  " LINK MW_SAVEFORMAT}
+		@{"Colors Format                " LINK MW_COLORSFORMAT}
+	@{"Picture Screen               " LINK PICTURE_SCREEN}
+	@{"Preferences                  " LINK PREFERENCES}
+	ARexx Port:
+		@{"How To Run ARexx Scripts     " LINK RUNNINGAREXX}
+	   Control Functions
+		@{"USETOPAZ                     " LINK RX_USETOPAZ}
+		@{"DCSIZE                       " LINK RX_DCSIZE}
+		@{"VERSION                      " LINK RX_VERSION}
+		@{"STATUS                       " LINK RX_STATUS}
+		@{"QUIT                         " LINK RX_QUIT}
+	   User Communication Functions
+		@{"REQUESTFILE                  " LINK RX_REQUESTFILE}
+		@{"REQUEST                      " LINK RX_REQUEST}
+		@{"TYPETEXT                     " LINK RX_TYPETEXT}
+	   Graphical User Interface Control Functions
+		@{"LOCKGUI                      " LINK RX_LOCKGUI}
+		@{"UNLOCKGUI                    " LINK RX_UNLOCKGUI}
+		@{"SHOWGUI                      " LINK RX_SHOWGUI}
+		@{"HIDEGUI                      " LINK RX_HIDEGUI}
+	   Preset List Control Functions
+		@{"CLEARPRESETS                 " LINK RX_CLEARPRESETS}
+		@{"ADDPRESET                    " LINK RX_ADDPRESET}
+		@{"SETPRESET                    " LINK RX_SETPRESET}
+	   ARexx List Control Functions
+		@{"CLEARAREXXMENU               " LINK RX_CLEARAREXXMENU}
+		@{"ADDAREXXMENUITEM             " LINK RX_ADDAREXXMENUITEM}
+	   I/O Functions
+		@{"LFORMAT                      " LINK RX_LFORMAT}
+		@{"SFORMAT                      " LINK RX_SFORMAT}
+		@{"CFORMAT                      " LINK RX_CFORMAT}
+		@{"LOAD                         " LINK RX_LOAD}
+		@{"SAVE                         " LINK RX_SAVE}
+		@{"RESHOW                       " LINK RX_RESHOW}
+		@{"NOSHOW                       " LINK RX_NOSHOW}
+		@{"RESTORE                      " LINK RX_RESTORE}
+	   Picture Modifying Functions
+		@{"PICSIZE                      " LINK RX_PICSIZE}
+		@{"DEPTH                        " LINK RX_DEPTH}
+		@{"DISPMODE                     " LINK RX_DISPMODE}
+		@{"RANGE                        " LINK RX_RANGE}
+	   ARexx Scripts provided with this package
+		@{"Startup                      " LINK RXS_STARTUP}
+		@{"SaveRawAndCopper             " LINK RXS_SAVERAC}
+		@{"SaveSprites                  " LINK RXS_SAVESPR}
+		@{"Info                         " LINK RXS_INFO}
+	@{"History                      " LINK HISTORY}
+	@{"The Rest                     " LINK COPYRIGHT}
+@endnode

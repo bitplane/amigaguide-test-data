@@ -1,0 +1,3272 @@
+@database "ARexx"
+@author "Troels Walsted Hansen, Petter Nilsen and Eirik Synnes"
+@$VER: ARexx.guide 4.0 (15.1.98)
+
+@node Main "Overview on using ARexx with THOR, by Troels Walsted Hansen, Petter Nilsen and Eirik Synnes"
+@TOC Main
+
+This  is  the  documentation for the ARexx implementation in THOR, the
+command  host BBSREAD and in THOR's internal editor (the FSE), as well
+as most of the scripts included in the Thor distribution.
+
+Introduction and instructions
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+   @{" ARexx.guide       " Link "About"} Author information and credits
+   @{" THOR and ARexx    " Link "THOR_and_ARexx"} A brief introduction to ARexx with THOR
+   @{" Command execution " Link "Command_execution"} How to execute THOR/BBSREAD ARexx commands
+   @{" Commands          " Link "Commands"} The command table form
+   @{" Included scripts  " Link "Scripts"} Documentation for the included scripts
+
+ARexx Command Reference
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+   @{" THOR commands     " Link "THOR_Rexx.guide/Main"} ARexx reference for THOR
+   @{" BBSREAD commands  " Link "BBSReadRexx.guide/Main"} ARexx reference for the BBSREAD command host
+   @{" FSE commands      " Link "FSE_Commands"} ARexx reference for the Internal Editor
+
+   @{" BBSREAD ARexx definitions " Link "/rexx/examples/GlobalDefs.br/Main"} ARexx definitions for BBSREAD
+
+@endnode
+
+@node About "Author information and credits"
+
+@{b}@{u}About ARexx.guide@{uu}@{ub}
+
+This  AmigaGuide  document  was  created by Troels Walsted Hansen with
+layout  inspiration taken from termRexx.guide by Olaf Barthel and some
+text  taken  from  Petter Nilsen's example scripts.  Modified for THOR
+2.0  by Petter Nilsen.  Some text was also taken from Marius' original
+documentation for the FSE (the internal editor in THOR).  Eirik Synnes
+updated the guide for the Thor 2.6 release.
+
+For  information  on  how to contact the team, see  the @{"THOR.guide" Link "THOR.guide/About"}.
+
+The ARexx scripts included with THOR have been made by:
+
+   - Troels Walsted Hansen
+   - Eirik Synnes
+   - Eivind Nordseth
+   - Petter Nilsen
+   - Magne Østlyngen
+   - Kjell Irgens
+   - Marius Mortensen
+   - Neil Bothwick
+   - Shaun Downsend
+   - Roy Brown
+   - Stelios Melissakis
+   - Sigbjørn Skjæret
+   - Remco van Hooff
+   - Troy E. Bouchard
+   - John S. Burger
+
+@endnode
+
+@node "THOR_and_ARexx" "Introduction/THOR and ARexx"
+
+@{b}@{u}THOR and ARexx@{uu}@{ub}
+
+   For  those of you who haven't programmed ARexx before, please don't
+expect  this  document  to explain all of the details to you.  This is
+only  meant as a reference guide for looking up the template and usage
+of the ARexx commands in THOR, BBSREAD and in the FSE.
+
+   The section entitled @{"Command_execution" Link "Command_execution"} gives a brief introduction
+on how to write and run ARexx commands.  For more information refer to
+the Release 2 Users Manual `Using the System Software'.
+
+   By default THOR opens an ARexx host by the name of @{b}THOR.01@{ub}. If more
+than a one THOR is running on your machine, the hostname will be named
+according to the order in which the THORs were run. The first will be
+named @{b}THOR.01@{ub}, the second one @{b}THOR.02@{ub}, the third one @{b}THOR.03@{ub}, etc. The
+name of the host is displayed in the About window in THOR.
+
+   The above is also valid for the internal editor, the FSE, where the
+hostnames are named @{b}THOR_FSE.01@{ub}, @{b}THOR_FSE.02@{ub} etc.
+In  general, all that is said about the THOR commands in this guide is
+also true for the FSE and BBSREAD commands.
+
+   The BBSREAD command host library will always have the name @{b}BBSREAD@{ub}
+when  it  is  running.   THOR do not need to be running for BBSREAD to
+work!   Use  this  code  in all ARexx scripts for starting the BBSREAD
+command host library:
+
+   if ~show('p', 'BBSREAD') then do
+      address command
+      "run >nil: `GetEnv THOR/THORPath`bin/LoadBBSRead"
+      "WaitForPort BBSREAD"
+   end
+
+   Then   you   can   just   address   BBSREAD   the  usual  way  with
+"address("BBSREAD")" whenever you want to use a command.
+
+   For several advanced example scripts check out the @{"included scripts" Link Scripts}
+in your <Your_THOR_Dir>/Rexx/ drawer.
+
+@endnode
+
+@node "Command_execution" "Instructions/Command execution"
+
+@{b}@{u}Command execution@{uu}@{ub}
+
+   In  order  to invoke any command supported by THOR and BBSREAD, one
+usually has to address the host explicitely:
+
+     /* Address the THOR host. */
+
+     ADDRESS 'THOR.01'
+
+     /* Invoke the THORTOFRONT commmand. */
+
+     THORTOFRONT
+
+   However,  if  an  ARexx  program  is  invoked  directly by the THOR
+program  or  from the the Internal Editor, the program will by default
+address the THOR (or Internal Editor) it was invoked by.
+
+   Most  commands  will  return results or error codes on failure.  To
+enable  result   codes,  one  has  to  use  the  @{b}options results@{ub}
+command.   The  results  returned  by  commands  will be placed in the
+@{b}result@{ub} variable:
+
+     /* We assume that the program will address the host it was invoked from.
+      *
+      * Enable command results.
+      */
+
+     OPTIONS RESULTS
+
+     /* Request a string from the user. */
+
+     REQUESTSTRING TITLE '"Stringrequest"' BT '"_Ok|_Cancel"' ID ...
+     '"Initial string"' MAXCHARS 100
+
+     /* Did the user cancel the requester? */
+
+     if(rc ~= 0) then say 'User cancelled requester'
+     else say result /* Output the result. */
+
+   Failure codes will always be returned in the @{b}rc@{ub} variable (see
+previous example).
+
+   When BBSREAD or THOR return an error code of 30 in @{b}rc@{ub}, the stem
+variable  THOR.LASTERROR (or BBSREAD.LASTERROR in BBSREAD's case) will
+contain a message explaining what went wrong.
+
+   /* REQUESTNOTIFY returns 0 on success and 30 on failure, in
+       which case THOR.LASTERROR will contain a description of why
+       the function returned an error code.
+   */
+
+     REQUESTNOTIFY TEXT '"Simple requester"' BT '"_Ok|_Cancel"'
+     if(rc ~= 0) then
+     do
+          say THOR.LASTERROR
+          exit
+     end
+
+
+   Rexx  tries  to  tokenize  any  command  parameters,  this  process
+involves  promoting  them  to  all upper case letters and checking for
+illegal  characters.   This  feature  inhibits  the use of the @{b}:@{ub}
+(colon)  and  blank  space  characters  in  parameter names unless the
+corresponding  arguments  are enclosed in quotes.  To make things even
+more  complicated,  the  parser  will  not always accept parameters to
+contain  blank  spaces.   A  command  template to accept just a single
+parameter  (such  as  @{b}TEXT/K@{ub})  requires  double  quotes  if  blank
+spaces   are   included.   Text  such  as  @{b}tea or coffee?@{ub}  thus
+becomes @{b}'"tea or coffee?"'@{ub}.
+
+     /* The following command will fail to get the configuration for the
+      * BBS `Ultima Thule' as the BBS name is treated as two single names:
+      */
+
+     GETBBSCONFIG Ultima Thule
+
+     /* The next line will still fail to get the configuration for
+      * `Ultima Thule' as the ARexx parser will split the argument into
+      * two parameters.
+      */
+
+     GETBBSCONFIG 'Ultima Thule'
+
+     /* Here is how to do it correctly: */
+
+     GETBBSCONFIG '"Ultima Thule"'
+
+     /* Another correct way of doing it: */
+
+     bbsname = 'Ultima Thule'
+     GETBBSCONFIG '"'bbsname'"'
+
+@endnode
+
+@node "Commands" "Instructions/Command table"
+
+@{b}@{u}Command table@{ub}@{uu}
+
+   The commands supported by THOR, BBSREAD and the FSE are listed in a
+standard man-file table format with the following form:
+
+@{b}NAME@{ub}
+     The name of the function and a short description of what it does.
+
+@{b}SYNOPSIS@{ub}
+     The command and the template, similar to the command templates 
+     employed by AmigaDOS Shell commands.  Possible templates are:
+
+    @{b}<Parameter>/A@{ub}
+          The parameter must @{i}always@{ui} be included in order to get
+          accepted.
+
+    @{b}<Option>/K@{ub}
+          The option's @{i}keyword@{ui} must be given.
+
+    @{b}<Option>/S@{ub}
+          This option works as a @{i}switch@{ui}. If this option keyword is
+          included the switch is on, else it is off.
+
+    @{b}<Option>/N@{ub}
+          A @{i}numeric@{ui} parameter is expected.
+
+    @{b}<Text>/F@{ub}
+          The text must be the @{i}final@{ui} parameter on the command line.
+
+    @{b}, (Comma)@{ub}
+          Indicates that the command takes no parameters.
+
+@{b}FUNCTION@{ub}
+     Describes what the command will do.
+
+@{b}INPUTS@{ub}
+     Describes  the  command,  its possible uses and the parameters in
+     more detail.
+
+@{b}RESULT@{ub}
+     The type of the command result code if any.
+
+@{b}EXAMPLE@{ub}
+     An example code fragment to illustrate how to use the command.
+     Commands and keywords are given in upper case, the names of
+     variables and command arguments are given in lower case.  Where a
+     single command line would not fit into a single line on the
+     screen, an ellipsis ('...') is meant to join the broken line.
+
+@{b}NOTES@{ub}
+     Various notes about the command.
+
+@{b}SEE ALSO@{ub}
+     Link to other commands that is related to this command.
+
+@endnode
+
+@node "Scripts" "Instructions/Included scripts"
+
+@{b}@{u}Included scripts@{ub}@{uu}
+
+   This is the documentation for the ARexx scripts included with THOR.
+
+   All  of the THOR scripts have one thing in common and that is their
+startup  procedure.   They  first  determine whether they were started
+from  inside  THOR (via the "ARexx Scripts" meny) and if so, they will
+address that THOR.  Alternatively the scripts will will try to address
+the first THOR port it can find. 
+
+@{b}NOTE:@{ub}
+
+   Scripts  that  end with @{b}.thor@{ub} are (in most cases) meant to
+be  run  from  within  THOR  and  will use the THOR ARexx port and the
+BBSREAD  command host interface whenever needed.  These scripts reside
+in the rexx subdirectory of the Thor installation.
+
+   Scripts  that  end with @{b}.br@{ub} are meant to be run from shell
+and  will  only use the BBSREAD command host interface.  This includes
+scripts  run as external scripts by SortMail.  These scripts reside in
+the rexx/bbsread subdirectory of the Thor installation.
+
+   Scripts  that  end  with @{b}.fse@{ub} are meant to be run from the
+Internal  Editor  (FSE)  in THOR and will only use the FSE ARexx port.
+These  scripts  reside  in  the  rexx/fse  subdirectory  of  the  Thor
+installation.
+
+   Those  scripts  that  require  external libaries or other programs,
+like  CED  or DirOpus, will check for these at startup and complain if
+they are not found.
+
+   Below  here  you  will  find  detailed  information  on each of the
+scripts.  Note that some scripts are not documented on purpose.  These
+scripts  are  for  the  most part example scripts or scripts that most
+users  do  not need to know about.  Usually these scripts have a small
+comment on its function inside it.
+
+   The  scripts  are  seperated  into categories based on which of the
+distribution   archives  they  can  be  found  in.   (thorxx_main.lha,
+thorxx_inet.lha, thorxx_bbs.lha or thorxx_arexx.lha)
+
+@{b}The main archive@{ub}
+
+   @{" AddUser.thor             " Link AddUser                   }  @{" PGPDecrypt.thor          " Link PGPDecrypt                }
+   @{" CalcDl.thor              " Link CalcDl                    }  @{" PGPViewPubKeys.thor      " Link PGPViewPubKeys            }
+   @{" CfgUUDecode.thor         " Link CfgUUDecode               }  @{" PreviewMsg.fse           " Link PreviewMsg                }
+   @{" CheckDataBase.br         " Link CheckDataBase             }  @{" PurgeEvents.thor         " Link PurgeEvents               }
+   @{" CheckUserDataBase.br     " Link CheckUserDataBase         }  @{" SaveRange.thor           " Link SaveRange                 }
+   @{" ClearFileDataBase.br     " Link ClearFileDataBase         }  @{" SaveUserList.thor        " Link SaveUserList              }
+   @{" Event2Msg.thor           " Link Event2Msg                 }  @{" ShowEvent.thor           " Link ShowEvent                 }
+   @{" JoinConfs.br             " Link JoinConfs                 }  @{" UUDecode.thor            " Link UUDecode                  }
+   @{" KeepMsg.thor             " Link KeepMsg                   }  @{" UUEncode.thor            " Link UUEncode                  }
+   @{" PackData.br              " Link PackData                  }  @{" UUEncode.fse             " Link UUEncodeFSE               }
+   @{" PGPAddToKeyRing.thor     " Link PGPAddToKeyRing           }  
+
+@{b}The Internet archive@{ub}
+
+   @{" AddAmiNetFileList.br     " Link AddAmiNetFileList         }  @{" GetNet.thor              " Link GetNet                    }
+   @{" CfgGetNet.thor           " Link CfgGetNet                 }  @{" JoinNewGroup.thor        " Link JoinNewGroup              }
+   @{" CfgHTTP.thor             " Link CfgHTTP                   }  @{" ResetNews.thor           " Link ResetNews                 }
+   @{" CfgSortMail.thor         " Link CfgSortMail               }  @{" SortMail.br              " Link "SortMail.guide/Main"     }
+
+@{b}The BBS archive@{ub}
+
+   @{" BuildList.thor           " Link BuildList                 }  @{" SendCommand.thor         " Link SendCommand               }
+   @{" GMSPoll.thor             " Link GMSPoll                   }  @{" SetLastRead.br           " Link SetLastRead               }
+   @{" HTTP.thor                " Link HTTP                      }  @{" SpreadEvent.thor         " Link SpreadEvent               }
+   @{" MultiUpload.thor         " Link MultiUpload               }  @{" TrapDoorPoll.thor        " Link TrapDoorPoll              }
+   @{" MsgSplit.thor            " Link MsgSplit                  }  @{" ZapFiles.thor            " Link ZapFiles                  }
+   @{" Resend.thor              " Link Resend                    }
+
+@{b}The ARexx archive@{ub}
+
+   @{" AddFileList.br           " Link AddFileList               }  @{" Log2Info.br              " Link Log2Info                  }
+   @{" AddMIME.thor             " Link AddMIME                   }  @{" NCommPoll.thor           " Link NCommPoll                 }
+   @{" ASCIIPic.fse             " Link ASCIIPic                  }  @{" NCommPollCurrent.thor    " Link NCommPollCurrent          }
+   @{" AutoReply.br             " Link "AutoReply.guide/Main"    }  @{" OptConf.thor             " Link "OptConf.guide/Main"      }
+   @{" BulkMail.thor            " Link BulkMail                  }  @{" Quote.fse                " Link Quote                     }
+   @{" CEDDownload.thor         " Link CEDDownload               }  @{" QuotePercent.thor        " Link QuotePercent              }
+   @{" CfgAutoReply.thor        " Link CfgAutoReply              }  @{" Reply2Enter.br           " Link Reply2Enter               }
+   @{" ChessMaster3000.thor     " Link ChessMaster3000           }  @{" RePostEN.thor            " Link RePostEN                  }
+   @{" ChkDupesAndCross.br      " Link ChkDupesAndCross          }  @{" Reqoute.fse              " Link Reqoute                   }
+   @{" CleanSystem.thor         " Link CleanSystem               }  @{" SelectedReply2Enter.thor " Link SelectedReply2Enter      }
+   @{" CopyMessages.thor        " Link CopyMessages              }  @{" ShowHTML.thor            " Link ShowHTML                  }
+   @{" CreateDlEvent.br         " Link CreateDlEvent             }  @{" StealTagline.thor        " Link StealTagline              }
+   @{" DefaultNames.br          " Link DefaultNames              }  @{" Style.fse                " Link Style                     }
+   @{" DeleteRange.thor         " Link DeleteRange               }      and these:
+   @{" Figlet.fse               " Link Figlet                    }       · Bold.fse
+   @{" FindFile.fse             " Link FindFile                  }       · Underline.fse
+   @{" Forward.fse              " Link Forward                   }       · Italic.fse
+   @{" GetCmd.br                " Link GetCmd                    }       · Reverse.fse
+   @{" HeaderManager.thor       " Link "HeaderManager.guide/Main"}  @{" TicTacToe.thor           " Link TicTacToe                 }
+   @{" HTMLThor.thor            " Link "HTMLThor.guide/Main"     }  @{" Unquote.fse              " Link Unquote                   }
+   @{" InsertIt.thor            " Link "InsertIt.guide/Main"     }  @{" UploadFromDopus.thor     " Link UploadFromDopus           }
+   @{" Insult.fse               " Link Insult                    }  @{" UUJoin.thor              " Link UUJoin                    }
+
+@endnode
+
+@node "AddMIME" "Included scripts/AddMIME.thor"
+@TOC Scripts
+
+@{b}AddMIME.thor@{ub}
+
+   Attach  a  file  (MIME) while writing a msg in Thor.  Run from FSE,
+CED or GED.  Borrowed some code from InsertIt.thor (by Shaun Downend).
+
+@endnode
+
+@node "AddUser" "Included scripts/AddUser.thor"
+@TOC Scripts
+
+@{b}AddUser.thor@{ub}
+
+    This  script  will let you add the sender or any of the recipients
+of  the  current message to the user database in THOR.  Name, address,
+alias and a comment can be entered or altered.
+
+@endnode
+
+@node "BuildList" "Included scripts/BuildList.thor"
+@TOC Scripts
+
+@{b}BuildList.thor@{ub}
+
+   This  script  will  let you build a file containing a list of BBSes
+and  conferences  for use with @{"MultiUpload.thor" Link MultiUpload}.
+First  choose or enter the name of the file you want to hold the list.
+Then  pick  BBS  names  and  conference  names until you are finished.
+Pressing  escape or clicking on the closegadget in the conference list
+window  will  leave the conference field empty, useful for MultiUpload
+lists where you don't want to make the upload private to a conference.
+
+@endnode
+
+@node "BulkMail" "Included scripts/BulkMail.thor"
+@TOC Scripts
+
+@{b}BulkMail.thor@{ub}
+
+                         BulkMail.thor  V2.0
+
+                        © Neil Bothwick, 1997
+
+BullkMail was originally written to send copies of a mail message to
+multiple recipients. since i had a need to send these out as
+individual mails, including multiple recipients on the To: line or
+using cc: were not suitable.
+
+Several people have asked for enhancements, so here is version 2.
+
+Features of BulkMail 2.0
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+*  Searches on either comment or alias field of user database for
+   matching addresses
+
+*  Send a separate mail to each recipient, or a single mail with
+   the other recipients on a Cc: or Bcc: header
+
+*  Search the user database using a string based on the address of
+   the original message, or from a user-defined hotlist
+
+*  Either use all matching address, or select from a list.
+
+
+Using BulkMail 2.0
+~~~~~~~~~~~~~~~~~~
+
+1)  Create the mail message you wish to send
+
+2)  Select this message in the Events Editor and run BulkMail
+
+3)  Enter a search string, you can either type it in, use the from
+    address or select a string from your own hotlist. The hotlist is
+    useful if you regularly send mails to groups of people. You need
+    to create the hotlist yourself, it is called BulkMail.hotlist and
+    needs to be in the data directory for the current system (e.g. BBS0)
+
+4)  Select to search on either Alias or comment
+
+5)  You will be shown the number of matches and be given the choice of
+    using all of them, or selecting from the list
+
+6)  Choose either to send separate mails to each recipient, or to add
+    them to the current mail as Cc: or Bcc: headers. The difference
+    between the last two is that the the Cc: (carbon copy) header will
+    appear in all copies of the mail received, whereas Bcc: (blind
+    carbon copy) won't
+
+7)  If you chose separate messages, you will be given the option of
+    deleting the original message.
+
+
+Bug reports
+~~~~~~~~~~~
+
+I have tested BulkMail here, but would appreciate reports on any bugs
+you may find. I would also like to here from anyone who uses it
+without any problems, just so I know it's working OK.
+
+
+Neil Bothwick
+neil\@wirenet.u-net.com
+
+@endnode
+
+@node "CalcDl" "Included scripts/CalcDl.thor"
+@TOC Scripts
+
+@{b}CalcDl.thor@{ub}
+
+   This  script  will  calculate  an  estimate  of  the time needed to
+download  files  selected  in  Thor  and  present  the  results  in  a
+requester.   In  order to do this the files will have to be present in
+Thor's  file  database.  It can be run either in the Startup Window or
+from inside a system.
+
+Change  the  cpsrate  variable  in the start of the script to whatever
+your modem is capable of.
+
+@endnode
+
+@node "CEDDownload" "Included scripts/CEDDownload.thor"
+@TOC Scripts
+
+@{b}CEDDownload.thor@{ub}
+
+   This  script is very simple.  Place the cursor on a filename in CED
+(CygnusEditor) and start the script.  THOR will request a BBS name and
+a  download event will created with the filename from CED.  Useful for
+browsing through a filelist in CED and selecting files to download.
+
+   A  permanent  BBS  name can be specified in the script if you don't
+want the BBS name requester to pop up for every filename.
+
+   For  details  on  how  to  make CED execute CEDDownload.thor on the
+press of a function key, check out page 94 in your CED v3.5 manual.
+
+   This  script  only  works  for  BBS  systems and can not be used to
+create download events for files on Aminet.
+
+@endnode
+
+@node "CleanSystem" "Included scripts/CleanSystem.thor"
+@TOC Scripts
+
+@{b}CleanSystem.thor@{ub}
+
+THOR should remove all files relating to a conference when you delete
+it, but sometimes it doesn't. The reason i that it waits until all
+THOR processes have finished, so if you have ConnectTHOR running but
+hidden and reset, or your machine is reset before quitting THOR, you
+will be left with some `orphaned' files taking up space in your data
+directory.
+
+Run this script from the Arexx menu in THOR and it will removed all
+orphaned files in the current system, prompting you for confirmation
+first.
+
+@endnode
+
+@node "CopyMessages" "Included scripts/CopyMessages.thor"
+@TOC Scripts
+
+@{b}CopyMessages.thor@{ub}
+
+CopyMessages.thor will let you copy messages in similar manner to
+what the "Move Messages" menu item in Thor does. The difference is
+that CopyMessages does not delete the original messages afterwards
+(of course) and that it allows you to copy messages between systems.
+
+To use the script simply run it from the ARexx menu in Thor. The
+messages can be multiselected in the "Messages in conference" window,
+otherwise the currently displayed message will be copied.
+
+If the destination conference does not exist it can be created if
+you select "Create new conference" in the destinaion conference 
+selector that pops up. The new conference will get the same
+attributes as the original conference. Note that Thor uses a flag
+to specify the type of a confererence (EMail, news, folder and
+local currently). This version of CopyMessages will not allow you
+to specify a type for the new conference, it will inherit the type
+from the source conference.
+
+@endnode
+
+@node "DeleteRange" "Included scripts/DeleteRange.thor"
+@TOC Scripts
+
+@{b}DeleteRange.thor@{ub}
+
+  Delete a specified range of messages.
+
+@endnode
+
+@node "Event2Msg" "Included scripts/Event2Msg.thor"
+@TOC Scripts
+
+@{b}Event2Msg.thor@{ub}
+
+   Moves the current event to any conference (on the same system).
+
+   Handy  if  you're  writing scripts for Thor and you need a msg that
+contains  a  sertain text, but you can't find it in your database.  So
+now  you can write your own msg (event) and use this script to move it
+to  your  desired  conference.   It can also handle one attached file.
+After  the  event  is  moved  the  entered  msg  will  be shown in the
+destination conference.
+
+HISTORY
+1.1 - Now works correcly with systems and conferences that contain spaces.
+    - Fixed a problem with the Thor ARexx port.
+
+@endnode
+
+@node "JoinNewGroup" "Included scripts/JoinNewGroup.thor"
+@TOC Scripts
+
+@{b}JoinNewGroup.thor@{ub}
+
+Whenever you get news with Thor, it also gets a list of new newsgroups
+on your news server and presents these as an article in a conference
+called Information, as well as adding them to the main conference list.
+
+Unfortunately you then have to wait for the full list to load into
+memory (over 20,000 groups with my provider) before you can join one
+of the new ones.
+
+This script presents the newsgroups from the current information
+message in a listview, and creates a join event for the one you
+select. Assigning it to a function key means you can join new
+groups almost instantly.
+
+@endnode
+
+@node "GetNet" "Included scripts/GetNet.thor"
+@TOC Scripts
+
+@{b}GetNet.thor@{ub}
+
+GetNET.thor 1.4 (26.6.96) by Remco van Hooff (rvhooff\@globalxs.nl)
+
+GetNET can do 2 things:
+
+1: Grab http adresses (WWW addresses) from the current message, and save
+   them to the hotlist of your favourite WWW browser(s).
+   Browsers currently supported are:
+ 
+   AMosaic
+   AWeb
+   IBrowse (0.81+)
+   Voyager
+   HTML is also supported which can be read by any browser.
+
+2: Grab email addresses from the current message, and save them to the
+   userlist of your Internet system.
+
+REQUIREMENTS:
+- Thor 2.2+
+- COPY and DELETE somewhere in your path
+- A WWW browser (Amosaic, IBrowse, ALynx, AWeb, ...),
+  only for the www addresses.
+
+USAGE:
+As usual you need to edit some variables:
+
+- Edit the BBS variable to point to your Internet system.
+
+- Edit the HOTLIST_* variables for the right path/file for the hotlists.
+
+- Edit the AMOSAIC/IBROWSE/VOYAGER/AWEB/HTML variables:
+  1 = save to hitlist, 
+  0 = don't save to hotlist
+  You can have all set to 1 if you use all the browsers, or 0 if you don't
+  want to save anything :.) (you'll be notified if you have turned all off).
+
+- Edit the LOOP variable: 
+  0 = loop
+  1 = no loop
+  This variable will enable you to return to the main requester (chose
+  between HTTP, Email or Quit) after you've saved email/http addresses.
+
+- You can also edit the filter chars, I already included the most common
+  chars. The '.' is "hardcoded" and is therefore not included in the filter
+  list.
+  A filter character is a character that may be "connected" to an address,
+  e.g. <email\@address.somewhere>
+  The '<' and '>' are not part of the actual address and thus should be
+  removed.
+  So filters for these characters are: filter.1.x = '>', filter.2.x = '<'
+  filter.1.x are used for chars that follow the address (http and email)
+  filter.2.x are used for chars that preceed the address (email only)
+
+Note: 
+- You can leave the name of the address empty, they will automatically be
+  replaced by a default name.
+  If you selected HTTP the default name is 'subj (i)', subj is
+  the subject of the msg without 'Re:'. 
+  If you selected Email the default name is the userid (eg rvhooff in
+  rvhooff\@globalxs.nl).
+- Duplicate addresses will not be shown.
+- The HTTP oprion will search the msg HEADER, the Email option will not.
+  
+AUTHOR:
+For bugs, comments, flames, typos, optimizing tips:
+Internet: rvhoof\@globalxs.nl
+FIDO    : 2:286/407.39
+AMY     : 39:153/201.39
+Also have a look at my homepage for more Thor ARexx scripts.
+http://www.globalxs.nl/home/r/rvhooff
+
+HISTORY:
+ 1.0 - Joined 2 programs (GetHTTP and GetEmail) together into one program. 
+       The programs use a lot of similar code, so joining them together
+       will use less HD space :.)
+
+ 1.1 - Added AWeb hotlist support.
+     - Removed 'GetNet -' from default names when saving to the hotlists.
+     - Added loop option. You can now chose if you want to return to the start
+       requester or not.
+     - Changed the IBrowse hotlist format to that of verion 0.81.
+
+ 1.2 - Added Voyager hotlist support.
+
+ 1.3 - Fixed some trouble with arexx ports when ConnectThor was running.
+ 
+ 1.4 - Addresses that don't start with 'http://' but do start with 'www.'
+       will now also be shown.
+     - Fixed a bug in the HTML save routine (does anybody use it?).
+
+TO DO:
+- More hotlists (send me a short hotlist if you want to have it supported).
+- GetFTP. I'm still working on it.
+  The code will either search for 'ftp://', for x.x.domain (or #.#.#.#), or
+  both. The first option will be as fast as that of GetNET, the latter 2
+  will be slow (I'll have to check against 200+ domains) and will therefore
+  be implemented as an option.
+
+  The found addresses will be saved to the hotlist of your WWW browser.
+  This is the only solution until I can get my hands on the formats of FTP
+  clients, so if you are an FTP client author please post me the format of
+  the hotlist. If you're not an author but do know what the format of a
+  certain client is please post it to me and I'll ask permission from the
+  author.
+
+@endnode
+
+@node "HTTP" "Included scripts/HTTP.thor"
+@TOC Scripts
+
+@{b}HTTP.thor@{ub}
+
+   Script  for  handling  http  URLs in Thor's message display window.
+See @{"Thor.guide" link "THOR.guide/Visual Options Window"} for  information  on  how  to  set  it  up  and use
+CfgHTTP.thor to configure it.
+
+@endnode
+
+@node "GMSPoll" "Included scripts/GMSPoll.thor"
+@TOC Scripts
+
+@{b}GMSPoll.thor@{ub}
+
+   An  ARexx script that automatically runs GMS to poll a BBS selected
+from  a  requester.  The script assumes that you have configured a GMS
+line  for  each  Boss  (numbered  1,  2  etc - NOT Line 0 which is the
+default line - see the GMS docs).
+
+   There  are some variables in the script which must be edited before
+you use this script.
+
+@endnode
+
+@node "MsgSplit" "Included scripts/MsgSplit.thor"
+@TOC Scripts
+
+@{b}MsgSplit.thor@{ub}
+
+MsgSplit.thor                                                      MsgSplit.thor
+
+
+NAME
+
+        MsgSplit.thor - Split a message event in smaller events
+
+
+SYNOPSIS
+
+        MsgSplit.thor <MaxSize>
+
+
+REQUIREMENTS
+
+        Thor 2.01 or newer & of course ARexx.
+
+
+DESCRIPTION
+        
+        MsgSplit.thor scans the events of a system & if it's a reply or
+        enter event it checks message size of the event. If it's bigger 
+        than the MaxSize argument, it splits the message in smaller pieces
+        & creates a new event for each piece & then deletes the original 
+        event.
+        
+        This is necessery for some QWK systems because they do not accept
+        messages bigger than an allowed size. Ask your Sysop/System
+        Administrator to get this number. You can find it by sending very 
+        large messages (12-24 Kb is a nice value) which when then they are
+        not being accepted you will then reduce the size of the message 
+        until you find the correct size.
+        
+
+INSTALLATION
+
+        First copy it to the rexx directory of Thor and then insert it to the
+        "Leaving System" gadget of the File/Paths options for every system 
+        that has problems with large message sizes. The MaxSize for
+        Hellas On Line BBS is 7300 bytes (approx.)
+        
+        For example: MsgSplit.thor 7300
+
+
+        You can change the ContNextMsg and ContPrevMsg variables but be careful
+        with their lengths. Check them before you use it permanetly.
+
+
+AUTHOR/GREETINGS
+
+        SMail Address:
+
+        Stelios Melissakis
+        1 Pefkon Street
+        Kalogreza, Athens
+        P.O. Box 14235
+        Greece
+
+
+        Tel/Fax/Voice: 
+
+        2757043
+
+        
+        EMail:
+        
+        djmelis\@prometheus.hol.gr  or djmelis\@hol.gr (Unix/POP3 Host)
+        djmelis\@hellas.hol.gr                        (Hellas On Line BBS)
+
+        Note: My UID will may change to c3po, very soon.
+
+
+        This program is FREEWARE. If you like it, please send me a Ferrari,
+        a Porche, a MMU or anything you can imagine (except from Windows 95!).
+
+        -> A registered version of Thor is welcome! ;)  <-
+
+
+        Many-Many thanks to:
+        - Peter Nilsen
+        - Kjell Irgens
+        - Eirik Nicolai Synnes
+        - the rest of the Thor team
+        - my Amiga :)
+        - Hellas On line S.A. (visit us at http://www.hol.gr/)
+        - Nick Sardelianos
+
+
+BUGS
+
+        No known (yet). If you see anything strange, let me know about it.
+
+
+TO DO
+
+        - ConfMsgSplit.thor w/GUI (not very soon)
+
+        - If you've any other ideas EMail me. I'm waiting!
+
+
+VERSION HISTORY
+
+        v1.3 (14.Sep.95)
+        - Fixed some bugs (as usual...)
+        - Changed the version number according to Commodore rules
+        - Better error handling (I hope :)
+
+        v37.2  (10.Sep.95) 
+        - Final (?) version. 
+        - Fixed some bugs.
+        - Added a progress indicator
+
+        v37.1b (19.Aug.95) 
+        - Very BETA version...
+
+@endnode
+
+@node "MultiUpload" "Included scripts/MultiUpload.thor"
+@TOC Scripts
+
+@{b}MultiUpload.thor@{ub}
+
+   This  script  will  let  you choose and enter data for a file to be
+uploaded.   This  script utilize lists made by @{"BuildList.thor" Link BuildList}.
+Creating  an upload event requires that the System Type of the BBS you
+choose, supports uploading.
+
+   MultiUpload      will      search      for     a     file     named
+<filename_without_extension>.readme, say THOR20.readme for THOR20.lha.
+This  file  will  be used for the detailed description of the file and
+also  if the line "Short:  Short_descr_of_file" is found in the readme
+file, MultiUpload will use "Short_descr_of_file" instead of requesting
+a description through a string requester.
+
+@endnode
+
+@node "NCommPoll" "Included scripts/NCommPoll.thor"
+@TOC Scripts
+
+@{b}NCommPoll.thor@{ub}
+
+   This  script  was  made to make it simple to dial one or many BBSes
+from  inside  THOR.   The  script  should  be easily adapted for other
+communication programs than NComm if you so desire.
+
+   The  script  will open a list of BBSes and will let you multiselect
+the ones you want to call.
+
+   After this, the script will try to tell NComm to dial the selected
+BBSes.   If  NComm isn't already started the script will attempt to do
+so  for  you.  This requires that NComm:  is assigned to the directory
+containing the program.
+
+   To  use this script, the BBSs configured in THOR must have the same
+name as those in your NComm phonebook.
+
+@endnode
+
+@node "NCommPollCurrent" "Included scripts/NCommPollCurrent.thor"
+@TOC Scripts
+
+@{b}NCommPollCurrent.thor@{ub}
+
+   This  ARexx script will automatically dial with NComm the currently
+hi-lighted BBS (in the Startup Window) or the currently open BBS.
+
+   If NComm isn't already started the script will attempt to do so for
+you.   This  requires  that  NComm:   is  assigned  to  the  directory
+containing the program.
+
+   To  use  this script, the BBS configured in THOR must have the same
+name as in your NComm phonebook.
+
+@endnode
+
+@node "PurgeEvents" "Included scripts/PurgeEvents.thor"
+@TOC Scripts
+
+@{b}PurgeEvents.thor@{ub}
+
+   This  script  will  delete  all  events  at  the current BBS (so be
+careful when using this script!).
+
+@endnode
+
+@node "ResetNews" "Included scripts/ResetNews.thor"
+@TOC Scripts
+
+@{b}ResetNews.thor@{ub}
+
+   This is a simple arexx script to reset THOR's article counters when
+changing  news  servers.   If  you change to a news servers with lower
+article  numbering  than  your  old  one, or if your ISP renumbers the
+existing  server  (such  as  after a hard disk reformat or crash) THOR
+will be unable to find any news articles.
+
+   Run  this  script  from  the Arexx Script menu of THOR to reset the
+article counts for the current system.
+
+@endnode
+
+@node "SaveRange" "Included scripts/SaveRange.thor"
+@TOC Scripts
+
+@{b}SaveRange.thor@{ub}
+
+   A  script for saving a range of messages to disk form the database.
+The  script  will request a start- and endnumber and a directory.  The
+messages will be saved as ConfName.MsgNumber.
+
+@endnode
+
+@node "SaveUserList" "Included scripts/SaveUserList.thor"
+@TOC Scripts
+
+@{b}SaveUserList.thor@{ub}
+
+Save the user database from a system to a file.  Can also parse into a
+system a file previously saved by this script.
+
+@endnode
+
+@node "SelectedReply2Enter" "Included scripts/SelectedReply2Enter.thor"
+@TOC Scripts
+
+@{b}SelectedReply2Enter.thor@{ub}
+
+   Convert a selected reply event on a bbs to an enter event.
+
+   Script  by:   Troels  Walsted  Hansen  with  99%  code  ripped from
+Reply2Enter.br by Eivind Nordseth, Ultima Thule Software.
+
+@endnode
+
+@node "ShowEvent" "Included scripts/ShowEvent.thor"
+@TOC Scripts
+
+@{b}ShowEvent.thor@{ub}
+
+Shows the current event in the main window.
+
+@endnode
+
+@node "ShowHTML" "Included scripts/ShowHTML.thor"
+@TOC Scripts
+
+@{b}ShowHTML.thor@{ub}
+
+   ShowHTML.thor  will  send  a HTML document in the message currently
+displayed  in  Thor's main window to a web browser.  First it searches
+for  a browser already in memory and uses this one, uniconifying it if
+necessary.   If  no  browser  is  active  it  will  launch the browser
+configured using CfgHTTP.thor.
+
+Currenly ShowHTML.thor recognizes IBrowse, AWeb, Voyager and AMosaic.
+
+@endnode
+
+@node "TicTacToe" "Included scripts/TicTacToe.thor"
+@TOC Scripts
+
+@{b}TicTacToe.thor@{ub}
+
+Play TicTacToe!
+
+@endnode
+
+@node "UploadFromDopus" "Included scripts/UploadFromDopus.thor"
+@TOC Scripts
+
+@{b}UploadFromDopus.thor@{ub}
+
+   This  script will simply go through the files selected in Dopus one
+by  one,  requesting data whenever it needs it.  This may be BBS name,
+description etc.  which is needed to create an upload event.  Creating
+an  upload  event  requires  that  the BBS Type of the BBS you choose,
+supports uploading.
+
+   This  script will utilise <filename>.readme files in way similar to
+@{"MultiUpload.thor" Link MultiUpload}.  If no .readme file is around,
+the  script  will  attempt  to  obtain  a  short  description from the
+filecomment of the file.
+
+   Making  a  button  in  Dopus  that  executes  this script should be
+trivial.
+
+@endnode
+
+@node "UUDecode" "Included scripts/UUDecode.thor"
+@TOC Scripts
+
+@{b}UUDecode.thor@{ub}
+
+    _   _ _   _ ____                     _       _   _
+   | | | | | | |  _ \  ___  ___ ___   __| | ___ | |_| |__   ___  _ __
+   | | | | | | | | | |/ _ \/ __/ _ \ / _` |/ _ \| __| '_ \ / _ \| '__|
+   | |_| | |_| | |_| |  __/ (_| (_) | (_| |  __/| |_| | | | (_) | |
+    \___/ \___/|____/ \___|\___\___/ \__,_|\___(_)__|_| |_|\___/|_| v4.1
+
+Introduction
+¯¯¯¯¯¯¯¯¯¯¯¯
+This is the one and only UUDecode arexx script for THOR.  It can either be
+used from THOR's arexx menu, from the commandline without any arguments, or
+from the commandline with an argument consisting of a file name. All
+uuencoded files in this file will be decoded.
+
+With THOR 2.2 and above you get an icon in the listview instead of seeing
+uuencoded files. However, you still need UUDecode.thor because THOR executes
+this script when you click the icon in the listview.
+
+Features
+¯¯¯¯¯¯¯¯
+ · Progressbar while uudecoding.
+ · UUDecode all files in all messages selected in the messagelist listview or
+   just the files contained in the message currently shown.
+ · Adds filenotes to decoded files stating where you got them.
+ · Can recognize an unlimited number of files and execute a chosen action
+   upon the decoded file. Use for pictureviewer, archive unpacking, etc etc.
+ · Extremely configurable. You can change all paths used (destination,
+   temporary, ...), the commandline of the uudecoder you use, filetypes which
+   the script should recognize and launch certain actions on, switch on and
+   off features which you might consider too slow (filetype recognition and
+   adding of filenotes), etc etc.
+ · All configuration done from an easy-to-use GUI.
+
+Requirements
+¯¯¯¯¯¯¯¯¯¯¯¯
+ · THOR 2.2 or higher.
+ · The following AmigaDOS commands in the path: delete, search, filenote, rx
+ · Some uudecoder program. The default configuration file contains
+   commandlines for uuOut v1.14 by Nicolas Dade, UUxT v3.1 by Asher Feldman 
+   and UUFast v1.25 by Jørn Halonen. You may configure your own uudecoder as
+   well.
+
+Contents
+¯¯¯¯¯¯¯¯
+This distribution contains 4 files. The first three should be placed in your
+/THOR/Rexx directory.
+
+UUDecode.thor    - the main script
+CfgUUDecode.thor - script for configuring all the options
+UUDecode.cfg     - default configuration file
+UUDecode.readme  - <- you are here
+
+Author
+¯¯¯¯¯¯
+Troels Walsted Hansen <troels\@stud.cs.uit.no>
+Email to the THOR Team at <thor\@hstud6.cs.uit.no> will also reach me.
+
+Thanks to
+¯¯¯¯¯¯¯¯¯
+Eirik Nicolai Synnes <eirikns\@ifi.uio.no>
+ · For his very nice scripts SortMail.thor and CfgSortMail.thor, both of
+   which were *very* useful for v4.x of my script.
+
+History
+¯¯¯¯¯¯¯
+UUDecode.thor v2.00 (20.11.94)
+ · This version is only for THOR v2.0 or higher.
+ · A lot easier to adapt to other uudecoders and
+   includes commandstrings for uuOut, UUFast and UUxT.
+ · Finally fixed qoutes around downloadpath with spaces.
+   (Thank you Sigbjørn Skjæret! :)
+ · Doesn't require rexxsupport.library anymore.
+ · adds comments to uudecoded files containing
+   'From <name> in <conf> on <bbsname>'.
+
+UUDecode.thor v2.05 (07.12.94)
+ · adds filenotes to *all* files in the message
+
+UUDecode.thor v2.40 (10.09.95)
+ · supports multiple selected msgs in THOR 2.1
+
+UUDecode.thor v3.00 (03.10.95)
+ · Uses the AmigaDOS command "search" for finding filenames to
+   add filenotes to. Much faster and uses less RAM.
+ · Destination directory for uudecoded files can now be set.
+ · Filetype recognition added! Currently recognizes all sorts
+   of pictures (based on extension) and three kinds of archives
+   (LhA, Zip and Lzx). Supports viewing pictures inline or with
+   MultiView and extracting or viewing contents of an archive.
+
+UUDecode.thor v3.01 (07.11.95)
+ · Fixed a bug if you didn't have the messagelist window open.
+   (Reported by Giovanni Addabbo)
+
+UUDecode.thor 4.0 (12.11.95)
+ · Almost totally rewritten from scratch.
+ · Progressbar.
+ · Made everything configurable through an external configuration file.
+ · Released on the THOR mailing list, and on the ftp support site.
+
+UUDecode.thor 4.1 (13.11.95)
+ · Added a requester asking you to configure the script to *your* demands
+   the first time you run it.
+ · Released on Aminet, the THOR mailing list and the THOR ftp support site.
+
+----------------
+
+CfgUUDecode.thor 1.0 (12.11.95)
+ · First release of the script on the THOR mailing list.
+
+CfgUUDecode.thor 1.1 (13.11.95)
+ · Editing UUDecoder commandline now works. (simple typo.. :-(
+
+----------------
+
+UUDecode.cfg
+ · Fixed the default UUDecode.cfg file so that UUxT works.
+ · Added a few extensions for the 'a textfile' type.
+
+@endnode
+
+@node "UUEncode" "Included scripts/UUEncode.thor"
+@TOC Scripts
+
+@{b}UUEncode.thor@{ub}
+
+   After  you choose a file to uuencode this script will give you many
+different  options.   The script may archive the file using LhA before
+uuencoding  and  you  may  choose  between  putting  the file into the
+clipboard or posting the file as a message.
+
+@endnode
+
+@node CfgAutoReply "Included scripts/CfgAutoReply.thor"
+
+@{b}CfgAutoReply.thor@{ub}
+
+   This   is   the   configuration   script  for  @{"AutoReply.br" Link "AutoReply.guide/Main"}
+that will let you configure parameters for the AutoReply.br script.
+
+@endnode
+
+@node CfgGetNet "Included scripts/CfgGetNet.thor"
+
+@{b}CfgGetNet.thor@{ub}
+
+   This   is   the   configuration   script  for  @{"GetNet.thor"  Link GetNet}
+that will let you configure parameters for the GetNet.thor script.
+
+@endnode
+
+@node CfgUUDecode "Included scripts/CfgUUDecode.thor"
+
+@{b}CfgUUDecode.thor@{ub}
+
+   This   is   the   configuration   script  for  @{"UUDecode.thor"  Link UUDecode}
+that will let you configure parameters for the UUDecode.thor script.
+
+@endnode
+
+@node "UUJoin" "Included scripts/UUJoin.thor"
+@TOC Scripts
+
+@{b}UUJoin.thor@{ub}
+
+   An  ARexx  script  that  saves parts of a split uuencoded file to a
+tmpfile.   When  you  have  appended the last part, UUDecode.thor will
+decode the file.
+
+@endnode
+
+@node CfgHTTP "Included scripts/CfgHTTP.thor"
+
+@{b}CfgHTTP.thor@{ub}
+
+Configuration editor for the @{"HTTP.thor" Link HTTP} script.
+
+@endnode
+
+@node CfgSortMail "Included scripts/CfgSortMail.thor"
+
+@{b}CfgSortMail.thor@{ub}
+
+   This   is   the   configuration   script  for  @{"SortMail.br"  Link "SortMail.guide/Main"}
+that will let you configure parameters for the SortMail-script.
+
+@endnode
+
+@node KeepMsg "Included scripts/KeepMsg.thor"
+@TOC Scripts
+
+@{b}KeepMsg.thor@{ub}
+
+   This  script  will  copy the current message to a 'Keep' conference
+and  set  the KEEP flag on the message in that conference.  By setting
+the  KEEP flag, the message can't be purge from the conference as long
+as the KEEP flag is set.
+
+   If the destination conference doesn't exist it will be created.
+
+@endnode
+
+@node PGPAddToKeyRing "Included scripts/PGPAddToKeyRing.thor"
+@TOC Scripts
+
+@{b}PGPAddToKeyRing.thor@{ub}
+
+   This  script will add a PGP key to the public keyring.  The PGP key
+to add is assumed to be in the current message in THOR.
+
+   PGP  must  be  correctly  installed for this script to work and the
+AmigaOS command "search" must be in your search path.
+
+@endnode
+
+@node PGPDecrypt "Included scripts/PGPDecrypt.thor"
+@TOC Scripts
+
+@{b}PGPDecrypt.thor@{ub}
+
+   This  script  is  used to decrypt PGP signed or encrypted messages.
+When  executed,  the  current message in THOR will be fed to PGP.  PGP
+will ask you for a password and the decrypted message will be put into
+the message listview where it can be viewed and replied.
+
+@endnode
+
+@node PGPViewPubKeys "Included scripts/PGPViewPubKeys.thor"
+@TOC Scripts
+
+@{b}PGPViewPubKeys.thor@{ub}
+
+   This  script  will  let  you  view  the contents of your public PGP
+keyring.
+
+   PGP  must  be  correctly  installed for this script to work.
+
+@endnode
+
+@node QuotePercent "Included scripts/QuotePercent.thor"
+@TOC Scripts
+
+@{b}QuotePercent.thor@{ub}
+
+   This  script  calculates  the  percentage of quoted characters in a
+message, and put up a requester showing the percentage.
+
+   The  script  is  a port to THOR from a script originally written by
+Kent Hansen for the Fidonet-reader Spot.
+
+@endnode
+
+@node Resend "Included scripts/Resend.thor"
+@TOC Scripts
+
+@{b}Resend.thor@{ub}
+
+   This  script  resends  a message you have previously sent.  It will
+resend  the  current  message  or  messages highlighted in the message
+list.
+
+   This script will not work on Internet systems.
+
+@endnode
+
+@node RePostEN "Included scripts/RePostEN.thor"
+@TOC Scripts
+
+@{b}RePostEN.thor@{ub}
+
+   This  script  is  for  reposting  messages  from  a  System/BBS  to
+conferences  on  another.  The reposted message will get a header that
+will look something like this:
+
+Message crossposted from: News&Mail:comp.sys.amiga.applications
+Originally written by: David Griffiths <dgriff\@unixg.ubc.ca>
+Subject: Where is AmigaBlueWave (AmyBW) author?  Can't register!!!
+
+@endnode
+
+@node SendCommand "Included scripts/SendCommand.thor"
+@TOC Scripts
+
+@{b}SendCommand.thor@{ub}
+
+ An  ARexx  script  that will let you send a Script Command to several
+BBSes, based on a list or on interactive selection.
+
+ See @{"BuildList.thor" Link BuildList} for information on how to make a list.
+
+@endnode
+
+@node SpreadEvent "Included scripts/SpreadEvent.thor"
+@TOC Scripts
+
+@{b}SpreadEvent.thor@{ub}
+
+   Copies events to other BBSes.
+
+@endnode
+
+@node StealTagline "Included scripts/StealTagline.thor"
+@TOC Scripts
+
+@{b}StealTagline.thor@{ub}
+
+   This  script  will let you steal taglines from the currently active
+message  by  opening a multiselect listview where the tagline to steal
+can  be  selected.  The tagline will be appended to the global tagfile
+or the tagfile configured for the active conference/system (if any).
+
+@endnode
+
+@node ChessMaster3000 "Included scripts/ChessMaster3000.thor"
+@TOC Scripts
+
+@{b}ChessMaster3000.thor@{ub}
+
+   This  is a script for playing a game of chess against another THOR-
+user through messages on a System.
+
+Instructions for use
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+You  need  to  have the main THOR window open, because the script uses
+the message listview for displaying the chess board.  If you start the
+script  and  the  current message doesn't contain a game underway, you
+have  the option of starting a new one.  Starting a new game will make
+you  the  white  player and thus let you have the first move.  You may
+choose any BBS to post the message on, any receiver, any subject, etc.
+
+Making   your   move  is  done  via  a  string  requester  asking  for
+coordinates.   Entering  e.g.  'b1c3' will move your white knight from
+B1  to  C3.   The  game  *does* *not* check the validity of your moves
+under  the  rules  of  chess.   It merely checks whether you're really
+moving one of your own pieces to a valid square.
+
+You  may  also  click  the  'Special moves' button (leaving the string
+gadget   empty)   and   be  prompted  with  three  different  choices.
+Exchanging of pawns is probably the most common one and you may use it
+when  one  of  your pawns have reached the other end of the board.  It
+may  be exchanged into either of the other pieces, except for the king
+of course.
+
+To  castle  is  the second option.  This involves moving your king two
+steps  the left (long castling) or to the right (short castling).  The
+squares  between the king and either of your castles must be open, and
+if it is, the castle will jump over the king and stand next to him.
+
+The  last  option  is  the  rarest  (at  least I had never heard of it
+before), it let's you beat an opponent pawn 'en passant' (in passing).
+One  of  your  pawns  must've  been guarding the square in front of an
+opponent  pawn,  an  opponent  pawn which has not moved earlier in the
+game.  Not having moved earlier gives the pawn the opportunity to walk
+past  you by taking it's two-step first move.  If it does this you may
+beat  it,  without  moving  your own pawn, when it is your turn.  This
+must  happen  immediately  after  the  opponent  pawn jumped past your
+guarding pawn.
+
+Winning  the  game  is accomplished by actually beating the opponent's
+king.   This  is  not  usually  done  in chess, but this script has no
+facilities for detecting a checkmate.
+
+After you've made your move, you will be prompted with the possibility
+to  edit  the  message.   This allows you to relay haughty comments to
+your  opponent,  but  you  must  be  careful  not  to  edit  below the
+'***ChessMaster [...]' line!  Doing so might make the script unable to
+parse  the  message  when  your  opponent  is  making  his/hers  move.
+Anything above the indicated line will be ignored and discarded by the
+script.
+
+Other info
+¯¯¯¯¯¯¯¯¯¯
+The chess pieces are represented as follows:
+ K = King      B = Bishop     C = Castle
+ Q = Queen     N = Knight     P = Pawn
+
+A square with a '^'-character below it is *black*.
+
+Black chess pieces are indicated with styletags for reverse video.  If
+you  haven't  switched on Styletags and ANSI in THOR's Visual Options,
+all  you'll  see is a pair of '#'-characters next to the black pieces,
+ruining the game.
+
+Author
+¯¯¯¯¯¯
+Troels  Walsted  Hansen  <troels\@stud.cs.uit.no>.   Contact  me through
+e-mail or on Ultima Thule for bugreports or requests for features.
+
+History
+¯¯¯¯¯¯¯
+New in v1.05:
+· fixed names of the chess pieces
+· userdatabase lookup
+
+New in v1.10:
+· implemented Pawning and Castling
+· corrected starting positions
+· switched coordinates, to conform to chess standards
+
+New in v1.20:
+· enabled editing of file
+· implemented Passant
+· wrote the docs
+
+@endnode
+
+@node TrapDoorPoll "Included scripts/TrapDoorPoll.thor"
+@TOC Scripts
+
+@{b}TrapDoorPoll.thor@{ub}
+
+   This  is  a  script  that  automates  TrapDoor polling of a Systems
+selected from a listview.  The script assumes that you have configured
+one  main  TrapDoor.cfg  and  several small cfg files for each of your
+bosses.  You will need to edit a few lines in this script to suit your
+environment.
+
+@endnode
+
+@node ZapFiles "Included scripts/ZapFiles.thor"
+@TOC Scripts
+
+@{b}ZapFiles.thor@{ub}
+
+   This   script   will  create  sysop  script  commands  for  zapping
+(deleting)  selected  files  on  the remote BBS system using the files
+selected in the filedatabase window.
+
+The  usage  is  pretty  easy,  select  the  files in the file database
+window, the start this script.
+
+Will only work on ABBS/MBBS (or compatible) systems.
+
+@endnode
+
+@node ASCIIPic "Included scripts/ASCIIPic.fse"
+@TOC Scripts
+
+@{b}ASCIIPic.fse@{ub}
+
+   This  script  will convert a picture to ASCII and include it in the
+FSE using 'ilbm2ascii' v1.4 by Tobias Ferber.
+
+   The default path to your picture directory can be edited at the top
+of the script.
+
+@endnode
+
+@node Figlet "Included scripts/Figlet.fse"
+@TOC Scripts
+
+@{b}Figlet.fse@{ub}
+
+   This  script will ask you for a string and a figlet font, and then,
+using  the  figlet  program, write whatever string you entered, in the
+font you chose, into the editor.
+
+   The default path to your font and figlet directory can be edited at
+the top of the script.
+
+@endnode
+
+@node FindFile "Included scripts/FindFile.fse"
+@TOC Scripts
+
+@{b}FindFile.fse@{ub}
+
+   An  ARexx  script  that  finds files matching a search pattern on a
+chosen  system  and  inserts the file information into the FSE you are
+currently using.
+
+   A search for "pic" might come up with this output:
+
+(Gfx/Misc)
+ShowJPEG16.lha   950503   39467   0 V1.3 of the JPEG-viewer for the Picass
+
+(Util/Misc)
+BootPaintPic.lha 950503    8342   2 Excellent Boot Picture-WB3.1 Paint Log
+
+@endnode
+
+@node Forward "Included scripts/forward.fse"
+@TOC Scripts
+
+@{b}Forward.fse@{ub}
+
+   A  small  script  showing how to make a custom forward string, like
+this:
+
+   Petter Nilsen wrote 17-Jul-94 the following:
+
+@endnode
+
+@node Insult "Included scripts/Insult.fse"
+@TOC Scripts
+
+@{b}Insult.fse@{ub}
+
+   This script will insert a random insult into the FSE when invoked.
+Do not use it on someone who can't take it :-)
+
+   The insult might look something like this:
+
+   You goatish fly-bitten moldwarp!
+
+@endnode
+
+@node PreviewMsg "Included scripts/PreviewMsg.fse"
+@TOC Scripts
+
+@{b}PreviewMsg.fse@{ub}
+
+   This  script  will  show  you (in THOR's messagetext listview) what
+your message will look like when read by others in THOR.  This is nice
+for "testing" Style Tags etc.
+
+@endnode
+
+@node Quote "Included scripts/Quote.fse"
+@TOC Scripts
+
+@{b}Quote.fse@{ub}
+
+   A  small script that will simply quote all non-empty lines with the
+'>' prefix.
+
+@endnode
+
+@node UnQuote "Included scripts/UnQuote.fse"
+@TOC Scripts
+
+@{b}UnQuote.fse@{ub}
+
+Reduce the layer of qoute chars (">") in a block of text
+to just one level.
+
+@endnode
+
+@node UUEncodeFSE "Included scripts/UUEncode.fse"
+@TOC Scripts
+
+@{b}UUEncode.fse@{ub}
+
+   An  ARexx  script that uuencodes a file and imports it into the FSE
+you  are  currently  using.   Unless the file is already archived this
+script will optionally do it for you (using LhA).
+
+Utilises LhA by Stefan Boberg and either of the following:
+   · UUFast v1.25 by Jørn Halonen
+   · uuIn v1.03 by Nicolas Dade
+   · UUxT v3.0 by Asher Feldman
+
+@endnode
+
+@node Reqoute "Included scripts/requote.fse"
+@TOC Scripts
+
+@{b}Reqoute.fse@{ub}
+
+   This  script  was  made by the author of the FSE, Marius Mortensen.
+It  is  useful  when you want to break the current line and reflow and
+reqoute the text below it.
+
+   Example:
+
+>>>First line of qouting.
+>>Second line of qouting.
+>Third line of qouting. #Something completely different that you
+>wish to answer seperately below your answer to the text "Third
+>line of qouting".
+
+   Executing Reqoute.fse at cursor position # will make the
+   text appear like this:
+
+>>>First line of qouting.
+>>Second line of qouting.
+>Third line of qouting.
+
+#
+
+>Something completely different that you wish to answer
+>seperately below your answer to the text "Third line of
+>qouting".
+
+   With the cursor now placed at the # ready for typing.
+
+@endnode
+
+@node Style "Included scripts/Style.fse"
+@TOC Scripts
+
+@{b}Style.fse@{ub}
+
+   This  script  is  the central 'hub' for four other scripts.  Namely
+Bold.fse,  Underline.fse,  Italic.fse and Reverse.fse.  When either of
+these  four  scripts  are  invoked they will call upon the main script
+with  a  single  character  as an argument.  This character is '*' for
+Bold.fse,  '_'  for  Underline.fse,  '/'  for  Italic.fse  and '#' for
+Reverse.fse.   These  characters are recognized as Style Tags by THOR.
+Whenever  THOR  encounters  one of these in a message it will make the
+word  enclosed  by  two  such  characters  styled  according  to which
+characters found.
+
+  Style.fse  will  take  the  character it received as an argument and
+place  one  on  either  side  of the word which is currently under the
+cursor.   Style.fse  will  also enclose the word if the cursor is on a
+space  @{i}after@{ui}  the  word  or  if  the  cursor  is on a special
+character like '!', '?', '.' etc.  after the word.
+
+@endnode
+
+@node AddAmiNetFileList "Included scripts/AddAmiNetFileList.br"
+@TOC Scripts
+
+@{b}AddAmiNetFileList.br@{ub}
+
+   This  script  is for adding an AmiNet RECENT/INDEX file list to the
+file database on the given system.  Example command line:
+
+   rx AddAminetFilelist.br "News&Mail" "ram:INDEX"
+
+@endnode
+
+@node AddFileList "Included scripts/AddFileList.br"
+@TOC Scripts
+
+@{b}AddFileList.br@{ub}
+
+   This  script  is  for adding a FLIM generated ABBS file list to the
+file database on the given system.  Example command line:
+
+   rx AddFilelist.br "Ultima Thule BBS" "ram:utfiles.txt"
+
+@endnode
+
+@node CheckDataBase "Included scripts/CheckDataBase.br"
+@TOC Scripts
+
+@{b}CheckDataBase.br@{ub}
+
+   Checks the messages in one or ALL Systems.  If the DELETE switch is
+used,  all  messages  that  are  impossible  to read will be marked as
+deleted.
+
+@endnode
+
+@node "ChkDupesAndCross" "Included scripts/ChckDupesAndCross.br"
+@TOC Scripts
+
+@{b}ChkDupesAndCross.br@{ub}
+
+   THOR script by Henrik Dissing, hendis\@post4.tele.dk
+
+   Checks for duplicates and cross-postings in one or all Systems.  If
+run  from  within  THOR,  current  System will be scanned.  Duplicates
+(identical   messages   in   same   conference)   are  deleted,  while
+cross-postings  of  same message in multiple conferences are marked as
+read.
+
+   Apply  the  VERBOSE  switch to see progress information.  THOR does
+not need to run during execution, but if it does the Conference window
+will be updated afterwards.
+
+@endnode
+
+@node CheckUserDataBase "Included scripts/CheckUserDataBase.br"
+@TOC Scripts
+
+@{b}CheckUserDataBase.br@{ub}
+
+   Checks  the  the users in one or ALL Systems.  If the DELETE switch
+is  used,  all  users  that  are  impossible to read will be marked as
+deleted.
+
+@endnode
+
+@node ClearFileDataBase "Included scripts/ClearFileDataBase.br"
+@TOC Scripts
+
+@{b}ClearFileDataBase.br@{ub}
+
+   Delete all fileareas in the file database on a System.
+
+@endnode
+
+@node CreateDlEvent "Included scripts/CreateDlEvent.br"
+@TOC Scripts
+
+@{b}CreateDlEvent.br@{ub}
+
+   Creates  an ftp download event in the specified Thor system.  To be
+used from other programs.
+
+   Usage:  CreateDLEvent.br System/A URL/A
+
+@endnode
+
+@node DefaultNames "Included scripts/DefaultNames.br"
+@TOC Scripts
+
+@{b}DefaultNames.br@{ub}
+
+   Sets  all  bbses  to  use  globaly  defined name, address and phone
+number.
+
+@endnode
+
+@node GetCmd "Included scripts/GetCmd.br"
+@TOC Scripts
+
+@{b}GetCmd.br@{ub}
+
+   Displays the templates of all, one or a matching set of the THOR or
+BBSREAD ARexx command sets.  Use "rx GetCmd.br ?" for help
+
+@endnode
+
+@node JoinConfs "Included scripts/JoinConfs.br"
+@TOC Scripts
+
+@{b}JoinConfs.br@{ub}
+
+   This  arexx  script  is  ment  to be used when a conference changes
+name,  and  you have both the old and new conference in your database.
+It  will add all messages in the new named conference to the old named
+conf.   Afterwards, the old named conference is renamed to the name of
+the new named conference.
+
+@endnode
+
+@node Log2Info "Included scripts/Log2Info.br"
+@TOC Scripts
+
+@{b}Log2Info.br@{ub}
+
+   Adds  the  contents  of  a  temporary  logfile  to  the Information
+conference.
+
+   Set  ConnectTHOR  of  Get/SendTCP  to  log to the file specified in
+InfoLog.  If you also want the information logged to a permanent file,
+specify the name in MainLog.
+
+@endnode
+
+@node PackData "Included scripts/PackData.br"
+@TOC Scripts
+
+@{b}PackData.br@{ub}
+
+   This script will let you use the BBSREAD Arexx command PACKDATAFILE
+from cli. See the BBSREAD documentation for @{"PACKDATAFILE" Link "BBSReadRexx.guide/PACKDATAFILE"}
+documentation for further information.
+
+@endnode
+
+@node Reply2Enter "Included scripts/Reply2Enter.br"
+@TOC Scripts
+
+@{b}Reply2Enter.br@{ub}
+
+   This  script  will  convert  all active reply events on a system to
+enter msg events.  This can be useful if the remote system has changed
+or packed conferences so that the events can't be sent as reply events
+anymore.
+
+   Replaces THOR:bin/Reply2Enter from previous 1.2x distributions.
+
+@endnode
+
+@node SetLastRead "Included scripts/SetLastRead.br"
+@TOC Scripts
+
+@{b}SetLastRead.br@{ub}
+
+   This  script  will set the last read pointers for a ABBS system and
+is  only useful on ABBS systems and conjuction with the supplied NComm
+script.
+
+@endnode
+
+@node FSE_Commands "Command Reference/FSE"
+
+ARexx commands in the FSE
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+ @{b}General Commands@{ub}
+   @{" HIDE              " Link HIDE} Hides the editor
+   @{" NOP               " Link NOP} Do nothing
+   @{" QUIT              " Link FSE_QUIT} Quit the editor without any requester
+   @{" REFRESH           " Link REFRESH} Redraw the window
+   @{" REVEAL            " Link REVEAL} Bring back the editor after hinding it
+
+ @{b}Status Commands@{ub}
+   @{" CURRENTCHAR       " Link CURRENTCHAR} Returns the character under the cursor
+   @{" FSESCREENNAME     " Link FSESCREENNAME} Returns the name of the screen this FSE resides on
+   @{" GETFSEREVISION    " Link GETFSEREVISION} Returns the revision of the editor
+   @{" GETFSEVERSION     " Link GETFSEVERSION} Returns the version of the editor
+   @{" GETLINE           " Link GETLINE} Returns the contents of a line
+   @{" ISFIRSTCALL       " Link ISFIRSTCALL} Returns first-call status
+   @{" LINELENGTH        " Link LINELENGTH} Returns maximum number of columns
+   @{" MAXMSGLENGTH      " Link MAXMSGLENGTH} Returns maximum number of lines
+   @{" MSGFILENAME       " Link MSGFILENAME} Returns the filename of the file in the FSE
+   @{" MSGLENGTH         " Link MSGLENGTH} Returns number of lines in this file
+   @{" RECIPIENT         " Link RECIPIENT} Returns the receiver of the message you're writing
+   @{" RECIPIENTADDR     " Link RECIPIENTADDR} Returns the receivers address of the message
+   @{" SENDER            " Link SENDER} Returns the sender of the message in the FSE
+   @{" SENDERADDR        " Link SENDERADDR} Returns the senders address of the message
+   @{" SENDERDATE        " Link SENDERDATE} Returns the date and/or time of the message
+   @{" CONFERENCE        " Link CONFERENCE} Returns the original conference of the message
+
+   @{" XPOS              " Link XPOS} Returns cursor X-value
+   @{" YPOS              " Link YPOS} Returns cursor Y-value
+
+   @{" AUTOINDENT        " Link AUTOINDENT} Changes and returns the AutoIndent status
+   @{" OVERWRITE         " Link OVERWRITE} Changes and returns the Overwrite/Insert status
+
+ @{b}FSE Specific Commands@{ub}
+   @{" BACKSPACE         " Link BACKSPACE} The same as a backspace-press
+   @{" BEGOFFILE         " Link BEGOFFILE} Moves cursor to beginning of file (1,1)
+   @{" BEGOFLINE         " Link BEGOFLINE} Moves cursor to the first char on the current line
+   @{" DELETELINES       " Link DELETELINES} Delete a number of lines
+   @{" ENDOFFILE         " Link ENDOFFILE} Moves cursor to the end of the file
+   @{" ENDOFLINE         " Link ENDOFLINE} Moves cursor to the end of the current line
+   @{" INCLUDEFILE       " Link INCLUDEFILE} Include specified or requested file
+   @{" INSERTBUFFERLINES " Link INSERTBUFFERLINES} Insert a number of lines from the buffer
+   @{" INSERTINPUT       " Link INSERTINPUT} Insert string asynchronously
+   @{" INSERTLINES       " Link INSERTLINES} Insert one or more empty lines
+   @{" INSERTSTRING      " Link INSERTSTRING} Insert string synchronously
+   @{" INSERTTAG         " Link INSERTTAG} Ask THOR for a tag to include
+   @{" NEWLINE           " Link NEWLINE} The same as a <return> press
+   @{" PASTECLIP         " Link PASTECLIP} Paste clipboard contents at current cursor position
+   @{" PLAYMACRO         " Link PLAYMACRO} Play macro number 1-20 asynchronously
+   @{" SAVEFILE          " Link SAVEFILE} Save file to specified or requested name
+   @{" SETPOS            " Link SETPOS} Move cursor to a specific position
+
+ @{b}Requester Commands@{ub}
+   @{" REQUESTNOTIFY     " Link REQUESTNOTIFY} Open a requester with text and gadgets
+   @{" REQUESTSTRING     " Link REQUESTSTRING} Request a string from the user
+
+@endnode
+
+@node HIDE "FSE/General/Hide"
+@TOC FSE_Commands
+
+@{u}The HIDE command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Hide the editor.
+
+@{b}Specifications:@{ub}
+   The next ARexx-command sent will wake it up again.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   HIDE
+
+@endnode
+
+@node FSE_QUIT "FSE/General/Quit"
+@TOC FSE_Commands
+
+@{u}The QUIT command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Quit the FSE.
+
+@{b}Specifications:@{ub}
+   Will quit without asking for confirmation to cancel the
+   message.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   QUIT
+
+@endnode
+
+@node REFRESH "FSE/General/Refresh"
+@TOC FSE_Commands
+
+@{u}The REFRESH command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Redraw the FSE window.
+
+@{b}Specifications:@{ub}
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   REFRESH
+
+@endnode
+
+@node REVEAL "FSE/General/Reveal"
+@TOC FSE_Commands
+
+@{u}The REVEAL command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Bring back the editor after it has been hid with the
+   @{"HIDE" Link HIDE} command.
+
+@{b}Specifications:@{ub}
+   -
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   HIDE
+   REVEAL
+
+@endnode
+
+@node CURRENTCHAR "FSE/Information/CurrentChar"
+@TOC FSE_Commands
+
+@{u}The CURRENTCHAR command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Return the character under the cursor.
+
+@{b}Specifications:@{ub}
+   Remember that the command may return "".
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   CURRENTCHAR
+   char = result
+
+   REQUESTNOTIFY TEXT '"'char'"' BT '"_Ok"'
+
+@endnode
+
+@node FSESCREENNAME "FSE/Information/FSEScreenName"
+@TOC FSE_Commands
+
+@{u}The FSESCREENNAME command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Return the name of the screen this FSE resides on.
+
+@{b}Specifications:@{ub}
+   -
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   FSESCREENNAME
+   screenname = result
+
+   REQUESTNOTIFY TEXT '"'screenname'"' BT '"_Ok"'
+
+@endnode
+
+@node GETFSEREVISION "FSE/Information/GetFSERevision"
+@TOC FSE_Commands
+
+@{u}The GETFSEREVISION command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Return the revision of the editor.
+
+@{b}Specifications:@{ub}
+   -
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   GETFSEVERSION
+   version = result
+
+   GETFSEREVISION
+   revision = result
+
+   REQUESTNOTIFY TEXT '"''||'FSE version: ...
+   '||version||.||revision'"' BT '"_Ok"'
+
+@endnode
+
+@node GETFSEVERSION "FSE/Information/GetFSEVersion"
+@TOC FSE_Commands
+
+@{u}The GETFSEVERSION command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Return the version of the editor.
+
+@{b}Specifications:@{ub}
+   -
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   GETFSEVERSION
+   version = result
+
+   GETFSEREVISION
+   revision = result
+
+   REQUESTNOTIFY TEXT '"''||'FSE version: ...
+   '||version||.||revision'"' BT '"_Ok"'
+
+@endnode
+
+@node GETLINE "FSE/Information/GetLine"
+@TOC FSE_Commands
+
+@{u}The GETLINE command@{uu}
+
+@{b}Template:@{ub}
+   LINENUMBER
+
+@{b}Purpose:@{ub}
+   Return the contents of a line.
+
+@{b}Specifications:@{ub}
+   Returns the contents of the line number given on the
+   commandline, or the current one if none specified.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   If there are no lines in the message, or the line
+   requested is out of range.
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   /* Output contents of current line */
+
+   GETLINE
+   say result
+
+   /* Output contents of line number 10 */
+
+   GETLINE 10
+   say result
+
+@endnode
+
+@node ISFIRSTCALL "FSE/Information/IsFirstCall"
+@TOC FSE_Commands
+
+@{u}The ISFIRSTCALL command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Determine whether this is the first time the editor is
+   called on this message.
+
+@{b}Specifications:@{ub}
+   Returns:
+   "ON"  : This is the first time the editor is called on
+           this message (i.e. you may want to quote it.)
+   "OFF" : Edit message etc.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   ISFIRSTCALL
+   if result = "OFF" say 'This is NOT the first time ...
+   this file is being edited.'
+   else say 'This IS the first time this file is being ...
+   edited.'
+
+@endnode
+
+@node LINELENGTH "FSE/Information/LineLength"
+@TOC FSE_Commands
+
+@{u}The LINELENGTH command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+        Return the number of characters in the current line.
+
+@{b}Specifications:@{ub}
+   -
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+        LINELENGTH
+   say 'This line is '||result||' characters long.'
+
+@endnode
+
+@node MAXMSGLENGTH "FSE/Information/MaxMSGLength"
+@TOC FSE_Commands
+
+@{u}The MAXMSGLENGTH command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Return the maximum number of lines in the FSE.
+
+@{b}Specifications:@{ub}
+   -
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   MAXMSGLENGTH
+   say 'This editor has a maximum of '||result||' line(s).'
+
+@endnode
+
+@node MSGFILENAME "FSE/Information/MSGFileName"
+@TOC FSE_Commands
+
+@{u}The MSGFILENAME command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Return the filename of the file currently being edited.
+
+@{b}Specifications:@{ub}
+   -
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   MSGFILENAME
+   say 'The name of this file is '||result
+
+@endnode
+
+@node MSGLENGTH "FSE/Information/MSGLength"
+@TOC FSE_Commands
+
+@{u}The MSGLENGTH command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Return number of lines in the file currently being
+   edited.
+
+@{b}Specifications:@{ub}
+
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   MSGLENGTH
+   say 'This file has '||result||' line(s).'
+
+@endnode
+
+@node RECIPIENT "FSE/Information/Recipient"
+@TOC FSE_Commands
+
+@{u}The RECIPIENT command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Return the name of the receiver of the message in the
+   editor.
+
+@{b}Specifications:@{ub}
+
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   In a normal reply-situation, SENDER=RECIPIENT if it isn't
+   forwarded.
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   RECIPIENT
+   INSERTSTRING 'This message is addressed to '||result
+
+@endnode
+
+@node RECIPIENTADDR "FSE/Information/RecipientAddr"
+@TOC FSE_Commands
+
+@{u}The RECIPIENTADDR command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Returns the address of the receiver of the message in the
+   editor.
+
+@{b}Specifications:@{ub}
+
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   RECIPIENTADDR
+   INSERTSTRING 'This message is addressed to the address '||result
+
+@endnode
+
+@node SENDER "FSE/Information/Sender"
+@TOC FSE_Commands
+
+@{u}The SENDER command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Return the sender of the message in the editor.
+
+@{b}Specifications:@{ub}
+   The name returned by this command will be the name of
+   the person who wrote the message that this message is a
+   reply to. When replying a message in THOR this name will
+   be the same as that returned by the @{"RECIPIENT" Link RECIPIENT} command.
+   When the message is forwarded the names may differ.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   SENDER
+   if(result ~= "") then INSERTSTRING 'This message is a ...
+   reply to a message written by '||result
+   else exit
+
+@endnode
+
+@node SENDERADDR "FSE/Information/SenderAddr"
+@TOC FSE_Commands
+
+@{u}The SENDERADDR command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Return the address to the sender of the message in the editor.
+
+@{b}Specifications:@{ub}
+   The address returned by this command will be the address of
+   the person who wrote the message that this message is a
+   reply to. When replying a message in THOR this address will
+   be the same as that returned by the @{"RECIPIENTADDR" Link RECIPIENTADDR} command.
+   When the message is forwarded the addresses may differ.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   SENDERADDR
+   if(result ~= "") then INSERTSTRING 'This message is a ...
+   reply to a message written by '||result
+   else exit
+
+@endnode
+
+@node SENDERDATE "FSE/Information/SenderDate"
+@TOC FSE_Commands
+
+@{u}The SENDERDATE command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Return the date and/or time at which the message in the 
+   editor was written.
+
+@{b}Specifications:@{ub}
+   -
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   SENDERDATE
+   INSERTSTRING 'This message is dated: '||result
+
+@endnode
+
+@node CONFERENCE "FSE/Information/Conference"
+@TOC FSE_Commands
+
+@{u}The CONFERENCE command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Returns the original conference of the message in the FSE.
+
+@{b}Specifications:@{ub}
+   The conference name returned here is the conference that
+   the message you are replying to was originally in.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   CONFERENCE
+   if(result ~= "") then do 
+      INSERTSTRING 'Reply to a message in conference '||result
+   end
+   else exit
+
+@endnode
+
+@node XPOS "FSE/Information/XPos"
+@TOC FSE_Commands
+
+@{u}The XPOS command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Return cursor X-value.
+
+@{b}Specifications:@{ub}
+   -
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   XPOS
+   INSERTSTRING 'The cursor is now on character ...
+   '||result||' on the line.'
+
+@endnode
+
+@node YPOS "FSE/Information/YPos"
+@TOC FSE_Commands
+
+@{u}The YPOS command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Return cursor Y-value.
+
+@{b}Specifications:@{ub}
+   -
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   YPOS
+   INSERTSTRING 'The cursor is now on line number ...
+   '||result||'.'
+
+@endnode
+
+@node AUTOINDENT "FSE/Information/AutoIndent"
+@TOC FSE_Commands
+
+@{u}The AUTOINDENT command@{uu}
+
+@{b}Template:@{ub}
+   STATUS
+
+@{b}Purpose:@{ub}
+   Change and/or return current AutoIndent status.
+
+@{b}Specifications:@{ub}
+   Valid specifiers are ON=Y=YES and OFF=N=NO.  Returns ON
+   or OFF depending on the current status.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   AUTOINDENT
+   INSERTSTRING 'The current AutoIndent status is: ...
+   '||result
+
+   AUTOINDENT OFF
+   INSERTSTRING 'AutoIndent is now OFF'
+
+@endnode
+
+@node OVERWRITE "FSE/Information/OverWrite"
+@TOC FSE_Commands
+
+@{u}The OVERWRITE command@{uu}
+
+@{b}Template:@{ub}
+        STATUS
+
+@{b}Purpose:@{ub}
+   Change and/or return current Overwrite/Insert status.
+
+@{b}Specifications:@{ub}
+   Valid specifiers are ON=Y=YES and OFF=N=NO.  Returns ON
+   or OFF depending on the current status.  
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   OVERWRITE
+   if(result = "OFF") then INSERTSTRING 'Insert is ON.'
+   else if(result = "ON") then INSERTSTRING 'Overwrite is ON.'
+
+@endnode
+
+@node BACKSPACE "FSE/SpecificCommands/BackSpace"
+@TOC FSE_Commands
+
+@{u}The BACKSPACE command@{uu}
+
+@{b}Template:@{ub}
+        NUMBER
+
+@{b}Purpose:@{ub}
+   Delete the character to the left of the current cursor
+   position.
+
+@{b}Specifications:@{ub}
+        NUMBER is the number of backspaces to insert.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR_FSE.01'
+
+   /* Delete from cursor to left margin */
+
+   XPOS
+   BACKSPACE result
+
+@endnode
+
+@node BEGOFFILE "FSE/SpecificCommands/BegOfFile"
+@TOC FSE_Commands
+
+@{u}The BEGOFFILE command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Move cursor to the beginning of the file.
+
+@{b}Specifications:@{ub}
+        Opposite of the @{"ENDOFFILE" Link ENDOFFILE} command.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   BEGOFFILE
+
+@endnode
+
+@node BEGOFLINE "FSE/SpecificCommands/BegOfLine"
+@TOC FSE_Commands
+
+@{u}The BEGOFLINE command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Move cursor to the first character on the current line.
+
+@{b}Specifications:@{ub}
+   Note that this does not include whitespace.  Opposite of
+   the @{"ENDOFLINE" Link ENDOFLINE} command.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   BEGOFLINE
+
+@endnode
+
+@node DELETELINES "FSE/SpecificCommands/DeleteLines"
+@TOC FSE_Commands
+
+@{u}The DELETELINES command@{uu}
+
+@{b}Template:@{ub}
+        LINES
+
+@{b}Purpose:@{ub}
+   Delete a number of lines.
+
+@{b}Specifications:@{ub}
+   LINES is the number of lines to delete.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   /* Delete ten lines */
+
+   DELETELINES 10
+
+@endnode
+
+@node ENDOFFILE "FSE/SpecificCommands/EndOfFile"
+@TOC FSE_Commands
+
+@{u}The ENDOFFILE command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Move cursor to the position behind the last character in
+   the text.
+
+@{b}Specifications:@{ub}
+   Opposite of the @{"BEGOFFILE" Link BEGOFFILE} command.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   ENDOFFILE
+
+@endnode
+
+@node ENDOFLINE "FSE/SpecificCommands/EndOfLine"
+@TOC FSE_Commands
+
+@{u}The ENDOFLINE command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Move cursor to the position behind the last character
+   on the current line.
+
+@{b}Specifications:@{ub}
+        Opposite of the @{"BEGOFLINE" Link BEGOFLINE} command.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   ENDOFLINE
+
+@endnode
+
+@node INCLUDEFILE "FSE/SpecificCommands/IncludeFile"
+@TOC FSE_Commands
+
+@{u}The INCLUDEFILE command@{uu}
+
+@{b}Template:@{ub}
+        NAME
+
+@{b}Purpose:@{ub}
+   Include file.
+
+@{b}Specifications:@{ub}
+   If no NAME is specified, a filerequester will open
+   requesting a name form one from the user.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   INCLUDEFILE 's:startup-sequence'
+
+   /* Request file from user */
+
+   INCLUDEFILE
+
+@endnode
+
+@node INSERTBUFFERLINES "FSE/SpecificCommands/InsertBufferLines"
+@TOC FSE_Commands
+
+@{u}The INSERTBUFFERLINES command@{uu}
+
+@{b}Template:@{ub}
+        LINES
+
+@{b}Purpose:@{ub}
+   Insert lines from the buffer.
+
+@{b}Specifications:@{ub}
+   Inserts lines deleted with CTRL-Y or @{"DELETELINES" Link DELETELINES}. Same as 
+   CTRL-B. LINES is the number of lines to insert.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   /* Delete ten lines and reinsert them five lines below */
+
+   DELETELINES 10
+   SETPOS Y 5
+        INSERTBUFFERLINES 10
+
+@endnode
+
+@node INSERTINPUT "FSE/SpecificCommands/InsertInput"
+@TOC FSE_Commands
+
+@{u}The INSERTINPUT command@{uu}
+
+@{b}Template:@{ub}
+        STRING/A/F
+
+@{b}Purpose:@{ub}
+   Insert string asynchronously
+
+@{b}Specifications:@{ub}
+        The string will be inserted as if it were typed at the
+   keyboard and may include control-codes like CTRL-B,
+   CTRL-QY etc.  Strings inserted with INSERTINPUT will be
+   noticed by i.e. macro-learning (as opposed to 
+   @{"INSERTSTRING" Link INSERTINPUT}).
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   INSERTINPUT 'String....'
+
+@endnode
+
+@node INSERTLINES "FSE/SpecificCommands/InsertLines"
+@TOC FSE_Commands
+
+@{u}The INSERTLINES command@{uu}
+
+@{b}Template:@{ub}
+        LINES
+
+@{b}Purpose:@{ub}
+   Insert one or more empty lines at the current cursor
+   position (same as CTRL-O).
+
+@{b}Specifications:@{ub}
+   -
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   INSERTLINES 7
+
+@endnode
+
+@node INSERTSTRING "FSE/SpecificCommands/InsertString"
+@TOC FSE_Commands
+
+@{u}The INSERTSTRING command@{uu}
+
+@{b}Template:@{ub}
+        STRING/A/F
+
+@{b}Purpose:@{ub}
+   Insert the string supplied synchronously.
+
+@{b}Specifications:@{ub}
+   Will not be noticed by i.e. macro-learning (as opposed
+   to @{"INSERTINPUT" Link INSERTINPUT}).
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   INSERTSTRING 'String!'
+
+@endnode
+
+@node INSERTTAG "FSE/SpecificCommands/InsertTag"
+@TOC FSE_Commands
+
+@{u}The INSERTTAG command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Ask THOR for a tag and include it at current cursor
+   position.
+
+@{b}Specifications:@{ub}
+   -
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   ENDOFFILE
+   INSERTTAG
+
+@endnode
+
+@node NEWLINE "FSE/SpecificCommands/NewLine"
+@TOC FSE_Commands
+
+@{u}The NEWLINE command@{uu}
+
+@{b}Template:@{ub}
+        ,
+
+@{b}Purpose:@{ub}
+   The same as a <return> press.
+
+@{b}Specifications:@{ub}
+   -
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   /* ten new lines */
+
+   do i = 1 to 10
+      NEWLINE
+   end
+
+@endnode
+
+@node PASTECLIP "FSE/SpecificCommands/PasteClip"
+@TOC FSE_Commands
+
+@{u}The PASTECLIP command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Paste clipboard contents at current cursor position.
+
+@{b}Specifications:@{ub}
+   -
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+        PASTECLIP
+
+@endnode
+
+@node PLAYMACRO "FSE/SpecificCommands/PlayMacro"
+@TOC FSE_Commands
+
+@{u}The PLAYMACRO command@{uu}
+
+@{b}Template:@{ub}
+        MACRO
+
+@{b}Purpose:@{ub}
+   Play macro number 1-20 asynchronously.
+
+@{b}Specifications:@{ub}
+   MACRO is the macro number to play.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   PLAYMACRO 9
+
+@endnode
+
+@node SAVEFILE "FSE/SpecificCommands/SaveFile"
+@TOC FSE_Commands
+
+@{u}The SAVEFILE command@{uu}
+
+@{b}Template:@{ub}
+        FILENAME
+
+@{b}Purpose:@{ub}
+   Save file.  If no name specified, requests one from
+   user.
+
+@{b}Specifications:@{ub}
+   -
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   WARN is returned when an error has occured.
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   /* save file as 't:temp' */
+
+   SAVEFILE 't:temp'
+
+        /* let the user choose filename */
+
+   SAVEFILE
+
+@endnode
+
+@node SETPOS "FSE/SpecificCommands/SetPos"
+@TOC FSE_Commands
+
+@{u}The SETPOS command@{uu}
+
+@{b}Template:@{ub}
+   X/K,Y/K
+
+@{b}Purpose:@{ub}
+   Move cursor to a specific position.
+
+@{b}Specifications:@{ub}
+   Note that 0 is a valid argument that does not affect the
+   cursor.  You may also leave out any arguments.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+        A WARN is returned if any of the coordinates are out of
+   range.
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'
+
+   /* place cursor on char number 10 on line 2 */
+   SETPOS X 10 Y 2
+
+   /* moves cursor to (10,10) */
+   SETPOS 10,10
+
+   /* moves cursor to position 10 on this line */
+   SETPOS 10
+
+   /* moves cursor to line 10 with unchanged X-value */
+   SETPOS 0 10
+   SETPOS Y 10
+
+@endnode
+
+@node RequestNotify "FSE/Requesters/RequestNotify"
+@TOC FSE_Commands
+
+@{u}The REQUESTNOTIFY command@{uu}
+
+@{b}Template:@{ub}
+   TEXT/A,BUTTONTEXT=BT/A
+
+@{b}Purpose:@{ub}
+   Will open a requester with some information text in it,
+   specified to the command.
+
+@{b}Specifications:@{ub}
+   TEXT can contain upto 300 characters and will be prosessed like
+   the signature in THOR.  This means that variables like $ver and
+   $time can be used and will be translated.  Max number of
+   characters is 300, this this is @{i}after@{ui} any variables you 
+   use have been expanded, so with $time and $ver the limit for the
+   text in is about 280 characters.
+
+   BUTTONTEXT is the text to be in the gadgets and the shortcut can
+   be set with '_' in front of the key that is to act as a
+   shortcut.  The text for each gadget is separated with a '|', and
+   it's possible to define 1 or more gadgets.
+
+@{b}Result:@{ub}
+   If the command is not known to THOR or wrong parameters are
+   specified, the command will return 10.  The command will return
+   0 when the user chooses a gadget, and result will contain the
+   number of the gadget selected.  The value in result will be 1
+   (TRUE) for leftmost (positive) response, then each consecutive
+   response will return 1 more, the rightmost (false) response will
+   return 0 (FALSE) in result.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR.01'
+
+   THORTOFRONT
+
+   REQUESTNOTIFY TEXT '"The time is now: $time\n\nOK will return ...
+   1, MAYBE will return 2\nand CANCEL will return 0"' BT ...
+   '"_OK|_MAYBE|_CANCEL"'
+
+   retval = result
+
+   if(retval = 0) then do
+       say 'User pressed CANCEL'
+   end
+
+   if(retval = 1) then do
+       say 'User pressed OK'
+   end
+
+   if(retval = 2) then do
+       say 'User pressed MAYBE'
+   end
+
+@endnode
+
+@node RequestString "FSE/Requesters/RequestString"
+@TOC FSE_Commands
+
+@{u}The REQUESTSTRING command@{uu}
+
+@{b}Template:@{ub}
+   TITLETEXT=TITLE/A,BUTTONTEXT=BT/A,INITIALSTRING=ID,MAXCHARS/N/A
+
+@{b}Purpose:@{ub}
+   Will open a requester which accepts any string input you give
+   it, upto MAXCHARS number of characters.
+
+@{b}Specifications:@{ub}
+   BUTTONTEXT is the text to be in the gadgets and the shortcut can
+   be set with '_' in front if the key that is to act as a
+   shortcut.  The text for each gadget is separated with a '|', and
+   it's possible to define 1 or more gadgets, although more than
+   two gadgets won't do any good.  If a single gadget it used, the
+   command can only be canceled by entering no text in the gadget.
+   2 gadgets, no more and no less, is highly recommended for this
+   requester.
+
+@{b}Result:@{ub}
+   If nothing is entered, the requester is canceled or fails for
+   some other reason, the command will return 10.  Will return 0 on
+   success and result will contain the string entered.
+
+@{b}Warning:@{ub}
+   Note that the MAXCHARS can't be higher than 1000.
+
+@{b}Example:@{ub}
+   options results
+   address 'THOR.01'
+
+   THORTOFRONT
+
+   REQUESTSTRING TITLE '"Enter something:"' BT '"_Ok|_Cancel"' ID '"Some text"'
+   MAXCHARS 40
+
+   say result
+
+@endnode
+
+@node NOP "FSE/General/NOP"
+@TOC FSE_Commands
+
+@{u}The NOP command@{uu}
+
+@{b}Template:@{ub}
+   ,
+
+@{b}Purpose:@{ub}
+   Do nothing but return a value.
+
+@{b}Specifications:@{ub}
+   The NOP (NO-oPeration) instruction is provided to
+   control the binding of ELSE clauses in compound IF
+   statements.
+
+@{b}Result:@{ub}
+   Will return 0 on success and 10 on failure.
+
+@{b}Warning:@{ub}
+   -
+
+@{b}Example:@{ub}
+   address 'THOR_FSE.01'  /* or 'THOR.01' */
+
+   if i = j then         /* First (outer) IF */
+      if j = k then a = 0   /* Inner IF */
+         else NOP   /* Binds to inner IF */
+      else a = a + 1      /* Binds to outer IF */
+
+@endnode

@@ -1,0 +1,184 @@
+@database AmigaGuide.guide
+@master Guide für die Demos zur Library
+
+@node "UserDemo" "UserDemo"
+
+/*-------------------------------------*/
+/* Programm:    User Listen            */
+/*-------------------------------------*/
+/* Funktion:  Listet alle User dieser  */
+/*            Mail Box                 */
+/*-------------------------------------*/
+
+/*-------- Standart Includes ----------*/
+
+#include <exec/exec.h>
+#include <utility/tagitem.h>
+#include <dos/dos.h>
+
+#include <clib/exec_protos.h>
+#include <clib/dos_protos.h>
+#include <pragmas/exec_pragmas.h>
+#include <pragmas/dos_pragmas.h>
+/*-------------------------------------*/
+
+/*----- AmBoSDataLibrary Includes -----*/
+
+#include <clib/AmBoSData_protos.h>
+#include <libraries/AmBoSTags.h>
+
+/*-------------------------------------*/
+
+/* für die Dos.Library             */
+/* kommt von der c.o  ;-)) bei SAS */
+
+extern struct Library *DOSBase;
+
+/* Festlegung der Variablen */
+
+char UserName[128];
+ULONG ULoad,DLoad;
+
+/* AmBoSDataLibrary öffnen */
+
+struct Library *ADL_Open(void)
+{
+  AmBoSDataBase = OpenLibrary("ambosdata.library",0L);
+  return (AmBoSDataBase);
+}
+
+/* AmBoSDataLibrary schließen */
+
+void ADL_Close(void)
+{
+  if(AmBoSDataBase)
+    CloseLibrary(AmBoSDataBase);
+}
+/*-------------------------------------*/
+/* Funktion:  Ermitelt die länge eines */
+/*            Textes                   */
+/*-------------------------------------*/
+/* Parameter:                          */
+/*    Text Zeiger auf einen String     */
+/* Rückgabe :                          */
+/*    Die länge/String muß Null        */
+/*    Terminiert sein                  */
+/*-------------------------------------*/
+
+int GetLen(char *Text)
+{
+  int i = 0;
+
+  while(Text[i] != 0)
+  {
+    i++;
+  }
+  return (i);
+}
+
+/*-------------------------------------*/
+/* Funktion: Ausgabe eines Textes und  */
+/*           zweier ULONG werte        */
+/*-------------------------------------*/
+/* Parameter:                          */
+/*          char *Name Zeiger auf Text */
+/*         ULONG Upload, Download      */
+/* Rückgabe :                          */
+/*           Keine Rückgabe            */
+/*-------------------------------------*/
+
+void Print(char *Name, ULONG UL, ULONG DL)
+{
+char fuel[] = "                              ";
+
+  Name[30] = 0; /* mehr wie 30, unübersichtlich */
+
+  FPuts(Output(),Name); /* Text ausgeben */
+  FPuts(Output(),&fuel[GetLen(Name)]); /* Leerzeichen auffüllen */
+    /* Down und Upload ausgeben */
+	FPuts(Output(),&fuel[(VFPrintf(Output(),
+                        "Uploads   :%lu",&UL)+10)]);
+	FPuts(Output(),&fuel[(VFPrintf(Output(),
+                        "Downloads :%lu",&DL)+10)]);
+}
+	
+
+APTR GetNext(APTR User)
+{
+  APTR NUser;
+
+  if(! User)      /* Nichts bekommen wieder */
+    return (NULL);/* zurück, mit nichts     */
+
+  /* Neues User Objekt holen, altes freigeben */
+  NUser = ADataSetTag(DATASET_Next,User,
+                      DATASET_Free,User,TAG_DONE);
+  return (NUser); /* Neues Objekt zurück */
+}
+
+/*-------------------------------------*/
+/*    Ausgabe der User dieser Box      */
+/*-------------------------------------*/
+/* Parameter: Keine                    */
+/* Rückgabe :                          */
+/*            Immer Null               */
+/*-------------------------------------*/
+
+int main (void)
+{
+APTR User;  /* Für das User Objekt */
+
+  if(! ADL_Open())  /* Eigene Öffnungs Routine */
+  {
+    /* Falls das Öfnen Fehlschlug */
+
+    FPuts(Output()," Hallo, hallo, Irgenwas lupt hier nicht !\\n");
+    FPuts(Output()," AmBoS muß laufen und die AmBoSDataLibrary\\n");
+    FPuts(Output()," muß ebenfalls Installiert sein !\\n");
+    return 0;
+  }
+
+    /*---------------------------------*/
+    /*   Das Objekt für Userzugriff    */
+    /*---------------------------------*/
+
+    User = ADataSetTag(DATASET_First,DATATYPE_User,TAG_DONE);
+
+      /* Erstes User-Objekt erhalten */
+    while(User)
+    {
+      /* User Namen hollen */
+
+      if(AGetAttrTag(User, USER_UserName, UserName,USER_Uploads,&ULoad,
+						USER_Downloads,&DLoad,TAG_DONE) != FALSE) 
+      {
+        /* Bei Erfolg ausgeben */
+        FPuts(Output(),"\\n");
+        Print(UserName,ULoad,DLoad);
+
+         if(CheckSignal(SIGBREAKF_CTRL_C))    /* CTRL&C Checken */
+         {
+          ADataSetTag(DATASET_Free,User,TAG_DONE);
+          ADL_Close();
+          FPuts(Output(),"\\nTschaui, muß das schon sein ?\\n");
+          return (NULL);
+         }
+      }
+
+      /* Nächstes User Objekt holen */
+      User = GetNext(User);
+    }
+
+    FPuts(Output(), "\\n\\n Das warn denn wohl alle !\\n");
+
+    /* AmBoSData.Library wieder schließen */
+
+    ADL_Close();
+    return (NULL);
+}
+
+			@{"Hauptmenü" link "AmBoSDataLibrary.guide/main" 0}
+	@{"Wollen wir mal das Demo Starten ?" system "run >NIL: Demo/UserDemo >CON:0/0/635/150/User_Demo/CLOSE"}
+
+@{fg fill}@{bg shine} Bitte klicken Sie auf Zurück, um Weiter zu machen !@{fg text}@{bg back}
+@endnode

@@ -1,0 +1,389 @@
+@database
+@author "Stefan Fuchs"
+@(c) "Stefan Fuchs"
+
+@node "Main" "PatchSetFunc Documentation"
+
+      PatchSetFunc V2.0 -- Redirect SetFunction() to patch.library
+
+    Copyright © Stefan Fuchs, May 1997. Freely distributable.
+
+
+
+
+Click on one of the following topics for more detailed information:
+
+
+        @{" Motivation   " link "Motivation" 0}  Why I wrote PatchSetFunc?
+        @{" Features     " link "Features" 0}  Why using PatchSetFunc?
+        @{" Requirements " link "Requirements" 0}  What is needed for using PatchSetFunc?
+        @{" Installation " link "Installation" 0}  How to install PatchSetFunc?
+        @{" Usage        " link "Usage" 0}  Which parameters can be used?
+        @{" Notes        " link "Notes" 0}  What you should know as well?
+        @{" Compatibility" link "Compatibility" 0}  What programmes do not work?
+        @{" Bugreports   " link "Bugreports" 0}  What I need, if you find a bug?
+
+        @{" Distribution " link "Distribution" 0}  Conditions for redistribution 
+        @{" History      " link "History" 0}  Information about past and present versions
+        @{" Author       " link "Author" 0}  How to get in touch with the author?
+
+
+Click on the CONTENTS button at the top to return here at any time.
+
+@endnode
+
+@node "Motivation" "Motivation"
+This one was written as a support program, for my patch.library. It patches the
+exec.library/SetFunction() to use patch.library instead of the normal
+OS-function.
+
+Although I'm aware that there exist a couple of programs, which perform the same
+task quite well (e.g.:  SetManager by Nicola Salmoria, SaferPatches by Martin
+Adrian, PatchControl etc..), I thought it would be nice, if more programmes could
+use my patch.library.
+
+@endnode
+
+
+@node "Features" "Features"
+FEATURES:
+
+If you're not expert with the Amiga operating system, all you need to know about
+PatchSetFunc is that it will, under certain circumstances, avoid GURUs.
+
+If you're an expert, here come the details.  There's a function in exec.library,
+whose name is SetFunction().  You know that Amiga libraries contain a 'jump
+table', where the address of every function in the library is stored.  Library
+functions are always executed via the jump table, and NEVER through absolute
+addressing.  SetFunction() allows the user to modify the jump table, in order to
+insert a custom routine in place of the standard one.  For example, one could
+modify the DisplayBeep() vector to play a sound instead of flashing the screen.
+
+SetFunction() is a very useful feature of the Amiga operating system, but it has
+the major drawback that there's no system supervising of concurrent use of the
+same vector by different tasks.  Under certain circumstances, that can be
+deadly.  Before removing its custom vector, a program should check that it was
+not modified again.  However, very few do that, and so if you do not terminate
+such program in REVERSE order of when you executed them, you'll probably get a
+system crash.
+
+All this could be fixed if all programmers would use the patch.library.
+
+Unfortunately patch.library is quite new and many programs still use
+SetFunction().
+
+So I wrote PatchSetFunc, which allows any program to take profit from
+patch.library.
+
+@endnode
+
+
+@node "Requirements" "Requirements"
+SYSTEM REQUIREMENTS:
+
+- Any Amiga with Kickstart 2.0 (V37) or above
+- patch.library v4+ must be installed in libs:
+  (make sure you have the latest version)
+@endnode
+
+
+@node "Installation" "Installation"
+The program 'PatchSetFunc' should be placed as the first command 
+in the startup-sequence after the SetPatch command.
+You must specify the full path, if you place the command in a directory
+other than c:.
+You may also want to redirect the output to nil:.
+
+The patch.library should be copied to LIBS:.
+@endnode
+
+
+@node "Usage" "Usage"
+Possible parameters with PatchSetFunc:
+
+
+TestPC
+  When removing a patch, make stricter tests, if the patch is currently
+  in use by some task. This makes removing patches really 100% safe.
+  However this feature tries to get the actual program-counter of
+  every task in the system. The procedure to do this is highly dependent
+  on the version of the operating system and the installed processor
+  (For programmers: The program-counter is read from the internal,
+   undocumented stack-frame format).
+  Though this may not work on all systems, it should do no harm
+  either, if it doesn't.
+
+  Use this parameter again to turn this feature off.
+
+
+BreakForbid  (requires patch.library V6+ to be installed)
+  When accessing the patch.library internal semaphore, do break forbid.
+  This semphore is used by most patch.library functions.
+  So if you have expirienced recoverable alerts, with the number
+  04400x0d in the past, try using this parameter as it may solve your
+  problems. Note however, that you might make your system less stable.
+
+  Background info:
+  As said above the global semaphore is used by most patch.library functions.
+  There is however a problem with PatchSetFunc as it may for compability
+  with the original SetFunction(), never break Forbid() or Disable(),
+  while installing or removing patches. That's no problem, if the
+  semaphore is not blocked or the task is neither in Forbid() nor
+  disabled. But if it is, there is no way for patch.library to wait
+  until the semaphore has been released, without breaking forbid by
+  an implicit call to Wait().
+  So patch.library normally simply returns PATERR_NoSemaphore, which causes
+  a recoverable alert with PatchSetFunc.
+
+  Use this parameter again to turn this feature off.
+
+
+To quit PatchSetFunc call it without any options, while it is running.
+
+
+@endnode
+
+@node "Notes" "Notes"
+NOTES & WARNINGS & KNOWN BUGS:
+
+- Programs directly reading addresses from the jump-table, may fail to quit!
+  (This behavior is illegal and not supported by Commodore!)
+- In order to make patch.library to work with XOper a kludge has been
+  added, which stops PatchSetFunc the exec.library/Switch() function
+  (which in fact does the actual multitasking in the Amiga) of being patched
+- Some programs patch the Expunge() function of a library, to ensure that the
+  library won't get expunged, while a patch is active.
+  If the support program PatchSupervisor is active PatchSetFunc ignores
+  patches to the Expunge() function.
+- Programmers should use patch.library directly to ensure maximum safety, when
+  patching library functions
+- A developer package with full documentation and includes is available on
+  Aminet (util/libs/PatchLib.lha)
+- This software will show its full capabilities once the preferences editor
+  for the patch.library is available in the near future.
+  Programs can be excluded from using PatchSetFunc....
+@endnode
+
+
+
+@node "Compatibility" "Compatibility"
+
+In general PatchSetFunc should work together with all programs, that know about
+SetManager, because for these programs it will look like SetManager was active.
+(The public messageport 'SetMan' can be found via FindPort())
+
+Other programs should be configured (if possible), not to check, if a patch was
+installed after its patch.
+
+Program:	Change when using PatchSetFunc:
+XOper V2.x	turn SmartPatch OFF
+
+
+The following programs are known not to work fully with patchsetfunc:
+enforcer
+	Error:    Can not be turned off
+        Reason:   unknown
+        Solution: excluded from PatchSetFunc
+Executive V1.3
+        Error:    crashes during install
+        Reason:   unknown
+        Solution: use the latest Executive V2.0+ from Aminet
+NoDraw + NoFill from Aminet CD 11: util/wb/NoFillNoDraw.lha
+        Error:    crashes after install/does not work
+        Reason:   Direct read from jump-table/depends on undocumented
+                  values residing on stack
+        Solution: do not use (I made workarounds for MCP and NewIcons V3)
+NoIconBorder V1.3 from Aminet
+        Error:    crashes after install/does not work
+        Reason:   depends on undocumented values residing on stack
+        Solution: do not use (I made workarounds for MCP and NewIcons V3)
+IconKludge V1.1
+        Error:    does not work
+        Reason:   Direct read from jump-table/depends on undocumented
+                  values residing on stack
+        Solution: do not use (I made workarounds for MCP and NewIcons V3)
+NewIcons V3 from Aminet CD 14: util/wb/NewIconsV3.lha
+	Error:	  The No Borders patch does not work
+	Reason:   depends on undocumented values residing on stack
+	Solution: PatchSetFunc does not redirect the graphics.library/Draw()
+                  patch to patch.library when the taskname is "NewIcons"
+		  (SetFunction() will be used)
+MCP V1.21 from Aminet CD 14: util/cdity/MCP121.lha
+	Error:	  The No Borders patch does not work
+	Reason:   depends on undocumented values residing on stack
+	Solution: PatchSetFunc does not redirect the graphics.library/Draw()
+                  patch to patch.library when the taskname is "MCP"
+                  (SetFunction() will be used)
+MSM V1.9 from Aminet Set 1 Disk A: util/moni/MSM.lha
+	Error:	  crashes on install
+        Reason:   Direct read from jump-table (and other unrelated horrors...
+                  e.g.: reading AbsExecBase before each OS-call, saving all
+                  (even unused) registers in the patchcode (STACK!)...)
+	Solution: tasks with the taskname $20,"MSM",$20,0 are excluded from
+                  PatchSetFunc
+VMM (Virtual Memory Manager) V3.3 from Aminet
+	Error:	  Does not work with patch.library V5+ (auto stack extension)
+        Reason:   Its AllocMem patch calls other OS functions, which can
+		  cause stack extension to take place and calling AllocMem,
+                  causing an endless loop.
+	Solution: use patch.library V4 or wait for the final release version
+                  of patch.library V6, which will fix this problem
+@endnode
+
+
+
+@node "Bugreports" "Bugreports"
+If you find any programs not working together with PatchSetFunc please send me
+a bugreport containing the following information:
+
+- What versions of patch.library and PatchSetFunc are you using?
+
+- What is the name and version number of the program not working with patchsetfunc
+  and what is the archivname on the Aminet (if possible)?
+
+- What steps are to be taken to reproduce the bug?
+
+- What exactly goes wrong (crash, guru,...)?
+
+- What patches are installed on your system?
+  The output of the PatchList program (Aminet:util/libs/PatchLib.lha) would
+  be nice.
+
+- Are there any recoverable alerts with the Gurunumber: $44000xyy ?
+  These alerts are send out by PatchSetFunc, if patch.library reports an error.
+  There is no way to report these errors to an application, because the original
+  SetFunction() never fails.
+  x  indicates the function, that failed (internal information).
+  yy is the errorcode as defined in the patch.h include file supplied in
+     the util/libs/PatchLib.lha archive (PATERR_xxx).
+@endnode
+
+
+
+@node "History" "History"
+
+V2.0   	ENHANCEMENT: Ported some parts of PatchSetFunc from asm to C
+	ENHANCEMENT: PatchSetFunc now requires at least Kickstart V2.0
+	ENHANCEMNET: PatchSetFunc now accepts commandline options for
+	setting certain parameters in patch.library. Setting the
+	BreakForbid option may fix problems some people had with
+	recoverable alerts from PatchSetFunc.
+	ENHANCEMENT: Included the latest patch.library V6 BETA
+
+
+V1.54	FIX: GPFax was excluded from PatchSetFunc.
+        It read directly from jumptables and therefore refused to exit.
+	ENHANCEMENT: Included the new patch.library V6 BETA
+        DOCUMENTATION: Added note about patch.library V5+
+        not working with VMM (Virtual Memory Manager)
+V1.53	FIX: Included the latest patch.library, which fixes possible crashes
+        with PatchSetFunc. (This bug is more likely to show up with
+        PatchSetFunc V1.50 and up)
+        ENHANCEMENT: Removed some unnessary debug code.
+V1.52	FIX: reenabled use with Executive, as V2.0 seems to work alright
+   	FIX: No longer used for the monitor-program MSM (see Compatibility)
+	ENHANCEMENT: Included the latest patch.library V5 release
+V1.51	FIX: In an attempt to get rid off direct reads to AbsExecBase in V1.41
+	I didn't always access the new field pc-relativ.
+	(This fixes crashes, when installing and removing patches)
+	(I wonder how it could ever work on my system )
+	ENHANCEMENT: Anyway PatchSetFunc is fully pc-relativ now.
+	ENHANCEMENT: Included the latest patch.library V5 beta
+V1.50	FIX: PatchSetFunc could cause crashes when patching the following exec.library
+	functions: 
+	CacheClearU(), Supervisor(), Disable(), Enable(), SetFunction(), SumLibrary()
+	Forbid(), Permit(), AllocPooled(), FreePooled(), Allocmem(), Freemem(),
+	PutMsg(), WaitPort(), GetMsg(), FindTask(), AllocSignal(), FreeSignal(),
+	CreateMsgPort(), DeleteMsgPort(), ReleaseSemaphore()
+	This was also why the ReleaseSemphore patch of RetinaEmu (see V1.42) crashed.
+	(This bug has been fixed, patches to ReleaseSemaphore() are reenabled.)
+V1.44	ENHANCEMENT: Removed some unnessary debug code
+V1.43	ENHANCEMENT: Workarounds for the NoBorder options of MCP and NewIcons
+        (Note: All known No-Icon-Border programs depend on the value 8 residing
+        on the stack to find out, if Workbench indents to draw icon borders or
+	something else. This was never documented and may fail with future versions
+        of the OS)
+	DOCUMENTATION: Problems with NoIconBorder
+V1.42	FIX: No longer patches the exec.library function ReleaseSemaphore()
+	(This fixes crashes with RetinaEmu) 
+V1.41   ENHANCEMENT: Sets a private bit in the patch.library base structure, if active
+	DOCUMENTATION: Problems with NoDraw & NoFill
+V1.40	ENHANCEMENT: Automatically extends the stack to at least 2000 bytes for each
+	patch, if patch.library V5+ is installed
+V1.35	FIX: Patching of Expunge() is now possible for programms other than unarp
+	(This fixes crashes with GPFax)
+V1.33	FIX: By passing a wrong tag to patch.library, too many internal poject-
+	structures were created (This reduces memory usage)
+V1.32	ENHANCEMENT: Now does nothing, if the librarybase or
+	the function passed to SetFunction() is NULL.
+	(This fixes problems with the buggy CEDPatch)
+	(Reported by Robert Hofmann)
+	ENHANCEMENT: Docs now in AmigaGuide format
+V1.31	FIX: No longer used for Executive, because of crashes when removing patches
+V1.30	FIX: Calling SetFuction() for the same patch for the same function twice 
+	installs this function now only once
+	(This fixes crashes with PatchSetFunc + RTPatch + Iconian)
+	(Reported by Alberto Caporro, Ariel Magnum, Niels Bache)
+V1.28	FIX: Loadresource reenabled (crashes were caused by bugs in
+	earlier versions of patch.library,  which have been fixed)
+V1.25	FIX: Disable patch after removing failed
+V1.24	FIX: Display some alerts, if something goes wrong
+V1.23	FIX: No longer used for LoadResource, because of crashes
+	(Reported by Ariel Magnum)
+V1.22	FIX: No longer patches the exec.library private functions Schedule() and
+	ExitIntr(). This caused ShapeShifter to crash on exit.
+V1.21	ENHANCEMENT: Now supports project management of patch.library V4
+V1.10	ENHANCEMENT: Now uses less stack
+V1.06	FIX:	The public message port was spelled 'Setman' instead of 'SetMan'
+V1.02	RELEASE:First public release
+@endnode
+
+
+
+@node "Distribution" "Distribution"
+This material is © Copyright 1993-97 by Stefan Fuchs. All rights reserved.
+
+It may be distributed freely as long as the following restrictions are met:
+
+- The distributor may charge a fee to recover distribution costs.
+  The fee for diskette distribution should not be more than
+  the cost to obtain the same diskette from Fred Fish.
+
+- The distributor agrees to cease distributing the programs and
+  data involved if requested to do so by the author.
+
+- You may copy and distribute verbatim copies of the program's
+  executable code and documentation as you receive it, in any
+  medium, provided that you conspicuously and appropriately
+  publish only the original, unmodified program, with all
+  copyright notices and disclaimers of warranty intact and
+  including all the accompanying documentation, example files and
+  anything else that came with the original.
+
+- If you are interested in including any of this material in a commercial
+  product, you should contact the author for his permission.
+
+- The author will not be liable for any damage arising from the
+  failure of the programs or the library to perform as described,
+  or any destruction of other programs using the library residing
+  on a system. While I know of no damaging errors, the user of this
+  package uses it at his or her own risk.
+
+
+This package may be distributed in PD-series (e.g.: the Fred Fish library) or
+on the Aminet.
+@endnode
+
+
+
+@node "Author" "Author"
+To contact the author for bugreports, hints, ideas, donations, ....
+write to:
+
+
+Stefan Fuchs			E-Mail: snfuchs@sokrates.franken.de
+Oskar-von-Miller-Str. 49	Fido:   Stefan Fuchs@2:2490/1901
+
+D-90478 Nuernberg
+GERMANY
+@endnode

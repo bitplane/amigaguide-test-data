@@ -1,0 +1,943 @@
+@DATABASE "AMountains"
+@AUTHOR "Michael Böhnisch, billy@psycho.uni-paderborn.de"
+@TAB 4
+@FONT Courier.font 15
+
+@NODE Main "AMountains Documentation"
+@SMARTWRAP
+
+AMountains is a fractal landscape generator.  It is based on xmountains 2.4
+(UNIX, X) by Stephen Booth and was ported to the Amiga by
+@{" Michael Böhnisch " LINK "Author"}.  This is version 1.1, see the
+@{" revision history " LINK "HISTORY"} for an overview of changes
+
+
+Please read the original @{" Copyright notice " LINK "Note"}.
+
+
+AMountains differs from xmountains in several ways.  First of all, the
+UNIX-stylish option handling (-foo 3 -q -z 42 and the like) was replaced by
+Amiga typical keywords.  See the @{" option overview " LINK "Options"} for
+details.
+
+
+Options specific to the X Window system are removed or are modified to make
+sense for the Amiga computers.
+
+
+AMountains runs fine on systems with graphics boards and CyberGfx driver.
+Other driver software may run as well, but this is untested yet.  A fast
+CPU and a math coprocessor is recommended but for completeness' sake a
+68000/FFP compiled version is included.  However, Kickstart 3.0 is the
+minimum supported OS version.
+
+
+See @{" Algorithm " LINK "Algorithm"} for a description of the technical
+details of AMountains.
+
+
+When you click on the window's close gadget, AMountains will terminate the
+next time the rendering routine is called (you may encounter a short
+delay).
+
+@ENDNODE
+
+@NODE "Author" "Author Information"
+
+Copyright 1994 by Stephen Booth, the University of Edinburgh
+Copyright 1995-1996 by Michael Böhnisch
+
+	Michael Böhnisch
+	Löher Str. 2
+	33102 Paderborn
+	Federal Republic of Germany
+
+	billy@psycho.uni-paderborn.de
+
+Permission to use, copy, modify, distribute, and sell this software and its
+documentation  for any purpose is hereby granted without fee, provided that
+the  above  copyright  notice  appear  in  all  copies  and  that both that
+copyright   notice   and   this  permission  notice  appear  in  supporting
+documentation,  and  that the name of the author not be used in advertising
+or  publicity  pertaining to distribution of the software without specific,
+written  prior  permission.   The author makes no representations about the
+suitability  of  this  software  for  any  purpose.  It is provided "as is"
+without express or implied warranty.
+
+@ENDNODE
+
+@NODE Note "Copyright Notice"
+
+Original copyright notice for xmountains:
+
+***************************************************************************
+
+Copyright 1994 by Stephen Booth, the University of Edinburgh
+
+Permission to use, copy, modify, distribute, and sell this software and its
+documentation  for any purpose is hereby granted without fee, provided that
+the  above  copyright  notice  appear  in  all  copies  and  that both that
+copyright   notice   and   this  permission  notice  appear  in  supporting
+documentation,  and  that the name of the author not be used in advertising
+or  publicity  pertaining to distribution of the software without specific,
+written  prior  permission.   The author makes no representations about the
+suitability  of  this  software  for  any  purpose.  It is provided "as is"
+without express or implied warranty.
+
+***************************************************************************
+
+@ENDNODE
+
+@NODE "History" "Revision history"
+
+  1.1	· Completely revisited option handling, see @{" amountains.c " LINK "amountains.c/Main" 256} to get a
+          picture.    The   DoArgs()  function  is  provided  as  link-time
+          libraries  "billy.lib"  and  "billy68000.lib".   To  rebuild  the
+          executables,  copy  DoArgs.h to your INCLUDE:  directory and both
+          libraries to LIB:
+
+          billy.lib  is  compiled for 68020/68881 and above, billy68000.lib
+          for  68000  or  68010 and FFP math.  Use the SCOptions program to
+          set  up  options  for  linkage of the library appropriate to your
+          machine.
+
+          billy.lib  may become a separate product by itself, it is already
+          a  extremely useful tool when porting UNIX® sources to the Amiga.
+          It   most  probably  will  become  shareware,  so  no  source  or
+          documentation for this part - sorry, guys...
+
+  1.0   · Amiga style option handling
+        · Arbitrary screenmodes
+        · Arbitrary window sizes
+
+
+  0.0   · Pre-release version
+        · Unix-style option handling
+        · Many limitations.
+
+@ENDNODE
+
+@NODE "Algorithm" "Description of Algorithm"
+@{LINDENT 4}
+@{B}AMountain's Algorithm@{UB}
+@{LINDENT 6}
+This   program  uses  a  modified  form  the  mid-point  displacement
+algorithm
+
+The  mid-point  displacement algorithm is a recursive algorithm, each
+iteration  doubles  the  resolution  of  the grid.  This is done in 2
+stages.
+
+@{B}A@{UB}        @{B}B@{UB}                  @{B}A@{UB}           @{B}B@{UB}                @{B}A@{UB}     @{B}F@{UB}     @{B}B@{UB}
+               stage1                        stage2
+              --------->          @{B}E@{UB}         -------->    @{B}G@{UB}     @{B}E@{UB}     @{B}H@{UB}
+
+@{B}C@{UB}        @{B}D@{UB}                  @{B}C@{UB}           @{B}D@{UB}                @{B}C@{UB}     @{B}I@{UB}     @{B}D@{UB}
+
+The  new points are generated by taking an average of the surrounding
+points and adding a random offset.
+
+The modifications to the standard algorith are as follows:
+
+There  are three optional regeneration steps to reduce "creasing".  A
+regeneration step recalculates the height of existing points using an
+average  and  offset  from  a  newer generation of points.  The three
+regeneration steps are:
+
+  step 1: recalculate  corner points (A,B,C,D) from the midpoints (E)
+          after the stage1 update.
+
+  step 2: recalculate  midpoints  (E)  from the edge points (F,G,H,I)
+          after the stage2 update
+
+  step 3: recalculate  corner  points  (A,B,C,D) from the edge points
+          (F,G,H,I) after the stage2 update
+
+The regeneration stages are turned on by the @{" SMOOTH " LINK "SMOOTH"} tooltype.
+
+When  performing the regeneration steps the random offset is added to
+a  weighted  average  of  the  previous  value of the point and a the
+average  of  the new points.  The weighting factors are controlled by
+the @{" MIX " LINK "MIX"} and @{" MIDMIX " LINK "MIDMIX"} tooltypes.
+
+The  @{" CROSS " LINK "CROSS"}  tooltype  (cross update) controls whether the midpoints
+(E)  are included in the average when performing the stage2 update or
+if only the corner points are used.
+
+@ENDNODE
+
+@NODE Options "Option Overview"
+
+	@{B}AMountains Options:@{UB}
+
+		@{" Display and size control   " LINK "Display Options"}
+		@{" 3D Mapping options         " LINK "3D Options"     }
+		@{" Colour settings            " LINK "Colour Options" }
+		@{" Fractal generation options " LINK "Fractal Options"}
+		@{" Lighting                   " LINK "Light Options"  }
+		@{" Multitasking features      " LINK "Multi Options"  }
+
+		@{" Default values for all options " LINK "Defaults" }
+
+	Options  may  be entered on the Shell command line or by icon tooltypes
+	(which  is  the  preferred  way).   Use  entries  like OPTION=value for
+	options with parameters or simply OPTION for switches.
+
+	Tooltype parameters are overridden by Shell parameters.  So if the icon
+	tooltype array contains
+
+		@{I}HLIGHTANGLE=22°33'20" @{UI}
+		@{I}ALTITUDE=2.0 @{UI}
+
+	And your Shell command line is
+
+		@{I}AMountains ALTITUDE 1.5 @{UI}
+
+	Then  the  value for HLIGHTANGLE comes from the tooltype array, but the
+	ALTITUDE parameter is 1.5 now.
+        
+@ENDNODE
+
+@NODE "Display Options" "Display and size control"
+
+This page lists the available options to modify the Amiga specifics of the
+graphics display and window sizings.
+
+	@{" DISPLAYMODE " LINK "DISPLAYMODE" } Select a Monitor ID to use
+	@{" WIDTH       " LINK "WIDTH"       } Width  of the display
+	@{" HEIGHT      " LINK "HEIGHT"      } Height "   "     "
+	@{" DEPTH       " LINK "DEPTH"       } Colour depth to use
+	@{" BACKDROP    " LINK "BACKDROP"    } Use a special window mode
+	@{" PUBSCREEN   " LINK "PUBSCREEN"   } Open window on a public screen
+
+@ENDNODE
+
+@NODE "3D Options" "3D Mapping options"
+
+This page lists the options that affect the geometry of the landscape and
+the position of the viewer.
+
+	@{" REFLECTIONS " LINK "REFLECTIONS"} Implement reflections in the water
+	@{" MAP         " LINK "MAP"        } Generate a map view
+	@{" VSTRETCH    " LINK "VSTRETCH"   } Vertical scaling factor
+	@{" VSHIFT      " LINK "VSHIFT"     } Vertical offset
+	@{" ALTITUDE    " LINK "ALTITUDE"   } Vertical position of the viewer
+	@{" DISTANCE    " LINK "DISTANCE"   } Viewing distance
+	
+@ENDNODE
+
+@NODE "Colour Options" "Colour settings"
+
+This page lists the available options that affect the colors used by AMountains.
+
+	@{" BANDSIZE " LINK "BANDSIZE" } Number of shades to use for each terrain type
+	@{" COLOURS  " LINK "COLOURS"  } Number of colours to use in whole
+
+@ENDNODE
+
+@NODE "Fractal Options" "Fractal generation options"
+
+This page lists the options that affect the algorithm used for the fractal landscape
+generation
+
+	@{" SEALEVEL    " LINK "SEALEVEL"   } Height of water line
+	@{" SLOPE       " LINK "SLOPE"      } Reduce variation in the foreground
+	@{" FORCEHEIGHT " LINK "FORCEHEIGHT"} Average foreground height
+	@{" CONTOUR     " LINK "CONTOUR"    } Contour parameter
+	@{" FDIM        " LINK "FDIM"       } Fractal dimension
+	@{" SEED        " LINK "SEED"       } Seed for random generator
+	@{" LEVELS      " LINK "LEVELS"     } Number of levels of recursion
+	@{" STOP        " LINK "STOP"       } Number of non fractal iterations
+	@{" CROSS       " LINK "CROSS"      } Cross update
+	@{" SMOOTH      " LINK "SMOOTH"     } Smoothing
+	@{" MIX         " LINK "MIX"        } Fraction of old value for rg2 & rg3
+	@{" MIDMIX      " LINK "MIDMIX"     } Fraction of old value for rg1
+
+@ENDNODE
+
+@NODE "Light Options" "Lighting"
+
+This page lists the options affecting the lighting of the view.
+
+	@{" VLIGHTANGLE " LINK "VLIGHTANGLE"} Vertical angle of light
+	@{" HLIGHTANGLE " LINK "HLIGHTANGLE"} Horizontal angle of light
+	@{" CONTRAST    " LINK "CONTRAST"   } Contrast
+	@{" AMBIENT     " LINK "AMBIENT"    } Ambient light level
+	@{" VFRACT      " LINK "VFRACT"     } Vertical light level
+
+@ENDNODE
+
+@NODE "Multi Options" "Multitasking features"
+
+This page describes the options affecting the multitasking behaviour
+of AMountains.
+
+	@{" SCROLLCOLUMNS " LINK "SCROLLCOLUMNS"} Number of colums before scrolling
+	@{" SLEEP         " LINK "SLEEP"        } Time to sleep before scrolling
+	@{" ACTIVEPRI     " LINK "ACTIVEPRI"    } Task priority when AMountains window is active
+	@{" INACTIVEPRI   " LINK "INACTIVEPRI"  } Task priority when AMountains window is not active
+
+@ENDNODE
+
+@NODE "Defaults" "Default values for all options"
+
+	@{" BACKDROP      " LINK "BACKDROP"     } Not set
+	@{" WIDTH         " LINK "WIDTH"        } 320
+	@{" HEIGHT        " LINK "HEIGHT"       } 240
+	@{" PUBSCREEN     " LINK "PUBSCREEN"    } Workbench
+	@{" DISPLAYMODE   " LINK "DISPLAYMODE"  } No default
+	@{" DEPTH         " LINK "DEPTH"        } No default
+	@{" MAP           " LINK "MAP"          } Not set
+	@{" REFLECTIONS   " LINK "REFLECTIONS"  } Not set
+	@{" SCROLLCOLUMNS " LINK "SCROLLCOLUMNS"} 20
+	@{" BANDSIZE      " LINK "BANDSIZE"     } 80
+	@{" COLOURS       " LINK "COLOURS"      } 245
+	@{" SLEEP         " LINK "SLEEP"        } 0
+	@{" VLIGHTANGLE   " LINK "VLIGHTANGLE"  } 40.0°
+	@{" HLIGHTANGLE   " LINK "HLIGHTANGLE"  } 0.0°
+	@{" VSTRETCH      " LINK "VSTRETCH"     } 0.6
+	@{" VSHIFT        " LINK "VSHIFT"       } 0.5
+	@{" SEALEVEL      " LINK "SEALEVEL"     } 0.0
+	@{" SLOPE         " LINK "SLOPE"        } 2
+	@{" FORCEHEIGHT   " LINK "FORCEHEIGHT"  } -1.0
+	@{" CONTOUR       " LINK "CONTOUR"      } 0.3
+	@{" ALTITUDE      " LINK "ALTITUDE"     } 2.5
+	@{" DISTANCE      " LINK "DISTANCE"     } 4.0
+	@{" CONTRAST      " LINK "CONTRAST"     } 1.0
+	@{" AMBIENT       " LINK "AMBIENT"      } 0.3
+	@{" VFRACT        " LINK "VFRACT"       } 0.6
+	@{" FDIM          " LINK "FDIM"         } 0.65
+	@{" SEED          " LINK "SEED"         } 0
+	@{" LEVELS        " LINK "LEVELS"       } 10
+	@{" CROSS         " LINK "CROSS"        } Not set
+	@{" SMOOTH        " LINK "SMOOTH"       } 1
+	@{" MIX           " LINK "MIX"          } 0.0
+	@{" MIDMIX        " LINK "MIDMIX"       } 0.0
+	@{" STOP          " LINK "STOP"         } 2
+	@{" ACTIVEPRI     " LINK "ACTIVEPRI"    } 0
+	@{" INACTIVEPRI   " LINK "INACTIVEPRI"  } -25
+@ENDNODE
+
+@NODE "BACKDROP" "BACKDROP"
+@{LINDENT 4}
+@{B}BACKDROP@{UB}
+@{LINDENT 6}
+When  this tooltype is present, AMountains uses a Backdrop window for
+it's  graphic  rendition.  This maximizes the viewable portion of the
+landscape  since  Intuition  does  no window border rendering to this
+window type.
+
+Use  BACKDROP  with  care,  there  is no close gadget attached to the
+window  and  you  will  not  be  able to terminate AMountains without
+rebooting.
+
+The default behaviour of AMountains is not to use a Backdrop window.
+
+@ENDNODE
+
+@NODE "WIDTH" "WIDTH"
+@{LINDENT 4}
+@{B}WIDTH=«width»@{UB}
+@{LINDENT 6}
+This  option  sets  the  viewable  width  of the AMountains window in
+pixels.  Window borders are not included in this value, so the actual
+window  is slightly bigger.  Note that screen size limits the size of
+windows  and  your  width setting may be adopted to fit the window on
+the screen.
+
+The default value for «width» is 320 pixels.
+
+See also: @{" HEIGHT " LINK "HEIGHT"}
+
+@ENDNODE
+
+@NODE "HEIGHT" "HEIGHT"
+@{LINDENT 4}
+@{B}HEIGHT=«height»@{UB}
+@{LINDENT 6}
+This  option  sets  the  viewable  height of the AMountains window in
+pixels.  Window borders are not included in this value, so the actual
+window  is slightly bigger.  Note that screen size limits the size of
+windows  and  your height setting may be adopted to fit the window on
+the screen.
+
+The default value for «height» is 240 pixels.
+
+See also: @{" WIDTH " LINK "WIDTH"}
+
+@ENDNODE
+
+@NODE "PUBSCREEN" "PUBSCREEN"
+@{LINDENT 4}
+@{B}PUBSCREEN=«public screen name»@{UB}
+@{LINDENT 6}
+Open the AMountain window on the named public screen.  This option is
+ignored if @{" DISPLAYMODE " LINK "DISPLAYMODE"} is also set.
+The named screen already must exist, it is not created by AMountains.
+
+The default value for «public screen name» is "Workbench".
+
+@ENDNODE
+
+@NODE "DISPLAYMODE" "DISPLAYMODE"
+@{LINDENT 4}
+@{B}DISPLAYMODE=«display mode identifier»@{UB}
+@{LINDENT 6}
+Open  the AMountain window on a private screen, specified by «display
+mode  identifier».   Use  the  representation shown by the ScreenMode
+preferences program,  e.g. @{I}NTSC:HighRes Interlace.@{UI} 
+Spaces  must  be  included  exactly  as  listed by ScreenMode whereas
+capital/lower  case  letters  can be used as preferred by you.  Thus,
+@{I}NTSC:HIGHRES INTERLACE @{UI} and @{I}ntsc:hIgHrEs InTeRLacE @{UI}are also valid and
+specify the same screen mode.
+In  order  to  make  this  option work you also must set the @{" DEPTH " LINK "DEPTH"}
+tooltype.
+
+If  the  specified screen cannot be opened for any reason, AMountains
+will fall back to the default public screen.
+
+This option overrides the @{" PUBSCREEN " LINK "PUBSCREEN"} option.
+
+There is no default for «display mode identifier».
+
+See also: @{" Graphics board support " LINK "GfxBoard"}
+
+@ENDNODE
+
+@NODE "DEPTH" "DEPTH"
+@{LINDENT 4}
+@{B}DEPTH=«colour depth»@{UB}
+@{LINDENT 6}
+In  combination  with  @{" DISPLAYMODE " LINK "DISPLAYMODE"} this option specifies the colour
+depth  of  the screen to open.  «colour depth» must be set to a valid
+value  or  else  the specified screen cannot be opened.  In this case
+AMountains will fall back to the default public screen.
+
+There is no default for «colour depth».  Typical values are 8 for 256
+colour screens or 24 for CyberGfx True Colour modes.
+
+See also: @{" Graphics board support " LINK "GfxBoard"}
+
+@ENDNODE
+
+@NODE "MAP" "MAP"
+@{LINDENT 4}
+@{B}MAP@{UB}
+@{LINDENT 6}
+If  this  tooltype is present, AMountains generates a map view of the
+landscape instead of the panorama display.
+
+By default MAP is not set.
+@ENDNODE
+
+@NODE "REFLECTIONS" "REFLECTIONS"
+@{LINDENT 4}
+@{B}REFLECTIONS@{UB}
+@{LINDENT 6}
+If  this tooltype is present, AMountains generates reflections of the
+mountains on the water surface.  Greatly adds realism to the scene.
+
+By default REFLECTIONS is not set.
+
+@ENDNODE
+
+@NODE "SCROLLCOLUMNS" "SCROLLCOLUMNS"
+@{LINDENT 4}
+@{B}SCROLLCOLUMNS=«columns»@{UB}
+@{LINDENT 6}
+This  tooltype  defines  the number of columns the display scrolls to
+the  left  when  calculation reaches the right window border.  Due to
+the  @{" algorithm " LINK "Algorithm"}  used,  «columns» should be an even number.  In case
+you disregard this, 1 is added internally to «columns».
+
+The  default  for  «columns»  is  20  pixels.  For smooth scrolling I
+recommend a setting of 2.
+
+See also: @{" SLEEP " LINK "SLEEP"}
+
+@ENDNODE
+
+@NODE "VLIGHTANGLE" "VLIGHTANGLE"
+@{LINDENT 4}
+@{B}VLIGHTANGLE=«angle»@{UB}
+@{LINDENT 6}
+This  tooltype  affects  the  vertical  angle  of the imaginary light
+source.   A  value  of  0°  means  sunrise, 90° noon and 180° sunset.
+
+Values  outside  the  interval  from  0°  to  180° are rounded to the
+nearest legal bound.
+
+«angle»  may  be  specified  in  a  number of different formats.  See
+@{" Angle specifier " LINK "ANGLE"} for details.
+
+The  light source itself is invisible, you will only note the shadows
+it casts.
+
+The default value for «angle» is 40.0 degrees.
+
+See also: @{" HLIGHTANGLE " LINK "HLIGHTANGLE"}, @{" AMBIENT " LINK "AMBIENT" }, @{" Angle specifier " LINK "ANGLE"}
+@ENDNODE
+
+@NODE "HLIGHTANGLE" "HLIGHTANGLE"
+@{LINDENT 4}
+@{B}HLIGHTANGLE=«angle»@{UB}
+@{LINDENT 6}
+This  tooltype  affects  the  horizontal angle of the imaginary light
+source.   A  value  of  0°  means left side, 90° you look directly in
+direction of the light source and 180° right side.
+
+Values  outside  the  interval  from  0° to 180° are rounded to the
+nearest  legal bound. 
+
+«angle»  may  be  specified  in  a  number of different formats.  See
+@{" Angle specifier " LINK "ANGLE"} for details.
+
+The  light source itself is invisible, you will only note the shadows
+it casts.
+
+The default value for «angle» is 0.0 degrees.
+
+See also: @{" VLIGHTANGLE " LINK "VLIGHTANGLE"}, @{" AMBIENT " LINK "AMBIENT" }, @{" Angle specifier " LINK "ANGLE"}
+@ENDNODE
+
+@NODE "ANGLE" "Angle specifier"
+@{LINDENT 2}
+@{B}Angle specifiers@{UB}
+@{LINDENT 4}
+Angles may be specified in various formats:
+@{LINDENT 6}
+Without units degrees are assumed.
+Example:  @{I}45.7 @{UI}
+
+You  may append the unit specifiers "deg" or "grad" to make clear you
+want degrees.
+Examples:  @{I}45deg   -22.55grad @{UI}
+
+As an alternative, a "degrees-minutes-seconds" format is supported.
+Examples:  @{I}18°12'45.2"   45.44°   22'   5°2" @{UI}
+
+On  my  (german)  keyboard  I get ° by Alt-w or Alt-4 and ' by Alt-ä.
+Refer  to  your  Amiga manual for the proper key press combination on
+your national keyboard.  Also note, there are further characters that
+look  similar  to the apostrophe sign ' but are different and may not
+be used instead.  These are the accent characters ` and ´.
+
+If  you  append  the unit specifier "rad" or shorter "r" the angle is
+interpreted in radians.
+Examples:  @{I}3.14rad   0.6r @{UI}
+
+In land-surveying applications occasionally a decimal division of the
+angle is used.  Append "gon" or "g" to the numerus for this unit.
+Examples:  @{I}100gon   18.22g @{UI}
+
+For your reference: 360° = 2 × pi rad = 400 gon
+@{LINDENT 4}
+NOTE:  Do @{B}not@{UB} embed spaces in any angle specification!
+@ENDNODE
+
+@NODE "VSTRETCH" "VSTRETCH"
+@{LINDENT 4}
+@{B}VSTRETCH=«factor»@{UB}
+@{LINDENT 6}
+VSTRETCH  defines  a multiplicative factor that is taken into account
+when  calculating  the  height  of  a landscape point.  Higher values
+mean,  the  mountains  get  higher and pointier, lower values lead to
+soft, flat hills.
+
+«factor»  is  an  arbitrary  floating point number, reasonable values
+range from 0.2 to 3.0.
+
+The default value for «factor» is 0.6.
+@ENDNODE
+
+@NODE "VSHIFT" "VSHIFT"
+@{LINDENT 4}
+@{B}VSHIFT=«shift»@{UB}
+@{LINDENT 6}
+VSHIFT defines an additive constant offset to the landscape's height.
+Higher  values  result  in  a wintry scene with large snowcaps on the
+mountains.   Lower  (even  negative) values result in a tropical isle
+landscape.
+
+«shift»  is an arbitrary floating point number.  Use your imagination
+and  experiment  to  find  a  value  that  best  suites your esthetic
+feelings.
+
+The default value for «shift» is 0.5.
+
+@ENDNODE
+
+@NODE "SEALEVEL" "SEALEVEL"
+@{LINDENT 4}
+@{B}SEALEVEL=«height»@{UB}
+@{LINDENT 6}
+This  option  defines  the  level  of the sea surface.  Any landscape
+point  below  this level is considered underwater and consequently is
+not shown.
+
+«height»  is  an  arbitrary  floating  point number.  However, if you
+choose  a too high value, you will drown the landscape and you'll see
+water only.  If your setting is too low, black dropouts at the bottom
+of the land will appear.
+
+The default value for «height» is 0.0.
+
+@ENDNODE
+
+@NODE "SLOPE" "SLOPE"
+@{LINDENT 4}
+@{B}SLOPE=«iterations»@{UB}
+@{LINDENT 6}
+Reduce  the  variation in the forground height to ensure a good view of the
+surface.   This  tooltype  sets  the  number  of  iterations  for which the
+forground height is constrained to a constant value.
+
+The default value for «iterations» is 2.
+
+@ENDNODE
+
+@NODE "FORCEHEIGHT" "FORCEHEIGHT"
+@{LINDENT 4}
+@{B}FORCEHEIGHT=«altitude»@{UB}
+@{LINDENT 6}
+Mean altitude for the forground.
+
+The default value for «altitude» is -1.0.
+
+@ENDNODE
+
+@NODE "CONTOUR" "CONTOUR"
+@{LINDENT 4}
+@{B}CONTOUR=«contour»@{UB}
+@{LINDENT 6}
+Set  the  contour  parameter.   The  base coulour of a point depends on its
+height  and  how  flat  the  surface  is.   CONTOUR  controls  the relative
+importance of these factors.
+
+The default value for «contour» is 0.3.
+
+@ENDNODE
+
+@NODE "ALTITUDE" "ALTITUDE"
+@{LINDENT 4}
+@{B}ALTITUDE=«height»@{UB}
+@{LINDENT 6}
+Set the Altitude of the viewpoint.
+
+The default value for «height» is 2.5.
+
+@ENDNODE
+
+@NODE "DISTANCE" "DISTANCE"
+@{LINDENT 4}
+@{B}DISTANCE=«dist»@{UB}
+@{LINDENT 6}
+Set the distance of the viewpoint from the front of the surface.
+
+The default value for «dist» is 4.0.
+
+@ENDNODE
+
+@NODE "BANDSIZE" "BANDSIZE"
+@{LINDENT 4}
+@{B}BANDSIZE=«bandsize»@{UB}
+@{LINDENT 6}
+Amountains  supports  two  ways to set the number of colours it uses.  With
+BANDSIZE you control the number of colours in every terrain type (snowcaps,
+high-area  vegatation,  tropic vegetation).
+
+However,  remember  that  a  total  of  245 colours should not be exceeded.
+Intuition  does  not  allow more than 256 pens per screen and moreover uses
+some  of  them  itself  for  window rendering.  Also, Amountains needs some
+additional pens for the sky etc.
+
+The  intent of this option is to create reasonable pictures on screens with
+less than 256 colours.
+
+The default value for «bandsize» is 80.
+
+See also: @{" COLOURS " LINK "COLOURS"}
+@ENDNODE
+
+@NODE "COLOURS" "COLOURS"
+@{LINDENT 4}
+@{B}COLOURS=«colours»@{UB}
+@{LINDENT 6}
+Amountains  supports  two  ways to set the number of colours it uses.  With
+COLOURS  you  control  the  total  number  of  colours of all terrain types
+(snowcaps, high-area vegatation, tropic vegetation).
+
+However,  remember  that  a  total  of  245 colours should not be exceeded.
+Intuition  does  not  allow more than 256 pens per screen and moreover uses
+some  of  them  itself  for  window rendering.  Also, Amountains needs some
+additional pens for the sky etc.
+
+The  intent of this option is to create reasonable pictures on screens with
+less than 256 colours.
+
+The default value for «colours» is 245.
+
+See also: @{" BANDSIZE " LINK "BANDSIZE"}
+@ENDNODE
+
+@NODE "CONTRAST" "CONTRAST"
+@{LINDENT 4}
+@{B}CONTRAST=«contrast»@{UB}
+@{LINDENT 6}
+Set  the  contrast  parameter.   Values  too far from 1.0 will give strange
+results
+
+The default value for «contrast» is 1.0.
+
+@ENDNODE
+
+@NODE "AMBIENT" "AMBIENT"
+@{LINDENT 4}
+@{B}AMBIENT=«level»@{UB}
+@{LINDENT 6}
+Set  the  ambient  light  level.   This is a fractional value that sets how
+bright shaded areas will be compared to fully illuminated ground.
+
+The default value for «level» is 0.6.
+
+@ENDNODE
+
+@NODE "VFRACT" "VFRACT"
+@{LINDENT 4}
+@{B}VFRACT=«level»@{UB}
+@{LINDENT 6}
+Set  the  vertical  light  level.   The program also implements a secondary
+light  source  shining from directly above the surface.  This tooltype sets
+how bright this light source is relative to the main light source.
+
+The default value for «height» is 0.6.
+
+@ENDNODE
+
+@NODE "FDIM" "FDIM"
+@{LINDENT 4}
+@{B}FDIM=«dim»@{UB}
+@{LINDENT 6}
+Set  the  fractal  dimension  of  the surface.  This should be in the range
+0.5 - 1.0.
+
+The default value for «dim» is 0.65.
+
+@ENDNODE
+
+
+@NODE "SEED" "SEED"
+@{LINDENT 4}
+@{B}SEED=«seed»@{UB}
+@{LINDENT 6}
+Set the seed for the random number generator.  A value of 0 causes the seed
+to be set from the clock.
+
+The default value for «seed» is 0.
+
+@ENDNODE
+
+@NODE "LEVELS" "LEVELS"
+@{LINDENT 4}
+@{B}LEVELS=«levels»@{UB}
+@{LINDENT 6}
+Set  the  width  of  the surface.  Increasing this value by one doubles the
+width of the surface.
+
+The default value for «levels» is 10.
+
+@ENDNODE
+
+@NODE "STOP" "STOP"
+@{LINDENT 4}
+@{B}STOP=«iterations»@{UB}
+@{LINDENT 6}
+Set  the  number  of  non-fractal iterations.  Increasing this value by one
+doubles the average number of mountains across the width of the surface.
+
+The default value for «iterations» is 2.
+
+@ENDNODE
+
+@NODE "CROSS" "CROSS"
+@{LINDENT 4}
+@{B}CROSS@{UB}
+@{LINDENT 6}
+Use cross updates, see @{" Algorithm " LINK "Algorithm"}
+
+By default CROSS is not set.
+
+@ENDNODE
+
+@NODE "SMOOTH" "SMOOTH"
+@{LINDENT 4}
+@{B}SMOOTH=«flags»@{UB}
+@{LINDENT 6}
+SMOOTH  controls  which  optional regeneration steps are performed by
+AMontains, see @{" Algorithm " LINK "Algorithm"} for details.
+
+«flags» can take values from 0 to 7 which mean:
+
+     «flags»  |  Step 3  |  Step 2  |  Step 1
+     ---------+----------+----------+----------
+        0     |   off    |   off    |   off
+        1     |   on     |   off    |   off
+        2     |   off    |   on     |   off
+        3     |   on     |   on     |   off
+        4     |   off    |   off    |   on
+        5     |   on     |   off    |   on
+        6     |   off    |   on     |   on
+        7     |   on     |   on     |   on
+
+By default «flags» is 1, so only regeneration step 3 is performed.
+
+@ENDNODE
+
+@NODE "MIX" "MIX"
+@{LINDENT 4}
+@{B}MIX=«weight»@{UB}
+@{LINDENT 6}
+When  performing  the regeneration steps (see @{" Algorithm " LINK "Algorithm"}) the random
+offset  is  added  to a weighted average of the previous value of the
+point and a the average of the new points.  The weighting factors are
+controlled by the MIX and @{" MIDMIX " LINK "MIDMIX"} tooltypes.
+
+MIX gives the weight of the corner points (A,B,C,D)
+
+By default «weight» has a value of 0.0.
+
+@ENDNODE
+
+@NODE "MIDMIX" "MIDMIX"
+@{LINDENT 4}
+@{B}MIDMIX=«weight»@{UB}
+@{LINDENT 6}
+When  performing  the regeneration steps (see @{" Algorithm " LINK "Algorithm"}) the random
+offset  is  added  to a weighted average of the previous value of the
+point and a the average of the new points.  The weighting factors are
+controlled by the @{" MIX " LINK "MIX"} and MIDMIX tooltypes.
+
+MIDMIX gives the weight of the midpoint (E).
+
+By default «weight» has a value of 0.0.
+
+@ENDNODE
+
+@NODE "ACTIVEPRI" "ACTIVEPRI"
+@{LINDENT 4}
+@{B}ACTIVEPRI=«task priority»@{UB}
+@{LINDENT 6}
+AmigaOS  is  a pre-emptive multitasking operating system which allows
+to   run   processes   concurrently.   CPU  time  is  shared  between
+applications based on a value called "task priority".  Processes with
+a  high  task priority are considered more urgent than others and may
+block lower prioritized processes when busy.
+
+Of  course, this should happen only when there really is something to
+do  and  not  when  the  process  is  waiting  for user input or idle
+otherwise.
+
+Unfortunately  AMountains is a very CPU time intensive program and it
+makes  sense  to  assign it a low task priority so other applications
+have a chance to get their job done.
+
+AMountains  supports  two different priorities, one if it's window is
+active and another when it is not active. 
+
+ACTIVEPRI  controls the priority of the first case, @{" INACTIVEPRI " LINK INACTIVEPRI} the
+latter case.
+
+By  default  «task  pri»  has a value of 0, which is default for most
+other  applications, too.  Do not set this value higher than 5 or you
+stir  up problems when processes vital for your Amiga's operation get
+blocked.
+
+You  may make AMountains more multitasking friendly by the use of the
+@{" SLEEP " LINK "SLEEP"} tooltype.
+
+@ENDNODE
+
+@NODE "INACTIVEPRI" "INACTIVEPRI"
+@{LINDENT 4}
+@{B}INACTIVEPRI=«task priority»@{UB}
+@{LINDENT 6}
+AmigaOS  is  a pre-emptive multitasking operating system which allows
+to   run   processes   concurrently.   CPU  time  is  shared  between
+applications based on a value called "task priority".  Processes with
+a  high  task priority are considered more urgent than others and may
+block lower prioritized processes when busy.
+
+Of  course, this should happen only when there really is something to
+do  and  not  when  the  process  is  waiting  for user input or idle
+otherwise.
+
+Unfortunately  AMountains is a very CPU time intensive program and it
+makes  sense  to  assign it a low task priority so other applications
+have a chance to get their job done.
+
+AMountains  supports  two different priorities, one if it's window is
+active and another when it is not active. 
+
+@{" ACTIVEPRI " LINK "ACTIVEPRI"}  controls the priority of the first case, INACTIVEPRI the
+latter case.
+
+By  default  «task pri» has a value of -25, which is sufficiently low
+not to block other applications.  Do not set this value higher than 5
+or  you  stir  up  problems  when  processes  vital  for your Amiga's
+operation get blocked.
+
+You  may make AMountains more multitasking friendly by the use of the
+@{" SLEEP " LINK "SLEEP"} tooltype.
+
+@ENDNODE
+
+@NODE "SLEEP" "SLEEP"
+@{LINDENT 4}
+@{B}SLEEP=«delay»@{UB}
+@{LINDENT 6}
+When  AMountains  filled  the window, scrolling starts.  Between each
+scroll  step  AMountains  waits  for  «delay»  seconds  giving  lower
+prioritized processes a chance to get their job done.
+
+By  default  «delay» is 0, and AMountains will not have any idle time
+at all.
+
+See also: @{" ACTIVEPRI " LINK "ACTIVEPRI"}, @{" INACTIVEPRI " LINK "INACTIVEPRI"}
+
+@ENDNODE
+
+@NODE "GfxBoard" "Graphics board support"
+@SMARTWRAP
+
+@{LINDENT 2}
+
+@{B}Graphics board support@{UB}
+
+@{LINDENT 4}
+
+Right at the moment AMountains contains no code specific to any graphics
+board, everything is done by the use of intuition or graphics library
+functions.
+
+
+AMountains was written and tested on an A2000 with a Picasso II and
+CyberGfx driver software, so there may be a thing or two to mention.
+
+
+You can use AMountains on a 24 Bit true colour screen but you won't get
+more than 256 colours.  AMountains uses a mechanism called "Pen Allocation"
+for it's colour scheming and neither intuition nor CyberGfx allows more
+than 256 pens allocated per screen.
+
+
+However, with 24 Bit screens you will get a better colour resolution
+compared to 8 Bit screens.  True colour screens may display 256×256×256 =
+16,777,216 different colours while 8 Bit screens with colour look-up table
+are restricted to 64×64×64 = 262,144 different colours - at least with the
+Picasso II.
+
+
+The colours will be more exact on true colour screens and the view should
+look slightly better.
+
+@ENDNODE

@@ -1,0 +1,1002 @@
+@database "xpkarchivesub"
+@master "Projects:Projects/XpkArchive.lib_2.1/doc/xpkarchivesub.doc"
+
+@Node Main "xpkarchivesub.doc"
+    @{" XarsArchiverInfo() " Link "XarsArchiverInfo()"}
+    @{" XarsCreateArchive() " Link "XarsCreateArchive()"}
+    @{" XarsOpenArchive() " Link "XarsOpenArchive()"}
+    @{" XarsCloseArchive() " Link "XarsCloseArchive()"}
+    @{" XarsAddDir() " Link "XarsAddDir()"}
+    @{" XarsAddFile() " Link "XarsAddFile()"}
+    @{" XarsCmpFilename() " Link "XarsCmpFilename()"}
+    @{" XarsCopyFile() " Link "XarsCopyFile()"}
+    @{" XarsDeleteFile() " Link "XarsDeleteFile()"}
+    @{" XarsExamine() " Link "XarsExamine()"}
+    @{" XarsExtractFile() " Link "XarsExtractFile()"}
+    @{" XarsModifyFileData() " Link "XarsModifyFileData()"}
+    @{" XarsPackArchive() " Link "XarsPackArchive()"}
+    @{" XarsRenameFile() " Link "XarsRenameFile()"}
+    @{" XarsSetFilenote() " Link "XarsSetFilenote()"}
+    @{" XarsUndeleteFile() " Link "XarsUndeleteFile()"}
+    @{" XarsWhy() " Link "XarsWhy()"}
+    @{" --general--() " Link "--general--()"}
+@EndNode
+
+@Node "XarsArchiverInfo()" "xpkarcsub.library/XarsArchiverInfo"
+
+@{b}    NAME@{ub}
+        XarsArchiverInfo()
+
+@{b}    SYNOPSIS@{ub}
+
+        info = XarsArchiverInfo()
+         D0
+
+        struct XarSubInfo *XarsArchiverInfo(void)
+
+@{b}    FUNCTION@{ub}
+
+        Returns information about the archiver.
+
+        You must fill out the following fields:
+
+
+        struct XarSubInfo {
+
+           USHORT Sizeof;           /* sizeof(XarArchiverInfo)            */
+
+           USHORT SubVersion;       /* Version of the sublib              */
+           USHORT SubRevision;      /* Revision of the sublib             */
+           USHORT MasterVersion;    /* Required xpkarchive.library version*/
+
+           struct XarArchiverInfo XarInfo;
+
+           struct XpkMode *ModeDesc;/* @{"List" Link "TEXT_INCLUDE:exec/lists.h/Main" 21} of individual mode descriptors*/
+
+           UBYTE *Identify[8];      /* Indentify-patterns                 */
+
+        };
+
+
+        Where XarInfo is:
+
+        struct XarArchiverInfo {
+
+           UBYTE  Name[24];        /* Brief name of the packer, 20 char max*/
+           UBYTE  LongName[32];    /* Full name of the packer   30 char max*/
+           UBYTE  Description[80]; /* Short packer desc., 70 char max      */
+
+           UBYTE  ArchiveType[24]; /* Archive-type e.g.: lha, zoo, ...     */
+           UBYTE  ID[9];           /* ID the packer goes by (XAR format)   */
+           UWORD  DefaultMode;     /* default packmode                     */
+
+           LONG   Flags;           /* flags for supported input/output     */
+                                   /* capabilities  (XARIF_...)            */
+        };
+
+@{b}    NOTES@{ub}
+
+      - You must supply at least one identify-pattern and up to eight
+        identify patterns. They are used to find out the type of a file
+        after it has been opened and before any sublib is loaded.
+
+        This pattern is just a string. Every character in the string must
+        exactly match a byte in the file with the following excepions:
+
+            '?' matches any character
+            '*' is an escape character and together with the following
+                byte it is used to match groups of characters:
+
+              sequence   matches               c-equivalent
+
+               '*d'    : digit                 isdigit
+               '*x'    : xdigit                isxdigit
+               '*a'    : alpha                 isalpha
+               '*n'    : alphanumeric          isalnum
+               '*l'    : lower                 islower
+               '*u'    : upper                 isupper
+               '*c'    : cntrl                 iscntrl
+               '*g'    : graphic character     isgraph
+               '*p'    : printable             isprint
+               '*.'    : punctuation           ispunct
+               '*s'    : space                 isspace
+               '*?'    : ?
+               '**'    : *
+               '*0'    : zero
+
+          e.g.  "T?ST*d**" will match "TEST0*","ToST2*","T_ST4*"
+                           but not "TESTx*" or "lkajhsfd"
+
+
+        Your sublib will be loaded, if one of the 8 patterns matches the
+        contents of the file. Then XarsOpenArchive of your sublib will be
+        called and you can do further checking to test, if this file can
+        be handled by your sublib.
+
+        It is very important, that your patterns match the file as good
+        as possible. The reason for this is, that all sublibs, whose
+        patterns match the file, will get loaded into memory, till the
+        first one successfully opens the archive. Although, they are
+        removed by ramlib, when you run out of memory, it has some
+        negative effects: The system will use slow CHIP-memory before
+        it removes your unused library and the largest block of memory
+        may become smaller as your library gets loaded. Now think of
+        10 sublibs having "" as a pattern. Now every XarOpenArchive will
+        load all these 10 libraries into memory. If these sublibs require
+        20kBytes each, you have just wasted 200kBytes of memory, you see
+        what I mean ?
+
+
+      - ModeDesc must contain a pointer to a list of struct XpkMode. The
+        last element of this list must have the "Upto"-field set to 100.
+        Some fields are only relevant for XPK-packers like e.g. ChunkSize
+        and should be set to 0. (see also libraries/xpk.h)
+
+      - Flags must contain the supported input/output types. You must at
+        least support compression from memory to the archive (XARIF_PK_MEM)
+        and decompression from the archive to memory (XARIF_UP_MEM).
+
+        You may support compression from a filehandle to the archive via
+        XARIF_PK_STREAM, and decompression with XARIF_UP_STREAM. The same
+        applies to XARIF_PK_HOOK.
+
+        Input/Output types that are not supported by your lib will be
+        transformed to (de)compression (to)from memory by the
+        xpkarchive.library.
+
+
+@{b}    RESULT@{ub}
+
+       info - a pointer to the initialized structure
+
+
+@{b}    SEE ALSO@{ub}
+
+       libraries/xpk.h, libraries/xpkarchive.h, libraries/xpkarchivesub.h
+
+
+@EndNode
+
+@Node "XarsCreateArchive()" "xpkarcsub.library/XarsCreateArchive"
+
+@{b}    NAME@{ub}
+        XarsCreateArchive()
+
+@{b}    SYNOPSIS@{ub}
+
+        err=XarsCreateArchive(arc)
+         D0                   A0
+
+        LONG XarsCreateArchive(struct XarSubHandle *)
+
+
+@{b}    FUNCTION@{ub}
+
+         Create an empty archive and initialize the XarSubHandle.
+         You may use the "Sub"-fields to store information needed by
+         your library.
+
+         arc->ArcFile contains the file-handle of the archive.
+         arc->SubLibs contains a pointer to your sublib.
+
+         your sublib will be opened once per archive !
+
+
+@{b}    INPUT@{ub}
+
+         arc - partly initialized XarSubHandle
+
+
+@{b}    NOTE@{ub}
+
+         You may replace arc->ArcFile with a new filehandle or NULL, as
+         long as you follow some rules:
+
+         - You must not return an error-code >=XARERROR_LEVEL, if you have
+           modified arc->Arcfile.
+
+         - The xpkarchive.library will call Close for the filehandle in
+           arc->ArcFile, if it is not NULL. Therefore if you close the
+           File yourself, then you must set this entry to NULL.
+
+
+
+@{b}    RESULT@{ub}
+
+         error-code
+
+@EndNode
+
+@Node "XarsOpenArchive()" "xpkarcsub.library/XarsOpenArchive"
+
+@{b}    NAME@{ub}
+        XarsOpenArchive()
+
+@{b}    SYNOPSIS@{ub}
+
+        err=XarsOpenArchive(arc)
+         D0                   A0
+
+        LONG XarsOpenArchive(struct XarSubHandle *)
+
+
+@{b}    FUNCTION@{ub}
+
+         Open the archive and initialize the XarSubHandle.
+         You may use the "Sub"-fields to store information needed by
+         your library.
+
+         If the archive is not known by your lib, you must return
+         XARERR_UNKNOWN_TYPE. You need not restore the file-position.
+
+
+         The XarSubHandle structure has the following fields:
+
+         struct XarSubHandle { /* Archive-handle */
+
+         /* public */
+
+            BPTR  ArcFile;
+            UBYTE *ArchiveName;       /* Read only ! */
+            ULONG OpenMode;           /* Read only ! */
+            ULONG Flags;              /* XARAF_...   */
+
+            struct @{"Library" Link "TEXT_INCLUDE:exec/libraries.h/Main" 34} *MasterLib; /* Read only ! */
+            struct @{"Library" Link "TEXT_INCLUDE:exec/libraries.h/Main" 34} *SubLib;    /* Read only ! */
+
+            struct @{"MinList" Link "TEXT_INCLUDE:exec/lists.h/Main" 32} ArcLocks;
+
+            ULONG Reserved[8];
+
+            ULONG Sub[4];              /* For private use of sublibs */
+
+         };
+
+
+         The fields have the following values:
+
+         ArcFile:     file-handle of the archive
+         ArchiveName: filename of the archive
+         OpenMode:    open-mode given by the user
+         Flags:       flags supported by now:
+                      XARAF_Corrupt, XARAF_ShowDirs
+                      If you detect some errors in the archive, you should
+                      set XARAF_Corrupt. This inhibits the adding of new
+                      files to a corrupt archive.
+         MasterLib:   library-base of the xpkarchive.library
+         SubLib:      library-base of your sub-library
+         Arclocks:    empty list
+         Reserved[8]: reserved for future use, do not use !!!
+         Sub[4]:      for use of your sublibrary, initialized to 0
+
+         your sublib will be opened once per archive !
+
+         This function must also build the list of files in the archive.
+         Therefore it must add initialized XarSubLock sructures to
+         arc->ArcLocks, e.g. with:
+
+         AddTail((struct @{"List" Link "TEXT_INCLUDE:exec/lists.h/Main" 21} *)&arc->ArcLocks,(struct @{"Node" Link "TEXT_INCLUDE:exec/nodes.h/Main" 23} *)lock);
+
+
+@{b}    INPUT@{ub}
+
+         arc - partly initialized XarSubHandle
+
+
+@{b}    NOTE@{ub}
+
+         You may replace arc->ArcFile with a new filehandle or NULL, as
+         long as you follow some rules:
+
+         - You must not return an error-code >=XARERROR_LEVEL, if you have
+           modified arc->Arcfile.
+
+         - The xpkarchive.library will call Close for the filehandle in
+           arc->ArcFile, if it is not NULL. Therefore if you close the
+           File yourself, then you must set this entry to NULL.
+
+
+@{b}    RESULT@{ub}
+
+         error-code
+
+@EndNode
+
+@Node "XarsCloseArchive()" "xpkarcsub.library/XarsCloseArchive"
+
+@{b}    NAME@{ub}
+        XarsCloseArchive()
+
+@{b}    SYNOPSIS@{ub}
+
+        err=XarsCloseArchive(arc)
+         D0                   A0
+
+        LONG XarsCloseArchive(struct XarSubHandle *)
+
+
+@{b}    FUNCTION@{ub}
+
+        Close the archive and free all allocated resources i.e. the list
+        of files in arc->ArcLocks.
+
+
+@{b}    INPUT@{ub}
+
+        arc - initialized XarSubHandle
+
+@{b}    RESULT@{ub}
+
+        error-code
+
+@EndNode
+
+@Node "XarsAddDir()" "xpkarcsub.library/XarsAddDir"
+
+@{b}    NAME@{ub}
+        XarsAddDir()
+
+
+@{b}    SYNOPSIS@{ub}
+
+        err=XarsAddDir(arc, xio, lock)
+         D0             A0  A1    A2
+
+        LONG XarsAddDir(struct XarSubHandle *,struct XarSubIO *,struct XarSubLock **)
+
+
+@{b}    FUNCTION@{ub}
+
+        Add a directory to the archive.
+        Allocate a XarSubLockStructure and return this via *lock.
+
+        If you need some additional fields in the lock, just add them after
+        the XarSubLock and allocate enough memory to hold them.
+
+        You would do something like:
+
+        newlock=AllocMem(...)
+        *newlock=**lock; /* pre initialize your lock */
+
+        /* initialize newlock according to your needs */
+
+        *lock=newlock; /* return lock */
+
+        You should call the progress report-function XarProgress()
+        (see also the xardummy.library)
+
+
+        Furthermore it must add this entry to the list of files in
+        the archive (arc->Arclocks) e.g. with:
+
+        AddTail((struct @{"List" Link "TEXT_INCLUDE:exec/lists.h/Main" 21} *)&arc->ArcLocks,(struct @{"Node" Link "TEXT_INCLUDE:exec/nodes.h/Main" 23} *)lock);
+
+
+@{b}    IMPORTANT@{ub}
+
+        You must not leave *lock unchanged, since it is only
+        temporay and it is freed after the call to your
+        function, unless you return an error-code.
+
+
+@{b}    NOTE@{ub}
+
+        The directoryname, that is passed to this function will always
+        end in '/'.
+
+
+@{b}    INPUT@{ub}
+
+        arc  - pointer to XarSubHandle of the archive
+        xio  - pointer to XarSubIO needed to call XarProgress.
+        lock - pointer to a pointer to an initialized XarSubLock structure.
+
+@{b}    RESULT@{ub}
+
+        XarSubLock via *lock.
+
+        error-code or XARERROR_FUNCTION_NOT_SUPPORTED
+
+@EndNode
+
+@Node "XarsAddFile()" "xpkarcsub.library/XarsAddFile"
+
+
+@{b}    NAME@{ub}
+        XarsAddFile()
+
+
+@{b}    SYNOPSIS@{ub}
+
+        err=XarsAddFile(arc,xio,lock)
+         D0             A0  A1   A2
+
+        LONG XarsAddFile(struct XarSubHandle *,struct XarSubIO *,
+                         struct XarSubLock **)
+
+
+@{b}    FUNCTION@{ub}
+
+        Add a file to the archive.
+        Allocate a XarSubLockStructure and return this via *lock.
+
+        If you need some additional fields in the lock, just add them after
+        XarSubLock and allocate enough memory to hold them.
+
+        You would do something like:
+
+        newlock=AllocMem(...)
+        *newlock=**lock; /* pre initialize your lock */
+
+        /* initialize newlock according to your needs */
+
+        *lock=newlock; /* return lock */
+
+
+        xio contains the missing informations needed to add the file to
+        the archive.
+
+        One of IOMem, IOStream of IOHook is !=0. This one specifies the
+        kind of input/output. If you do not find a supported input/output
+        type, then you must return XARERR_INPUT_NOT_SUPPORTED;
+
+        You should call the progress report-function XarProgress().
+
+
+        Furthermore it must add this entry to the list of files in
+        the archive (arc->Arclocks) e.g. with:
+
+        AddTail((struct @{"List" Link "TEXT_INCLUDE:exec/lists.h/Main" 21} *)&arc->ArcLocks,(struct @{"Node" Link "TEXT_INCLUDE:exec/nodes.h/Main" 23} *)lock);
+
+
+@{b}    IMPORTANT@{ub}
+
+        You must not leave *lock unchanged, since it is only
+        temporarly and it is freed after the call to your
+        function, unless you return an error-code.
+
+
+@{b}    NOTE@{ub}
+
+        The filename passed to this function will not end in '/'.
+
+
+
+@{b}    INPUT@{ub}
+
+        arc  - pointer to XarSubHandle of the archive
+        xio  - pointer to XarSubIO
+        lock - pointer to a pointer to an initialized XarSubLock structure.
+
+@{b}    RESULT@{ub}
+
+        XarSubLock via *lock.
+
+        error-code
+
+@EndNode
+
+@Node "XarsCmpFilename()" "xpkarcsub.library/XarsCmpFilename"
+
+@{b}    NAME@{ub}
+        XarsCmpFilename()
+
+@{b}    SYNOPSIS@{ub}
+
+        cmp = XarsCmpFilename(name1,name2)
+         D0                    A0    A1
+
+        LONG XarsCmpFilename(UBYTE *,UBYTE *)
+
+@{b}    FUNCTION@{ub}
+
+        Compare two filenames. This function is required to support
+        the different handling of filenames on different architectures.
+        E.g. unix has case-sensitive filenames.
+
+@{b}    INPUT@{ub}
+
+        name1, name2 - pointers to two filenames
+
+
+@{b}    RESULT@{ub}
+
+        <0  if name1<name2
+        ==0 if name1==name2
+        >0  if name1>name2
+
+@EndNode
+
+@Node "XarsCopyFile()" "xpkarcsub.library/XarsCopyFile"
+
+@{b}    NAME@{ub}
+        XarsCopyFile(lock,arc) (a0,a1)
+
+
+@{b}    SYNOPSIS@{ub}
+
+        err=XarsCopyFile(lock,arc)
+        D0                A0   A1
+
+        LONG XarsCopyFile(struct XarSubLock **,struct XarSubHandle *)
+
+
+@{b}    FUNCTION@{ub}
+
+        Copy a file from one archive to another. You must allocate a
+        new lock for the second archive and return it via *lock, unless
+        you return an error-code.
+
+@{b}    IMPORTANT !!@{ub}
+
+        The xpkarchive.library may temporarly set a new filename,
+        a new filenote and a new generation in **lock. This is used to
+        set a new filename or filenote when copying files using this funtion.
+
+
+@{b}    INPUT@{ub}
+
+        lock - pointer to a pointer to a XarSubLock. (*lock)->Arc contains
+               a pointer to the source-archive.
+
+        dstarc - pointer to the destination-archive
+
+
+@{b}    NOTE@{ub}
+
+        This function is called with dstarc->SubLib in a6 rather than
+        srcarc->SubLib !
+
+
+
+@{b}    RESULT@{ub}
+
+        error-code
+
+@EndNode
+
+@Node "XarsDeleteFile()" "xpkarcsub.library/XarsDeleteFile"
+
+@{b}    NAME@{ub}
+        XarsDeleteFile()
+
+@{b}    SYNOPSIS@{ub}
+
+        err=XarsDeleteFile(lock)
+         D0                 A0
+
+        LONG XarsDeleteFile(struct XarSubLock *)
+
+@{b}    FUNCTION@{ub}
+
+        Delete a file or mark a file as deleted in the archive.
+
+
+@{b}    NOTE@{ub}
+
+        This function will never be called for already deleted files.
+
+
+@{b}    INPUT@{ub}
+
+        lock - XarSubLock to the file to be deleted
+
+
+@{b}    RESULT@{ub}
+
+        error-code, XARERR_FUNCTION_NOT_SUPPORTED, if your archive does
+        not support the deletion of files
+
+
+@EndNode
+
+@Node "XarsDirect()" "xpkarcsub.library/XarsDirect"
+
+@{b}    NAME@{ub}
+        XarsDirect()
+
+
+@{b}    SYNOPSIS@{ub}
+        err = XarsDirect(handle,command)
+        D0                A0      A1
+
+        LONG XarsDirect(XarHandle *,UBYTE *)
+
+
+@{b}    FUNCTION@{ub}
+
+        This function is used access special functions in your sublibrary.
+        You get a commandline in 'command'.
+
+
+@{b}    INPUT@{ub}
+        handle  - Handle of the archive
+        command - Commandstring
+
+
+@{b}    RESULT@{ub}
+        err - Error code
+
+
+@{b}    NOTE@{ub}
+        The error code needs not really indicate an error, but for this
+        function it is also used to indicate, that there is a result-text
+        from the function. Errorcodes>=XARERR_CUSTOM_LEVEL are custom error
+        codes of the sublibraries and the same error-code may result in
+        a different result-message every time.
+
+
+@{b}    SEE ALSO@{ub}
+
+        The sourcecode for the xarZOO.library uses this function to implement
+        the generation-handling functions.
+
+
+@EndNode
+
+@Node "XarsExamine()" "xpkarcsub.library/XarsExamine"
+
+@{b}    NAME@{ub}
+        XarsExamine()
+
+@{b}    SYNOPSIS@{ub}
+
+        err=XarsExamine(lock,xfib)
+         D0              A0   A1
+
+        LONG XarsExamine(struct XarSubLock *, struct XpkFib *)
+
+
+@{b}    FUNCTION@{ub}
+
+        Emulate XpkExamine for your archive. You should fill xfib with
+        some sensible values or return XARERR_FUNCTION_NOT_SUPPORTED.
+
+
+@{b}    INPUT@{ub}
+
+        lock - XarSubLock of the file
+        xfib - XpkFibStructure, that you should write your values to
+
+@{b}    RESULT@{ub}
+
+        error-code, XARERR_FUNCTION_NOT_SUPPORTED, if your archive does
+        not support this function
+
+@EndNode
+
+@Node "XarsExtractFile()" "xpkarcsub.library/XarsExtractFile"
+
+@{b}    NAME@{ub}
+
+        XarsExtractFile()
+
+@{b}    SYNOPSIS@{ub}
+
+        err=XarsExtractFile(lock,xio)
+        D0                   A0   A1
+
+
+        LONG XarsExtractFile(struct XarSubLock *, struct XarSubIO *)
+
+@{b}    FUNCTION@{ub}
+
+        Extract a file from an archive to memory, a file or using
+        a hook-function.
+
+        xio contains the missing informations needed to extract the file
+        from the archive.
+
+        One of IOMem, IOStream of IOHook is !=0. This one specifies the
+        kind of input/output. If you do not find a supported input/output
+        type, then you must return XARERR_OUTPUT_NOT_SUPPORTED;
+
+        You should call the progress report-function XarProgress().
+
+
+@{b}    INPUT@{ub}
+
+        xio  - pointer to XarSubIO
+        lock - pointer to a pointer to an initialized XarSubLock structure.
+
+
+@{b}    NOTE@{ub}
+
+        The xpkarchive.library will extract the date and comment if
+        decompressed to a file.
+
+
+@{b}    RESULT@{ub}
+
+        error-code
+
+@EndNode
+
+@Node "XarsModifyFileData()" "xpkarcsub.library/XarsModifyFileData"
+
+@{b}    NAME@{ub}
+        XarsModifyFileData(lock,fdata)(a0,a1)
+
+@{b}    SYNOPSIS@{ub}
+
+        err=XarsModifyFileData(lock,fdata)
+        D0                      A0   A1
+
+        LONG XarsModifyFileData(struct XarSubLock *,struct XarExtFileData *)
+
+@{b}    FUNCTION@{ub}
+
+        Modify values in lock according to fdata, which holds the modified
+        values.
+
+
+@{b}    INPUT@{ub}
+
+        lock  - pointer to XarSubLock structure of the file
+        fdata - holds the new values
+
+
+@{b}    RESULT@{ub}
+
+        error-code, XARERR_FUNCTION_NOT_SUPPORTED, if your archive does
+        not support this kind of function.
+
+
+@{b}    SEE ALSO@{ub}
+
+         XarsDeleteFile XarsUndeleteFile
+@EndNode
+
+@Node "XarsPackArchive()" "xpkarcsub.library/XarsPackArchive"
+
+@{b}    NAME@{ub}
+
+        XarsPackArchive()
+
+@{b}    SYNOPSIS@{ub}
+
+        err=XarsPackArchive(from,to)
+         D0                  A0  A1
+
+        LONG XarsPackArchive(struct XarSubHandle *, struct XarSubHandle *)
+
+
+@{b}    FUNCTION@{ub}
+
+        Copy all information, but deleted files and other unused information,
+        from the archive 'from' to the archive 'to'. Note that the archive
+        'to' need not be empty !
+
+@{b}    INPUT@{ub}
+
+        from, to -  XarSubHandles of the archives.
+
+
+@{b}    RESULT@{ub}
+
+        error-code
+
+@EndNode
+
+@Node "XarsRenameFile()" "xpkarcsub.library/XarsRenameFile"
+
+@{b}    NAME@{ub}
+        XarsRenameFile()
+
+@{b}    SYNOPSIS@{ub}
+
+        err=XarsRenameFile(lock,newname,newgen)
+         D0                 A0    A1     D0
+
+        LONG XarsRenameFile(struct XarSubLock *, UBYTE *, LONG)
+
+
+@{b}    FUNCTION@{ub}
+
+        Rename the file in the archive and set a new generationnumber.
+
+
+@{b}    NOTE@{ub}
+
+        - The generationnumber need not be different from the old one.
+
+
+@{b}    INPUT@{ub}
+
+        lock - XarSubLock of the file in the archive
+        newname - new filename
+        newgen  - new generationnumber
+
+
+@{b}    RESULT@{ub}
+
+        error-code
+
+@EndNode
+
+@Node "XarsSetFilenote()" "xpkarcsub.library/XarsSetFilenote"
+
+@{b}    NAME@{ub}
+
+        XarsSetFilenote()
+
+@{b}    SYNOPSIS@{ub}
+
+        err=XarsSetFilenote(lock,note)
+        D0                   A0   A1
+
+        LONG XarsSetFilenote(struct XarSubLock *, UBYTE *note)
+
+
+@{b}    FUNCTION@{ub}
+
+        Set a new filenote for the file
+
+
+@{b}    INPUT@{ub}
+
+        lock - XarSubLock of the file
+        note - new filenote
+
+
+@{b}    RESULT@{ub}
+
+        error-code, XARERR_FUNCTION_NOT_SUPPORTED
+@EndNode
+
+@Node "XarsUndeleteFile()" "xpkarcsub.library/XarsUndeleteFile"
+
+@{b}    NAME@{ub}
+        XarsUndeleteFile()
+
+@{b}    SYNOPSIS@{ub}
+
+        err=XarsUndeleteFile(lock)
+         D0                 A0
+
+        LONG XarsUndeleteFile(struct XarSubLock *)
+
+@{b}    FUNCTION@{ub}
+
+        Undelete a file or mark a file as undeleted in the archive.
+
+
+@{b}    NOTE@{ub}
+
+        This function will only be called for deleted files.
+
+
+@{b}    INPUT@{ub}
+
+        lock - XarSubLock to the file to be undeleted
+
+
+@{b}    RESULT@{ub}
+
+        error-code, XARERR_FUNCTION_NOT_SUPPORTED, if your archive does
+        not support the undeletion of files
+
+@EndNode
+
+@Node "XarsWhy()" "xpkarcsub.library/XarsWhy"
+
+@{b}    NAME@{ub}
+
+        XarsWhy()
+
+@{b}    SYNOPSIS@{ub}
+
+        errorstring = XarsWhy(arc,error)
+            D0                 A0   D0
+
+        UBYTE * XarsWhy(struct XarSubHandle *, LONG )
+
+
+@{b}    FUNCTION@{ub}
+
+        Return a description for a custom error-code of your sublibrary.
+
+
+@{b}    NOTE@{ub}
+
+        The error-code refers to the last error, that occured.
+
+        If you don't generate custom error-codes, then you should return
+        NULL.
+
+        You may return different error-messages for the same error-code,
+        everytime this function gets called.
+
+
+@{b}    INPUT@{ub}
+
+        arc   - XarSubHandle of the archive
+        error - custom error-code
+
+
+@{b}    RESULT@{ub}
+
+        Pointer to description or NULL
+
+@EndNode
+
+@Node "--general--()" "xpkarcsub.library/--general--"
+
+
+@{b}   What's got to be supported by a sublibrary@{ub}
+
+
+      The interface to XAR-sublibs was designed to support different types
+      of archives. Therefore not all functions are useful for all types of
+      archives. E.g. not all archives support generations. If your archive
+      does not support a specific function, then your function should return
+      XARERR_FUNCTION_NOT_SUPPORTED to indicate that this function is not
+      supported by this kind of archive (except for XarsWhy, which should
+      return NULL in this case). However there are some functions,
+      that must be present and functional for the proper handling of
+      archives. These are:
+
+
+         XarsArchiverInfo, XarsCreateArchive, XarsOpenArchive,
+         XarsCloseArchive, XarsAddFile, XarsCmpFilename, XarsExtractFile
+
+         (These functions must not return XARERR_FUNCTION_NOT_SUPPORTED)
+
+
+
+      Functions, that are not 'a must', but that are really useful:
+
+         XarsCopyFile, XarsDeleteFile, XarsUndeleteFile, XarsPackArchive
+
+         NOTE: If you do not support XarsPack archive, the default-behaviour
+               is to copy all files using XarsCopyFile.
+
+
+
+      Functions that depend on what your archive-type supports:
+
+         XarsAddDir, XarsModifyFileData, XarsExamine, XarsModifyFileData,
+         XarsNextGeneration, XarsRenameFile, XarsSetFilenote
+
+
+
+
+@{b}    Some general notes@{ub}
+
+        Some notes about the file-list
+
+        -  The order of the files in the archive must not change, except
+           that an 'arclock' may be removed from the list when a file gets
+           deleted.
+
+        -  New files are added to the end of the file-list.
+
+
+
+@{b}   Progress-report:@{ub}
+
+      You should call XarProgress when packing or unpacking files or when
+      you add directories, since this calls the progress-hook, that was
+      set by the programmer and that gives the user some feedback of
+      what's going on. See the docs of XarProgress in the xpkarchive.library
+      for more inforemation.
+
+
+
+
+@{b}   Error-Codes@{ub}
+
+      The xpkarchive.library offers quite a long list of error-codes. If you
+      do not find a suitable error-code you may return your own custom
+      error-code. These error-codes have a value above XARERR_CUSTOM_LEVEL.
+      But since the xpkarchive.library has no chance to know, what this
+      error-code means, but has to return an error-string when the user
+      calls XarWhy, it needs to get a description of the error. Therefore
+      it calls XarsWhy of the sublibrary. Therefore if you do not use
+      custom error-codes, XarsWhy will not be called (however you should
+      return NULL, if this should really happen). In the other case you
+      must return a descriptive text of the error.
+
+
+@EndNode
+

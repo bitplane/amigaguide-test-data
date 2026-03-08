@@ -1,0 +1,290 @@
+@DATABASE "Programmer"
+@AUTHOR David Swasbrook
+@(C) Copyright (C)1994 David Swasbrook. All Rights Reserved.
+@$VER: Programmer.guide 2.5 (23.01.95)
+
+@INDEX Index
+
+@NODE MAIN "Programmer (23.01.95)"
+
+	**** This is a bit out of date (sorry)
+
+	SWAZBLANKER : Programming References Contents
+	=============================================
+
+	(C) 1992,93,94 David Swasbrook,
+	     All Rights Reserved.
+
+	@{b}So you want to write a blanker module eh?@{ub}
+
+	If you wish to look at some example source please feel free to have a look at
+	the code provided. See @{" Example Blanker Source " LINK dev/ExampleBlanker.c/MAIN}.
+
+	Its pretty simple, there are a few guidelines however that should be followed:
+
+	 o  Standard AmigaDos executable program
+
+	 o  Exit on a SIGBREAK_CTRL_C signal
+
+	 o  You must include in your program a @{" blanker identification string " LINK Prog_IDString}. If
+	    this is omitted then SwazBlanker will not recognise it as valid module.
+		**** NOTE: Changed slightly. See example source.
+
+	 o  Accept the following command line parameters:
+
+		@{" BLANK " LINK Prog_Arg_BLANK} - perform the blanking of the screen
+
+		@{" PREFS " LINK Prog_Arg_PREFS} - configure the blanker.
+
+		**** NOTE: This has changed, please see example source on using
+		     the SB_Init() function...
+
+	 o  Tell SwazBlanker your screen and window. This enables SwazBlanker to
+	    perform @{" Reblanking " LINK "SwazBlanker.guide/Reblank"} for your blanker.
+	    SB_SetBlankerScreen( screen, window ).
+
+	 o  You must tell SwazBlanker your blanker is ready by calling the function
+	    SB_BlankerReady(). Otherwise SwazBlanker will wait until your blanker
+	    exits.
+
+	 o  It is also recommended (especially for modules with data files) that you
+	    change your current directory to the blanker module directory. The function
+	    SB_GotoBlankerHomeDir() and SB_ReturnBlankerHomeDir() are designed for this
+	    purpose.
+
+	 o  Do not change your @{" task priority " LINK "SwazBlanker.guide/TaskManage"}.
+
+	 o  You may also wish to @{" localize " LINK Locale} your interface.
+
+	 o  And please, please put some Waits in, we cant have a blanker taking all
+	    the available CPU time. There are other tasks running you know!
+
+	 o  The preferences interface must quit upon receiving a SIGBREAKF_ABORT.
+
+	 o  The preferences task should be registered with swazblanker.library using
+	    SB_AddPrefsTaskTagList().
+
+	Once all the above have been completed you have a finished blanker. yay!
+
+@ENDNODE
+
+@NODE Prog_Arg_BLANK "BLANK"
+
+CLI Argument : BLANK
+********************
+	
+	@{b}The screen and mouse pointer should be blanked.@{ub}
+
+	To simply blank the screen all you need to do is open a one bitplane screen
+	and set the two colors in the palette to black.
+
+		struct Screen *screen;
+		WORD CSpec[] = { 0,0,0,0, 1,0,0,0 -1 };
+
+		screen = SB_OpenScreenTags(
+			SA_DisplayID,0,
+			SA_Depth,1,
+			SA_Colors, &CSpec,
+			TAG_DONE);
+
+	To blank the mouse pointer you need to open a window on the screen and set
+	up a blank pointer.
+
+		struct Window *window;
+
+		window = SB_OpenWindowTags(
+			WA_CustomScreen,screen,
+			TAG_DONE);
+
+	Once the screen and mouse pointer have been blanked you then setup anything
+	else your blanker needs and then inform SwazBlanker that you are ready :
+
+		SB_SetBlankerScreen( screen, window );	/* Set the blankers screen and window */
+		SB_BlankerReady();                      /* Tell SwazBlanker we are working */
+
+	Then you can do whatever you like, SwazBlanker will make sure that your
+	screen and window remain active. When it is time to unblank SwazBlanker
+	immediately pushes your screen to the back and sends the blanker the signal
+	SIGBREAKF_CTRL_C.
+
+		Wait(SIGBREAKF_CTRL_C);
+
+	When your blanker receives this signal it needs to quit.
+
+		SB_ClrBlankerScreen( screen, window );  /* Restore old screen */
+
+
+@ENDNODE
+
+@NODE Prog_Arg_PREFS "PREFS"
+
+CLI Argument : PREFS
+********************
+
+	@{b}Configuring the blanker.@{ub}
+
+	All blankers must have a configuration interface. If your blanker does not
+	require configuration then you should inform the user that no configuration
+	is required for your blanker.
+
+	Since under the Amiga's multitasking environment it is possible to request
+	to configure the same blanker module several times, SwazBlanker library
+	provides a simple function you can call to register your blankers interface
+	so that only one configuration invocation of your blanker can exist.
+
+	Your blanker preferences routine should look something like the following:
+
+	void BlankerPreferences(void)
+	{
+		struct BlankerPrefsNode *bpn;
+
+		if( bpn = SB_AddPrefsTaskTagList( "Blanker Name", NULL ) )
+		{
+			/*
+			** Put your interface in here
+			**
+			** Please set (struct Window *) bpn->window as soon
+			** as possible.
+			*/
+
+			SB_RemPrefsTask( bpn );
+		}
+	}
+
+	Is is suggested that the configuration window for the blanker use the
+	same font as chosen in blanker server preferences. This may be easily
+	obtained from the @{" SwazBlankerBase " LINK "include:libraries/SwazBlanker.h/MAIN"} as:
+
+		(STRPTR) SwazBlankerBase->InterfaceFontName
+
+	This is a pointer to a string describing the font. Eg "Helvetica 11".
+
+@ENDNODE
+
+@NODE Prog_IDString "Blanker ID String"
+
+Blanker Identification String
+*****************************
+@{b}
+	This text string must be included in your program executable somewhere.
+	Without this the blanker module will not be recognised as a valid module
+	by SwazBlanker.
+@{ub}
+
+	@{b}FORMAT@{ub}
+
+	    "$BLANKER:TITLE/K/A,AUTHOR/K/A,EMAIL/K,STACK/K/N,CPU/K/N,KS/K/N,LOAD/K,CYEARS/K,COPYRIGHT/K,INFO/F"
+
+	@{b}ARGUMENTS@{ub}
+
+	  @{b}TITLE="<string>"@{ub}
+	    Breif description of the blanker module.
+
+	  @{b}AUTHOR="<string>"@{ub}
+	    Name of the author of the blanker module.
+
+	  @{b}EMAIL="<string>"@{ub}
+	    Optional email address of the author.
+
+	  @{b}STACK=<number>@{ub}
+	    Some blankers may require large stacks, the default stack size
+	    for a module run by SwazBlanker is 4096 bytes. If your module
+	    requires large amounts of stack, you may specify the stack
+	    required which will override the default stack size set by
+	    SwazBlanker.
+	      Eg. STACK=16384 (Allocate 16Kb of stack for the blanker).
+
+	  @{b}CPU=<number>@{ub}
+	    This is the CPU that the blanker module is designed for.
+	      Eg. CPU=68000 (Blanker requires a 68000 CPU or better)
+	          CPU=68040 (Blanker requires a 68040 CPU or better)
+	    Currently SwazBlanker does not look at this field, but it
+	    is intended to be used in the future.
+
+	  @{b}KS=<number>@{ub}
+	    This is the minimum kickstart required to run the blanker.
+	      Eg. KS=40 (Blanker requires kickstart V40 or higher)
+	    Currently SwazBlanker does not look at this field, but it
+	    is intended to be used in the future.
+
+	  @{b}LOAD="<string>"@{ub}
+	    Rough estimate of the CPU load the blanker module uses.
+	      Eg. LOAD=Low or LOAD=High.
+	    Values for LOAD are None, Low, Medium, High
+ 
+	  @{b}CYEARS="<string>"@{ub}
+	    Copyright dates for the blanker module.
+
+	  @{b}COPYRIGHT="<string>"@{ub}
+	    Alternative copyright message.
+
+	  @{b}INFO=<rest of line>@{ub}
+	    The rest of the line contains a detailed description of
+	    what the blanker does and any other information you feel
+	    is important for the user to know. You may use the
+	    sequence ^M for a linefeed.
+
+
+	@{b}NOTE@{ub}: You only need quotes around strings when
+
+	    CPU=NUMBER - This is the minimum CPU required to run the blanker.
+
+	@{b}Example@{ub}:
+
+	  extern UBYTE ID[] = "$BLANKER:"
+		" CPU=68000"
+		" KS=39"
+		" LOAD=None"
+		" STACK=4096"
+		" AUTHOR=\\"Example\\""
+		" EMAIL=\\"example@example.co\\""
+		" TITLE=\\"Example blanker module\\""
+		" CYEARS=\\"1994\\""
+		"Just some example source."
+		"\\n"; /* You @{b}MUST@{ub} remember to put the linefeed at the end! */
+
+
+@ENDNODE
+
+
+@NODE Locale "Progrmming for locale..."
+
+Locale
+******
+
+	It is suggested that you localize the configuartion interface for your
+	blanker. Please consult your system programming style guidelines for
+	further information.
+
+@ENDNODE
+
+
+@NODE Index
+
+	SWAZBLANKER : Programming References Index
+	==========================================
+
+	(C) 1992,93,94 David Swasbrook,
+	     All Rights Reserved.
+
+	@{b} Programming Info @{ub}
+
+	@{" Programming A Blanker           " LINK MAIN		} Programming documentation
+	@{"   Blanker Identification String " LINK Prog_IDString	} Identifies the executble as a blanker
+	@{"   CLI Arg : BLANK               " LINK Prog_Arg_BLANK	} What to do when you get a BLANK argument
+	@{"   CLI Arg : PREFS               " LINK Prog_Arg_BLANK	} What to do when you get a PREFS argument
+	@{"   Locale                        " LINK Locale		} Programming for locale
+
+	@{b} Source @{ub}
+
+	@{" SwazBlankerBase                 " LINK "include:libraries/SwazBlanker.h/MAIN"} SwazBlanker.h
+	@{" Example Blanker C Source        " LINK "dev/ExampleBlanker.c/MAIN"} ExampleBlanker.c
+
+	@{b} SwazBlanker @{ub}
+
+	@{" Blanker Server Documentation    " LINK "SwazBlanker.guide/MAIN"		} Documentation
+	@{"   Reblanking                    " LINK "SwazBlanker.guide/Reblank"	} Reblank when blanker not visible
+	@{"   Task Priority                 " LINK "SwazBlanker.guide/TaskManage"	} Task priority management
+
+
+@ENDNODE

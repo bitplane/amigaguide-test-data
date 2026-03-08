@@ -1,0 +1,415 @@
+@database dofile.guide
+@node main "Dofile"
+
+    @{b}Dofile 5.2 by Rolf Max Rotvel.@{ub}
+
+    @{" Description                         " link description}
+    @{" Requirements                        " link requirements}
+    @{" Installation                        " link installation}
+    @{" Configuration                       " link configuration}
+    @{" Usage                               " link usage}
+    @{" Notes                               " link notes}
+
+    @{" Dofile and Multiview                " link multiview}
+    @{" Datatype descriptors                " link dtdesc}
+
+    @{" Author                              " link author}
+    @{" Copyright                           " link copyright}
+    @{" Disclaimer                          " link disclaimer}
+    @{" Credits                             " link credits}
+    @{" History                             " link history}
+
+@endnode
+@node description "Description"    
+
+    Dofile recognizes the filetype using datatypes.library and launches the
+    corresponding tool.
+
+    This enables you to use your favorite viewer/player/editor instead of
+    Multiview and still keep the advantage of the datatypes.library
+    filetype recognition. But Dofile can also recognize files using filename
+    matching.
+    Both datatypes (and filename patterns) can be any AmigaDOS pattern. This
+    makes it easy to group datatypes together that uses the same viewer. 
+
+    Very useful when installed as a do-it-all appicon in Toolmanager. It's
+    also possible to use Dofile as default tool in Workbench project icons.
+    You can even use a ToolAlias utility to redirect all calls to Dofile.
+    And of course it also works nicely from CLI.
+
+    Now you only have one global config file to change when you install eg.
+    a new JPEG viewer.
+
+    Other features:
+    * Changes directory to the datafile directory if possible. Making it
+      easier to load other files in eg. a text viewer.
+    * Handles icons that has no matching file perfectly
+    * Has a SHOWDATATYPE switch that displays the datatype of a file in a
+      requester. And much more info when coupled with the VERBOSE switch.
+    * Uses filenotification to reread the prefs file each time you change it.
+    * It's possible to set the stacksize of the command.
+    * Dofile opens a filerequester if you don't pass it a file as argument. If
+      you pass it a directory it will open the requester in that directory.
+
+@endnode
+@node requirements "Requirements"
+
+    Workbench 3.x with lots of datatypes installed. 
+
+    rmh.library. v6.5 included with this archive.
+
+    RexxMast.
+
+    c:requestfile
+
+    If you want to use Dofile as default tool in project icons you either need
+    WB 3.5 or the included RxWB tool.
+
+@endnode
+@node installation "Installation"
+
+    Copy "Dofile.rexx" to rexx: 
+    @{" Do it " system "copy Dofile.rexx rexx:"}
+
+    Copy the example "dofile.prefs" to s: 
+    @{" Do it " system "copy dofile.prefs s:"}
+
+    If you don't have WB 3.5 copy "RxWB" to rexx: and rename it to Dofile.
+    @{" Do it " system "copy RxWB rexx:Dofile"}
+
+    Copy "rmh.library" to libs: if you do not have it already.
+    @{" Do it " system "copy libs/rmh.library libs:"}
+
+    Copy the "Dostart.info" icon to your WBStartup drawer if you want
+    Dofile installed each time you boot.
+    @{" Do it " system "copy Dostart.info sys:wbstartup"}
+
+@endnode
+@node configuration "Configuration"
+                        
+    Please read the @{" Dofile and Multiview " link multiview} section and have a look at 
+    the @{" example config file " link dofile.prefs/main}
+
+    Edit the Dofile.prefs file. Each line consists of a datatype name and
+    the associated command. Blank lines or lines that start with a
+    semicolon are ignored. The rest are parsed using ReadArgs() with this
+    template: 
+
+    @{b}DATATYPE/A,COMMAND/A,STACK/K/N,PATTERN/S,PREFIX/K@{ub}
+
+    @{b}DATATYPE@{ub}
+    DATATYPE is what datatypes.library knows the file as. If in doubt about
+    the datatype simply run Dofile with the @{" SHOWDATATYPE " link usage} switch and check the
+    requester (Eg: rx dofile SHOWDATATYPE ram:disk.info).
+    You can use AmigaDos patterns to group more than one datatype with the
+    same command. 
+
+    @{b}COMMAND@{ub}
+    COMMAND is the corresponding viewer/player/editor/etc.
+    Some DATATYPE and COMMAND examples:
+    GIF                           cc:visage
+    "Amiga .info File"            cc:fasticon
+    (REXX|C++-Source|C-Source)    c:ed
+    "(Bitmap Font|Outline Font)"  "sys:utilities/multiview REQUESTER"
+
+    @{b}PATTERN@{ub}
+    The PATTERN switch tells Dofile to do filename matching instead instead of
+    checking the datatype of the file. Only use this switch if absolutely
+    necessary - there is a datatype descriptor for almost any type of file.
+    Have a look in the @{" desc " link dtdesc} drawer.
+    A few PATTERN examples:
+    #?.c                          c:edit PATTERN
+    #?.(avi|qt|mov)               "rx rexx:startamp.rexx" STACK=300000 PATTERN
+    The PATTERN keyword only works on ascii, binary or iff files (Ie: Not on
+    files that you have a datatype descriptor for).
+    
+    @{b}STACK@{ub}
+    The STACK keyword is used to set the stack of the COMMAND. The default is
+    8192 bytes stack which is usually enough, but eg. many PPC utils requires
+    a much higher stack. See above for an example.
+
+    @{b}PREFIX@{ub}
+    Normally Dofile processes the command by simply adding a space between
+    the command and the filename: cc:smartplay "x:music/MOD.acid flashback"
+    The PREFIX keyword can be used to add some text immediately before the
+    filename, like this:
+    HTML                          work:voyager/v PREFIX=file:///
+    Dofile will now concatate the command and the filename and process it
+    like this: work:voyager/v "file:///work:html/32/wdhtml32.htm". This
+    keyword was implemented because some Voyager 2.x versions insisted on the
+    'file:///' bit when opening a local file.
+
+    When you're finished copy Dofile.prefs to s: 
+
+@endnode
+@node usage "Usage"
+
+    rx rexx:Dofile.rexx @{b}FILE,V=VERBOSE/S,D=SHOWDATATYPE/S,S=SHELL/S,
+                        I=INSTALL/S,Q=QUIT/S,ARGS/F@{ub}
+
+    @{b}FILE@{ub}
+    The file to process. If you pass a directory or nothing as argument to
+    Dofile it will open a filerequester. And you can supply a file for
+    processing.
+
+    @{b}D=SHOWDATATYPE/S@{ub}
+    Displays a requester with the datatype info of the selected file. Also
+    shows which command (And the command stacksize) Dofile would use on the
+    file. All other options except VERBOSE are ignored.
+    
+    @{b}V=VERBOSE/S@{ub}
+    When processing a file displays a requester with the following info:
+    filename, datatype, command name and command stack. 
+    When coupled with the SHOWDATATYPE switch it displays a lot more info in
+    the requester.
+
+    Note: The stacksize shown in the SHOWDATATYPE/VERBOSE requesters is not
+    necessarily the one Dofile will use. If Dofile inherits a larger stacksize
+    it will use that instead. Eg: The default stack is 8192 bytes and you have
+    configured a command to use 50000 bytes (Using the @{" STACK " link configuration} keyword). But 
+    the shell you run Dofile from has a 300000 bytes default stack. So Dofile
+    uses 300000 as stacksize but displays 50000 in the requester.
+
+    @{b}S=SHELL/S@{ub}
+    Display Dofile output in your shell instead of in requesters. 
+    Tip: Add the following alias to your s:shell-startup file:
+    "alias do rx rexx:dofile.rexx SHELL"
+
+    @{b}I=INSTALL/S@{ub}
+    Installs Dofile (Reads cfgfile and opens Arexx port) without processing
+    any files. 
+    If you want Dofile installed each time you boot copy the included
+    "Dostart.info" icon to your WBStartup drawer. It is not a good idea to
+    put it in your user-startup.
+
+    @{b}Q=QUIT/S@{ub}
+    Quit Dofile (Close Arexx port).
+
+    @{b}ARGS/F@{ub}
+    Any extra arguments that you want to pass to the command. Let's say you
+    have configured mpeg viewing like this: "cc:frogger DISPLAY=VLAYERPM2". If
+    you want to try watching a movie on a separate screen you can simply do
+    this: "rx dofile stor:mpeg/WEIRDISE.MPG SCREEN".
+        
+
+    Example: rx Dofile.rexx pix:1.jpg VERBOSE
+    
+    If you want to change the @{" configuration " link configuration} just edit the Dofile.prefs 
+    file. Dofile will detect that it has changed and reload it
+    automatically. 
+
+    It's possible to use Dofile as default tool in Workbench project icons.
+    I have also replaced SID2's internal filerecognition system with
+    Dofile's. Read the @{" notes " link notes} section.
+    Additionally I have Dofile installed as a do-it-all Workbench appicon
+    (Using ToolManager).
+
+@endnode
+@node multiview "Dofile and Multiview"
+
+    If Dofile/datatypes.library can't figure out which datatype a file is it
+    returns the file 'master class' which is either "ascii", "binary", "iff"
+    or "directory"
+
+    This is why Dofile only checks "ascii", "binary" or "iff" files for file
+    @{" patterns " link configuration}. If it is anything else it is either a directory (Which is
+    ignored) or a known datatype (Which Multiview hopefully can handle).
+
+    Dofile uses 'Multiview' as default command for known datatypes that you
+    haven't configured a command for (Including "ascii" files). If you want to
+    change this (To an alternative to Multiview or Multiview with extra
+    arguments) you should make sure that this command doesn't try to load
+    plain "binary", "iff" or "directory" files.
+
+    Look at the last line the @{" example config file " link dofile.prefs/main} for how to do this.
+
+@endnode 
+@node dtdesc "Dofile datatype descriptors"
+
+    Just a few notes about the datatype descriptors in the "desc" directory.
+    Most of them are self-explanatory. Here are a few that are not:
+
+    Sources:
+    Some of the descriptors (MED among others) are created by me using MakeDT
+    v1.3 by Michael Letowski.
+    Most descriptors are from various datatype files from aminet (JPEG,
+    ProTracker, XBM etc)
+    I also got a few descriptors from the archive included with Roland
+    Mainz Adddatatypes v45.2.
+
+    I had a problem with the descriptor from Olaf Barthel's MacSND
+    datatype. It insisted on scanning any MP3 songs I tried to play making
+    it a rather slow affair loading them. Removing the descriptor solved
+    the problem.
+    
+    There's no icons supplied because you can just get what you need from
+    your devs:datatypes directory.
+
+@endnode
+@node notes "Notes"
+    
+    @{" How to use Dofile as default tool in Workbench project icons   " link notes_1}
+    @{" How to add Dofile to SID2's internal filerecognition system    " link notes_2}
+    @{" How to show output of commands started by Dofile               " link notes_3}
+    @{" How to use Dofile as your default auto command in DiskMasterII " link notes_4}
+
+@endnode
+@node notes_1 "How to use Dofile as default tool in Workbench project icons"
+
+    If you have Workbench 3.5:
+
+        Make sure Dofile has the script bit set. Like so:
+        "protect rexx:dofile.rexx +s"
+
+        Now enter "rexx:dofile" as default tool and set the 'Start From' cycle
+        gadget to 'Shell'.
+
+        Note that all the ToolAlias patches (Including the one in MCP) doesn't
+        work with the new iconformat in WB 3.5.
+    
+    If you don't have Workbench 3.5:
+
+        First you must make sure that the utility Dofile is in your rexx:
+        directory (It's really an utility called @{" RxWB " link rxwb}) together with the 
+        Dofile.rexx Arexx script.
+
+        Now you can simply enter "rexx:dofile" as default tool and Dofile will
+        automagically start Dofile.rexx with the project as argument.
+
+        If you use one the ToolAlias utilities you can redirect all relevant
+        calls to Dofile. Using the Toolalias function in MCP with a pattern
+        like this: "(*view*|*guide*|*more*) -> rexx:dofile" works very nicely.
+
+        It's you are using DefIcons (From the NewIcons package) you can simply
+        enter "rexx:dofile" as default tool in all the def_#? icons in
+        envarc:sys that you wish. 
+        I think a ToolAlias patch is the easiest solution :-)
+
+@endnode
+@node notes_2 "How to add Dofile to SID2's internal filerecognition system"
+
+    Note: This only works with SID2 v2.01 and newer.
+
+    Add a button called "DOFILE" with the command "run >nil: rx
+    rexx:dofile.rexx". Set "Quotes = Yes"
+
+    Make a backup of s:SID2.desc. Select any file you wish and create a new
+    description with the ANALYZE button . Name it eg: "Everything" and
+    deselect all 12 'identifier' buttons.
+
+    Edit prefs->descriptions. Delete all the entries that you want Dofile
+    to handle. Find the "Everything" description at the bottom of the list
+    and link it to the DOFILE button.
+
+@endnode
+@node notes_3 "How to show output of commands started by Dofile"
+
+    The easiest way is simply running Dofile from your shell. Any output from
+    the command is automatically displayed there. You can also switch Dofile's
+    requesters completely off with the @{" SHELL " link usage} switch.
+    
+    Another way is to redirect the output in the config file like this:
+    IFF   "cc:visage >CON:////Dofile/AUTO/CLOSE/WAIT"
+    But then you cannot view the output in your shell. In the future Dofile
+    will probably deal with this in a smarter way.
+
+@endnode
+@node notes_4 "How to use Dofile as your default auto command in DiskMasterII"
+
+    Simply edit your startup.dm script so your default auto command looks like
+    this:
+
+    AddAutoCmd DEFAULT,Extern run >nil: rx rexx:dofile.rexx "%s"
+
+@endnode
+@node author "Author"
+
+    Please send send any comments you might have to me.
+
+    Email: 
+    rolfrotvel@bigfoot.com
+
+    Address:
+    Rolf Max Rotvel
+    Groefthoejparken 163, 4 th.
+    DK-8260 Viby J.
+    Denmark
+
+@endnode
+@node credits "Credits"
+
+    Some of the datatype descriptors created with Michal Letowski's
+    MakeDT.rexx script.
+    I nicked the Dostart icon from the MUI archive.
+
+    Thanks to
+    Alfonso Ranieri - for rmh.library. A great Arexx support library!
+    Michael Stapleton - for @{" RxWb " link rxwb}.
+    Alexandre Gabriel - for his nice email.
+    Lance Neustaeter - for reporting a file extension bug.
+    Jon Peterson - for being nice.
+
+@endnode
+@node copyright "Copyright"
+
+    Dofile is copyright © 2000 Rolf Max Rotvel.
+
+    I'm releasing this as 'niceware'
+
+    Which means: If you use Dofile it would be nice of you to send me $5 or
+    the equivalent in your currency - just stuff a bill in an envelope
+    and send it to @{" me " link author}.
+
+    But you're not in any way obligated to do so. If you want to use it
+    without paying, be my guest. Isn't that nice? :-) 
+
+@endnode
+@node disclaimer "Disclaimer"
+
+    It's all your own fault :-) 
+
+@endnode
+@node history "History"
+
+    5.2 - Added SHELL/S and ARGS/F arguments.
+        - Added info on how to show output of commands and how to use Dofile
+          with DiskMasterII.
+        - Updated to rmh.library v6.5. No longer uses c:requestchoice for
+          requesters and some other internal changes.
+        - Pattern matching also works on 'iff' files now.
+        - Reworked the code quite a bit. It doesn't reopen the filerequester
+          if a directory is selected. Requester code is more effecient etc.
+        - Now shows command+stack in all info requesters. Stack shown is
+          either default or from cfgfile. Actual stack used may be higher.
+        - So now SHOWDATATYPE does make Dofile read cfgfile/open Arexx port :-)
+
+    5.1 - Bugfix: The 'cd to data dir' feature didn't work properly making
+          Dofile fail on files with relative paths. Now it uses
+          datatypes.library to get the full path of the file.
+        - Bugfix: The SHOWDATATYPE caused Dofile to read cfgfile and open
+          Arexx port' which it shouldn't.
+        - Now displays much more info when using SHOWDATATYPE VERBOSE.
+        - Added some more bits and pieces to the guide file.
+
+    5.0 - Almost a complete rewrite. The rest is ancient history :-)
+
+@endnode
+@node rxwb "RxWb"
+
+                                  R X W B
+                                  ~~~~~~~
+    Launch an ARexx script from Workbench as a default tool.
+    
+    Written by M. Stapleton of Graphic Bits, May  9 1998.
+    This program is hereby placed into the Public Domain.
+    
+    Requires Workbench 2+.
+    
+      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Introduction
+    ~~~~~~~~~~~~
+    RxWb lets you use an ARexx script from Workbench, almost as if it
+    were a normal Workbench Tool.  Its main purpose is to allow the use
+    of an ARexx script as the default tool of a project icon.
+
+@endnode

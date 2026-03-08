@@ -1,0 +1,142 @@
+@database PARSE
+@FONT COURIER.FONT 13
+@INDEX "index.guide/main"
+@NODE Main "PARSE"
+@TOC "rexx.guide/CHAPTER 4"
+@{b}PARSE@{ub}
+
+Usage: @{b}PARSE [UPPER] inputsource [template] [,template...]@{ub}
+The PARSE instruction provides a mechanism to extract one or more substrings
+from a string and assign them to variables. The input string can come from a
+variety of sources, including argument strings, an expression, or from the
+console. The template provides both the variables to be given values and the
+way to determine the value strings. The template may be omitted if the
+instruction is intended only to create the input string. The different options
+of the instruction are described below.
+
+@{b}INPUT SOURCES@{ub}
+
+The sources for the input strings are specified by the keyword symbols listed
+below. When multiple templates are supplied, each template receives a new input
+string, although for some source options the new string will be identical to
+the previous one. The input source string is copied before being parsed, so the
+original strings are never altered by the parsing process.
+
+@{b}UPPER@{ub}. This optional keyword may be used with any of the input sources, and
+specifies that the input string is to be translated to uppercase before being
+parsed. It must be the first token following PARSE.
+
+@{b}ARG@{ub}. This input option retrieves the argument strings supplied when the program
+was invoked. Command invocations normally have only a single argument string,
+but functions may have up to 15 argument strings. Multiple templates may be
+given to retrieve successive argument strings.
+
+@{b}EXTERNAL@{ub}. The input strings is read from the console. If multiple templates are
+supplied, each template will read a new string. This source option is the same
+as @{"PULL" LINK "PULL/main"}.
+
+@{b}NUMERIC@{ub}. The current numeric options are placed in a string in the order
+DIGITS, FUZZ, and FORM, separated by a single space.
+
+@{b}PULL@{ub}. Reads a string from the input console. If multiple templates are
+supplied, each template will read a new string.
+
+@{b}SOURCE@{ub}. The "source" string for the program is retrieved. This string is
+formatted as "{COMMAND | FUNCTION} {0 | 1} called resolved ext host." The first
+token indicates whether the program was invoked as a command or as a function.
+The second token is a boolean flag indicating whether a result string was
+requested by the caller. The called token is the name used to invoke this
+program, while the resolved token is the final resolved name of the program. The
+ext token is the file extension to be used for searching(the default is
+"REXX"). Finally, the host token is the initial host address for commands.
+
+@{b}VALUE@{ub} expression @{b}WITH@{ub}. The input string is the result of the supplied
+expression. The WITH keyword is required to separate the expression from the
+template. The expression result may be parsed repeatedly by using multiple
+templates, but the expression is not reevaluated.
+
+@{b}VAR@{ub} variable. The value of the specified variable is used as the input string.
+When multiple templates are provided, each template uses the current value of
+the variable. This value may change if the variable is included as an assignment target
+in any of the templates.
+
+@{b}VERSION@{ub}. The current configuration of the ARexx interpreter is supplied in the
+form "ARexx version cpu mpu video freq". The version toekn is the release level
+of the interpreter, formatted as V1.0. The cpu token indicates the processor
+currently running the program, and will be one of the values 68000, 68010, or
+68020. The mpu token will be either NONE or 68881 depending on whether a math
+coprocessor is available on the system. The video token will indicate either
+NTSC or PAL, and the freq token gives the clock(line)frequency as either 60HZ or
+50 HZ.
+
+@{b}TEMPLATES@{ub}
+
+Parsing is controlled by a template, which may consist of symbols, strings,
+operators, and parentheses. During the parsing operation the input string is
+split into substrings that are assigned to the variable symbols in the
+template. The process continues until all of the variables in the template have
+been assigned a value; if the input string is "used up", any remaining variables
+are given null values.
+
+Templates are described in depth in @{"Chapter 8" LINK "rexx.guide/CHAPTER 8"}, so only a simplified description
+is presented here. The goal of the parsing operation is to associate a
+"current" and "next" position with each variable symbol in the template. The
+substring between these positions is then assigned as the value to the
+variable. There are three basic methods used to determine the value strings.
+
+@{b}PARSING BY TOKENIZATION@{ub}. When a variable in the template is followed
+immediately by another variable, the value string is determined by breaking the
+input string into words separated by blanks. Each word is assigned to a
+variable in the template.
+
+Values determined by tokenization will never have leading or trailing blanks.
+Normally the last variable in the template receives the untokenized remainder
+of the input string, since it is not followed by a symbol. A "placeholder"
+symbol, signified by a period(.), may be used to force tokenization. Placeholders
+behave like variables in the template except that they are never actually
+assigned a value.
+
+Example:
+@{fg shine}
+        /* Numeric string is: "9 0 SCIENTIFIC"  */
+
+        parse numeric digits fuzz form .
+
+        say digits              /* =>9                  */
+
+        say fuzz                /* =>0                  */
+
+        say from                /*=> SCIENTIFIC        */
+@{fg text}
+@{b}PARSING BY POSITION@{ub}. If the fields in the input string have known positions,
+value strings can be specified by absolute or relative positions. Relative
+positions are indicated by a number preceded by a "+" or "-" operator. Each
+positional marker updates the scan position in the string. The value assigned
+to a variable is the string from the current position up to, but not including,
+the next position in the string.
+
+Example:
+@{fg shine}
+        /* assume argument is "1234567890"              */
+
+        parse arg 1 a 3 b +2 1 c
+
+        say a b c               /* ==> 12 34 1234567890 */
+@{fg text}
+@{b}PARSING WITH PATTERNS@{ub}. Fields in the input string separated by specific
+characters or strings can be parsed using a pattern, which is matched against
+the input string. A pattern is specified in the template as a string token, or
+alternatively as a symbol enclosed in parentheses. The position in the parse
+string matched by the pattern determines the value strings. The pattern is
+removed from the input string when a match is found; this is the only parsing
+operation that modifies the input string.
+
+Example:
+@{fg shine}
+        check = 'one, two, three'
+
+        parse var check a ',' b ',' c
+
+        say a b c       /* ==> one two three    */
+@{fg text}
+@ENDNODE

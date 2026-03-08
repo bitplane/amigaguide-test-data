@@ -1,0 +1,914 @@
+@database SUMSTools.guide
+
+@Master sumstl.texi
+
+@Width 72
+
+
+This is the AmigaGuide® file SUMSTools.guide, produced by Makeinfo-1.55 from 
+the input file sumstl.texi.
+
+
+@Node Main "SUMSTools.guide"
+
+
+
+                       SUMSTools v2.13 (9.1.97)
+
+                         "Stuntzi's UMS Tools"
+
+a collection of six useful tools for the Universal Message System (UMS).
+
+                        by Stefan Stuntz et al.
+
+
+ @{" Overview " Link "Overview"}           What are SUMSTools?
+ @{" Authors " Link "Authors"}            Who is responsible for SUMSTools?
+
+ @{" Startup " Link "Startup"}            Starting the tools
+ @{" Filtering " Link "Filtering"}          How to use SUMSTools' filtering facilities
+
+ @{" SUMSDel " Link "SUMSDel"}            Delete messages
+ @{" SUMSExport " Link "SUMSExport"}         Export messages in a UMS-specific format
+ @{" SUMSFolder " Link "SUMSFolder"}         Set folder on messages.
+ @{" SUMSPrint " Link "SUMSPrint"}          Extract messages to a file.
+ @{" SUMSSet " Link "SUMSSet"}            Set/clear bits on messages.
+ @{" SUMSWrite " Link "SUMSWrite"}          Create new messages.
+
+Appendices:
+
+ @{" Date Specifiers " Link "Date Specifiers"}    Tokens for date specficition in SUMSPrint
+ @{" Date Formats " Link "Date Formats"}       Known date formats for SUMSPrint
+ @{" History " Link "History"}            Revision history
+
+
+@EndNode
+
+@Node "Overview" "SUMSTools.guide/Overview"
+@Toc "Main"
+
+Overview
+********
+
+   What are SUMSTools?
+
+   'sumstl' or 'SUMSTools' stands for "Stuntzi's UMS Tools" and is a
+collection of six useful tools for the UMS message base system:
+
+@{i}SUMSPrint@{ui}
+     extract certain messages from message base to a file.
+
+@{i}SUMSWrite@{ui}
+     create new messages.
+
+@{i}SUMSSet@{ui}
+     set certain bits on certain messages.
+
+@{i}SUMSFolder@{ui}
+     set folder on certain messages.
+
+@{i}SUMSDel@{ui}
+     deletes certain messages
+
+@{i}SUMSExport@{ui}
+     exports certain messages in a UMS-specific format
+
+   With the aid of these six tools, you can perform lots of actions,
+such as automatic message archiving, automatic generation of return
+receipts, automatic message forwarding, areafix support, user filter,
+etc.
+
+   You could e.g. select all messages about "MUI", extract them from the
+message base with SUMSPrint and forward them to a special MUI-Area with
+SUMSWrite.
+
+   Or you could select all messages from user "Martin Horneffer" and
+route them via SUMSPrint to a printer. Thus, you will have all his
+mumbling on a sheet of paper and can easily create some nice paper
+planes. :-)
+
+   If you are a node that offers some kind of areafix, SUMSPrint could
+extract all messages to user "Areafix" for further parsing with an
+areafix tool.
+
+   Do you need some kind of expire? Just select all messages in
+'fidonet.Amiga.ger' that are older than 30 days and set the Expire-Bit
+with SUMSSet.
+
+   There are simply no limits!
+
+
+@EndNode
+
+@Node "Authors" "SUMSTools.guide/Authors"
+@Toc "Main"
+
+Authors
+*******
+
+   SUMSTools where initially written by
+
+     Stefan Stuntz
+     Eduard-Spranger-Straße 7
+     80935 München
+     Germany
+
+     E-Mail: stuntz@informatik.tu-muenchen.de
+
+   SUMSTools have been enhanced by the following people:
+
+   @{b}*@{ub} Bernhard Moellemann @{b}<zza@mhystic.hall.sub.org>@{ub}
+
+   @{b}*@{ub} Matthias Scheler @{b}<tron@lyssa.owl.de>@{ub}
+
+   @{b}*@{ub} Klaus Melchior @{b}<kmel@eifel.tng.oche.de>@{ub}
+
+   @{b}*@{ub} Oliver Oster @{b}<olio@informatik.uni-bremen.de>@{ub}
+
+   @{b}*@{ub} Ulrich Sibiller @{b}<uli@pizza.tynet.sub.org>@{ub}
+
+   @{b}*@{ub} Olaf Peters @{b}<olf@informatik.uni-bremen.de>@{ub}
+
+
+@EndNode
+
+@Node "Startup" "SUMSTools.guide/Startup"
+@Toc "Main"
+
+Startup
+*******
+
+   Since  Stuntzi-Tools are mainly intended for automatic use within
+script files,  they  will only work from CLI.  All tools need a user
+name and a password and have the ability to set the server name.
+
+
+@EndNode
+
+@Node "Filtering" "SUMSTools.guide/Filtering"
+@Toc "Main"
+
+Filtering
+*********
+
+   Now it's getting interesting. Whenever a Stuntzi-Tool offers Filter
+as parameter, you must specify a filter-string which describes the
+messages that this Stuntzi-Tool shall work with. Filter-strings consist
+of a boolean expression, e.g. something like that:
+
+     ((age>10 AND group=fidonet.#?) OR (age>20 AND group=uucp.#?)) OR age>30
+
+   This expression would select all fidonet messages older than 10
+days, all uucp messages older than 20 days and all other messages older
+than 30 days.
+
+   To be a bit more specific, a filter expression consists of one or
+more conditions, concatenated with "AND" or "OR" and grouped together
+with braces.
+
+   A condition consists of a keyword, followed by some relation
+specifier, followed by some kind of data.
+
+     <condition> = <keyword> <relation> <parameter>
+
+   Keywords are always bound to specific message fields, to global or
+user flags or to message age or number. Not all relations are valid for
+all keywords, have a look at the following table:
+
+     Keyword         Relations       Parameter Type      Sample
+     --------------- --------------- ------------------- ------------------
+     MsgText         = !=            string or pattern   MsgText=#?mui#?
+     FromName        = !=            string or pattern
+     FromAddr        = !=            string or pattern
+     ToName          = !=            string or pattern   ToName="Hans Nase"
+     ToAddr          = !=            string or pattern
+     MsgID           = !=            string or pattern
+     CreationDate    = !=            string or pattern
+     ReceiveDate     = !=            string or pattern
+     ReferID         = !=            string or pattern
+     Group           = !=            string or pattern
+     Subject         = !=            string or pattern
+     Attributes      = !=            string or pattern
+     Comments        = !=            string or pattern
+     Organization    = !=            string or pattern
+     Distribution    = !=            string or pattern
+     Folder          = !=            string or pattern
+     FidoID          = !=            string or pattern
+     MausID          = !=            string or pattern
+     ReplyGroup      = !=            string or pattern
+     ReplyName       = !=            string or pattern
+     ReplyAddr       = !=            string or pattern
+     LogicalToName   = !=            string or pattern
+     LogicalToAddr   = !=            string or pattern
+     FileName        = !=            string or pattern
+     RFCMsgNum       = !=            string or pattern
+     FidoText        = !=            string or pattern
+     ErrorText       = !=            string or pattern
+     Newsreader      = !=            string or pattern
+     RFCAttr         = !=            string or pattern
+     FTNAttr         = !=            string or pattern
+     ZerAttr         = !=            string or pattern
+     MausAttr        = !=            string or pattern
+     TempFileName    = !=            string or pattern
+     
+     Archive         = !=            1 or 0              Archive=1
+     Junk            = !=            1 or 0
+     PostPoned       = !=            1 or 0
+     Selected        = !=            1 or 0
+     Old             = !=            1 or 0              Old=0
+     WriteAccess     = !=            1 or 0
+     ReadAccess      = !=            1 or 0
+     ViewAccess      = !=            1 or 0
+     Owner           = !=            1 or 0
+     UFlag0          = !=            1 or 0
+     UFlag1          = !=            1 or 0
+     ...             ....
+     UFlagF          = !=            1 or 0
+     
+     Deleted         = !=            1 or 0
+     Expired         = !=            1 or 0
+     Exported        = !=            1 or 0
+     Orphan          = !=            1 or 0
+     Link            = !=            1 or 0
+     Hardlink        = !=            1 or 0
+     Parked"         = !=            1 or 0
+     HasFile"        = !=            1 or 0
+     
+     Age             = != < > <= >=  number of days      Age>25
+     Date            = != < > <= >=  Amiga-DOS date      Date<=31-Dec-92
+     MsgNum          = != < > <= >=  number of message   MsgNum=75
+     
+     TextLength      = != < > <= >=  number of bytes     MsgLength>50000
+     HeaderLength    = != < > <= >=  number of bytes     HeaderLength<10
+
+   Notes:
+
+   @{b}*@{ub} All parameter and keyword strings are case insensitive.
+
+   @{b}*@{ub} Spaces not within double quotes are ignored.
+
+   @{b}*@{ub} Use the empty string for Mail/Netmail/PM; i.e.  @{b}FILTER="Group=*"*"
+     ..."@{ub}
+
+   @{b}*@{ub} Using patterns will significantly slow down the filter operation.
+     You should always have conditions containing patterns executed
+     last to save time. If you e.g. would like to see all new mails
+     about MUI, you should use
+
+          Old=0 AND Subject=*MUI*    instead of    Subject=*MUI* AND Old=0
+
+     Thus, the filter will first throw away all old messages and search
+     for MUI only in the remaining part.
+
+   @{b}*@{ub} If you want to have spaces in your parameter strings, you will have
+     to include them into double quotes: FromName = "Stefan Stuntz". In
+     a CLI command line, you need to prefix these double quotes with an
+     asterisk '*' to prevent the command line parser from parsing them
+     itself:
+
+          sumsprint sysop "" "Group=uucp.#? AND FromName=*"Stefan Stuntz*""
+
+     prints all mails that Stefan Stuntz wrote in usenet.
+
+   @{b}*@{ub} Due to UMS bit handling, depth of braces is limited to maybe 5 or
+     6.
+
+   Examples:
+
+   @{b}*@{ub} Select all messages of group fidonet.amiga.ger:
+     @{b}Group=fidonet.Amiga.GER@{ub}
+
+   @{b}*@{ub} Select new messages for Joe Fake:
+
+     @{b}Old=0 AND ToName="Joe Fake"@{ub}
+
+   @{b}*@{ub} Select new netmails for Stefan Stuntz or S.Stunz or whatever:
+
+     @{b}Old=0 AND Group=*"*" AND ToName="#?Stun#?z#?"@{ub}
+
+   @{b}*@{ub} Select messages older than one month in fidonet.UMS.GER:
+
+     @{b}Group=fidonet.ums.ger AND Age>30@{ub}
+
+   @{b}*@{ub} Select all messages received 1992:
+
+     @{b}Date>=01-Jan-92 AND Date<=31-Dec-92@{ub}
+
+   @{b}*@{ub} Select messages 13,42,101,102,103 and 104:
+
+     @{b}MsgNum=13 OR MsgNum=32 OR (MsgNum>=101 AND MsgNum<=104)@{ub}
+
+   @{b}*@{ub} Select all messages greater than 50kByte:
+
+     @{b}TextLength>50000@{ub}
+
+
+@EndNode
+
+@Node "SUMSPrint" "SUMSTools.guide/SUMSPrint"
+@Toc "Main"
+
+SUMSPrint
+*********
+
+   @{b}sumsprint U=User=Name/A,P=Password/A,FI=Filter/A,FO=Format,
+FILE=Formatfile/K,O=SetOldFlag/S,B=Backwards/S,S=Server/K@{ub}
+
+   User name, password and filter (as always) were explained earlier,
+no more word about them, as option the server name.
+
+   Format or Formatfile control how the message(s) shall appear on the
+screen.  You can either specify a format string directly in the command
+line or make SUMSPrint load the format string from a file by using
+@{b}"FILE=filename"@{ub} as command line argument. In either case, the format
+string may consist of any characters, including the following special
+sequences:
+
+     \\n creates a line feed
+     \\r creates a carriage return
+     \\f creates a form feed
+     \\r creates a tab
+     \\< creates a '<' sign
+     \\> creates a '>' sign
+     \\e creates an escape (ascii 27)
+     \\\\ creates a backslash '\\'
+     ^x creates a control-x (x & ~64) (x from A to Z)
+
+   Fields of the message can be included with a '<' char, followed by
+the name of the field, optionally followed by a comma and a
+printf-style formatting string for this field, followed by a '>' char
+(template: @{b}<keyword[,fmt]>@{ub}).  Valid keywords and their default formats
+are:
+
+     Keyword       Default      Meaning
+                   Format
+     
+     MsgText       %s           Complete message text
+     QuoteText     >_           Quoted message text (format is quote string)
+     FromName      %s           Name of author
+     FromAddr      %s           Address of author
+     ToName        %s           Name of receiver
+     ToAddr        %s           Address of receiver
+     Group         %s           Group this message belongs to
+     Subject       %s           Subject field
+     CreationDate  %s           Date of creation
+     Attributes    %s           Attribute field
+     Comments      %s           Comment field
+     Organization  %s           Organization field
+     Distribution  %s           Distribution field
+     Newsreader    %s           Newsreader field
+     ReplyName     %s           Name to reply to
+     ReplyAddr     %s           Address to reply to
+     ReplyGroup    %s           Group for followup
+     MsgID         %s           Message-ID
+     ReferID       %s           Reference-ID
+     Folder        %s           Mailfolder
+     FidoID        %s           original Fidonet ID
+     MausID        %s           original MausNet ID
+     LogicalToName %s           envelope address, Name part
+     LogicalToAddr %s           envelope address, Address part
+     FileName      %s           Attachment filename (without path)
+     RFCMsgNum     %s           MsgNum for RFC purposes
+     FidoText      %s
+     ErrorText     %s           i.e. Bounce reasons
+     RFCAttr       %s           RFC attributes
+     FTNAttr       %s           Fidonet attributes
+     ZerAttr       %s           Zerberus/ZConnect attributes
+     MausAttr      %s           MausNet attributes
+     TempFileName  %s           Attachment filename (with full path)
+     
+     MsgNum        %ld          Number of this message
+     ChainUp       %ld          Number of message higher in reply tree
+     ChainDown     %ld          Number of message lower in reply tree
+     ChainLeft     %ld          Number of a message on same reply level
+     ChainRight    %ld          Number of a message on same reply level
+     HardLink      %ld          Number of a hardlinked message
+     SoftLink      %ld          Number of a softlinked message
+     GlobalStatus  %08lx        Global status bits for this message
+     UserStatus    %08lx        User status bits for this message
+     LoginStatus   %08lx        Login status bits for this message
+     CDate         %d-%b-%y %X  Parsed and localized creation date
+     IDate         %d-%b-%y %X  Localized receive date
+
+   The last two items need a bit more explanation. To use them, you
+will need @{b}locale.library@{ub} >V38. The format string is no printf-style
+here but may contain some other special characters that are replaced
+with strings containing current date and time information. For detailed
+explanation about this special characters see @{b}"autodocs/locale.doc"@{ub} or
+@{"Date Specifiers" Link "Date Specifiers"}. @{b}<IDate>@{ub} is guaranteed to work, @{b}<CDate>@{ub} may fail
+because the creation date of a message can look very different from
+system to system. See @{"Date Formats" Link "Date Formats"} for information about the date
+formats that SUMSPrint knows. If the format is unknown, @{b}<CDate,xxx>@{ub} will
+automatically be replaced with @{b}<CreationDate,%s>@{ub}.
+
+   All keywords are case insensitive.  For example, the format string
+
+     "From: <FromName,%-20.20s> To: <ToName,%-20.20s> Flags: $<userflags>"
+
+   could generate something like
+
+     From: Stefan Stuntz        To: Martin Horneffer     Flags: $deadbeef
+
+   as output. Please remember the various possibilities that
+printf-style formatting offers. For more examples, refer to the #?.mfm
+files coming with this archive. If you neither specify Format or
+File=Formatfile in your command line, a default format will be used.
+
+   To read the Flags without having ums.h in another window, there is a
+second format:
+
+   Each flag may be represented by a letter, indicating it is set, or a
+dash if it is cleared. This format is selected by the absence of the
+percent sign in the first letter of the format. For every flag bit you
+have to specify either the letter, which is printed when the flag is
+set, or a dash to suppress this flag. If the character is uppercase the
+absence of the flag is shown by a dash. A lowercase character requests
+to ignore a cleared bit completely.
+
+   The most right character is associated with the last significant bit
+of the flag word. The format may contain less than 32 characters. In
+this case the unset flags are ignored.
+
+   Behind the flag characters may be a printf-like format string
+appended. It is recognized by the leading percent character.
+
+   Example:
+
+     A message has the user status $0D40==Old,ReadAccess,ViewAccess,PostPoned
+     and the global status         $0006==Exported,Expired.
+
+   With the format string
+
+     "From:  <FromName>\\n
+      Status: u=<UserStatus,M---O-PJ----->  g=<GlobalStatus,hp--oexd>\\n"
+                            |||||||||                       ||||||||
+                            ||||||||+- Archive              |||||||+- Deleted
+                            |||||||+-- Junk                 ||||||+-- Expired
+                            ||||||+--- PostPoned            |||||+--- Exported
+                            |||||+---- Selected             ||||+---- Orphan
+                            ||||+----- Old                  |||+----- Link
+                            |||+------ WriteAccess          ||+------ HardLink
+                            ||+------- ReadAccess           |+------- Parked
+                            |+-------- ViewAccess           +-------- HasFile
+                            +--------- Owner (My message)
+
+   the message shows up as
+
+     From:   Joe 'DAU' User
+     Status: u=-O-P-  g=EX
+
+   If you specify @{b}SetOldFlag@{ub}, SUMSPrint will mark every read message as
+old.
+
+   Notes:
+
+   @{b}*@{ub} If you use @{b}"LANGUAGE: <language>"@{ub} as the first line of your format
+     file, SUMSPrint will use this language for @{b}<CDate>@{ub} and @{b}<IDate>@{ub}.
+
+   @{b}*@{ub} None of the UMS global, user or local status bits are affected. As
+     long as you don't specify SetOldFlag, printed messages won't
+     become old.
+
+   @{b}*@{ub} Messages without view or read access cannot be printed. For this
+     reason, SUMSPrint will always append @{b}"AND readaccess AND
+     viewaccess"@{ub} to your filter string.
+
+
+@EndNode
+
+@Node "SUMSDel" "SUMSTools.guide/SUMSDel"
+@Toc "Main"
+
+SUMSDel
+*******
+
+   @{b}sumsdel U=User=Name/A,P=Password/A,FI=Filter/A,S=Server/K,Q=Quiet/S@{ub}
+
+   Specify user name, password, filter and the optional server as
+usual. Then SUMSDel just deletes the messages specified in 'Filter'.
+That means that nobody is able to access them. The messages are
+physically removed with CleanUMS. Note, that you can't remove foreign
+messages unless you have the sysop-flag set.
+
+   Examples:
+
+   @{b}*@{ub} Delete all Messages with the subject "Make money fast":
+
+     @{b}sumsdel Sysop ... "Subject=*"Make money fast*""@{ub}
+
+
+@EndNode
+
+@Node "SUMSExport" "SUMSTools.guide/SUMSExport"
+@Toc "Main"
+
+SUMSExport
+**********
+
+   @{b}sumsexport U=User=Name/A,P=Password/A,FI=Filter/A,
+E=SetExportedFlag/S,B=Backwards/S,S=Server/K"@{ub}
+
+   Specify user name, password, filter and as option the server name.
+To mark the exported messages as Exported switch @{b}'SetExportedFlag'@{ub} on.
+@{b}'Backwards'@{ub} reverses the export sequence.
+
+   SUMSExport exports messages to stdout in a UMS-specific format. To
+import use @{b}"Import"@{ub} by Martin Horneffer, available in any UMS
+distribution.
+
+   If no messages matched the filter SUMSExport returns WARN (5).
+
+   Examples:
+
+   @{b}*@{ub} Export all messages the sysop has written today:
+
+          sumsexport Sysop ... "age=0 & Owner=1" >Store:mail_today.exp
+
+
+@EndNode
+
+@Node "SUMSFolder" "SUMSTools.guide/SUMSFolder"
+@Toc "Main"
+
+SUMSFolder
+**********
+
+   @{b}sumsfolder U=User=Name/A,P=Password/A,FI=Filter/A,
+FO=Folder/A,S=Server/K, Q=Quiet/S@{ub}
+
+   After user name, password and filter (as always), SUMSFolder wants
+you to specify a folder name. This name determine, in which folder the
+selected messages will be put. As option specify the server name. If no
+messages matched the filter SUMSFolder returns WARN (5).
+
+   Example:
+
+   Put all mails from "Matthias Scheler" in folder "tron":
+
+     sumsfolder SysOp ... "Group=*"*" AND FromName=*"Matthias Scheler*"" "tron"
+
+
+@EndNode
+
+@Node "SUMSSet" "SUMSTools.guide/SUMSSet"
+@Toc "Main"
+
+SUMSSet
+*******
+
+   @{b}sumsset U=User=Name/A,P=Password/A,FI=Filter/A,
+SB=SetBits/A,CB=ClrBits,S=Server/K,FU=ForUser/K,Q=Quiet/S@{ub}
+
+   After user name, password and filter (as always), as option the
+server name. SUMSSet wants you to specify one or two bit spec strings.
+These strings determine, which bits to set and which bits to clear on
+the selected messages. A bit spec string may consist of one or more bit
+names seperated by comma, or just be empty. Valid bit names are
+
+   Archive, Junk, PostPoned, Selected, Old, WriteAccess ReadAccess,
+ViewAccess, Owner, Deleted, Expired, Exported, Orphan, Link and
+HardLink.
+
+   These flags are either global or user flags. Please refer to ums.doc
+for their specific meaning. SysOp's may also modify flags of other
+users via the "ForUser" option.
+
+   Examples:
+
+   @{b}*@{ub} Expire area fidonet.AMIGA.GER:
+
+     @{b}sumsset SysOp ss "Group=fidonet.AMIGA.GER" EXPIRED@{ub}
+
+   @{b}*@{ub} Mark all message from "Roland Schwefel" as new:
+
+     @{b}sumsset SysOp ss "FromName=*"Roland Schwefel*"" "" OLD@{ub}
+
+   @{b}*@{ub} Bad-User-Filter:
+
+     @{b}sumsset SysOp ss "FromName=*"Otto Nervbert*"" "" OLD,EXPIRED@{ub}
+
+   @{b}*@{ub} Give user "Joe" access to one of your mails:
+
+     @{b}sumsset SysOp ss "MsgNum=42" ReadAccess,ViewAccess FORUSER "Joe"@{ub}
+
+   Notes:
+
+   @{b}*@{ub} Be careful with this command. You can do some very bad things to
+     your message base!
+
+   @{b}*@{ub} Setting the deleted-bit has no effect. You can only delete messages
+     with SUMSDel.
+
+
+@EndNode
+
+@Node "SUMSWrite" "SUMSTools.guide/SUMSWrite"
+@Toc "Main"
+
+SUMSWrite
+*********
+
+   @{b}sumswrite U=User=Name/A,P=Password/A,S=Server/K@{ub}
+
+   SUMSWrite only needs these two standard parameters, as option the
+server name. The message to write will be read from standard input. It
+must contain some field names followed by an optional "=", followed by
+the fields contents, then a line with one or more "-", then the message
+text.  Valid field names are:
+
+     Field Name     Field Type   Comments/Examples
+     
+     ToName         string       Stefan Stuntz
+     ToAddr         string       2:246/46.10@fidonet
+     Group          string       de.comm.software.ums
+     Subject        string       MUI bug report
+     Organization   string
+     Distribution   string
+     Comments       string
+     ReferID        string
+     Attributes     string
+     Folder         string
+     ReplyGroup     string
+     ReplyName      string
+     ReplyAddr      string
+     LogicalToName  string
+     LogicalToAddr  string
+     FileName       string
+     RFCMsgNum      string
+     ErrorText      string
+     FidoText       string
+     Newsreader     string
+     RFCAttr        string
+     FTNAttr        string
+     ZerAttr        string
+     MausAttr       string
+     TempFileName   string
+     
+     AutoBounce     boolean      message will be bounced if invalid
+     NoUpdate       boolean      message will be new
+     FromName       string       only valid for importer
+     FromAddr       string       only valid for importer
+     MsgID          string       normally created by MBP
+     FidoID         string       only valid for importer
+     MausID         string       only valid for importer
+     MsgDate        date         only used to restore backups
+     MsgNum         number       only useful to create links
+     CreationDate   string       normally created by MBP
+     ReceiveDate    string       normally created by MBP
+     ChainUp        number       rarely used
+     HardLink       number       rarely used
+     SoftLink       number       rarely used
+     HdrFill        number       rarely used
+     TxtFill        number       rarely used
+
+   A boolean field's parameter can be "true" or "false" or empty, which
+will force a this field to be true. A date field must contain a valid
+date specification. See appendix B for known date formats.
+
+   Please refer to UMS documentation for detailed documentation about
+the meaning of these fields. Depending on your account status, you may
+or may not use some of them. SUMSWrite will show you an error message if
+something fails.
+
+   Of course, you needn't specify all these fields. A small message
+file could look like
+
+     ToName Stefan Stuntz
+     Subject Test
+     --------------------
+     Hello Stefan!
+     How are you?
+     Bye.
+
+   wich will create a locale private message to "Stefan Stuntz".
+
+
+@EndNode
+
+@Node "Date Specifiers" "SUMSTools.guide/Date Specifiers"
+@Toc "Main"
+
+Date Specifiers:
+****************
+
+     %a - abbreviated weekday name
+     %A - weekday name
+     %b - abbreviated month name
+     %B - month name
+     %c - same as "%a %b %d %H:%M:%S %Y"
+     %C - same as "%a %b %e %T %Z %Y"
+     %d - day number with leading 0s
+     %D - same as "%m/%d/%y"
+     %e - day number with leading spaces
+     %h - abbreviated month name
+     %H - hour using 24-hour style with leading 0s
+     %I - hour using 12-hour style with leading 0s
+     %j - julian date
+     %m - month number with leading 0s
+     %M - the number of minutes with leading 0s
+     %n - insert a linefeed
+     %p - AM or PM strings
+     %q - hour using 24-hour style
+     %Q - hour using 12-hour style
+     %r - same as "%I:%M:%S %p"
+     %R - same as "%H:%M"
+     %S - number of seconds with leadings 0s
+     %t - insert a tab character
+     %T - same as "%H:%M:%S"
+     %U - week number, taking Sunday as first day of week
+     %w - weekday number
+     %W - week number, taking Monday as first day of week
+     %x - same as "%m/%d/%y"
+     %X - same as "%H:%M:%S"
+     %y - year using two digits with leading 0s
+     %Y - year using four digits with leading 0s
+
+
+@EndNode
+
+@Node "Date Formats" "SUMSTools.guide/Date Formats"
+@Toc "Main"
+
+Known Date Formats:
+*******************
+
+     "01 Jan 91  11:22:33"    Fido
+     "01 Jan 91  11:22"       Fido without seconds
+     "Wed 13 Jan 86 02:34"    Fido SEAdog
+     "JJMMTThhmm"             Z-Netz
+     "01-Jan-78 10:11:12"     AmigaDOS
+     "1.1.78    10:11:12"     AmigaDOS, Style Guide German
+     "01.01.78  10:11:12"     AmigaDOS, Style Guide German, leading 0s
+
+   When  none of these formats matches, SUMSPrint tries to parse the
+date with some more or less complex algorithms.  This may or may not
+succeed.  If you want to see another date format supported, just let me
+know.
+
+
+@EndNode
+
+@Node "History" "SUMSTools.guide/History"
+@Toc "Main"
+
+Revision History
+****************
+
+   V1.0 (23-Aug-92)
+
+     - Initial release
+
+   V1.1 (30-Aug-92)
+
+     filters:   - corrected AGE filter.
+     sumsset:   - modified screen output a little bit.
+     sumsprint: - added "old" command line parameter.
+     source:    - included full SAS/C source code. No comments, quick hack :)
+
+   V1.2 (01-Sep-92)
+
+     sumsprint:  - "Netmail" is used for <Group> instead of an empty string.
+
+   V2.0 (01-Sep-93)
+
+     - Adapted for UMS V10.
+     - Complete rewrite of the filter. It supports full boolean
+       argument parsing (with AND, OR and braces) now.
+       Attention: You will have to rewrite your scripts!
+     - Included pattern support.
+     - Please reread the docs, especially the filter part!
+
+   V2.1 (16-Sep-93) [zza]
+
+     - Added UMS V10 fields Newsreader, Reply#? in sumsprint and sumswrite.
+     - Added support for printing status as characters.
+     - Fixed some minor bugs and enforcer hits.
+     - Added possibility to use every user flag for setting and filtering.
+
+   V2.2 (02-Nov-93)
+
+     - Searching for MsgText was impossible.
+     - All tools were eating 24 bytes of memory.
+     - Fixed some filter parsing bugs.
+
+   V2.3 (03-Nov-93)
+
+     - 2.2 was crap, please use 2.3 instead :-)
+     - Note: If you want to filter with the orphan bit, you have to enclose
+             it in quotes: 1> sumsset sysop "" *"orphan*"=1 ""
+
+   V2.4 (03-Dec-93)
+
+     - Searching for Folder now possible [MS]
+     - wrote new tool "sumsfolder" [MS]
+
+   V2.5 (03-Jan-94)
+
+     - all: Commandline is parsed with ReadArgs() [kmel]
+     - all: Added possibility to specify server [kmel]
+     - Added 'source/sumstl.rel' to generate release archive [kmel]
+     - umsfilter.c: Corrected date comparision, now the filter works like
+                    you read, e.g.:  "Date>=01-Jan-94", all messages are
+                    selected from the first of January upto now. [kmel]
+
+   V2.6 (30-Jan-94)
+
+     - filter.c: Corrected misfeature with filter token, "AND" and "OR"
+                 were also recognized in expressions, e.g.:
+                 "group=adsp.networking" failed at 'netw or king' [kmel]
+     
+                 Restrictions: Quotation marks '"' are still not
+                               recognized in filter strings
+     - date.c: Added new date formats "01.01.78", "1.1.78" [kmel]
+     - sumsprint.c: bumped to version 2.6 [kmel]
+     - sumsfolder.c: bumped to version 2.6 [kmel]
+     - all: Compiled with SASC 6.51 instead of DICE, now they should not
+            crash while using the filter expression 'group=""' [kmel]
+     - sumstl.rel: Changed, archive now includes "sumstl.readme" [kmel]
+
+   V2.6a (13-Feb-94)
+
+     - all: Bug removed, array of cli arguments has to be cleared before
+            it is used. [kmel]
+
+   V2.7 (05-Jul-94)
+
+     - umsfilter.c: fixed searching for constant expression on not indexed
+                    header fields [MS]
+     - all: added support for LogicalToName, LogicalToAddr and RFCMsgNum [MS]
+     - all: reworked source codes and SAS/C Makefile, now V11 proof
+            "DMakefile" should be reworked, too. [MS]
+
+   V2.7a (28-Jul-94)
+
+     - sumsfolder.c: only messages with View-, Read- and WriteAccess are
+                     modified now [MS]
+
+   V2.7b (04-Aug-94)
+
+     - DMakefile
+       sumstl.h
+       filter.h:  changed to add DICE compatibility. [olio]
+     - sumsfolder.c: now returns WARN (5) if no msgs matched
+                     the filter. Compiled with DICE 3.0. [olio]
+
+   V2.8 (01-Dec-94)
+
+     - sumswrite.c, sumsprint.c: added support for RfcAttr, FtnAttr, ZerAttr
+                                 and MausAttr [MS]
+     - sumsfolder.c, sumsset.c: added "Q=Quiet/S" option to suppress output
+                                of the filter [MS]
+     - sumsset.c: added "FU=ForUser/K" option which specifies the user whose
+                  flags are modified (user flags only of course) [MS]
+
+   V2.8a (01-Jan-95)
+
+     - sumsfolder.c, sumsset.c: added "T=Tiny/S" option to suppress output
+                                of the filter only, number of matching
+                                messages is still shown. This switch is
+                                overridden by "Q=Quiet". [US]
+
+   V2.9 (04-Jan-95)
+
+     - filter.c: supports scanning the Parked flag [MS]
+     - sumsset.c: supports setting/clearing the Parked flag [MS]
+     - sumsprint.c: fixed bug in error check [SS]
+
+   V2.10 (05-Mar-95) [zza]
+
+     - sumsdel.c: added
+     - sumsset.c: warns if Deleted bit is set
+     - sumstl.h: VERSION introduced for same version in all files
+     - sumsprint.c: fixed access of arguments via argv
+                    checking for CTRL-C in PrintMessage, too
+
+   V2.11 (03-Aug-95) [kmel]
+
+     - sumsexport.c: added [kmel]
+     - new directory structure [kmel]
+     - all: change CLI template to stop the problems with USER/A or
+            NAME/A [kmel]
+     - umsfilter: ID_LENGTH, added new filter: TextLength, HeaderLength [SS]
+     - all, sumstl.h: VERSION has information about the compiler [kmel]
+     - all: Compiled with SASC 6.51, if compiling with Dice some
+            expressions produce an error [kmel]
+
+   v2.12 (20-Dec-96) [olf]
+
+     - umsfilter: added support for HasFile-Flag [olf]
+     - converted documentation to TexInfo resulting in up-to-date docs in
+         AmigaGuide format.
+     - all: compiled with SAS/C 6.57
+
+   v2.13 (09-Jan-97) [olf]
+
+
+     - added support for all missing server tags (UMSTAG_FileName etc.) to
+         the filter, SUMSPrint and SUMSWrite. [olf]
+     - docs: updated sections @{"Filtering" Link "Filtering"}, @{"SUMSPrint" Link "SUMSPrint"} and @{"SUMSWrite" Link "SUMSWrite"} to now
+         reflect all possible keywords. Also updated the flag-stuff in
+         @{"SUMSPrint" Link "SUMSPrint"} to reflect the Parked and HasFile flag.
+     - forgot to update the version in v2.12 [olf]
+
+@EndNode
+

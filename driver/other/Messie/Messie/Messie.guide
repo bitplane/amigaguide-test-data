@@ -1,0 +1,387 @@
+@database Messie.guide 
+@$VER: Messie.guide 1.01 (26.01.97)
+@author "Patrick Kursawe"
+@(c) "Patrick Kursawe"
+
+@node main "Messie - Overview"
+
+
+             Messie - Software for long-time data recording using AD converters
+
+             - for the @{"LTC 1090/1290" link chip}
+               or @{b}any@{ub} AD converter you can write an interface for.
+
+             BIG bug fixed. Did someone notice it did not work at all?
+             
+             
+             @{"   What is it?  " link abstract} - is this the program you need?
+             
+             @{"  Requirements  " link requirements} - what you need
+
+             @{"    Usage       " link usage} - why there are just two buttons
+             
+             @{"      ©         " link copyright} - copying and modifications
+
+             
+             @{"Original purpose" link purpose} - the reason I wrote this
+             
+             @{"    Design      " link design} - for the curious
+             
+             @{"  The future    " link future} - bugs, ideas...
+
+             @{"    Author      " link author} - me :-)
+             
+             @{b}Please write @{"me" link author} if you use this software, if there is no
+             feedback, there won't be updates.@{ub}
+
+             @{b}Falls jemand dringend ein deutsche Anleitung braucht,
+             bitte @{"mir" link author} schreiben.@{ub}
+             
+@endnode
+
+@node chip "LTC 1090/1290"
+
+This chip allows measuring voltages with a resolution of 1024 or 4096 steps.
+The module I use (Conrad Electronic) has a LT 1021-5 for a precise 5V reference.
+It is connected to the handshake pins of you serial port where it also gets
+the current it needs (don't worry, just 2 mA).
+This program uses the RTS, DTR and CTS signals to communicate with the module.
+Regarding the software, you don't need to know if you have the 10 or the 12 bit
+AD converter, the results are always in the same range, you'll just notice
+that the values the 10 bit chip sends are always dividable by 4.
+
+Messie is compatible with the original Conrad kit regarding the used
+hardware.
+
+@endnode
+
+@node abstract "Overview"
+
+About this program
+
+This program was designed to control the @{"LTC 1090/1290" link chip} using the
+serial port of your Amiga. It allows to record 8 channels up to one value per
+second. On my A4000-EC030 it then uses about 10% CPU, so it maybe can
+completely block slower machines. But normally you don't need 8 channels
+at once, you can run it in the background.
+
+main features are:
+
+- recording is done using a high-priority background task. Your normal
+  work should not prevent Messie from recording data just like you wanted.
+  
+- writing is buffered for minimum disk access. 8 channels once per second possible 
+  even when using floppies.
+
+- the output files are named automagically using date and channel number.
+
+- you can insert comments at any time.
+
+- all functions can be accessed using AREXX for automatic programmable recording
+
+- flexible @{"design" link design}, so you can easily fit Messie to your needs.
+
+- font-sensitive and resizable GUI
+
+
+Note: it is NOT designed to record more than one value per channel and second.
+
+@endnode
+
+
+@node requirements "What you need"
+
+Requirements
+
+Software:
+
+This program should run on any Amiga with OS 2.0 or higher, no MUI required.
+If you have locale.library you can use the german catalog or design one
+in your favourite language using the .cd file.
+
+I could not yet test it with OS 1.3, but it should exit with an error
+message (no guarantee).
+
+If you want to modify the program you need a C++ compiler.
+
+Hardware:
+
+The AD converter I use is based on the @{"LTC 1090/1290" link chip}.
+It is one of those do-it-yourself kits from Conrad Electronics, Germany,
+for a price of about DM 70,-
+
+@{b}EVEN IF YOU DON'T HAVE THIS@{ub} converter, you maybe can use my
+little program. Just find someone who re-writes one short section of simple
+C-code (about 150 lines), you can keep the rest.
+Fitting the program to a different hardware should be no problem at all,
+when I wrote it I was still not sure which port it would use.
+
+Since I have to bang on the hardware, this program will maybe not work
+with future Amigas (I hope there will be any...).
+Correct me if you know how to program the handshake pins without direct
+use of the CIAs.
+@endnode
+
+
+@node usage "How to use it"
+
+Configuration
+
+The general settings can be adjusted using the command line or tooltypes.
+
+ WORKDIR:
+
+ The directory where Messie will create one subdirectory per day,
+ and in each subdirectory files for the data and the comments.
+ example: 
+
+        WORKDIR="work:"
+
+ LOCATION:
+
+ Whatever you like, for example 
+
+        LOCATION="Glue and Hammer Hardware, Soldertown"
+
+ Will just be written to the header, nothing else.
+
+Command line options will override the tooltypes.
+
+The GUI
+
+ The meaning of the START and STOP button should be clear...
+ When you hold down the shift key, you can start/stop all channels at once.
+ Using the slider gadget or the cursor keys you can select the channel for
+ which the interval settings should be changed or for which you would
+ like to save a comment.
+ Hitting return in the integer/string gadget will do the job.
+
+ Note: starting/stopping channels, setting the interval will automatically
+ create a comment.
+
+AREXX commands
+
+ The portname of the AREXX port is
+ 
+        MESSIE
+ 
+ The currently supported command pattern is:
+ 
+ "START/S,STOP/S,CHANNEL=CH/K/N,INTERVAL=INT/K/N,COMMENT=COM/K,LOCKGUI/S,UNLOCKGUI/S"
+ 
+ Nota bene:
+ Since AREXX strips the " from your comment strings, you will have to enclose them
+ in an additional pair of ', like
+ 
+ cannel 1 comment '"One two three"'
+
+ An example says more than a thousand words:
+ 
+ --------------- cut here ---------------------------
+ 
+ /* Testscript for Messie */
+
+ address command
+ 
+ run Messie
+ 
+ waitforport MESSIE
+
+ address MESSIE
+
+ lockgui
+
+ do i = 0 to 3
+  ch i int 2
+  ch i com '"AREXX testscript - fast"'
+ end
+
+ do i = 4 to 7
+  ch i int 4
+  ch i com '"AREXX testscript - slow"'
+ end
+
+ start
+
+ address command wait 5 mins
+
+ stop
+
+ unlockgui
+ 
+ quit
+
+ --------------- cut here ---------------------------
+
+ This AREXX program will start Messie, lock the user interface of Messie,
+ all gadgets will be ghosted. Then the channels 0 to 3 will be set to an
+ interval of 2 seconds, the rest will be set to 4 seconds.
+ All channels will be started then, and after 5 minutes they will be stopped
+ and the GUI will be unlocked again, Messie will quit.
+
+ If you have any questions or suggestions, don't hesitate to ask @{"me" link author}
+
+@endnode
+
+
+@node copyright "Copying, modifying..."
+
+The used icons or icon templates are © Martin Huttenloher and taken from
+the MagicWB package. The palette files should be included in the directory
+MagicWB-palette.
+
+MagicWB is a very recommendable shareware package to improve the look of your Workbench.
+
+If you want to copy this program, do so. If you want to modify it, do so.
+But: please distribute only the whole archive. Getting an executable without
+documentation is quite annoying. If you make modifications, tell me about it
+or better: send me the new version. Make sure to tell the user about the
+fact you modified it, I don't want to be blamed for your faults.
+Make comments in the source with your name.
+
+If you paid for this software, you have been fooled. Noone paid me a single
+pfennig for it.
+
+At last: You use this program at your own risk.
+@endnode
+
+@node purpose "Why this program exists"
+
+My father bought the Conrad Electronic AD converter kit for some hobby
+astronomers (Walter-Hohmann-Sternwarte Essen e.V.). He wanted to do some
+radio astronomy. The original software for IBM compatibles was next to
+unusable for this job, there was a high speed recorder which got the data
+from the module as quick as possible and a bad-written GW Basic program
+to demonstrate how to program it. (© Bernd Kunze 20.2.1994)
+See @{"design" link design} for details.
+I had mercy with him after watching him drive to the observatory several times
+just because he wanted to start the program for recording data during the night.
+I could not understand why a whole PC should be blocked just for writing one
+line to a file every 3 seconds or so, so at last I decided to write a program
+which is multitasking friendly and makes automatic recording possible.
+
+Here it is.
+Maybe it is quite some overkill for this simple job, but as soon as I had
+started programming I wanted to do this job well.
+
+@endnode
+
+@node design "Why I did it this way."
+
+@{b}Speed@{ub}
+
+At first this program needed next to no CPU time, but it did not work.
+It was too fast for the converter, I changed the signals and this lame
+chip did not notice that at all... I had to insert little delay routines
+between each bit transfer, using timer.device which is quite CPU time
+consuming and gives me more delay than I actually need.
+If you have a better idea, tell me.
+
+@{b}File format@{ub}
+
+In the first column there are the seconds since midnight. I chose
+this format for the time because you can convert it quite easily to whatever
+you think is better, and you can plot the datafiles using a normal plot
+program like gnuplot or mulitplot. In the comments files you'll always
+find the date in the normal AmigaOS format aswell, just for readability.
+
+@{b}C++@{ub}
+
+Maybe you wonder why I used C++ for this program, not simple C.
+The reason is simple: I wanted to learn C++.
+The main problem was to connect the AmigaOS-Functions (C) with
+the rest of my program (C++). I think I did it far from perfectly,
+but it works...
+
+I encountered some trouble when I wrote the communications stuff
+between the main program and the daughter-task, this part is not
+very elegant but it works... Maybe I'll re-write that later.
+
+The sources:
+
+See the includes for description of the different classes.
+
+The data recording is done by a process which runs in the background and which
+does no I/O operations which could force it to stop.
+
+If the program does not seem to react in any way, it is most likely just writing
+data to disk. This is done sychronously, but normally you should not remark it
+at all, unless you are using floppy disks.
+
+This program was written using g++ using libnix, it should be possible to
+recompile it with another compiler without major problems...
+I get no warnings using -Wall -pedantic.
+
+Trying the Storm C/C++ demo from Aminet, I get a lot of VERY
+strange error messages, no idea why.
+
+@endnode
+
+
+@node future "Que sera, sera..."
+
+Bug of V1.0: Just before I released that version, there was a small harmless
+change I did not test. It would have been harmless, if I had not forgotten two
+parantheses at a very critical point. (Did not compare the result of a function
+to zero, but its address "if(foo()) <-> if(foo)". Silly mistake.
+The program did not work, but no one complained about that. Users, if you are
+out there, please send me an email! Yes, you! If there is no one using it,
+I can save the time for documentation and uploads.
+
+Maybe it would be nice to have a cute little iconify gadget like KCON windows,
+but I am not sure how to write this in a system friendly way.
+
+NO, there will be no MUI interface.
+
+If your Amiga is faster than mine, and the program does not read correct values,
+it might be that your machine is too fast. This problem can be solved easily,
+see karte.cc
+
+"The documentation files all have the suffix '.cc'" (anonymous)
+
+Do you have suggestions?
+@endnode
+
+
+@node author "That's me!"
+
+Address:
+
+ Patrick Kursawe
+ Hohenzollernstr. 69
+ 45128 Essen
+ Germany
+
+ email: Patrick.Kursawe@rz.ruhr-uni-bochum.de
+
+Configuration:
+
+ Amiga 4000-EC030, OS 3.0, 850MB Harddisk, 18 MB RAM, CD-ROM drive (double speed)
+
+Waiting for:
+
+ The PowerPC Amiga (desperately!)
+ pOS
+
+Other programs:
+
+ disk/cdrom/JukeBox_Ext.lha   -  Extensions for JukeBox
+ (misc/sci/Regression.lha)    -  AREXX-Script for TurboCalc, no longer supported
+
+--------------------------------------------------------------------------
+
+Advertisement:
+
+ Realm of Magic
+ 
+ One of the biggest and best Circle-MUDs worldwide
+ Find new friends and new foes there.
+ Go where no mortal has gone before.
+
+ telnet: b11.informatik.uni-bremen.de 4000
+ 
+ For all Amiga-maniacs of the Realm who read this:
+ May Apollon bless you. - Phosphan
+
+@endnode
+

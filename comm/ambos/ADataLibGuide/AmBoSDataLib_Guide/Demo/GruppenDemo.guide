@@ -1,0 +1,130 @@
+@database AmigaGuide.guide
+@master Guide für die Demos zur Library
+
+@node "GruppenDemo" "GuppenDemo"
+
+/*-------------------------------------*/
+/* Programm:    Gruppen Listen         */
+/*-------------------------------------*/
+/* Funktion:  Listet alle Gruppen der  */
+/*            MailBox                  */
+/*-------------------------------------*/
+
+/*-------- Standart Includes ----------*/
+
+#include <exec/exec.h>
+#include <utility/tagitem.h>
+#include <dos/dos.h>
+
+#include <clib/exec_protos.h>
+#include <clib/dos_protos.h>
+#include <pragmas/exec_pragmas.h>
+#include <pragmas/dos_pragmas.h>
+/*-------------------------------------*/
+
+/*----- AmBoSDataLibrary Includes -----*/
+
+#include <clib/AmBoSData_protos.h>
+#include <libraries/AmBoSTags.h>
+
+/*-------------------------------------*/
+
+/* für die Dos.Library             */
+/* kommt von der c.o  ;-)) bei SAS */
+
+extern struct Library *DOSBase;
+
+/* Festlegung der Variablen */
+
+char GruppenName[128];
+
+/* AmBoSDataLibrary öffnen */
+
+struct Library *ADL_Open(void)
+{
+  AmBoSDataBase = OpenLibrary("ambosdata.library",0L);
+  return (AmBoSDataBase);
+}
+
+/* AmBoSDataLibrary schließen */
+
+void ADL_Close(void)
+{
+  if(AmBoSDataBase)
+    CloseLibrary(AmBoSDataBase);
+}
+
+/* Holt die nächste Gruppe */
+
+APTR GetNext(APTR Gruppe)
+{
+  APTR Grup;
+
+  if(! Gruppe)
+    return (NULL);
+
+  Grup = ADataSetTag(DATASET_Next,Gruppe,DATASET_Free,Gruppe,TAG_DONE);
+  return (Grup);
+}
+
+/*-------------------------------------*/
+/*   Ausgabe der Gruppen dieser Box    */
+/*-------------------------------------*/
+/* Parameter: Keine                    */
+/* Rückgabe :                          */
+/*            Immer Null               */
+/*-------------------------------------*/
+
+int main (void)
+{
+int i;      /* Zähler für die Grupen  */
+APTR Grup;  /* Für das Gruppen Objekt */
+
+  if(! ADL_Open())  /* Eigene Öffnungs Routine */
+  {
+    /* Falls das Öffnen fehlschlug */
+
+    FPuts(Output()," Hallo, hallo, Irgenwas lupt hier nicht !\\n");
+    FPuts(Output()," AmBoS muß laufen und die AmBoSDataLibrary\\n");
+    FPuts(Output()," muß ebenfalls Installiert sein !\\n");
+    return 0;
+  }
+  i = 1;
+
+    /*---------------------------------*/
+    /* Das Objekt für Gruppenzugriff   */
+    /*---------------------------------*/
+
+    Grup = ADataSetTag(DATASET_First,DATATYPE_Gruppe,TAG_DONE);
+
+      /* Erstes Gruppen Objekt erhalten */
+    while(Grup)
+    {
+      /* Gruppen Namen holen */
+
+      if(AGetAttrTag(Grup, GRUPPE_GruppenName, &GruppenName,TAG_DONE) != FALSE) 
+      {
+        /* Bei Erfolg ausgeben */
+
+        VFPrintf(Output(),"\\nGruppe %lu :",&i);
+        FPuts(Output(), GruppenName);
+        i++;
+      }
+
+      /* Nächstes Gruppen-Objekt holen */
+      Grup = GetNext(Grup);
+    }
+
+    FPuts(Output(), "\\n\\n Das warn denn wohl alle !\\n");
+
+    /* AmBoSData.Library wieder schließen */
+
+    ADL_Close();
+    return (NULL);
+}
+
+			@{"Hauptmenü" link "AmBoSDataLibrary.guide/main" 0}
+	@{"Wollen wir mal das Demo Starten ?" system "run >NIL: Demo/GruppenDemo >CON:0/0/635/150/Gruppen_Demo_(Schließen_mit_CTRL&\\)/WAIT/CLOSE"}
+
+@{fg fill}@{bg shine} Bitte klicken Sie auf Zurück, um Weiter zu machen !@{fg text}@{bg back}
+@endnode

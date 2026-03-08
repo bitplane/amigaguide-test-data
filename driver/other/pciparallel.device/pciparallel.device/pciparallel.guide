@@ -1,0 +1,301 @@
+@database "pciparallel.guide"
+@author "Darren Stevens"
+@$VER: pciparallel Guide 1.4 (14.05.11)
+@remark Created with golded 8.10 (15.9.7)
+@index INDEX
+@node MAIN "Welcome"
+
+        pciparallel.device v0.12
+
+        @{"    About     " link "ABOUT"}
+        @{" Requirements " link "REQUIREMENTS"}
+        @{" Installation " link "INSTALLATION"}
+        @{"   Usage      " link "USAGE"}
+        @{"Bugs/Problems " link "BUGS"}
+        @{"   History    " link "HISTORY"}
+        @{"   Author     " link "AUTHOR"}
+@endnode
+@node ABOUT "About"
+pciparallel.device is a device driver for PCI parallel port cards in an
+Elbox Mediator. Uses IO ports only so should work on all Mediators
+
+Supports cards with 1 and 2 ports on. Currently supports use of 1 or 2
+printers and 1 Parallel Zip drive.
+
+The Zip drives passthrough can be used to connect a printer.
+
+Code for interfacing with the mediator is my own, as is the printer parallel
+code, Zip drive support is based on 'ppazip.device' by Bruce Abbot.
+
+I've made a number of changes to Bruce's code including:
+
+Replacing statically declared message ports and IO requests with calls to
+Exec CreateMsgPort/CreateIORequest.
+
+Reducing the timer device overhead, Bruce was calling FindTask for each time
+the Timer was used for a delay, which could only happen from within our task.
+
+Replaced time delays in PutByte/GetByte with handshaking code, the device
+should be a little faster now, and more compatable with 040/060 systems.
+
+@endnode
+@node REQUIREMENTS "Requirements"
+To use pciparallel.device you will need:
+
+An Amiga (!) with a correctly installed Mediator, should work with any model.
+pci.library v4 or better.
+A PC parallel port card.
+Something to connect to the parallel port might be helpful.
+@endnode
+@node INSTALLATION "Installation"
+Due to the number of different parallel cards around there is a little work
+to do to install this device.
+
+The device opens the file ENV:Mediator/IOConfig and reads this for a list of
+devices to search for.
+
+I've added a couple but I expect there are many others not listed.
+
+To add yours add a new line with:
+
+Vendor Device IOSpace(x)=Parallel/Config/EPPOnly/Unused ...
+
+For Vendor and Device use 4 digits hex, no leading 0x or $ IOSpace(x) can be
+worked out from your PCIInfo output.
+
+IOSpace(x)= tells the device what kind of IO registers exist on the memory range:
+
+Parallel is for SPP registers.
+Config is the additional registers used by ECP ports (mostly for configuring modes
+hence the name)
+EPPOnly is SPP register map but without corresponding config range.
+Serial - Reisters for a 16450 UART (Unused by pciparallel)
+Unused - No Registers or unknown function.
+
+Parallel and EPPOnly ranges will be 8 bytes, Config will be 4 or 8. Unfortunately
+serial ranges also seem to be 8 byte. Some experimentation may be rquired.
+
+Here are a couple of examples (both tested cards from config file):
+
+Pci Device 3:
+   VendorID: $9710
+   VendorName: MosChip Semiconductor Technology
+   DeviceID: $9835
+   DeviceName: 9865 2 serial, 1 LPT port PCI Card
+   ClassCode: $78000
+   RevisionID: $1
+   InterruptPin: 3
+   SubsystemVendorID: $1000
+   SubsystemID: $12
+   IOSpace0: $eb6800 - $eb6807
+   IOSpace1: $eb6c00 - $eb6c07
+   IOSpace2: $eb7000 - $eb7007
+   IOSpace3: $eb7400 - $eb7407
+   IOSpace4: $eb7800 - $eb7807
+   IOSpace5: $eb7c00 - $eb7c0f
+
+This card has vendor $9710 device $9835, 2x serial 1x parallel ports on,
+serial are IOSpace0,1 SPP Registers are IOSpace2 and ECR config registers
+are IOSpace3, (from chipset docs)
+
+So config line becomes:
+
+9710 9835 IOSpace0=Serial IOSpace1=Serial IOSpace2=Parallel IOSpace3=Config IOSpace4=Unused IOSpace5=Unused
+
+(Note MUST be all one line, newlines are used as a device separator)
+
+Pci Device 5:
+   VendorID: $1407
+   VendorName: Lava Computer MFG Inc.
+   DeviceID: $8000
+   DeviceName: Lava Parallel
+   ClassCode: $70101
+   RevisionID: $0
+   InterruptPin: 4
+   SubsystemVendorID: $0
+   SubsystemID: $0
+   IOSpace0: $eb6c00 - $ea6c07
+
+This one has just one I/O range, as it is only an EPP port, so config line is:
+
+1407 8000 IOSpace0=EppOnly IOSpace1=unused IOSpace2=unused IOSpace3=unused IOSpace4=unused IOSace5=unused
+
+You don't actualy need to enter all IOSpace ranges, if your card has only
+2 ranges you can enter just those. The config range will be the higher numbered of
+the two.
+
+Once you've adjusted the file save it in sys:prefs/env-archive/Mediator
+as IOConfig
+(If you are still not sure ask on the Mediator Yahoo group.)
+
+Then copy the file pciparallel.device to devs:
+
+If you have a Zip drive you can copy the ZIP and ZIC mountfiles to
+devs:DosDrivers (or Storage if you don't want them always mounted)
+
+Note: If you use pciserial.device from Matthew Allatt the config file is the same.
+(This is intentional)
+
+@endnode
+@node USAGE "Usage"
+To use a zip drive just double click on the supplied DOSDrivers or put them in
+devs:dosdrivers to have them mounted at start up
+
+ZIP is for Amiga formatted disks,
+ZIC is for PC Formatted disks.
+
+Disks are fully compatable with ppazip formatted disks.
+
+Disks can be protected with Zip Tools as supplied with WB, Zip tools will
+detect pciparallel.device once it is mounted. pciparallel.device recognises
+write protection, read/write protection (as write protection) and will allow
+writing to a disk that has been temporarily write enabled. To write protect
+a temporarily enabled disk, you must eject it from your ZIP drive. Changes
+to the protection status of mounted disks will be detected, but you may have
+to wait for up to 6 seconds for the change to appear.
+
+
+To use a printer select 'use custom device' in Printer Prefs
+click the popup gadget and select 'pciparallel.device' from the list. (If it
+isn't listed see @{"here" link "INSTALLATION"} )
+
+Select unit 0 for single port cards, and unit 1 for second port on 2 port cards
+(But see @{"here" link "BUGS"} for a couple of problems to be aware of.)
+@endnode
+@node BUGS "Bugs"
+There are a few problems you should be aware of.
+
+If you have a printer attached to a Zip drive passthrough the device shares
+hardware between the printer and Zip drive, so while one device is active
+the other must wait, normally this isn't a problem, but if you try to print
+to a port with just a Zip drive attached the print request will wait for
+ever for the printer to be ready, and the Zip will be locked out. You should be
+able to cancel the print request, but it will take a few minutes to respond.
+(and I'm not 100% sure my AbortIO code works fully)
+
+While the device supports 2 port cards, it does not support 2 zip drives due
+to some static data used in the device structure. I could probably fix this
+if anyone really needed it.
+
+Only a ppa Zip Drive is supported, Zip Plus and Zip250PP are not.
+
+There is code to read data from a printer using nibble mode, however this has
+only been briefly tested.
+
+For some reason trying to open the additional info window in Scout causes a
+crash (devices->pciparallel.device then click on more) Don't understand why.
+
+@endnode
+@node HISTORY "History"
+This is a brief and probably not very accurate history for pciparallel.device
+
+28/07/02        v0.1        First actually working version, very basic but can
+                            be used to print. Doesn't implement all parallel.device
+                            options yet.
+
+13/08/02                    Started adding support for 2 ports (firstly 2 devices)
+
+                v0.2        2 ports driven from one device.
+                            Added PARB_SHARED support.
+
+08/10/02        v0.3        Name changed to pciparallel.device.
+                            Added PARB_EOF mode support (I hope)
+
+17/02/03        v0.4        Tried using an interrupt to reduce CPU overhead.
+
+11/02/04        v0.5        Returned to PIO as the interrupt code was not always
+                            successful, and is reported not to work in the bottom
+                            two slots in a 1200SX
+                            Started adding reads.
+
+                v0.6        Internal unreleased version.
+
+01/10/08        v0.7a       Started to work on Zip driver (from ppazip.device by
+                            Bruce Abbot)
+
+11/04/09        v0.7b       Standalone ZIP version. Some code improvements, using
+                            Exec to allocate IOReqs and MP's, and no longer
+                            calling FindTask when setting up timer.device calls
+                            (wasn't required, only called from task code)
+12/04/09                    Removed time delays from putbyte and getbyte and
+                            replaced them with REQ handshaking, which is available
+                            on full PC parallel ports. This has made the device a
+                            little faster, and hopefully made it more compatible
+                            with fast 040/060 systems.
+                            Removed 10ms delay added by Bruce as I'm hoping my putbyte/
+                            getbyte changes will have fixed this.
+16/04/09                    Fixed register mixup in SCSI-Direct/time delay - SCSI
+                            direct now works, the device no longer crashes HDToolbox.
+22/04/09                    Started to merge pciparallel.device code, to produce single
+                            combined device driver.
+01/05/09                    Finally got combine version to work, was using movea instead
+                            of movea.l in some places. Some more work to do.
+                            Found out how to switch the Zip in and out of passthrough
+                            mode, added this to connect and disconnect routines, mixed
+                            mode usage works very nicely now.
+02/05/09                    Mostly works, fixed unit numbers in open routime, still
+                            problems aborting parallel printouts when no printer attached.
+04/05/09        v0.8        Hopefully fixed aborting when no printer attached.
+
+                            First Aminet release.
+
+14/05/09        v0.9        Fixed bit values while printing, was reading a doc that was
+                            wrong. Fixed status return - YAM no longer complains before
+                            printing
+25/05/09                    Finaly debugged the Nibble mode code, and got the printer to
+                            respond to a read request
+01/10/09                    Corrected small bug in diskchange code. Changed Test Unit
+                            Ready to a mode sense during dischange int code to find disk
+                            protect status - needs some more work yet. Added some changes
+                            to driver to support this.
+24/10/09                    Finaly worked out the commands needed to check for disk write
+                            protection (Not mode sense - vendor specific)
+                            Added detection of this, along with checking for temporary
+                            write enabling. Added a patch to force a diskchange int, as
+                            otherwise WB can't see changes made to the protection status.
+                            This may cause slowdowns of disk mounting.
+
+                            Second Aminet release.
+
+30/01/10                    Added back Bruce's 10ms delay, seems it is needed after all!
+                            Inlined the getblock and putblock code.
+31/01/10                    Fixed the NSDDevQuery command code, changed diskchange timer
+                            to use UNIT_VBLANK rather than UNIT_MICROHZ
+03/01/10        v0.10       Slightly inreased the delay at the beginning of my 10ms replacement
+                            code, tidied up code a little, use 020 code where possible.
+
+                            Third Aminet release.
+
+27/02/10                    Changed the bit settings in the disconnect routine, to prevent
+                            Epson printers resetting themselves on each ZIP command.
+23/03/10        v0.11       Fixed bug in init code that was causing my printer to hang on first
+                            Printout after power up.
+
+                            Fourth Aminet release.
+
+04/02/11                    Added support for LAVA EPP only Parallel port cards.
+09/02/11                    Removed some handshaking code in byte read and write routines.
+18/02/11        v0.12       Some more '020 optimisations
+
+                            Fifth Aminet release
+
+@endnode
+@node AUTHOR "Author"
+This driver was written by:
+
+Darren Stevens
+darren@stevens31.karoo.co.uk
+
+Development system is:
+A1200 in Eyetech Z4 tower
+BlizzardPPC 166/040@25 128Mb
+
+Mediator PCI1200 (v1.0) with Radeon 9200SE 64Mb, FastEthernet
+
+Code is ~3000 lines of Assembly language written in Cubic IDE and compiled
+with Devpac
+
+If you find bugs or cards that I haven't listed in my Config let me know,
+and if you find it really useful you could pay a £/$/¤ or two into my A1 X1000 fund
+@endnode
+

@@ -1,0 +1,246 @@
+@database LoadModule.guide
+@$VER: LoadModule.guide 1.1 (21.8.97)
+@node main "LoadModule.guide"
+
+
+
+
+
+============================================================
+                      August 21, 1997
+
+                     Torbjörn Andersson
+                          presents
+                       LoadModule 1.1
+
+                          Freeware
+============================================================
+
+
+
+
+
+1. Contents
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+@{"Contents    " link Main        } ............................................ 1
+@{"Introduction" link Introduction} ............................................ 2
+@{"Requirements" link Requirements} ............................................ 3
+@{"Usage       " link Usage       } ............................................ 4
+@{"History     " link History     } ............................................ 5
+@{"Distribution" link Distribution} ............................................ 6
+@{"Author      " link Author      } ............................................ 7
+
+
+@endnode
+@node Introduction
+
+2. Introduction
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+LoadModule is a program for installing resident modules, by
+using the KickMem and KickTag lists in ExecBase.
+
+I made LoadModule so I could load scsi.device before
+softkicking KS 2.04, and that way use the harddrive in my
+A1200 even under KS 2.04. If you want to try this, I have
+also made a program that extracts scsi.device from KS 3.0
+(Aminet:util/boot/GetSCSI). (KS means Kickstart.)
+
+Another reason for LoadModule was to try hackdisk.device by
+Dan Babcock (Aminet:disk/misc/hackdisk or Fish 803), and
+betaversions of scsi.device and FastFileSystem (V43) from
+Amiga Technologies GmbH/Amiga International, Inc.
+(ftp.amiga.de:pub/Public/PublicBETA/).
+
+Features:
+· Load module in fast memory!
+· Load multiple modules at once.
+· Check if module is corrupt at reboot.
+· Handles files with any number of segments (of course).
+· Handles files containing multiple modules (not usual).
+· AmigaOS 1.2/1.3 compatible.
+
+
+@endnode
+@node Requirements
+
+3. Requirements
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+LoadModule requires AmigaOS 1.2 or higher.
+
+Arp.library is required on AmigaOS 1.2/1.3.
+
+
+@endnode
+@node Usage
+
+4. Usage
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+LoadModule cannot be used from Workbench. It is pure and can
+be made resident (with C:Resident). The CLI usage is:
+
+NAME/A/M,QUIET/S,REBOOT/S,REMOVE/S,INIT/S,CHECK/S,FAST/S,
+LMPRI/N,AUTOINIT/N,CLASS/N,VERSION/N,TYPE/N,PRI/N
+
+
+Examples:
+
+LoadModule DEVS:fastfilesystem DEVS:a300.ld.strip CHECK FAST
+
+This loads betaversions of FastFileSystem and scsi.device.
+They will be loaded in fast memory, and checked at every
+reboot to ensure they are not corrupt.
+
+LoadModule LIBS:*.library INIT FAST CLASS=0
+
+Makes all libraries in LIBS: resident. INIT will
+initialize the libraries (else they will have to be loaded
+again when needed). CLASS=0 means that a library will not
+be initialized after reboot until someone asks for it (some
+would else cause the System Request "Please insert volume
+ENV in any drive" to pop up).
+
+
+Explanation of options:
+
+Note that none of the options has any affect on modules that
+already have been loaded by LoadModule (except REMOVE). INIT
+and the last five options can lead to crashes if they aren't
+used properly.
+
+NAME
+Name of module to install.
+
+QUIET
+Don't say module is installed.
+
+REBOOT
+Reboot after installing module.
+
+REMOVE
+Remove installed module.
+     The full pathname can be used, but filename only is
+enough. If you use "" for NAME, all modules installed by
+LoadModule will be removed.
+     Note that the memory a module occupied will not be
+freed. The only way to get it back is to reboot.
+
+INIT
+Call exec.library/InitResident(), with the module as
+argument.
+
+CHECK
+At every boot, the memory the module is loaded in will
+be checked to see if it has changed. If it has, an alert
+will be displayed.
+     Of course LoadModule can't know if a module writes some
+data to itself, simply do not use the CHECK option for them.
+
+FAST
+Loads the module in best memory available, which on many
+systems means fast memory instead of chip memory.
+     To accomplish this the module is loaded in best memory
+available, but the memory will not be referenced in the
+KickMem list. Instead an extra tag is installed that
+allocates the memory when the machine reboots. Also the
+resident module tag structure is relocated to the type of
+memory Exec can access when it builds the list of resident
+modules.
+
+LMPRI
+If the CHECK and/or FAST options are used, LoadModule will
+install its own resident tag. This sets the priority of it.
+     By default it is two less than the priority of
+intuition.library, so alerts can be displayed if memory for
+the module can't be allocated, or if it has changed.
+     After an alert, the variables in ExecBase that hold
+information about resident things are cleared (i.e.
+ColdCapture, CoolCapture, WarmCapture, KickTagPtr and
+KickMemPtr), and then the machine is rebooted again.
+
+AUTOINIT
+Use zero (0) to clear the flag RTF_AUTOINIT in the rt_Flags
+field of the resident module tag structure, one (1) to set
+the flag.
+
+CLASS
+This will be put in the rt_Flags field of the resident
+module tag structure (RTF_AUTOINIT will not be changed).
+These are the flags from include:exec/resident.[h|i]:
+RTF_COLDSTART  = 1
+RTF_SINGLETASK = 2 (KS 2.0+)
+RTF_AFTERDOS   = 4 (KS 2.0+)
+
+VERSION
+Will be put in the rt_Version field of the resident module
+tag structure.
+
+TYPE
+Put this in the rt_Type field of the resident module tag
+structure.
+Here are common definitions from include:exec/nodes.[h|i]:
+NT_UNKNOWN  = 0
+NT_DEVICE   = 3
+NT_RESOURCE = 8
+NT_LIBRARY  = 9
+
+PRI
+Set priority in the rt_Pri field of the resident module tag
+structure.
+
+
+@endnode
+@node History
+
+5. History
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+1.0 (23.7.97)
+· First release.
+
+1.1 (21.8.97)
+· CHECK option always complained if LoadModule changed
+  anything in the resident module tag structure.
+· REMOVE option will never free memory for the extra
+  resident tag LoadModule installs. It was a bug when any
+  of the modules had been installed with the FAST option.
+
+
+@endnode
+@node Distribution
+
+6. Distribution
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+No commercial usage of LoadModule is allowed without written
+permission from the author. Other distribution is allowed if
+no files in the original distribution are removed or
+modified.
+
+
+@endnode
+@node Author
+
+7. Author
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+LoadModule executable and documentation are made by and
+copyright © 1997 Torbjörn A. Andersson.
+All Rights Reserved.
+
+
+Snail mail:
+Torbjörn Andersson
+Knöppletorp 4379
+S-380 31 LÄCKEBY
+SWEDEN
+
+Email:
+d95ta@efd.lth.se
+
+Home page:
+http://www.efd.lth.se/~d95ta
+
+
+
+
+
+                                          I love you - AMIGA
+
+@endnode

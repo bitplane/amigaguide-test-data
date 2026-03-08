@@ -1,0 +1,333 @@
+@database "aic78xx.device.guide"
+@author "Darren Stevens"
+@$VER: aic78xx Guide 1.3 (17.05.11)
+@remark Created with golded 8.10 (15.9.7)
+@index INDEX
+@node MAIN "Welcome"
+
+        aic78xx.device v0.3 release candidate 2
+
+        @{"    About     " link "ABOUT"}
+        @{"Why write this" link "WHY"}
+
+        @{" Requirements " link "REQUIREMENTS"}
+        @{" Installation " link "INSTALLATION"}
+        @{"   Usage      " link "USAGE"}
+        @{"Bugs/Problems " link "BUGS"}
+        @{"  Tech info   " link "TECHNICAL"}
+
+        @{"   History    " link "HISTORY"}
+        @{" Coming soon  " link "FUTURE"}
+
+        @{"   Licence    " link "LICENCE"}
+        @{"Author/Thanks " link "AUTHOR"}
+@endnode
+@node ABOUT "About"
+This is a Mediator device driver for Adaptec AHA-2940AU/UW/UW Pro SCSI
+cards. (based on AIC-78xx chips, other card may work)
+
+The driver should hopefully determine if it is running on a narrow or
+a wide SCSI card, and understands new style wide device numbering. This
+means that you can check the 'wide scsi board' checkbox in HDtoolbox for
+a full bus scan.
+
+This version uses automatic PIO for command & info phases and bus master DMA
+for data transfer phases. This gives a considerable speed up on the last
+version.
+@endnode
+@node WHY "why"
+One of the things I planned when I bought my Mediator was to replace my
+Surf-Squirrel with PCI cards, however this never quite happened, until
+either my PCMCIA port or the Surf-Squirrel started to cause random lock ups.
+Once that happened this project became important.
+
+Why Adaptec SCSI cards?
+
+- Adaptec are (were?) the largest manufacturer of SCSI cards in the world,
+  suitable cards are fairly easy to come by (even now)
+
+- The AIC-78xx range of chips has devices from Fast-Narrow up to Ultra2-wide
+  all with a fairly similar API, a single driver can drive quite a number of
+  cards.
+
+- There is a mature FreeBSD driver to work from, as the Mediator SDK is
+  incompatible with the GPL used by Linux drivers.
+
+@endnode
+@node REQUIREMENTS "Requirements"
+To use aic78xx.device you will need:
+
+An Amiga (!) with a correctly installed Mediator with working MMCD install.
+pci.library v8 or better.
+An Adaptec narrow/wide SCSI host adaptor card.
+Something to connect to the SCSI bus might be helpful.
+
+Some notes about compatible SCSI cards:
+
+Tested:
+AHA-2940UW Pro (AIC-7880/7881)
+AHA-2940UW (AIC-7880)
+AHA-2940AU (AIC-7860)
+
+AVA-2904 (AIC-7856) - Not working - card will not initialise (* may be my
+card)
+
+Possibly working:
+AHA-2940U2W (AIC-7890)
+This is an ultra2 card, and along with AIC-7892/7896/7897 the address of the
+SCSI ID register has been changed.
+
+To use these you need to start the device by running 'AICScsi ULTRA2'
+
+My AHA-2940U2W doesn't report the same DeviceID or I/O ranges in my Mediator
+as it does in my AmigaOne, and doesn't work. Hopefully that is just a problem
+here.
+
+@endnode
+@node INSTALLATION "Installation"
+Copy the file aic78xx.device to devs:
+
+(Optional) Copy the file AicSCSI to c: - see @{"usage" link "USAGE"}
+
+You can copy the CD0 Icon from OS3.5/3.9 and change the device and unit to
+get CD-Roms working. This is how I use the device. The 'NC' option in the
+control parameter can be removed if you like as my device has a disk change
+timer routine of its own.
+@endnode
+@node USAGE "Usage"
+The device mostly behaves like any other SCSI device, you can scan the bus
+with HDToolBox, HDInstallTools etc, Mounter can be used to mount RDB
+partitions, CacheCDFS can be used to mount CD-Rom drives.
+
+On first opening the device will scan the SCSI bus and build a list of hard
+disk drives attached and try to mount any partitions it finds. If you have a
+CD-ROM or something else with a mount entry in devs/DosDrivers starting this
+will cause this scan, if not I've enclosed a C command called AicSCSI that
+can be added to your startup-sequence. (Or user-startup, it doesn't need to
+be run in any specific place.)
+
+As of this version AICScsi has a command line option 'ULTRA2' this informs
+the device to use Ultra2 register addresses.
+
+@endnode
+@node BUGS "Bugs"
+There are a few problems you should be aware of.
+
+Workbench may crash after a read/write error. I'll fix this when I find out
+why it is happening.
+
+I've turned on the cards bus termination. This will limit the number of
+connectors that can be used, usually to one. Cable detection and automatic
+termination detection is on my todo list.
+
+The automount code is my own work, and has a hack or two in. It works here,
+but I suggest you test it before starting the driver at bootup. I have
+successfully mounted FFS and SFS partitions.
+
+The device cannot be removed from memory as I have disabled the Expunge routine.
+This is because Exec kept trying to expunge the device when my RDB task was
+starting up. (even though I had >100Mb free)
+
+There are almost certainly other bugs, or situations where the device will
+crash or hang. Please let me know about these, and be as detailed as possible.
+
+@endnode
+@node TECHNICAL "Technical details"
+Adaptec SCSI cards consist of 3 main modules
+
+- A SCSI module, this deals with selection/re-selection, data transfer in PIO
+  and DMA modes and selecting/sensing cables and termination
+
+- A PCI bus master DMA engine. Feeds data to/from the SCSI module's data FIFO
+  from/to memory.
+
+- A 8 bit RISC engine, with some ram (usually 4k or less) to contain a short
+  program. This can write to registers of the above two modules and can therefore
+  be used to control the SCSI data flow.
+
+At the moment my driver uses the first two modules, Risc code should follow.
+
+The driver itself is a (hopefully*) very complete SCSI-Direct routine,
+enclosed in a device driver with a set of routines that generate SCSI-Direct
+calls for exec device IO Commands.
+
+* It seems to work with the programs I've tried, I've even added a work around
+for HDToolBox v45.6 which puts the scsi_CmdLength in IO_LENGTH instead
+sizeof(HD_SCSICMD) as the docs say.
+@endnode
+@node HISTORY "History"
+This is a brief and probably not very accurate history for aic78xx.device
+
+01/07/09                    First actually working version, very basic but can
+                            be used. Doesn't always configure correctly on
+                            startup.
+
+15/07/09                    Fixed small bug with data corruption when reading
+                            more than 64k in one go.
+
+01/09/09                    Rewrote init routine, hopefully fixed device not
+                            starting or losing 1st device on bus.
+
+05/09/09                    Changed data read and write to use chipsets data
+                            fifo.
+
+17/09/09                    Fixed bug when device reported fixed disks as 'no disk
+                            present' Mounter always mounts partitions now.
+
+19/09/09        v0.1        Added wide SCSI device id detection.
+                            Added checks for narrow/wide cards (hopefully)
+                            Changes to disk scanning routine in control task.
+
+                            First aminet release.
+
+26/11/09                    Moved all the initialisation code to the driver task
+                            so that the Init and Open routines complete quicker
+                            Fixed one small and one large bug in the wide SCSI
+                            detection routine
+                            Started to add HDD automount code
+
+06/12/09                    HDD partitions now mount, but don't load, so can't
+                            be used until Format/scout (or similar) is run.
+
+24/12/09                    Switched HDD mounter task to a process and now HDD's
+                            autostart when the device is run.
+
+26/12/09                    Cleaned code, and removed some unneeded bits, tested
+                            TD_ADDCHANGEINT and found (and fixed) a small bug
+                            where one of my CD-ROMS would not show a CD present
+                            on first startup.
+
+09/01/10                    Added code to load filesystems from a RDB, added a
+                            hack to fix the Global vector - This will probably
+                            cause problems with filesystems written in BCPL -
+                            but these are few and far between.
+
+10/01/10        v0.2        Changed they way the RDB scanning task ends, I was
+                            calling RemTask, but it's now a process. Using a rts
+                            now.
+
+                            Second Aminet Release.
+
+01/04/10                    Started to add DMA code
+
+06/04/10                    1st DMA version, using 1Mb buffer
+
+15/04/10                    Now using 16k buffers, added some timer delays in
+                            place of busy waits.
+
+02/05/10                    New pci.library and info from Elbox, started changing
+                            code to use these.
+
+16/06/10                    Driver now uses Async IO, copies from one buffer while
+                            AIC chip is filling the other.
+
+17/06/10                    Finally fixed problems with the async write routine.
+
+25/07/10        v0.3 rc1    Final integration into Elbox driver system.
+
+                            Third Aminet Release
+
+13/10/10                    Removed some unneeded register writes from the
+                            Read/Write routines to make the device a little
+                            faster.
+
+                            Removed some old PIO code that was not being used
+                            anymore.
+
+05/04/10        v0.3 rc2    Patched the bus scan routine to fake a block size
+                            of 1 byte for non-block devices. For some strange
+                            reason this seems to make scanners work(?)
+
+                            Fourth Aminet Release
+
+@endnode
+@node FUTURE "Future Plans"
+The future for the next couple of versions goes like this:
+
+Before 0.3 gets finalised I hope to add support for 1200TX and pci.library v9
+
+v0.4 - RISC engine firmware version. This won't increase the speed much, but
+       will reduce the CPU load while the device is running. Once the CPU
+       intensive PIO routine is gone converting to other systems (i.e. OS4)
+       should be much easier.
+
+Other things that will get looked as I get to them:
+Cable Detection, Termination + auto termination selection.
+Better chipset identification. (Better support for other models)
+Better automounting routine.
+@endnode
+@node LICENCE "licence"
+This driver is released as SHAREWARE (or will be if/when it gets fully finished)
+
+If you find it useful please send the author 3-5 £/$/¤ (or whatever you think it
+is worth)
+
+This work is based on the FreeBSD aic7xxx driver by J.Gibbs and Adaptec.
+(Source code is not available due to the fact that pci.library SDK is covered
+by an NDA)
+
+Sections 2 and 3 below apply.
+
+/*
+ *
+ * Copyright (c) 1994-2001 Justin T. Gibbs.
+ * Copyright (c) 2000-2001 Adaptec Inc.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification.
+ * 2. Redistributions in binary form must reproduce at minimum a disclaimer
+ *    substantially similar to the "NO WARRANTY" disclaimer below
+ *    ("Disclaimer") and any redistribution must be conditioned upon
+ *    including a substantially similar Disclaimer requirement for further
+ *    binary redistribution.
+ * 3. Neither the names of the above-listed copyright holders nor the names
+ *    of any contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * NO WARRANTY
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDERS OR CONTRIBUTORS BE LIABLE FOR SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+ * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGES.
+ *
+ */
+
+@endnode
+@node AUTHOR "Author"
+This driver was written by:
+
+Darren Stevens
+darren@stevens31.karoo.co.uk
+
+Development system is:
+A1200 in Eyetech Z4 tower
+BlizzardPPC 166/040@25 128Mb
+
+Mediator PCI1200 (v1.0) with Radeon 9200SE 64Mb.
+
+Code is ~3000 lines of Assembly language written in Cubic IDE and compiled
+with Devpac
+
+Thanks go to:
+Elbox for the Mediator!
+
+Neil Pearson for testing the device on a Mediator 1200TX and for reporting
+that there was a problem with scanners (I don't have one)
+
+Dietmar Eilert for Cubic IDE, and for running his Cubic IDE easter egg
+competition.
+
+@endnode
+

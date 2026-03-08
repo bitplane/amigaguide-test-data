@@ -1,0 +1,771 @@
+@database gdbm.guide
+
+@Master gdbm.texinfo
+
+@Width 72
+
+
+This is the AmigaGuide®  file gdbm.guide, produced by Makeinfo-1.67 from 
+the input file gdbm.texinfo.
+
+   This file documents the GNU dbm utility.
+
+   Copyright (C) 1989-1993 Free Software Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the entire resulting derived work is distributed under the terms
+of a permission notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions.
+
+
+@Node Main "gdbm.guide"
+@Next "Copying"
+
+   GNU @{b}dbm@{ub} is a library of functions implementing a hashed database on
+a disk file.  This manual documents GNU @{b}dbm@{ub} Version 1.7.1 (@{b}gdbm@{ub}).  The
+software was written by Philip A. Nelson. This document was originally
+written by Pierre Gaumond from texts written by Phil.
+
+
+Introduction:
+
+ @{" Copying                   " Link "Copying"}  Your rights.
+ @{" Intro                     " Link "Intro"}  Introduction to GNU dbm.
+ @{" List                      " Link "List"}  List of functions.
+
+Functions:
+
+ @{" Open                      " Link "Open"}  Opening the database.
+ @{" Close                     " Link "Close"}  Closing the database.
+ @{" Store                     " Link "Store"}  Inserting and replacing records in the database.
+ @{" Fetch                     " Link "Fetch"}  Searching records in the database.
+ @{" Delete                    " Link "Delete"}  Removing records from the database.
+ @{" Sequential                " Link "Sequential"}  Sequential access to records.
+ @{" Reorganization            " Link "Reorganization"}  Database reorganization.
+ @{" Sync                      " Link "Sync"}  Insure all writes to disk have competed.
+ @{" Errors                    " Link "Errors"}  Convert internal error codes into English.
+ @{" Options                   " Link "Options"}  Setting internal options.
+
+Other topics:
+
+ @{" Variables                 " Link "Variables"}  Two useful variables.
+ @{" Compatibility             " Link "Compatibility"}  Compatibility with UNIX dbm and ndbm.
+ @{" Conversion                " Link "Conversion"}  Converting dbm files to gdbm format.
+ @{" Bugs                      " Link "Bugs"}  Problems and bugs.
+
+
+@EndNode
+
+@Node "Copying" "gdbm.guide/Copying"
+@Next "Intro"
+@Prev "Main"
+@Toc "Main"
+
+Copying Conditions.
+*******************
+
+   This library is @{i}free@{ui}; this means that everyone is free to use it and
+free to redistribute it on a free basis.  GNU @{b}dbm@{ub} (@{b}gdbm@{ub}) is not in the
+public domain; it is copyrighted and there are restrictions on its
+distribution, but these restrictions are designed to permit everything
+that a good cooperating citizen would want to do.  What is not allowed
+is to try to prevent others from further sharing any version of @{b}gdbm@{ub}
+that they might get from you.
+
+   Specifically, we want to make sure that you have the right to give
+away copies @{b}gdbm@{ub}, that you receive source code or else can get it if
+you want it, that you can change these functions or use pieces of them
+in new free programs, and that you know you can do these things.
+
+   To make sure that everyone has such rights, we have to forbid you to
+deprive anyone else of these rights.  For example, if you distribute
+copies @{b}gdbm@{ub}, you must give the recipients all the rights that you have.
+You must make sure that they, too, receive or can get the source code.
+And you must tell them their rights.
+
+   Also, for our own protection, we must make certain that everyone
+finds out that there is no warranty for anything in the @{b}gdbm@{ub}
+distribution.  If these functions are modified by someone else and
+passed on, we want their recipients to know that what they have is not
+what we distributed, so that any problems introduced by others will not
+reflect on our reputation.
+
+   @{b}gdbm@{ub} is currently distributed under the terms of the GNU General
+Public License, Version 2.  (@{i}NOT@{ui} under the GNU General Library Public
+License.)  A copy the GNU General Public License is included with the
+distribution of @{b}gdbm@{ub}.
+
+
+@EndNode
+
+@Node "Intro" "gdbm.guide/Intro"
+@Next "List"
+@Prev "Copying"
+@Toc "Main"
+
+Introduction to GNU @{b}dbm@{ub}.
+************************
+
+   GNU @{b}dbm@{ub} (@{b}gdbm@{ub})is a library of database functions that use extendible
+hashing and works similar to the standard UNIX @{b}dbm@{ub} functions.  These
+routines are provided to a programmer needing to create and manipulate
+a hashed database. (@{b}gdbm@{ub} is @{i}NOT@{ui} a complete database package for an end
+user.)
+
+   The basic use of @{b}gdbm@{ub} is to store key/data pairs in a data file.
+Each key must be unique and each key is paired with only one data item.
+The keys can not be directly accessed in sorted order.  The basic unit
+of data in @{b}gdbm@{ub} is the structure:
+
+       typedef struct {
+                  char *dptr;
+                  int  dsize;
+               } datum;
+
+   This structure allows for arbitrary sized keys and data items.
+
+   The key/data pairs are stored in a @{b}gdbm@{ub} disk file, called a @{b}gdbm@{ub}
+database.  An application must open a @{b}gdbm@{ub} database to be able
+manipulate the keys and data contained in the database.  @{b}gdbm@{ub} allows an
+application to have multiple databases open at the same time.  When an
+application opens a @{b}gdbm@{ub} database, it is designated as a @{b}reader@{ub} or a
+@{b}writer@{ub}.  A @{b}gdbm@{ub} database opened by at most one writer at a time.
+However, many readers may open the database open simultaneously.
+Readers and writers can not open the @{b}gdbm@{ub} database at the same time.
+
+
+@EndNode
+
+@Node "List" "gdbm.guide/List"
+@Next "Open"
+@Prev "Intro"
+@Toc "Main"
+
+List of functions.
+******************
+
+   The following is a quick list of the functions contained in the @{b}gdbm@{ub}
+library. The include file @{b}gdbm.h@{ub}, that can be included by the user,
+contains a definition of these functions.
+
+     #include <gdbm.h>
+     
+     GDBM_FILE gdbm_open(name, block_size, flags, mode, fatal_func);
+     void gdbm_close(dbf);
+     int gdbm_store(dbf, key, content, flag);
+     datum gdbm_fetch(dbf, key);
+     int gdbm_delete(dbf, key);
+     datum gdbm_firstkey(dbf);
+     datum gdbm_nextkey(dbf, key);
+     int gdbm_reorganize(dbf);
+     void gdbm_sync(dbf);
+     int gdbm_exists(dbf, key);
+     char *gdbm_strerror(errno);
+     int gdbm_setopt(dbf, option, value, size)
+
+   The @{b}gdbm.h@{ub} include file is often in the @{b}/gnu/include@{ub} directory. (The
+actual location of @{b}gdbm.h@{ub} depends on your local installation of @{b}gdbm@{ub}.)
+
+
+@EndNode
+
+@Node "Open" "gdbm.guide/Open"
+@Next "Close"
+@Prev "List"
+@Toc "Main"
+
+Opening the database.
+*********************
+
+   Initialize @{b}gdbm@{ub} system. If the file has a size of zero bytes, a file
+initialization procedure is performed, setting up the initial structure
+in the file.
+
+   The procedure for opening a @{b}gdbm@{ub} file is:
+
+     GDBM_FILE dbf;
+     
+     dbf = gdbm_open(name, block_size, flags, mode, fatal_func);
+
+   The parameters are:
+
+char *name
+     The name of the file (the complete name, @{b}gdbm@{ub} does not append any
+     characters to this name).
+
+int block_size
+     It is used during initialization to determine the size of various
+     constructs. It is the size of a single transfer from disk to
+     memory. This parameter is ignored if the file has been previously
+     initialized. The minimum size is 512.  If the value is less than
+     512, the file system blocksize is used, otherwise the value of
+     @{b}block_size@{ub} is used.
+
+int flags
+     If @{b}flags@{ub} is set to GDBM_READER, the user wants to just read the
+     database and any call to @{b}gdbm_store@{ub} or @{b}gdbm_delete@{ub} will fail.
+     Many readers can access the database at the same time. If @{b}flags@{ub} is
+     set to GDBM_WRITER, the user wants both read and write access to
+     the database and requires exclusive access. If @{b}flags@{ub} is set to
+     GDBM_WRCREAT, the user wants both read and write access to the
+     database and if the database does not exist, create a new one. If
+     @{b}flags@{ub} is set to GDBM_NEWDB, the user want a new database
+     created, regardless of whether one existed, and wants read and
+     write access to the new database.  For all writers (GDBM_WRITER,
+     GDBM_WRCREAT and GDBM_NEWDB) the value GDBM_FAST can be added to
+     the @{b}flags@{ub} field using logical or.  This option causes @{b}gdbm@{ub} to
+     write the database without any disk file synchronization.  This
+     allows faster writes, but may produce an inconsistent database in
+     the event of abnormal termination of the writer.  Any error
+     detected will cause a return value of NULL and an appropriate
+     value will be in @{b}gdbm_errno@{ub} (see Variables). If no errors occur, a
+     pointer to the @{b}gdbm@{ub} file descriptor will be returned.
+
+int mode
+     File mode (see chmod(2) and open(2) if the file is created).
+
+void (*fatal_func) ()
+     A function for @{b}gdbm@{ub} to call if it detects a fatal error. The only
+     parameter of this function is a string. If the value of NULL is
+     provided, @{b}gdbm@{ub} will use a default function.
+
+   The return value, @{b}dbf@{ub}, is the pointer needed by all other functions
+to access that @{b}gdbm@{ub} file. If the return is the NULL pointer, @{b}gdbm_open@{ub}
+was not successful. The errors can be found in @{b}gdbm_errno@{ub} for @{b}gdbm@{ub}
+errors and in @{b}errno@{ub} for file system errors (for error codes, see
+@{b}gdbm.h@{ub}).
+
+   In all of the following calls, the parameter @{b}dbf@{ub} refers to the
+pointer returned from @{b}gdbm_open@{ub}.
+
+
+@EndNode
+
+@Node "Close" "gdbm.guide/Close"
+@Next "Store"
+@Prev "Open"
+@Toc "Main"
+
+Closing the database.
+*********************
+
+   It is important that every file opened is also closed. This is
+needed to update the reader/writer count on the file. This is done by:
+
+     gdbm_close(dbf);
+
+   The parameter is:
+
+GDBM_FILE dbf
+     The pointer returned by @{b}gdbm_open@{ub}.
+
+   Closes the @{b}gdbm@{ub} file and frees all memory associated with the file
+@{b}dbf@{ub}.
+
+
+@EndNode
+
+@Node "Store" "gdbm.guide/Store"
+@Next "Fetch"
+@Prev "Close"
+@Toc "Main"
+
+Inserting and replacing records in the database.
+************************************************
+
+   The function @{b}gdbm_store@{ub} inserts or replaces records in the database.
+
+     ret = gdbm_store(dbf, key, content, flag);
+
+   The parameters are:
+
+GDBM_FILE dbf
+     The pointer returned by @{b}gdbm_open@{ub}.
+
+datum key
+     The @{b}key@{ub} data.
+
+datum content
+     The data to be associated with the key.
+
+int flag
+     Defines the action to take when the key is already in the
+     database. The value GDBM_REPLACE (defined in @{b}gdbm.h@{ub}) asks that the
+     old data be replaced by the new @{b}content@{ub}. The value GDBM_INSERT
+     asks that an error be returned and no action taken if the @{b}key@{ub}
+     already exists.
+
+   The values returned in @{b}ret@{ub} are:
+
+-1
+     The item was not stored in the database because the caller was not
+     an official writer or either @{b}key@{ub} or @{b}content@{ub} have a NULL dptr field.
+     Both @{b}key@{ub} and @{b}content@{ub} must have the dptr field be a non-NULL value.
+     Since a NULL dptr field is used by other functions to indicate an
+     error, a NULL field cannot be valid data.
+
++1
+     The item was not stored because the argument @{b}flag@{ub} was GDBM_INSERT
+     and the @{b}key@{ub} was already in the database.
+
+0
+     No error. @{b}content@{ub} is keyed by @{b}key@{ub}. The file on disk is updated to
+     reflect the structure of the new database before returning from
+     this function.
+
+   If you store data for a @{b}key@{ub} that is already in the data base, @{b}gdbm@{ub}
+replaces the old data with the new data if called with GDBM_REPLACE.
+You do not get two data items for the same @{b}key@{ub} and you do not get an
+error from @{b}gdbm_store@{ub}.
+
+   The size in @{b}gdbm@{ub} is not restricted like @{b}dbm@{ub} or @{b}ndbm@{ub}. Your data can
+be as large as you want.
+
+
+@EndNode
+
+@Node "Fetch" "gdbm.guide/Fetch"
+@Next "Delete"
+@Prev "Store"
+@Toc "Main"
+
+Searching for records in the database.
+**************************************
+
+   Looks up a given @{b}key@{ub} and returns the information associated with that
+key. The pointer in the structure that is  returned is a pointer to
+dynamically allocated memory block. To search for some data:
+
+     content = gdbm_fetch(dbf, key);
+
+   The parameters are:
+
+GDBM_FILE dbf
+     The pointer returned by @{b}gdbm_open@{ub}.
+
+datum key
+     The @{b}key@{ub} data.
+
+   The datum returned in @{b}content@{ub} is a pointer to the data found. If the
+dptr is NULL, no data was found. If dptr is not NULL, then it points to
+data allocated by malloc. @{b}gdbm@{ub} does not automatically free this data.
+The user must free this storage when done using it. This eliminates the
+need to copy the result to save it for later use (you just save the
+pointer).
+
+   You may also search for a particular key without retrieving it,
+using:
+
+     ret = gdbm_exists(dbf, key);
+
+   The parameters are:
+
+GDBM_FILE dbf
+     The pointer returned by @{b}gdbm_open@{ub}.
+
+datum key
+     The @{b}key@{ub} data.
+
+   Unlike @{b}gdbm_fetch@{ub}, this routine does not allocate any memory, and
+simply returns true or false, depending on whether the @{b}key@{ub} exists, or
+not.
+
+
+@EndNode
+
+@Node "Delete" "gdbm.guide/Delete"
+@Next "Sequential"
+@Prev "Fetch"
+@Toc "Main"
+
+Removing records from the database.
+***********************************
+
+   To remove some data from the database:
+
+     ret = gdbm_delete(dbf, key);
+
+   The parameters are:
+
+GDBM_FILE dbf
+     The pointer returned by @{b}gdbm_open@{ub}.
+
+datum key
+     The @{b}key@{ub} data.
+
+   The ret value is -1 if the item is not present or the requester is a
+reader.  The ret value is 0 if there was a successful delete.
+
+   @{b}gdbm_delete@{ub} removes the keyed item and the @{b}key@{ub} from the database
+@{b}dbf@{ub}. The file on disk is updated to reflect the structure of
+the new database before returning from this function.
+
+
+@EndNode
+
+@Node "Sequential" "gdbm.guide/Sequential"
+@Next "Reorganization"
+@Prev "Delete"
+@Toc "Main"
+
+Sequential access to records.
+*****************************
+
+   The next two functions allow for accessing all items in the
+database. This access is not @{b}key@{ub} sequential, but it is guaranteed to
+visit every @{b}key@{ub} in the database once. The order has to do with the hash
+values.  @{b}gdbm_firstkey@{ub} starts the visit of all keys in the database.
+@{b}gdbm_nextkey@{ub} finds and reads the next entry in the hash structure
+for @{b}dbf@{ub}.
+
+     key = gdbm_firstkey(dbf);
+     
+     nextkey = gdbm_nextkey(dbf, key);
+
+   The parameters are:
+
+GDBM_FILE dbf
+     The pointer returned by @{b}gdbm_open@{ub}.
+
+datum @{b}key@{ub}
+datum nextkey
+     The @{b}key@{ub} data.
+
+   The return values are both datum. If @{b}key@{ub}.dptr or nextkey.dptr is
+NULL, there is no first @{b}key@{ub} or next @{b}key@{ub}. Again notice that dptr points
+to data allocated by malloc and @{b}gdbm@{ub} will not free it for you.
+
+   These functions were intended to visit the database in read-only
+algorithms, for instance, to validate the database or similar
+operations.
+
+   File @{b}visiting@{ub} is based on a @{b}hash table@{ub}. @{b}gdbm_delete@{ub} re-arranges the
+hash table to make sure that any collisions in the table do not leave
+some item @{b}un-findable@{ub}. The original key order is NOT guaranteed to
+remain unchanged in ALL instances. It is possible that some key will
+not be visited if a loop like the following is executed:
+
+        key = gdbm_firstkey ( dbf );
+        while ( key.dptr ) {
+           nextkey = gdbm_nextkey ( dbf, key );
+           if ( some condition ) {
+              gdbm_delete ( dbf, key );
+              free ( key.dptr );
+           }
+           key = nextkey;
+        }
+
+
+@EndNode
+
+@Node "Reorganization" "gdbm.guide/Reorganization"
+@Next "Sync"
+@Prev "Sequential"
+@Toc "Main"
+
+Database reorganization.
+************************
+
+   The following function should be used very seldom.
+
+     ret = gdbm_reorganize(dbf);
+
+   The parameter is:
+
+GDBM_FILE dbf
+     The pointer returned by @{b}gdbm_open@{ub}.
+
+   If you have had a lot of deletions and would like to shrink the space
+used by the @{b}gdbm@{ub} file, this function will reorganize the database.
+@{b}gdbm@{ub} will not shorten the length of a @{b}gdbm@{ub} file (deleted file
+space will be reused) except by using this reorganization.
+
+   This reorganization requires creating a new file and inserting all
+the elements in the old file @{b}dbf@{ub} into the new file. The new file is
+then renamed to the same name as the old file and @{b}dbf@{ub} is updated to
+contain all the correct information about the new file. If an error is
+detected, the return value is negative. The value zero is returned
+after a successful reorganization.
+
+
+@EndNode
+
+@Node "Sync" "gdbm.guide/Sync"
+@Next "Errors"
+@Prev "Reorganization"
+@Toc "Main"
+
+Database Synchronization
+************************
+
+   If your database was opened with the GDBM_FAST flag, @{b}gdbm@{ub} does not
+wait for writes to the disk to complete before continuing.  This allows
+faster writing of databases at the risk of having a corrupted database
+if the application terminates in an abnormal fashion.  The following
+function allows the programmer to make sure the disk version of the
+database has been completely updated with all changes to the current
+time.
+
+     gdbm_sync(dbf);
+
+   The parameter is:
+
+GDBM_FILE dbf
+     The pointer returned by @{b}gdbm_open@{ub}.
+
+   This would usually be called after a complete set of changes have
+been made to the database and before some long waiting time.
+@{b}gdbm_close@{ub} automatically calls the equivalent of @{b}gdbm_sync@{ub} so
+no call is needed if the database is to be closed immediately after the
+set of changes have been made.
+
+
+@EndNode
+
+@Node "Errors" "gdbm.guide/Errors"
+@Next "Options"
+@Prev "Sync"
+@Toc "Main"
+
+Error strings.
+**************
+
+   To convert a @{b}gdbm@{ub} error code into English text, use this routine:
+
+     ret = gdbm_strerror(errno)
+
+   The parameter is:
+
+gdbm_error errno
+     The @{b}gdbm@{ub} error code, usually @{b}gdbm_errno@{ub}.
+
+   The appropriate phrase for reading by humans is returned.
+
+
+@EndNode
+
+@Node "Options" "gdbm.guide/Options"
+@Next "Variables"
+@Prev "Errors"
+@Toc "Main"
+
+Seting options.
+***************
+
+   @{b}Gdbm@{ub} now supports the ability to set certain options on an already
+open database.
+
+     ret = gdbm_setopt(dbf, option, value, size)
+
+   The parameters are:
+
+GDBM_FILE dbf
+     The pointer returned by @{b}gdbm_open@{ub}.
+
+int option
+     The option to be set.
+
+int *value
+     A pointer to the value to which @{b}option@{ub} will be set.
+
+int size
+     The length of the data pointed to by @{b}value@{ub}.
+
+   The valid options are currently:
+
+   GDBM_CACHESIZE - Set the size of the internal bucket cache.  This
+option may only be set once on each GDBM_FILE descriptor, and   is set
+automatically to 100 upon the first access to the database.
+
+   GDBM_FASTMODE - Set fast mode to either on or off.  This allows
+fast mode to be toggled on an already open and active database.
+value (see below) should be set to either TRUE or FALSE.
+
+   The return value will be -1 upon failure, or 0 upon success.  The
+global variable @{b}gdbm_errno@{ub} will be set upon failure.
+
+   For instance, to set a database to use a cache of 10, after opening
+it with @{b}gdbm_open@{ub}, but prior to accessing it in any way, the following
+code could be used:
+
+     int value = 10;
+     ret = gdbm_setopt(dbf, GDBM_CACHESIZE, &value, sizeof(int));
+
+
+@EndNode
+
+@Node "Variables" "gdbm.guide/Variables"
+@Next "Compatibility"
+@Prev "Options"
+@Toc "Main"
+
+Two useful variables.
+*********************
+
+   The following two variables are variables that may need to be used:
+
+gdbm_error gdbm_errno
+     The variable that contains more information about @{b}gdbm@{ub} errors
+     (@{b}gdbm.h@{ub} has the definitions of the error values).
+
+const char * gdbm_version
+     The string containing the version information.
+
+
+@EndNode
+
+@Node "Compatibility" "gdbm.guide/Compatibility"
+@Next "Conversion"
+@Prev "Variables"
+@Toc "Main"
+
+Compatibility with standard @{b}dbm@{ub} and @{b}ndbm@{ub}.
+*****************************************
+
+   GNU @{b}dbm@{ub} files are not @{b}sparse@{ub}. You can copy them with the UNIX @{b}cp@{ub}
+command and they will not expand in the copying process.
+
+   There is a compatibility mode for use with programs that already use
+UNIX @{b}dbm@{ub} and UNIX @{b}ndbm@{ub}.
+
+   GNU @{b}dbm@{ub} has compatibility functions for @{b}dbm@{ub}. For @{b}dbm@{ub} compatibility
+functions, you need the include file @{b}dbm.h@{ub}.
+
+   In this compatibility mode, no @{b}gdbm@{ub} file pointer is required by the
+user, and Only one file may be opened at a time. All users in
+compatibility mode are assumed to be writers. If the @{b}gdbm@{ub} file is a
+read only, it will fail as a writer, but will also try to open it as a
+reader.  All returned pointers in datum structures point to data that
+@{b}gdbm@{ub} WILL free. They should be treated as static pointers (as
+standard UNIX @{b}dbm@{ub} does). The compatibility function names are the same
+as the UNIX @{b}dbm@{ub} function names. Their definitions follow:
+
+     int dbminit(name);
+     int store(key, content);
+     datum fetch(key);
+     int delete(key);
+     datum firstkey();
+     datum nextkey(key);
+     int dbmclose();
+
+   Standard UNIX @{b}dbm@{ub} and GNU @{b}dbm@{ub} do not have the same data format in
+the file. You cannot access a standard UNIX @{b}dbm@{ub} file with GNU @{b}dbm@{ub}!  If
+you want to use an old database with GNU @{b}dbm@{ub}, you must use the
+@{b}conv2gdbm@{ub} program.
+
+   Also, GNU @{b}dbm@{ub} has compatibility functions for @{b}ndbm@{ub}. For @{b}ndbm@{ub}
+compatibility functions, you need the include file @{b}ndbm.h@{ub}.
+
+   Again, just like @{b}ndbm@{ub}, any returned datum can be assumed to be static
+storage. You do not have to free that memory, the @{b}ndbm@{ub} compatibility
+functions will do it for you.
+
+   The functions are:
+
+     DBM *dbm_open(name, flags, mode);
+     void dbm_close(file);
+     datum dbm_fetch(file, key);
+     int dbm_store(file, key, @{b}content@{ub}, flags);
+     int dbm_delete(file, key);
+     datum dbm_firstkey(file);
+     datum dbm_nextkey(file);
+     int dbm_error(file);
+     int dbm_clearerr(file);
+     int dbm_dirfno(file);
+     int dbm_pagfno(file);
+     int dbm_rdonly(file);
+
+   If you want to compile an old C program that used UNIX @{b}dbm@{ub} or @{b}ndbm@{ub}
+and want to use @{b}gdbm@{ub} files, execute the following @{b}cc@{ub} command:
+
+     cc ... -L /gnu/lib -lgdbm
+
+
+@EndNode
+
+@Node "Conversion" "gdbm.guide/Conversion"
+@Next "Bugs"
+@Prev "Compatibility"
+@Toc "Main"
+
+Converting @{b}dbm@{ub} files to @{b}gdbm@{ub} format.
+************************************
+
+   The program @{b}conv2gdbm@{ub} has been provided to help you convert from @{b}dbm@{ub}
+databases to @{b}gdbm@{ub}. The usage is:
+
+     conv2gdbm [-q] [-b block_size] dbm_file [gdbm_file]
+
+   The options are:
+
+-q
+     Causes @{b}conv2gdbm@{ub} to work quietly.
+
+block_size
+     Is the same as in @{b}gdbm_open@{ub}.
+
+dbm_file
+     Is the name of the @{b}dbm@{ub} file without the @{b}.pag@{ub} or @{b}.dir@{ub} extensions.
+
+gdbm_file
+     Is the complete file name. If not included, the @{b}gdbm@{ub} file name is
+     the same as the @{b}dbm@{ub} file name without any extensions. That is
+     @{b}conv2gdbm@{ub} @{b}dbmfile@{ub} converts the files @{b}dbmfile.pag@{ub} and
+     @{b}dbmfile.dir@{ub} into a @{b}gdbm@{ub} file called @{b}dbmfile@{ub}.
+
+
+@EndNode
+
+@Node "Bugs" "gdbm.guide/Bugs"
+@Prev "Conversion"
+@Toc "Main"
+
+Problems and bugs.
+******************
+
+   If you have problems with GNU @{b}dbm@{ub} or think you've found a bug,
+please report it. Before reporting a bug, make sure you've actually
+found a real bug. Carefully reread the documentation and see if it
+really says you can do what you're trying to do. If it's not clear
+whether you should be able to do something or not, report that too; it's
+a bug in the documentation!
+
+   Before reporting a bug or trying to fix it yourself, try to isolate
+it to the smallest possible input file that reproduces the problem. Then
+send us the input file and the exact results @{b}gdbm@{ub} gave you. Also say
+what you expected to occur; this will help us decide whether the
+problem was really in the documentation.
+
+   Once you've got a precise problem, send e-mail to:
+
+     Internet: @{b}bug-gnu-utils@prep.ai.mit.edu@{ub}.
+     UUCP: @{b}mit-eddie!prep.ai.mit.edu!bug-gnu-utils@{ub}.
+
+   Please include the version number of GNU @{b}dbm@{ub} you are using. You can
+get this information by printing the variable @{b}gdbm_version@{ub} (see
+Variables).
+
+   Non-bug suggestions are always welcome as well. If you have questions
+about things that are unclear in the documentation or are just obscure
+features, please report them too.
+
+   You may contact the author by:
+         e-mail:  phil@cs.wwu.edu
+        us-mail:  Philip A. Nelson
+                  Computer Science Department
+                  Western Washington University
+                  Bellingham, WA 98226
+
+   You may contact the current maintainer by:
+         e-mail:  downsj@CSOS.ORST.EDU
+
+@EndNode
+

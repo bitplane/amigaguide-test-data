@@ -1,0 +1,284 @@
+@database IndexAG.guide
+@index index
+
+@Node Main "Indexer 2.0"
+
+           IndexAG By Sébastien Boisvert
+                  Copyright ©1998
+                  December 3 1998
+                  
+                  
+    @{"Introduction" link intro}
+    
+    @{"Installation & requirements" link installation}
+    
+    @{"Usage" link usage}
+    
+    @{"Notes and Tips" link notes}
+    
+    @{"Author" link author}
+
+@endnode
+
+@node Intro Introduction
+
+Introduction
+
+IndexAG is a program I wrote after I got the idea from an ARexx book I was learning from.
+It will read an AmigaGuide document and make an index of its words and/or links in a context
+form.
+
+It allows to setup certain parameters to control the way the index is made such as excluding
+certain words, setting a maximum to the number of times a word appears in a node, recognizing
+word groups and to make an index with words or links only.
+
+To see an example, check out the index of this document (after a bit of editing, of course).
+
+This program is freeware, and can be distributed provided the archive is not altered.
+
+IndexAG is ©1998 Sébastien Boisvert.
+
+Part of the code (List sorting routine) is ©1996 Heinz Wrobel. My thanks to him for posting
+the algorithm on the newsgroup - it saved me some headaches!.
+
+
+Version History
+
+1.0   Initial release
+
+1.1   Bug fix - couldn't find default word file
+
+2.0   Written in C (speed!)
+      There's no longer a need for a seperate 'masterfile' and sorted 'wordfile'
+
+@endnode
+
+@node installation "Installation and requirements"
+
+Installation & Requirements
+
+Installation is straightforward: simply copy the file 'IndexAG' and 'IndexAG.words'
+together in a directory.
+
+@endnode
+
+@node Usage "Usage for this program" 
+
+Usage
+
+The program take the following AmigaDOS style arguments (enter 'IndexAG ?' to see arguments):
+
+FILENAME   this is a required argument; it is the filename for the AmigaGuide file to scan
+
+WORDFILE   optional, defaults to the included 'IndexAG.words' file. This is used to specify
+           an alternate list of words to exclude
+           
+THRESHOLD  repeat threshold - the maximum number of times a word can be repeated in any one
+           node before it is considered too repetitive and excluded for that node; defaults 
+           to 10
+
+NOWORDS    this switch specifies that only links should be indexed
+
+NOLINKS    this switch specifies that only words should be indexed. Mutually exclusive with
+           NOWORDS and will overide NOWORDS.
+
+COMMENT    this switch works in conjunction with THRESHOLD and will 'comment' (put a '*' in
+           front of) a link in the index for which the word exceeds the threshold. This allows
+           you to see that the word is repetitive and let you decide if you want to keep it.
+
+GROUPSTART this specifies the character sequence that determines the start of a word group
+           (see below); defaults to '<'
+
+GROUPEND   this specifies the character sequence that determines the end of a word group
+           (see below); defaults to '>'
+
+
+'Word groups' are words that are enclosed within a start and end sequence which will be indexed
+together. For example, if you wanted to have everyting that is set in @{b}Bold@{ub} in the 
+document to be grouped together, you would set the variables this way:
+
+GROUPSTART \@{b}
+GROUPEND \@{ub}   (the detection will be case insensitive)
+
+and this will group "\@{b}This is a word group\@{ub}" as the link 'This is a word group'. Please
+note that the start and end sequences should appear on the same line in the document file, and
+should not contain any spaces.
+        
+If you don't want to change the appearance of the text, you can also use a unique sequence
+and strip it out of your document with your word editor after you've done the index. You could
+also use a backslash (\\), which does not alter the appearance when displayed.
+
+The index node is output as the file 'index.node' in the current directory.
+
+           
+Example usages:
+
+  IndexAG amigaguide.guide THRESHOLD 20 NOLINKS
+  
+     will scan 'amigaguide.guide' and set the repeat threshold to 20 and not index links
+     
+  IndexAG amigaguide.guide WORDFILE alternate COMMENT GROUPSTART <= GROUPEND =>
+  
+     will scan 'amigaguide.guide', use 'alternate' as the word list, comment word links 
+     which exceeds the default threshold and set GROUPSTART/END to '<=' and '=>' respectively.
+
+@endnode
+
+@node Notes "Notes and Tips"
+
+Notes
+
+About the IndexAG.words file
+
+This file  contains the words that are to be excluded from the index. The file contains the words listed 
+in 2 groups: Computer related words at the begining, and more common words at the end. This is the file 
+you should use if you want to add new words to be excluded as they are listed in a logical manner.
+
+The format for the file is one word per line, and lines beginning with a semi-colon (;) are considered 
+comments and ignored.
+
+
+General notes about the program:
+
+The program is smart enough to detect the full names of nodes/liks and their titles with or without
+quotes, and able to recognize any linenumber references for node links.
+(example '\@{"Foo" link "bar" 10}' will create a link called "Foo" to node "bar" at line 10 in that node.)
+
+If a node cannot be found for a link, a warning with the link name will be displayed while creating
+the index and a "?" will be place in front of the link. Double check your links to make sure they're
+correct. (This may happen if you have an external link).
+
+Command sequences (such as \@ENDNODE,\@TITLE) are skipped during scanning
+
+Functions sequences (such as \@{b},\@{ub}) are striped out, but the words within them are still scanned. 
+The program checks for word group sequences before striping out functions.
+
+Words appearing in word groups and in the word list to exclude will not be excluded.
+
+Special characters (non alphanumeric) are striped out. Periods, hyphens, apostrophes slashes and underscores 
+(.-'_/\) are striped out only if at beginning/end of a word.
+
+The program DOES NOT attempt to remove plural forms or contractions in words.
+
+Words are indexed to the node they belong to, along with the line number of the first occurence in the node.
+Since the index is a context index, you'll see a word link for each node of the document in which it appears,
+so don't be suprised if you see the same word twice or more; that means it appears in more than one node.
+
+Internal links are indexed to the node they point to.
+
+External links (such as \@{"foo" SYSTEM "bar"}) are indexed like words: back to the node they belong to.
+
+The program is case insensitive for group sequences and links; eg:"\@{ub}" will be considered the same 
+as "\@{UB}".
+
+The program cannot accept line that are greater than 512 characters.
+
+Tips
+
+Think about how you want to write the document, and what you'd like to see in the index. If you want
+word groups, determine what character sequence you want to use and use it throughout. Remember to 
+match a start sequence with an end sequence on the same line in the file, and that a space should appear
+before a start sequence and after an end sequence.
+
+Follow the AmigaGuide guidelines. Write properly: a space before any '@' is VERY important (except commands!);
+put a space after punctuation marks (periods, colons, etc...)
+
+
+You WILL need to edit the final output. No matter how well you configure the program, there will 
+always be things that 'just don't belong there' (this will also depend on your writing style). You may need 
+to run the program a few times, maybe adding a few words in the list along the way. There will probably be 
+comment lines you'll need to consider, if any. This program will help make the context index, but not a perfect
+one!
+
+
+Possible Future enhancements:
+
+
+Make it smarter(?) My first idea was to include the possibility to recognise
+words that are often grouped together, without the need for start/end sequences;
+however, this might be too complex and slow it down. I'll have to consider it.
+
+Maybe create a GUI for it, if there is a demand (or I feel like doing it)
+
+Any suggestions you have I'll consider...
+
+@endnode
+
+@node Author Author
+
+My name is Sébastien Boisvert. If you have any comments, suggestions or bugs to report,
+I can be reached at boisvert@hotpop.com
+
+If you are sending a bug report, please be specific. If possible, send me the output (if any)
+and the document used to create the index.
+
+@endnode
+
+@NODE Index
+@REMARK  This index was created with IndexAG 2.0 by Sébastien Boisvert
+
+ A
+
+ @{" AmigaGuide guidelines " link "Notes" 67}                   Notes and Tips
+ @{" arguments " link "Usage" 4}                               Usage
+ @{" Author " link "author"}                                  Author
+
+ C
+
+ @{" Command sequences " link "Notes" 37}                       Notes and Tips
+ @{" COMMENT " link "Usage" 20}                                 Usage
+ @{" context form " link "Intro" 5}                            Introduction
+
+ E
+
+ @{" External links " link "Notes" 55}                          Notes and Tips
+
+ F
+
+ @{" FILENAME " link "Usage" 6}                                Usage
+ @{" Functions sequences " link "Notes" 36}                     Notes and Tips
+
+ G
+
+ @{" GROUPEND " link "Usage" 25}                                Usage
+ @{" GROUPSTART " link "Usage" 24}                              Usage
+
+ I
+
+ @{" Installation & requirements " link "installation"}             Installation and requirements
+ @{" Internal links " link "Notes" 53}                          Notes and Tips
+ @{" Introduction " link "intro"}                            Introduction
+ @{" invalid node " link "Notes" 34}                            Notes and Tips
+
+ L
+
+ @{" linenumber " link "Notes" 31}                              Notes and Tips
+
+ N
+
+ @{" NOLINKS " link "Usage" 17}                                 Usage
+ @{" Notes and Tips " link "notes"}                          Notes and Tips
+ @{" NOWORDS " link "Usage" 15}                                 Usage
+
+ R
+
+ @{" repeat threshold " link "Usage" 11}                        Usage
+
+ S
+
+ @{" start and end sequence " link "Usage" 27}                  Usage
+
+ T
+
+ @{" THRESHOLD " link "Usage" 11}                               Usage
+
+ U
+
+ @{" Usage " link "usage"}                                   Usage
+
+ W
+
+ @{" Word groups " link "Usage" 27}                             Usage
+ @{" WORDFILE " link "Usage" 8}                                Usage
+
+@ENDNODE

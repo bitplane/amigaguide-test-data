@@ -1,0 +1,371 @@
+@database pv.guide
+@author nsoggia@telnetwork.it
+@smartwrap
+@$VER: pv.guide 37.10 (20.06.96) by Nicola Soggia
+
+@rem ********************************************************************
+@rem *                                                                  *
+@rem * the "title" macro under kickstart 1.3 and 2.0 is drawn as a link *
+@rem * instead of a centered bold text, this could be confusing.        *
+@rem * real links have at least a space before and after the string.    *
+@rem *                                                                  *
+@rem ********************************************************************
+
+@macro title "@{jcenter}@{b}@{par}$1@{par}@{ub}@{jleft}"
+@macro msg "@{par}@{u}$1@{uu}@{par}"
+@macro rev "@{par}@{b}$1@{ub}@{par}"
+
+@node "main" "PV 37.01 user manual"
+@prev "histo"
+
+@{code}@{jcenter}@{b}
+######         ## ## ##            ##   ## ## ## ##                     
+##   ##        ##    ##            ##   ##    ## ##                     
+##   ##  ####  ## ## #####   ####  ##   ## ## ## ##  ####   ####   #### 
+######  ##  ## ## ## ##     ##  ## ##   ## ## ## ##     ## ##  ## ##  ##
+##      ##  ## ## ## ##     ######  ## ##  ## ## ##  ##### ##  ## ######
+##      ##  ## ## ## ##  ## ##       ###   ## ## ## ##  ##  ##### ##    
+##       ####  ## ##  ####   ####     #    ## ## ##  #####     ##  #### 
+                                                           #####        
+
+- POLITE VILLAGE -
+Version 37.01 (20-Jun-96)
+by Nicola "Nik" Soggia
+@{fg shine}__________________________________________________________________________@{fg text}
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+@{fg shine}
+Note to everybody who put the village.library in the sys:expansion drawer:
+use of PV is recommended but not mandatory.
+@{ub}@{fg text}
+@{jleft}@{body}
+
+@{code}
+  @{" Foreword  " link "forew"} what the program is for, where it will go
+  @{" Usage     " link "usage"} about shell arguments
+  @{" Messages  " link "messa"} diagnostic and error messages
+  @{" New code  " link "patch"} details about the patches
+  @{" History   " link "histo"} list of releases
+@{body}
+@{title "DISTRIBUTION"}
+
+This package is released under the concept of freeware, the package must
+be distributed as one whole. The distributor may charge a fee up to the
+cost of the medium for the entire package.
+
+@{title "NO WARRANTY"}
+
+This package is provided as is, without warranty of any kind, either
+expressed or implied.
+Should the package prove defective, you assume the entire cost of all
+necessary servicing, repair or correction even if I have been advised of
+the possibility of such damages.
+I'm not responsible of the results of the use of the package.
+
+@{title "SUPPORT"}
+
+If you have any suggestions, bug reports, or wish to let me know something
+about the package feel free to contact me at nsoggia@telnetwork.it
+
+@endnode
+@node "forew" "Foreword on PV 37.01"
+@{title "VERSION 37.01 FOR VILLAGE V2.58 or V3.9"}
+
+PV prevents memory header corruption crashes while APM owns the board by
+fixing a bug of village library: that library doesn't check if the board
+is in use and always initializes itself and takes over the board even if
+the board is already in use by someone else.
+In other words PV is a tool to add or remove patches from the village
+library file.
+After installing the PV patch, any program that needs to drive the board
+directly can just lower the CONFIGME bit in the cd_Flags of product
+2167/11 to be sure that village library will never initialize itself until
+the bit is low.
+
+@{title "WHY ALL THIS HAPPENS?"}
+
+The village library once stored in sys:expansion can be loaded only by the
+BindDrivers command which checks if the board configme bit is high before
+loading any library. APM since its first release always cleared the
+configme bit while using the memory not allowing BindDrivers to load the
+library.@{par}
+The new Picasso II+ installation script puts the village.library straight
+in the libs: drawer, allowing the library to be loaded by everybody, and
+since the library doesn't chech the configme bit on its own it always
+takes control of the board even if it is not allowed to do so.
+
+@{title "WHY I DID IT"}
+
+I could fix the bug letting APM install a kludge to prevent exec from
+opening the village library while APM was in use, but this is the bad way
+to solve problems: adding kludges to the OS is not my lifestyle, and any
+program that owns the board without using the village library has to add
+the same kludge. Programmers know how hard can be to manage SetFunction()
+without a patch manager installed...@{par}
+The best way, as I said, is to let village library properly arbitrate
+the board once for all: by this patch the library now checks the configme
+bit before attempting to take control over the board.
+
+@{title "KLAUS, HOW CAN I CONTACT YOU?"}
+
+As far as I know, village.library is maintained by Klaus Burkert. Klaus,
+I don't know how to reach you via E-Mail, so here is the hint. To put this
+arbitration in the source code, look in the InitFunction of the library,
+the point where product 11 is checked the first time there should be a "If
+board address is zero, then abort initialization" statement, you may
+change it in "If board address is zero or configme bit is high, then abort
+initialization". Maybe you can add it also in products 12 and 13 ;-)
+
+@endnode
+@node "usage" "Using PV 37.01"
+@{title "REQUIREMENTS"}
+
+PV is a pure program that runs on any Amiga shell under kick 2.0 and later
+releases with 4 Kb or more of stack memory.
+
+@{title "WHEN AND WHERE"}
+
+PV is a tool to add or remove patches from the village library file, it
+does not add anything harmful in the case the patch is not mandatory.
+Once installed the patch, you can always revove it.
+It is recommended to always patch village library, but it is mandatory in
+all setups that do not load the village library by the BindDrivers
+command.
+
+@{title "ARGUMENTS"}
+
+FROM/A = this is the mandatory source file name
+@{par}
+TO = this is an optional destination file name, if omitted PV will
+overwrite, if necessary, the source file.
+@{par}
+INSTALL/S = this switch tells PV to install the polite patch in the file
+specified by from/a (village library from now on will check the configme
+bit).
+@{par}
+REMOVE/S = this switch tells PV to remove the polite patch in the file
+specified by from/a (village library from now on will ignore the configme
+bit).
+
+@{title "ADVANCED SWITCHES USAGE"}
+
+If you don't specify any switch, PV will just inform you if the file
+specified by from/a is a patched or not village library.
+@{par}
+If you specify both switched, PV will patch original files and will
+remove the patch from patched files.
+@{par}
+If you specify the INSTALL/S switch, PV will patch the original files and
+will not resave the patched files.
+@{par}
+If you specify the REMOVE/S switch, PV will remove patches from the
+patched files and will not resave the original files.
+
+@{title "RETURN CODES"}
+
+OK (0) tells that everything went as expected, WARN (5) tells that the
+file was not saved as source and destination contain the same data, ERROR
+(10) tells that something was wrong in the command line syntax, FAIL (20)
+tells that something went wrong reading or writing the file, or that the
+file is not a supported village library version or not a village library
+at all.
+
+@endnode
+@node "messa" "Messages of PV 37.01"
+
+@{title "STATUS MESSAGES"}
+
+These messages appear when the from/a file is found and loaded.
+
+@{msg "LOADING xx AS LIBRARY Vnn.nn"}
+file "xx" has been loaded and recognized as a supported library version.
+
+@{msg "xx IS NOT A VALID VILLAGE.LIBRARY FILE"}
+file "xx" has been loaded but not recognized as a supported library
+version, a list of supported versions will follow this statement (actually
+2.58 and 3.9).
+
+@{title "ACTION MESSAGES"}
+
+These messages appear after the status messages.
+
+@{msg "FILE IS A ORIGINAL LIBRARY"}
+the file is a village library that ignores the configme bit, it will not
+be resaved.
+
+@{msg "FILE IS A PATCHED LIBRARY"}
+the file is a village library that checks the configme bit, it will not
+be resaved.
+
+@{msg "RESTORED ORIGINAL CODE"}
+the file was a village library that checked the configme bit, it will now
+be saved as one that ignores the configme bit.
+
+@{msg "INSERTED NEW CODE"}
+the file was a village library that ignored the configme bit, it will now
+be saved as one that checks the configme bit.
+
+@{title "OTHER MESSAGES"}
+
+Standard localized error messages appear whenever a dos error occurs.
+
+@endnode
+@node "patch" "Details about the patches"
+
+@{title "HOW IT WORKS"}
+
+I added a bit test instruction in a fragment that checks if the memory
+board found its place in the Zorro-II addresing space. I was lucky enough
+to find enough room to insert my new code without expanding the library in
+size.
+
+@{code}
+input:   A4=pointer to execbase
+output:  A0=configdev address
+scratch: D0-D1/A0-A1 (all other registers must be preserved)
+
+  @{"  " link "init258old"} village.library 2.58: old initfunction
+  @{"  " link "init258new"} village.library 2.58: new initfunction
+  @{"  " link  "init39old"} village.library 3.9 : old initfunction
+  @{"  " link  "init39new"} village.library 3.9 : new initfunction
+@{body}
+
+@endnode
+@node "histo" "Releases list from 33.01 to 37.01"
+@next "main"
+@{title "DEVELOPMENT"}
+
+I write and test PV on an A3000/030-25, 2 Mb chip, 8 Mb fast, 2 Mb
+Picasso-II.@{par}
+Before releasing each new version to the public I test the program under
+enforcer and kick 40.70.
+
+@{title "RELEASE HISTORY"}
+
+@{rev "37.01 (20-Jun-96)"}
+PoliteVillage first public release. Thanks to:@{par}
+Paolo Maggi for reporting that village opened when APM was active
+
+@endnode
+@node "init258old" "village.library: initfunction - old 2.58"
+@prev "patch"
+@{code}
+	INCDIR	"include:"
+	INCLUDE	"exec/types.i"
+	INCLUDE	"libraries/configvars.i"
+	INCLUDE	"libraries/expansion_lib.i"
+	IFND	NULL
+NULL	EQU	0
+	ENDC
+
+** fragment of village.library v2.58 (27-apr-94) initfunction
+**********************************************************************
+** hunk offset: $55c - file offset: $57c (48 bytes)
+
+oldcode	move.l	#2167,d0		; manufacturer: village tronic
+	moveq	#11,d1			; product: picasso 2/2+ memory
+	movea.l	#NULL,a0
+	move.l	a6,-(a7)
+	movea.l	a4,a6
+	jsr	_LVOFindConfigDev(a6)
+	movea.l	(a7)+,a6
+	move.l	d0,($e4).l		; reloc32 of hunk0+$e4 at hunk0+$576
+	tst.l	d0
+	beq	oldcode+1396
+	movea.l	d0,a0
+	move.l	cd_BoardAddr(a0),d0
+	tst.l	d0
+	beq	oldcode+1396
+
+	END
+@{body}
+@endnode
+@node "init258new" "village.library: initfunction - new 2.58"
+@{code}
+	INCDIR	"include:"
+	INCLUDE	"exec/types.i"
+	INCLUDE	"libraries/configvars.i"
+	INCLUDE	"libraries/expansion_lib.i"
+
+** fragment of village.library v2.58 (27-apr-94) initfunction
+**********************************************************************
+** hunk offset: $55c - file offset: $57c (48 bytes)
+
+newcode	move.l	#2167,d0		; manufacturer: village tronic
+	moveq	#11,d1			; product: picasso 2/2+ memory
+	suba.l	a0,a0
+	exg.l	a4,a6
+	jsr	_LVOFindConfigDev(a6)
+	exg.l	a4,a6
+	move.l	d0,($e4).l		; reloc32 of hunk0+$e4 at hunk0+$570
+	beq	newcode+1396
+	movea.l	d0,a0			  @{b}
+	btst	#CDB_CONFIGME,cd_Flags(a0)
+	beq	newcode+1396		  @{ub}
+	tst.l	cd_BoardAddr(a0)
+	beq	newcode+1396
+
+	END
+@{body}
+@endnode
+@node "init39old" "village.library: initfunction - old 3.9"
+@{code}
+	INCDIR	"include:"
+	INCLUDE	"exec/types.i"
+	INCLUDE	"libraries/configvars.i"
+	INCLUDE	"libraries/expansion_lib.i"
+	IFND	NULL
+NULL	EQU	0
+	ENDC
+
+** fragment of village.library v3.9 (29-apr-96) initfunction
+**********************************************************************
+** hunk offset: $414 - file offset: $434 (48 bytes)
+
+oldcode	move.l	#2167,d0		; manufacturer: village tronic
+	moveq	#11,d1			; product: picasso 2/2+ memory
+	movea.l	#NULL,a0
+	move.l	a6,-(a7)
+	movea.l	a4,a6
+	jsr	_LVOFindConfigDev(a6)
+	movea.l	(a7)+,a6
+	move.l	d0,($f0).l		; reloc32 of hunk0+$f0 at hunk0+$42e
+	tst.l	d0
+	beq	oldcode+698
+	movea.l	d0,a0
+	move.l	cd_BoardAddr(a0),d0
+	tst.l	d0
+	beq	oldcode+698
+
+	END
+@{body}
+@endnode
+@node "init39new" "village.library: initfunction - new 3.9"
+@next "patch"
+@{code}
+	INCDIR	"include:"
+	INCLUDE	"exec/types.i"
+	INCLUDE	"libraries/configvars.i"
+	INCLUDE	"libraries/expansion_lib.i"
+
+** fragment of village.library v3.9 (29-apr-96) initfunction
+**********************************************************************
+** hunk offset: $414 - file offset: $434 (48 bytes)
+
+newcode	move.l	#2167,d0		; manufacturer: village tronic
+	moveq	#11,d1			; product: picasso 2/2+ memory
+	suba.l	a0,a0
+	exg.l	a4,a6
+	jsr	_LVOFindConfigDev(a6)
+	exg.l	a4,a6
+	move.l	d0,($f0).l		; reloc32 of hunk0+$f0 at hunk0+$428
+	beq	newcode+698
+	movea.l	d0,a0			  @{b}
+	btst	#CDB_CONFIGME,cd_Flags(a0)
+	beq	newcode+698		  @{ub}
+	tst.l	cd_BoardAddr(a0)
+	beq	newcode+698
+
+	END
+@{body}
+@endnode

@@ -1,0 +1,232 @@
+@database "NewWait4Port"
+@$VER: NewWait4Port.guide 1.1 (01.11.05/00:33:29/©2005 Jean Holzammer)
+@Author "Jean Holzammer"
+@(C) ©2005 by Jean Holzammer
+
+@Node MAIN "NewWait4Port Documentation"
+
+   @{"©" Link COPYRIGHT} 1999-2005 by @{"Jean Holzammer" Link CONTACT}
+
+   @{"Einleitung      " Link INTRODUCTION} Wozu das Ganze ?
+
+   @{"Merkmale        " Link FEATURES} Besondere Vorzüge
+
+   @{"Voraussetzungen " Link REQUIREMENTS} Was wird benötigt ?
+
+   @{"Installation    " Link INSTALLATION} Wie krieg ich es zum Laufen ?
+
+   @{"Bedienung       " Link USAGE} Und wie ruf ich es richtig auf ?
+
+   @{"Fehler          " Link BUGS} Möglichst keine
+
+   @{"Geschichte      " Link HISTORY} Ein kurzer Blick in die Vergangenheit
+
+   @{"Rechtliches     " Link COPYRIGHT} Nutzungsbedingungen
+
+   @{"Danksagungen    " Link THANX} Was auf keinen Fall fehlen sollte
+
+   @{"Kontakt         " Link CONTACT} Wie man mich erreichen kann
+
+@EndNode
+
+@Node INTRODUCTION
+@TITLE Einleitung
+@{u}Sinn und Zweck@{uu}
+
+NewWait4Port ist ein Ersatz für den WaitForPort Befehl von AmigaOS.
+Es wartet auf das Erscheinen eines Nachrichten-Ports und beendet sich dann.
+Dies ist nützlich für Batch Skripte.
+
+Ein Beispiel:
+
+run <>NIL: Miami:Miami       ;starte Miami TCP/IP-Stack als Hintergrund Task
+NewWait4Port MIAMI.1         ;warte darauf, daß sein ARexx Port erscheint
+rx "ADDRESS MIAMI.1 ONLINE"  ;sende einen Rexx Befehl an diesen Port
+
+Dieses Skript wartet , bis Miami gestartet ist und sein ARexx Port verfügbar ist.
+Dann weist es Miami an, online zu gehen. Ohne NewWait4Port würde man versuchen,
+eine Nachricht an den Port zu senden, bevor dieser verfügbar ist, da es einige Zeit
+dauert, bis Miami gestartet ist. Natürlich könnte man auch einfach ein  @{i}wait 5@{ui} absetzen.
+Aber man weiß ja nie genau, wie lange Miami zum Starten braucht.
+
+@EndNode
+
+@Node FEATURES
+@TITLE Merkmale
+@{b}Der originale WaitForPort Befehl@{ub} von AmigaOS hat vor allem zwei Nachteile:
+
+· es wartet maximal 10 Sekunden auf das Erscheinen des Ports.
+
+· es benutzt eine Endlosschleife aus FindPort() Aufrufen, was auf langsameren Systemen zu
+  einer massiven Reduzierung der Prozessorgeschwinfigkeit führt.
+
+@{b}NewWait4Port@{ub} wartet auf das Erscheinen des Ports auch ewig, wenn es sein muß.
+Es erlaubt außerdem, eine Wartezeit zwischen den FindPort() Aufrufen ferstzulegen und
+so den Prozessor zu entlasten. Optional kann man auch einen Timeout mit frei wählbarer
+Länge festlegen.
+
+@EndNode
+
+@Node REQUIREMENTS
+@TITLE Voraussetzungen
+
+Das ausführbare Programm für AmigaOS/68K benötigt:
+
+ · AmigaOS/68K >= 2.04 (V36) or AROS/68K
+ · CPU >= 68000
+
+Das ausführbare Programm für MorphOS benötigt:
+
+ · MorphOS/PPC >= 0.4
+ · eine beliebige PPC CPU
+
+@Endnode
+
+@Node INSTALLATION
+@TITLE Installation
+Nichts einfacher als das.
+
+Einfach den NewWait4Port Befehl für die jeweilige Platform nach sys:rexxc/ kopieren.
+Bei Bedarf umbenennen in WaitForPort.
+
+Die Dokumentation irgendwo hin kopieren.
+
+@EndNode
+
+@Node USAGE
+@TITLE Bedienung
+Usage:
+
+PORT/A,DELAYTICKS/N,TIMEOUT/N
+
+PORT/A       ist der Name des Nachrichten-Ports, auf den gewartet werden soll. Dieses
+             Argument muß angegeben werden. Wennd er Name Leerzeichen beinhaltet, muß er
+             in "" eingeschlossen sein.
+             Vorsicht ! AmigaOS Port Namen sind abhängig von Groß-/Kleinschreibung !
+
+DELAYTICKS/N ist der Zeitraum zwischen den einzelnen FindPort() Aufrufen. der Wert
+             muß in 1/50 Sekunden (=1 Tick) angegeben werden.
+             Voreinstellung ist 0 (Verhalten des originalen WaitForPort Befehls).
+             25 ist wahrscheinlich ein guter Wert hier.
+
+TIMEOUT/N    ist die maximale Zeit, die auf das Erscheinen des Nachrichten-Ports gewartet
+             werden soll.
+             Wiederum muß der Wert in Ticks angegeben werden.
+             Voreinstellung ist, ewig zu warten.
+
+Beispiel:
+
+ NewWait4Port MIAMI.1 10 500    ; wartet auf das Erscheinen des MIAMI.1 Ports. Es
+                                  überprüft seine Verfügbarkeit alle 10/50 Sekunden (=200 Milli-Sekunden).
+                                  Wenn der Port innerhalb von 500/50 Sekunden (=10 Sekunden) nicht
+                                  erschienen ist, beendet sich das Programm.
+
+
+Wenn man NewWait4Port with @{b}?@{ub} als Argument startet, zeigt AmigaDOS die Befehlsschablone an und wartet
+auf die Eingabe der Argumente. Wenn man wiederum ein @{b}?@{ub} eingibt, bekommt man eine detailliertere Erläuterung
+der Argumente.
+
+Man kann NewWait4Port abbrechen, indem man ein CTRL_C signal sendet. Das macht man durch das Drücken von
+<Ctrl><c> oder durch folgende Kommandozeile:
+
+ break `status COM=newwait4port` C
+
+Es ist zu beachten, daß es bis zu DELAYTICKS dauern kann, bis das Programm sich beendet, da zwischen den einzelnen
+Delay() Aufrufen keine Aktionen möglich sind.
+
+Wenn man es mit fehlerhaften Argumenten aufruft, wird ein Fehlercode von 10 (ERROR) zurückgegeben.
+Wenn man es abbricht, oder ein Timeout abgelaufen sit, wird ein Fehlercode von 5 (WARN) zurückgegeben.
+
+@EndNode
+
+@Node BUGS
+@TITLE Fehler
+Soweit keine...
+Wenn du welche findest, sag Bescheid !
+@EndNode
+
+@Node HISTORY
+@TITLE Geschichte
+
+1.10 · TIMEOUT Argument hinzugefügt
+     · 68K Version prüft auf minimale OS Version
+     · Ausführbares Programm für MorphOS hinzugefügt
+     · Zahl der Dokumentenformate für die Dokumentation reduziert
+     · Deutsche Anleitung hinzugefügt
+     · Gibt bei Fehlern nun geeignete DOS Fehlercodes zurück.
+
+1.00 · Erste Version, erste Veröffentlichung im Aminet
+
+@EndNode
+
+@Node COPYRIGHT
+@TITLE Rechtliches
+
+ ©1999-2005 Jean Holzammer
+
+ Dieses Programm ist @{b}Freeware@{ub}.
+
+ Du darfst es kostenlos benutzen, sowohl für private als auch kommerzielle
+
+ Zwecke, mit folgenden Ausnahmen:
+
+ · Nutzung durch öffentliche Institutionen von Staaten , die Menschenrechte nicht achten,
+
+   z.B. Staaten, die die Todesstrafe vollziehen
+
+ · Militärische Zwecke
+
+ · Kriminelle Zwecke
+
+ Das Software-Paket darf nur vollständig und unverändert weitergegeben werden.
+
+ Wenn die Verteilung kommerziell erfolgt, darfst du nicht mehr als 1 EUR pro
+
+ Diskette bzw. 5 EUR pro CD/DVD verlangen.
+
+ Andernfalls benötigst du meine explizite Erlaubnis !
+
+ Erlaubnis wird hiermit ausdrücklich erteilt für Aminet CD-ROMs und Aminet Set CD-ROMs.
+
+
+ Du benutzt dieses Programm auf eigene Gefahr ! Es wird keinerlei Haftung übernommen !
+
+@EndNode
+
+@Node THANX "Thanks"
+@TITLE Danksagungen
+
+ Dank geht an:
+
+ · Wouter van Oortmerssen       für E, die leistungsfähige Compiler Sprache
+
+ · Tomasz Wiszkowski            für den CreativE E Compiler
+
+ · Leif Salomonsson             für den ECX E Compiler
+
+ · Dietmar Eilert               für GoldEd Studio AIX, den plattformübergreifend besten
+                                Texteditor.
+
+ · Urban Müller und sein Team   für das Aminet, das einen regelrechten Boom an
+                                frei kopierbarer Software ausgelöst hat
+
+ · allen andern, die die Idee von freier Software und Open Source Technologie
+   unterstützen.
+
+@EndNode
+
+@Node CONTACT
+@TITLE Kontakt
+
+Willst du Fehler melden, Vorschläge machen oder mir einfach zeigen, daß du dieses Produkt magst, dann kannst du mich wie folgt erreichen:
+
+ Name:   Jean Holzammer
+
+ E-Mail: @{"Development@Holzammer.net" rxs "IF ~SHOW('L','openurl.library') THEN CALL ADDLIB('openurl.library',3,-66);url='mailto:Development@Holzammer.net?subject=URLLink';OpenURL(url,SHOW,TOFRONT,NEWWIN,LAUNCH);EXIT" }
+
+ WWW:    @{"www.Holzammer.net" rxs "IF ~SHOW('L','openurl.library') THEN CALL ADDLIB('openurl.library',3,-66);url='http://www.Holzammer.net';OpenURL(url,SHOW,TOFRONT,NEWWIN,LAUNCH);EXIT" }
+
+ Fax:    +49 89 / 2443 13 498
+
+@EndNode
+

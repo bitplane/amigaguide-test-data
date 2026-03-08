@@ -1,0 +1,300 @@
+@DATABASE "Daemon-Exec Documentation"
+
+@NODE MAIN "ViperDaemon Exec-Messageport"
+
+ ===============================================================
+                 ViperDaemon unter Exec programmieren
+ ===============================================================
+
+                      (C)1999 by J.Reinert/Lehrte
+
+                          @{" Rechtliches       " Link Rechtliches}
+                          @{" Voraussetzungen   " Link Voraussetzungen}
+                          @{" Haftung           " Link Haftung}
+                          @{" Allgemeines       " Link Allgemeines}
+                          @{" Definitionen      " Link Defines}
+                          @{" Befehls-Übersicht " Link Referenz}
+                          @{" Programmierer     " Link Programmierer}
+
+
+@ENDNODE
+
+@NODE Rechtliches "Rechtliches"
+
+ Diese Anleitung erhebt keinen Anspruch auf Vollständigkeit  und/
+ oder Richtigkeit.
+ 
+@ENDNODE
+
+@NODE Voraussetzungen "Voraussetzungen"
+
+ Sie  sollten mit der Systemprogrammierung auf dem Amiga vertraut
+ sein. Da  ich  bislang "nur" unter BlitzBASIC programmiere, kann
+ ich leider keine Include-Dateien  für "C" oder  andere  Sprachen
+ liefern. Für "Blitzer" gibt es eine kleine Demo als Grundgerüst.
+
+@ENDNODE
+
+@NODE Haftung "Haftung"
+
+ Der Autor haftet für nichts. Weder  für  Datenverlust  noch  für
+ Schäden, die durch experimentelle Anwendung der hier beschrieben
+ Befehle entstehen.
+ 
+@ENDNODE
+
+@NODE Allgemeines "Allgemeine Hinweise"
+
+ ViperDaemon  kann  im Prinzip parallel zu ViperTools betrieben
+ werden. Man muss nur beachten, dass nur EIN Programm zur  selben
+ Zeit auf eine serielle Schnittstelle zugreifen kann.
+
+ ViperTools greift  nur auf die Schnittstelle zu, wenn im Haupt-
+ menü  ein  Knopf angeklickt  wurde.  ViperDaemon  benötigt  die
+ Schnittstelle, sobald  es  von  Ihrem Programm "geweckt" wird.
+ 
+ Jeder  Befehl  liefert  einen  Wert in "dd_Return"   zurück. Ist
+ dieser Wert ungleich Null, so ist ein  Fehler  aufgetreten. 
+
+ Wenn ViperDaemon  nicht  aktiv  ist oder die DataBox  nicht  zu
+ erreichen ist (Schnittstelle belegt oder nicht ausgewählt), wird
+ die "dd_Return" auf 1 gesetzt.
+@ENDNODE
+
+@NODE Defines "Definitionen"
+
+ Name des Exec-MessagePorts
+ --------------------------
+ ViperDaemon
+
+
+ Definierte Befehle
+ ------------------
+ DDCMD_EXITDAEMON   =0
+ DDCMD_GETCOUNTER   =1
+
+ DDCMD_RESETCOUNTER =3
+ DDCMD_INFO         =4
+ DDCMD_REQUEST      =5
+ DDCMD_ERROR        =6
+ DDCMD_READCLOCK    =7
+
+
+ Definierte Optionen
+ -------------------
+ DDOPT_QUIET        =1
+
+
+ Struktur der ViperDaemon-Message
+ ---------------------------------
+ NEWTYPE.DD_Message
+   dd_StdMsg.Message
+   dd_Command.l
+   dd_Arg0.l
+   dd_Arg1.l
+   dd_Options.l
+   dd_Result.b[128]
+   dd_Return.l
+ End NEWTYPE
+
+
+ Elemente der DD_Message
+ -----------------------
+   dd_StdMsg.Message        Standard-ExecMessage
+   dd_Command.l             Befehl an ViperDaemon (ULONG)
+   dd_Arg0.l                Erstes Argument an ViperDaemon (LONG)
+   dd_Arg1.l                Zweites Argument an ViperDaemon (LONG)
+   dd_Options.l             Optionen für Befehl (ULONG)
+   dd_Result.b[128]         Ergebnis als ASCII (C-Text)
+   dd_Return.l              Ergebnis-Code  (ULONG)
+
+ Bevor eine Message an ViperDaemon geschickt werden darf, müssen
+ Befehl  und  eventuelle  Parameter  in  die Struktur eingetragen
+ werden.
+
+@ENDNODE
+
+@NODE Referenz "Befehle im Überblick"
+
+ ViperDaemon-Befehle im Überblick
+
+   @{" DDCMD_EXITDAEMON   " Link exec_exit} ViperDaemon beenden
+   @{" DDCMD_GETCOUNTER   " Link exec_get} Gebührenzähler auslesen
+   @{" DDCMD_RESETCOUNTER " Link exec_reset} Gebührenzähler löschen
+   @{" DDCMD_INFO         " Link exec_info} Info ausgeben
+   @{" DDCMD_REQUEST      " Link exec_request} Rückfrage beim Anwender
+   @{" DDCMD_ERROR        " Link exec_error} Fehler ausgeben
+   @{" DDCMD_READCLOCK    " Link exec_readclock} Datum un Uhrzeit ermitteln
+
+@ENDNODE
+
+@NODE exec_exit "DDCMD_EXITDAEMON"
+
+    
+ Befehl    : DDCMD_EXITDAEMON
+
+ Funktion  : ViperDaemon beenden
+
+ Parameter : dd_Command   =DDCMD_EXITDAEMON
+    
+ Ergebnis  : Nichts
+
+@ENDNODE
+
+@NODE exec_get "DDCMD_GETCOUNTER"
+
+    
+ Befehl    : DDCMD_GETCOUNTER
+    
+ Funktion  : Zähler der DataBox auslesen
+
+ Parameter : dd_Command   =DDCMD_GETCOUNTER
+ 
+             dd_Options   Wird die Option "DDOPT_QUIET" übergeben, so
+                          wird die DataBox OHNE offenem Statusfenster
+                          gesucht
+ 
+ Ergebnis  : Bei Fehler: dd_Return=1
+
+             Bei Erfolg werden Datum und Uhrzeit  bei  Aufruf
+             sowie die fünf  Zählerstände in einem 66 Zeichen
+             langen String in  @{fg shine}dd_Result@{fg text}  zurückgegeben.  Die
+             einzelnen Werte sind durch mindestens ein  Leer-
+             zeichen voneinander getrennt und haben feste
+             Länge:
+
+
+             Bedeutung     Position  Anzahl Zeichen
+             -------------------------------------------
+             Datum            0           10
+             Uhrzeit         11            5
+             Anlagenzähler   17            9
+             Port4-Zähler    27            9
+
+ Das Ergebnis könnte z.B. so aussehen:
+
+ 11.04.1999 14:35      1.20      1.08 
+
+@ENDNODE
+
+@NODE exec_reset "DDCMD_RESETCOUNTER"
+
+    
+ Befehl    : DDCMD_RESETCOUNTER
+    
+ Funktion  : Zähler der DataBox auf Null setzen
+
+ Parameter : dd_Command   =DDCMD_RESETCOUNTER
+             
+             dd_Arg0      Nummer des Zählers wie folgt:
+                            0=Anlagenzähler
+                            4=Zähler von Port 4
+                            5=Alle Zähler
+
+             dd_Options   Wird die Option "DDOPT_QUIET" übergeben, so
+                          wird die DataBox OHNE offenem Statusfenster
+                          gesucht
+
+ Ergebnis  : Bei Fehler: dd_Return=1
+
+             Bei Erfolg werden  die  aktuellen Zählerstände zurückge-
+             geben (in der Regel Null). Damit soll der  Programmierer 
+             feststellen können,ob der bzw. die Zähler gelöscht wurde 
+             bzw. wurden.
+
+             Wenn nur ein Zähler gelöscht wurde,wird nur der Wert des 
+             gelöschten Zählers zurückgegeben.
+
+             Wenn alle Zähler gelöscht wurden (dd_Arg0=5),dann werden 
+             alle Zählerstände wie bei @{" DDCMD_GETCOUNTER " Link exec_get} zurückgegeben.
+
+@ENDNODE
+
+@NODE exec_info "DDCMD_INFO"
+
+    
+ Befehl    : DDCMD_INFO
+    
+ Funktion  : Erzeugt eine Infobox mit "Weiter"-Button
+
+ Parameter : dd_Command   =DDCMD_INFO
+             
+             dd_Arg0      Zeiger auf String, der im Body des Requesters
+                          dargestellt  werden soll. Lange  Texte können
+                          mit dem Trennzeichen "|" umgebrochen werden
+
+ Ergebnis  : dd_Return=0
+             dd_Result="OKAY"
+
+@ENDNODE
+
+@NODE exec_request "DDCMD_REQUEST"
+
+
+ Befehl    : DDCMD_REQUEST
+    
+ Funktion  : Erzeugt eine Rückfragebox mit "Ja"- und "Nein"-Buttons
+
+ Parameter : dd_Command   =DDCMD_REQUEST
+             
+             dd_Arg0      Zeiger auf String, der im Body des Requesters
+                          dargestellt  werden soll. Lange  Texte können
+                          mit dem Trennzeichen "|" umgebrochen werden
+
+ Ergebnis  : dd_Return=0 
+ 
+             dd_Result="0"   Antwort war "Nein"
+             dd_Result="1"   Antwort war "Ja"
+
+ Hinweis   : Es ist zu beachten, dass das Ergebnis als C-Text vorliegt!
+
+@ENDNODE
+
+@NODE exec_error "DDCMD_ERROR"
+
+    
+ Befehl    : DDCMD_ERROR
+    
+ Funktion  : Erzeugt eine Fehlerbox mit "Weiter"-Button. Im Prinzip
+             ist dieser Befehl dem Befehl "DDCMD_INFO" gleichzusetzen. 
+             Der Unterschied ist nur ein anderer Text in der Fenster-
+             Titelleiste
+
+ Parameter : dd_Command   =DDCMD_ERROR
+             
+             dd_Arg0      Zeiger auf String, der im Body des Requesters
+                          dargestellt  werden soll. Lange  Texte können
+                          mit dem Trennzeichen "|" umgebrochen werden
+
+ Ergebnis  : dd_Return=0
+             dd_Result="OKAY"
+
+@ENDNODE
+
+@NODE exec_readclock "DDCMD_READCLOCK"
+
+    
+ Befehl    : DDCMD_READCLOCK
+    
+ Funktion  : Liest Datum und Uhrzeit aus
+
+ Parameter : keine
+
+ Ergebnis  : Bei Erfolg werden Datum und Uhrzeit im Feld @{fg shine}dd_Result@{fg text}
+             zurückgegeben. Das Format ist "TT.MM.JJJJ HH.MM"
+
+@ENDNODE
+
+@NODE Programmierer "Programmierer"
+
+ "ViperDaemon" habe ich unter BlitzBASIC entwickelt. Folgende
+ Möglichkeiten haben Sie zur Kontaktaufnahme:
+
+ Tel.    :  05175-3972 (bitte nur deutschsprachig)
+ E-Mail  :  ac-techno@T-Online.de
+            AC-Techno@gmx.de
+
+ Homepage:  http://home.t-online.de/home/ac-techno/index.htm
+
+@ENDNODE
+

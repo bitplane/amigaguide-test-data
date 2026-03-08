@@ -1,0 +1,331 @@
+@DATABASE MIDIStuff
+@AUTHOR Alastair M. Robinson
+@COPYRIGHT 1998 - Black Five SoftDesign.
+
+@NODE MAIN "Some MIDI routines - © 1998 Alastair M. Robinson"
+
+@{B}The Black Five MIDI Package  -  © 1998 Alastair M. Robinson@{UB}
+
+» Low Overhead Standard MIDI File Player - source code and object code.
+
+» DeliTracker MIDI player.
+
+» PlaySMF stand-alone MIDI player - works well as an IBrowse external `viewer'.
+
+» SMF1to0 - a simple MIDI format converter.
+
+@{B}First, the boring stuff:@{UB}
+THE CONTENTS OF THIS ARCHIVE ARE SUPPLIED AS IS WITHOUT WARRANTY OF ANY KIND.
+ALL USE IS AT YOUR OWN RISK; THE AUTHOR CANNOT BE HELD RESPONSIBLE FOR DAMAGES
+OF ANY KIND ARISING FROM THE USE OR MISUSE OF THESE FILES.
+
+This archive contains a few routines and programs designed to enable
+programmers, and in particular games programmers to support MIDI music in
+their projects.
+
+In addition, the PlaySMF and DeliMIDI DeliTracker player might well be of
+interest to non-programmers.
+
+
+@{"Introduction" link Intro}
+
+@{"Distribution" link Distribution}
+
+  @{B}The B5MIDI Package consists of the following directories:@{UB}
+
+»   @{"Playroutine" link PlayRoutine}
+
+»   @{"PlaySMF" link PlaySMF}
+
+»   @{"SMF1to0" link SMF1to0}
+
+»   @{"DeliMIDI" link DeliMIDI}
+
+@{"Contact address" link contact}
+
+@{"Technical rationale" link technical}
+
+
+@ENDNODE
+
+@NODE contact
+
+  Alastair M. Robinson
+  The Old Chapel,
+   Syderstone,
+    Kings Lynn
+     Norfolk
+      PE31 8SD
+       (England)
+
+  EMail:  blackfive@fakenhamweb.co.uk
+
+@ENDNODE
+
+@NODE DeliMIDI
+
+  DeliMIDI 1.0  -  A DeliTracker player for midi files.
+
+  This is just something I knocked up to demonstrate the usage of the B5MIDI
+playroutine from machine code.
+
+  To install DeliMIDI, just drag and drop the DeliMIDI file into DeliTracker's
+DeliPlayers directory.
+
+  Once DeliMIDI is installed, you can listen to midifiles just by dropping
+them into DeliTracker's window.  Of course, you will need to have MIDI
+equipment attached to your Amiga to hear anything!
+
+  One slight problem with this player:  The Play/Pause button doesn't work
+properly - Pressing it once plays the tune, pressing it again stops it, but
+pressing it a third time plays the tune from the start instead of from where it
+left off.  Implementing this properly would require modifications to the
+playroutine - you've got the source, if this bothers you go ahead and fix it!
+
+@ENDNODE
+
+@NODE SMF1to0
+
+  The SMF1to0 converter was written because the initial version of my
+playroutine didn't support Type 1 files.  Type 0 files are simpler to handle,
+so take less processor time to play.
+
+  SMF1to0 can also add a Tempo Meta event to a Type 0 or 1 file, and also add
+a XG Reset SysEx event.  These are both useful when used with the MIDI export
+module of Bars&Pipes Professional (V1.0e) - which can't correctly write either!
+
+  In essence, a type 0 file contains a list of delay-event pairs, which are
+sent to the serial port in linear fashion.  Type 1 files contain `several'
+(30 or 40 is not uncommon) tracks which must be played `simultaneously' - i.e.
+multiple streams which must be merged into a single stream of delay-event pairs.
+Since playing a type 1 file involves what is basically type 1 to type 0
+conversion, a great deal of processor time can be saved if a type 1 file is
+preprocessed into a type 0 file.
+
+  I have been very careful when writing this converter not to lose any
+information in the conversion process - even Meta events are preserved, so
+copyright messages won't go missing!  The result is that I am unable to tell
+by listening to the playback whether the original type 1 file or the newly
+converted type 0 file is being played!
+
+  The source code is provided, and you may do what you like with it, as long
+as you don't try to claim it as your own work.
+
+@ENDNODE
+
+@NODE PlayRoutine
+
+  This is a low-overhead Standard MIDI File playroutine which directs MIDI
+events to serial.device unit 0.  Both SMF Type 0 and Type 1 files are supported
+though the added complexity of SMF Type 1 files means playing them takes more
+processor time.  Depending on the MIDI file in question, you can drastically
+reduce the processor usage by running a Type 1 MIDI file through the @{"SMF1to0" link SMF1to0}
+converter and playing the resulting type 0 file instead.
+
+  The Playroutine itself is in this directory, both as source and linkable
+object files for both the large and small data models.  N.B. these have only
+been tested when linked with a quick machine code hack, and C-code compiled
+with VBCC - you might need to recompile for other environments.
+
+  The object files need to be linked with Amiga.lib, but don't need any
+routines out of the C lib (except geta4() in the case of the smalldata
+version.)
+
+You should include MIDI.h in your program to declare the functions and
+context information.
+
+The following Functions are provided to be called from your program:
+
+BOOL MIDI_Setup() - returns TRUE or FALSE, depending on whether it succeeded.
+
+void MIDI_Cleanup()
+
+enum MIDIErrors InitMIDIFile(unsigned char *data,ULONG bpm)
+  returns an errorcode (defined in MIDI.h), after `registering' the midifile
+  pointed to by data.  The initial tempo is supplied in bpm.
+
+void PlayMIDIFile(void (*SongEndHandler)()) - Starts the playback.
+  The SongEndHandler is optional, and takes the form of a simple Function
+  Pointer - see the @{"source of PlaySMF" link PlaySMF/Main.c/main} for an example of how to use this.
+
+void StopMIDIFile() - halts the playback.
+
+There are further routines in the MIDI.c file, but you shouldn't need to call
+them yourself.
+
+The MIDI.c file also declares a structure called MIDIContext.  This is declared
+as external in MIDI.h, so you can READ the MIDIContext information yourself.
+DO NOT write anything into the context structure, except where expressly
+permitted.  The MIDIContext structure subsumes a Semaphore which is used to
+arbitrate for access to the MIDI Data.
+You should ObtainSemaphore(&MIDIContext.DataSemaphore); while doing anything
+to the MIDIFile (like loading it, InitMIDIFile()ing it, etc.).
+Although it is safe to call PlayMIDIFile() with the semaphore held, the music
+won't be started until you release it.  Once the music is playing the semaphore
+will be held until either the music finishes or a stop or break signal is
+received.  It is ESSENTIAL that your program does not hold the DataSemaphore
+while MIDI_Cleanup() is called.  This will cause a deadly embrace as the two
+processes each jealously guard a semaphore which the other wants!
+
+As an example of how easy these routines are to use, see the accompanying
+@{"PlaySMF" link PlaySMF} directory.
+
+@ENDNODE
+
+@NODE PlaySMF
+
+  PlaySMF is a tiny little shell utility which demonstrates the use of the
+MIDI player.  @{"Main.c" link PlaySMF/Main.c/main} contains more code to handle the command-line arguments
+than the actual MIDIFile.
+
+  Usage:
+  PlaySMF FileName/A,Tempo/N
+
+  Tempo is provided in beats per minute, and will be ignored if the file to be
+played contains a SetTempo Meta event.
+
+  If PlaySMF is already playing a MIDI file when you run another copy, the
+first copy will be signalled (via a rendezvous port), telling it to stop playing
+and to release its resources.  Once this is done, the new copy takes over.
+Basically, this means you don't have to quit PlaySMF explicitly to run it again
+with a different MIDI file.  This is extremely useful when PlaySMF is used as
+an external player for IBrowse or DOpus.  You can stop a MIDI file playing just
+by calling PlaySMF with no arguments, although it will complain about the
+missing filename!
+
+  Expand this program as you wish - but please credit me - and please don't
+charge for it!
+
+@ENDNODE
+
+@NODE Distribution
+  While I claim copyright on this package, I do so only to prevent others
+from claiming it as their own work.
+  This package is FREELY DISTRIBUTABLE.  You may pass it on to whoever you
+wish on a non profit basis, provided any changes are clearly marked.
+
+  You may use the code in any project you wish, commercial or otherwise,
+provided I'm credited.  I'd also appreciate being sent a copy!  The only
+restriction is that if you CHARGE for any program using my routines, it must
+do more than just play MIDI files!  Selling a game using my code to provide
+MIDI music is fine - selling a slightly enhanced version of PlaySMF is NOT!!
+
+  Donations are of course _extremely_ welcome - but I don't want to restrict
+the use of this routine by demanding payment for it!
+
+@ENDNODE
+
+@NODE Intro
+  When it was released in 1985 the Amiga's musical capabilities were second
+to none, but 13 years later the sound chip's age shows.
+  Game soundtracks have traditionally been provided as Pro-Tracker modules,
+which are usually quite passable, but playing sound effects at the same
+time has always been a problem; either the music was restricted to 3
+channels, to leave a channel free for sound effects, or the least important
+channel of the music was temporarily cut off while the sound effect played.
+Neither solution is ideal, but both are still common.
+  More recently programmers have experimented with realtime mixing of sound
+channels, to remove the 4-channel limit.  This leads to a small but noticable
+quality loss and takes a great deal of processor time.
+  Another solution is to use a CD audio track for background music, leaving
+all four channels free for sounds. This is only possible if nothing needs to
+be loaded from the CD while the game progresses.
+  Yet another solution, (probably the best compromise to date) was found in
+OnEscapee, where the background music was recorded as a sound-sample, bits of
+which were constantly being loaded.  This worked well, and only needed two
+channels for the music, but gave less than perfect sound quality.
+
+  So what is the poor programmer to do?
+
+  On the PC, MIDI music has been the norm in games for quite a long time.
+It has sounded crap mind you - because the sound-cards in common use have had
+a rather poor FM Synthesis chip providing the sounds.  But game soundtracks
+sounded better if you bought a better soundcard, so people bought better
+soundcards (we ARE talking about the PC market here!) and one of these `better
+soundcards' - Yamaha's DB50XG WaveBlaster card, has recently been the subject
+of an Amiga hardware hack.  A WaveBlaster card can be connected to any RS232
+serial port (or any port which, like the Amiga's, supports 31250 baud) with
+the bare minimum of electronics, providing an Amiga with a state-of-the-art
+MIDI tone module.  See Christian Buchner's WaveBlaster hack on the Aminet
+for more information.
+
+While I'm not suggesting for a moment that we now have an Amiga market equipped
+with MIDI gear, there are a few `ProjectXGs' about, and General MIDI keyboards
+and tone modules are becoming cheaper and more accessible by the day, so I
+would argue that it is now worth supporting MIDI as an option in games, and
+the routines I present in this package are designed to make this a trivial
+task!
+
+@ENDNODE
+
+@NODE Technical
+
+  Technical rationale:
+
+  The following information is not of great importance, but might be of
+interest.  Then again, it might bore the hell out of you.
+
+  » The playroutine separates the Type 1 and Type 0 players because type 0 files
+    are quite a bit simpler to play, and the main objective for this player was
+    low-overhead.  On my 25MHz '030, XOper reports that the Type 0 player uses
+    2-3% of the processor time - though I think this excludes the time used by
+    the serial device to send the data.  The Type 1 player uses roughly twice
+    this much processor time.  This of course is VERY dependant on the
+    particular MIDI file being played!
+
+  » Only the most common timing model is supported - the one with the MThd
+    chunk containing the number of `ticks-per-quarternote'.  I have no
+    information at all about other timing models, so for now they're
+    unsupported.
+
+  » The callback function pointer supplied to PlayMIDIFile is NOT a utility
+    library style callback hook.  Instead it is a simple function pointer:
+    PlayMIDIFile(&MySongEndHandler); should work fine.  The handler itself can
+    either call PlayMIDIFile() again, signal the parent task (hence the presence
+    of the MIDIContext.ParentTask field) or even load in and register a new file
+    before calling PlayMIDIFile() again.  It is perfectly acceptable to ignore
+    songends by proving a NULL handler pointer.
+    The simplest example of a SongEndHandler is probably this:
+
+    void MinimalSongEndHandler()
+    {
+      Signal(MIDIContext.ParentTask,SIGBREAKF_CTRL_C);
+    }
+
+    (Please Note:  The handler routine will probably need to be `in scope' at
+    the point of the PlayMIDIFile() call.  This basically means the handler
+    routine, or at least a prototype declaration of it, will have to appear
+    somewhere _before_ the PlayMIDIFile() call in your program.  Normally, you
+    just need to put something like:
+    void MinimalSongEndHandler();   with your global declarations.)
+
+    An assembly language SongEndHandler should be fine as long as the usual
+    register preservation rules are followed.
+
+  » A SubTask is spawned to handle the actual playing.  Due to the timing
+    resolution required, it is not appropriate to set up a simple CIA interrupt
+    routine, as is usual for Protracker playroutines.  PT players generally
+    use an interrupt frequency of around 50 Hz - a rate originally chosen so
+    it could be tied to the VBlank interrupt - but an analogous interrupt for
+    MIDI files could conceivably require a frequency of 800 Hz or more.  For
+    this reason, the Delta-time until the next event is converted into an
+    absolute EClockVal, and waited for using the WAITECLOCK unit of
+    timer.device.  This might sound like an over-complicated method, but it
+    works well, and doesn't lose time under heavy multitasking.
+
+  » The subtask contains a geta4() call, which with VBCC is needed (when using
+    the Small Data Model) to make the global variables visible to the subtask.
+    In the extremely unlikely event of your compiler not having an equivalent
+    mechanism, you can safely comment-out and ignore it *PROVIDED* you then use
+    the `LARGE DATA MODEL' (usually selectable as a compiler option).
+    If you get this wrong, you'll soon know - there's no way A4 will point to
+    the Small-Data base `by accident'!
+
+  » Warning:  The Playroutine will hike its priority to 21 shortly after
+    PlayMIDIFile() has been called.  Bear this in mind if your program depends
+    on a precarious balance of priorities!  Also, any intensive tasks which run
+    at a priority greater than 20 will seriously screw up the music's timing.
+
+@ENDNODE
+
+

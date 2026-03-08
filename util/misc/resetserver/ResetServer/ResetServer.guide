@@ -1,0 +1,186 @@
+@database "Reset.server 1.0 - Dokumentacja"
+@width 80
+@node MAIN "Reset.server 1.0 Dokumentacja"
+
+                           @{b}Reset.server 1.0@{ub}
+                         -----------------
+             Copyright (c) 1997-1998 Paweî Marciniak
+                      <pmarciniak@lodz.home.pl>
+                       All rights reserved.
+
+ Pliki wykonywalne, kody úródîowe i dokumentacja stanowiâ FREEWARE, 
+ przy czym pozostajâ wyîâcznâ wîasnoôciâ autora.
+ Copyright (c) 1997-1998 Paweî Marciniak. Wszystkie prawa zastrzeûone.
+
+
+ @{" Deklaracja " link DISCLAIMER} . . . . . . . . . . od autora
+ @{" Dystrybucja " link DISTRIBUTION}  . . . . . . . . . o kopiowaniu i rozprowadzaniu programu
+ @{" Wprowadzenie " link INTRODUCTION} . . . . . . . . . do czego sîuûy ten program ?
+ @{" Wymagania " link REQUIREMENTS}  . . . . . . . . . . na jakim sprzëcie to 'chodzi' ?
+ @{" Instalacja i uruchomienie " link INSTALLATION}. . . jak rozpoczâê pracë ?
+ @{" Dla programistów " link DEVELOPER} . . . . . . . jak wykoûystaê ResetServer w swoim programie ?
+
+ @{" Gdzie jest autor? " link ADDRESS}  . . . . . . adres autora programu
+@endnode
+
+
+@endnode
+
+@node DISCLAIMER "DEKLARACJA"
+
+ PROGRAM DOSTARCZONY JEST W FORMIE "TAKIEJ JAKIEJ JEST" BEZ ÛADNYCH GWARANCJI
+ DOTYCZÂCYCH FUNKCJONOWANIA, UÛYTECZNOÔCI, ITP.  AUTOR PROGRAMU NIE PONOSI
+ ÛADNEJ ODPOWIEDZIALNOÔCI ZA JAKIEKOLWIEK STRATY WYNIKÎE WSKUTEK UÛYWANIA
+ NINIEJSZEGO PROGRAMU.
+@endnode
+
+@node DISTRIBUTION "Zasady dystrybucji"
+
+ Kopiowanie i rozpowszechnianie programu dozwolone jest bez ûadnych dodatkowych
+ warunków( równieû z wîasmymi programami bez wzglëdu czy to jest program
+ public domain, komercyjny czy inny, o ile wspierajâ ResetServer), dopóki
+ bëdzie rozpowszechniany w kompletnej niezmienionej formie.
+@endnode
+
+@node INTRODUCTION "Wprowadzenie"
+
+ Program ResetServer sîuûy do powiadamiania specjâlnie napisanych programów
+ o naciôniëciu trzech klawiszy CTRL+PrawaAmiga+LewaAmiga i wstrzymaniu resetu aû
+ do momentu zakoïczenia dziaîania przez te programy( nie dîuûej jednak niû 10
+ sekund, po których amiga automatycznie zresetuje sië)
+@endnode
+
+@node REQUIREMENTS "Wymagania sprzëtowe"
+
+ Konfiguracja:
+  - Dowolna Amiga( prawie )
+  - System operacyjny w wersji 2.04 lub wyûszej
+@endnode
+
+@node INSTALLATION "Instalacja i uruchomienie programu"
+
+ Aby zainstalowaê program naleûy
+ - skopiowaê program do katalogu C
+ - dodaê na poczâtku startup-sequence nastëpujâce polecenie:
+   C:ResetServer
+@endnode
+
+@node DEVELOPER "Dla programistów"
+
+ Aby twój program wspieraî ResetServer musisz w swoim kodzie úródîowym dokonaê
+ nastëpujâcych zmian:
+
+ - musisz znaleôê messageport "Reset.server", funkcjâ FindPort/exec
+
+  destport=FindPort("Reset.server");
+
+ jeôli funkcja zwróci 0, to oznacza, ûe uûytkownik nie uûywa mojego programu.
+
+ - musisz stworzyê swój messageport, np. funkcjâ CreatePort()/amiga.lib
+
+  msgport=CreatePort(NULL,0);
+
+ - musisz wysîaê wiadomoôê o dodaniu swojego portu funkcjâ PutMsg()/exec
+
+  struct RWMessage sendmsg;
+
+  sendmsg.rwm_MsgPort=msgport; /* Adres twojego messageportu */
+  sendmsg.rwm_MsgType=RWM_ADDPORT; /* Typ wiadomoôci */
+  sendmsg.rwm_ProgName="TwójProgram"; /* Nazwa twojego programu */
+  if( destport )
+  {
+    PutMsg( destport, (struct Message *)&sendmsg );
+  }
+
+ struktura RWMessage przedstawia sië nastëpujâco:
+
+  struct RWMessage
+  {
+    struct  Message	rwm_Message;
+    struct  MsgPort *rwm_MsgPort; /* Tutaj podajesz adres swojego messageportu */
+    ULONG   rwm_MsgType; /* Typ wiadomoôci */
+    STRPTR  rwm_ProgName; /* Nazwa twojego programu */
+  };
+
+ - czekasz na otrzymanie wiadomoôci o resecie
+
+    while( msg=(struct RWMessage *)GetMsg( msgport ))
+    {
+      switch( msg->rwm_Message.mn_Node.ln_Type )
+      {
+        case  NT_MESSAGE:
+          switch( msg->rwm_MsgType )
+          {
+            case  RWM_RESETWARNING:
+              printf("Message ResetWarning");
+            break;
+
+            default:
+            break;
+          }
+        ReplyMsg((struct Message *)msg);
+        break;
+      }
+    }
+
+ po otrzymaniu tej wiadomoôci musisz jak najszybciej( mniej niû 10 sekund ) zakoïczyê
+ dziaîanie twojego programu( np. zapis edytowanego tekstu, zamkniëcie okna itp.),
+ anastëpnie wysyîasz wiadomoôê o zakoïczeniu dziaîania
+
+  sendmsg2.rwm_MsgPort=msgport;
+  sendmsg2.rwm_MsgType=RWM_DONE;
+  sendmsg2.rwm_ProgName=PROGNAME;
+  if( destport )
+  {
+    PutMsg( destport, (struct Message *)&sendmsg2 );
+  }
+
+ - przy normalnym wyjôciu z twojego programu musisz wysîaê wiadomoôê o usuniëciu
+ swojego portu
+
+  sendmsg3.rwm_MsgPort=msgport;
+  sendmsg3.rwm_MsgType=RWM_REMPORT;
+  sendmsg3.rwm_ProgName=PROGNAME;
+  if( destport )
+  {
+    PutMsg( destport, (struct Message *)&sendmsg3 );
+  }
+
+ - musisz dodaê nastëpujâcy napis w informacji o twoim programie
+  "Ten program wspiera Reset.server"
+  "Reset.server (c) 1997 Paweî Marciniak"
+
+ po wiëcej informacji zajrzyj do kodu úródîowego ResetClient.c i resetserver.h
+
+ W celu uîatwienia uruchamiania programów wspierajâcych Reset.server, zostaî dodany
+ emulator Reset.servera pod nazwâ ResetServerEmu. Aby go uruchomiê trzeba wystartowaê
+ system bez Reset.servera a nastëpnie uruchomiê ResetServerEmu. W otwartym oknie
+ znajdujâ sië nastëpujâce gadgety:
+ 1.Gadget typu BUTTON nazwany "Send ResetWarning". Sîuûy on do wysyîania wiadomoôci
+   RWM_RESETWARNING bez resetowania amigi.
+ 2.Gadget typu TEXT. Sîuûy on do wyôwietlania nastëpujâcych wiadomoôci:
+   - "Welcom to Reset.server emulator" komunikat powitalny
+   - "Emulator terminated" komunikat informujâcy o zakoïczeniu pracy przez emulator
+   - "First remove all ports" komunikat informujâcy o koniecznoôci zakoïczenia dziaîania
+     przez programy wspierajâce Reset.server
+   - "Sending ResetWarning" komunikat informujâcy o wysîaniu wiadomoôci RWM_RESETWARNING
+   - "Message RWM_ADDPORT" komunikat informujâcy o dotarciu wiadomoôci RWM_ADDPORT
+   - "Message RWM_REMPORT" komunikat informujâcy o dotarciu wiadomoôci RWM_REMPORT
+   - "All ports done - Reset" komunikat informujâcy, ûe wszystkie programy odpowiedziaîy na
+     wiadomoôê RWM_RESETWARNING, wysyîajâc wiadomoôê RWM_DONE
+ 3.Gadget typu LISTVIEW nazwany Program names. Sîuûy do wyôwietlania listy uruchomionych
+   programów wspierajâcych Reset.server
+ 3.Gadget typu LISTVIEW nazwany History. Sîuûy do wyôwietlania listy komunikatów przybywajâcych
+   od programów wspierajâcych Reset.server
+@endnode
+
+@node ADDRESS "Gdzie jest autor?"
+
+ Wszelkie uwagi, sugestie, pytania proszë kierowaê na adres:
+
+ Paweî Marciniak
+ ul. Staffa 44b/7
+ 95-100 Zgierz woj. Îódzkie
+ tel. (0-42) 7167260
+ e-mail <pmarciniak@lodz.home.pl>
+@endnode

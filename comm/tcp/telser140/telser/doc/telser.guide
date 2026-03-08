@@ -1,0 +1,2473 @@
+@DATABASE "telser.doc"
+
+@NODE MAIN "telser.doc"
+
+   ============================================================
+   telser 1.40 -- telnet(d)/rlogin(d) device/handler for TCP/IP
+                            Documentation
+                          - March 18, 1996 -
+   ============================================================
+
+    Copyright (c) 1994-1996 by Sam Yee.  All rights reserved.
+
+
+@{" Table Of Contents " Link Table_Of_Contents}
+
+@{" Legal Issues " Link 1.}
+@{" Introduction " Link 2.}
+@{" Demo Restrictions " Link 3.}
+@{" Requirements " Link 4.}
+@{" Installation " Link 5.}
+@{" Configuration " Link 6.}
+@{" How telser works " Link 7.}
+@{" Using telser.device " Link 8.}
+@{" Using tstelnet (as telnet/rlogin client) " Link 9.}
+@{" AmigaDOS Handler " Link 10.}
+@{" telnetd/rlogind simulation " Link 11.}
+@{" TelserMon " Link 12.}
+@{" Gadtools Graphical User Interface " Link 13.}
+@{" Logging " Link 14.}
+@{" Modem Commands " Link 15.}
+@{" Login Scripts " Link 16.}
+@{" serial.device compatibility " Link 17.}
+@{" Troubleshooting " Link 18.}
+@{" History " Link 19.}
+@{" Acknowledgements " Link 20.}
+@{" Registration Form " Link 21.}
+@{" Contact Address " Link 22.}
+@ENDNODE
+
+@NODE Table_Of_Contents " Table Of Contents "
+MAIN@{" telser.doc " Link MAIN}
+  1.@{" Legal Issues " Link 1.}
+    1.1.@{" Copyright " Link 1.1.}
+    1.2.@{" License Agreement " Link 1.2.}
+    1.3.@{" Disclaimer " Link 1.3.}
+  2.@{" Introduction " Link 2.}
+  3.@{" Demo Restrictions " Link 3.}
+  4.@{" Requirements " Link 4.}
+  5.@{" Installation " Link 5.}
+    5.1.@{" Keyfile Installation " Link 5.1.}
+  6.@{" Configuration " Link 6.}
+    6.1.@{" Device Unit Configuration " Link 6.1.}
+    6.2.@{" Telnet Hosts Configuration " Link 6.2.}
+    6.3.@{" Terminal Emulation Configuration " Link 6.3.}
+    6.4.@{" Modem Profile Configuration " Link 6.4.}
+    6.5.@{" Server Mode Configuration " Link 6.5.}
+      6.5.1.@{" Using telserd Server on Multiple TCP Ports " Link 6.5.1.}
+      6.5.2.@{" Using telserd without inetd " Link 6.5.2.}
+      6.5.3.@{" Using telserd in rlogind mode " Link 6.5.3.}
+      6.5.4.@{" Banning sites from calling in " Link 6.5.4.}
+  7.@{" How telser works " Link 7.}
+  8.@{" Using telser.device " Link 8.}
+    8.1.@{" Opening telser.device from a task " Link 8.1.}
+  9.@{" Using tstelnet (as telnet/rlogin client) " Link 9.}
+  10.@{" AmigaDOS Handler " Link 10.}
+  11.@{" telnetd/rlogind simulation " Link 11.}
+    11.1.@{" telnetd/rlogind support commands and files " Link 11.1.}
+  12.@{" TelserMon " Link 12.}
+  13.@{" Gadtools Graphical User Interface " Link 13.}
+    13.1.@{" Telser Main Window " Link 13.1.}
+    13.2.@{" Telser Options Window " Link 13.2.}
+    13.3.@{" Telnet Send Commands Window " Link 13.3.}
+    13.4.@{" Configure Hosts Window " Link 13.4.}
+  14.@{" Logging " Link 14.}
+  15.@{" Modem Commands " Link 15.}
+    15.1.@{" Connection Result Codes " Link 15.1.}
+  16.@{" Login Scripts " Link 16.}
+  17.@{" serial.device compatibility " Link 17.}
+  18.@{" Troubleshooting " Link 18.}
+  19.@{" History " Link 19.}
+  20.@{" Acknowledgements " Link 20.}
+  21.@{" Registration Form " Link 21.}
+  22.@{" Contact Address " Link 22.}
+@ENDNODE
+
+@NODE 1. "Legal Issues"
+
+@{" Copyright " Link 1.1.}
+@{" License Agreement " Link 1.2.}
+@{" Disclaimer " Link 1.3.}
+@ENDNODE
+
+@NODE 1.1. "Copyright"
+
+The   program,  telser  and  its  associated  files  are  written  and
+copyrighted  by  Sam  Yee.   telser  is SHAREWARE and the UNREGISTERED
+version  of  telser  may be distributed freely providing the following
+conditions hold:
+
+o Distributors may not charge more than the cost of a diskette used in
+  the distribution of this program.
+
+o Distributors may only distribute the unmodified copy of the original
+  program, along with its documentation, and copyright notices intact.
+
+o Commercial  distribution  is  only  possible with written permission
+  from the author.
+
+@ENDNODE
+
+@NODE 1.2. "License Agreement"
+
+The   REGISTERED   versions   of  telser  may  not  be  redistributed.
+Redistribution  is  illegal,  immoral,  and  strictly prohibited.  The
+licensed keyfile may be used on more than one machine if you own those
+machines and that they are not for business use.  Otherwise, different
+keyfiles are required for each machine.
+
+@ENDNODE
+
+@NODE 1.3. "Disclaimer"
+
+This   program  and  its  documentation  are  provided  "as  is".   No
+warranties  are  made  with  respect  to  the  accuracy,  reliability,
+performance  or  operation  of this software and information.  You are
+using this program at your own risk.  The author is not liable for any
+damages that may have been caused by using this software.
+
+
+@ENDNODE
+
+@NODE 2. "Introduction"
+
+telser.device  ("telser")  is  a  modem  simulator  running over a TCP
+telnet/rlogin  connection.   It  simulates  basic @{"modem commands" Link 15.}, so
+telecommunication ("comm") programs can run over a network connection.
+To  the  comm  program,  it  thinks it's talking to a modem.  Terminal
+emulation,  file  transfers,  scripting,  etc., are all handled by the
+comm  program.   Connecting  to  a  host  is as simple as typing "ATDT
+abc.edu,23"  or  even  simpler if the host is in the comm's phonebook.
+Also, with telser's built-in scripting, logins can be automated.
+
+telser  supports  most  of  the telnet/rlogin negotiation commands and
+options.   For  example,  you  may  elect to notify the remote host on
+changes  to the terminal emulation type and window size.  An intuitive
+"gadtools"  graphical  user  interface  is supplied to control most of
+telser's operations.
+
+telser  can  also  run in host mode, essentially allowing it to accept
+incoming  telnet/rlogin  calls.  When telser is configured to run as a
+telnetd/rlogind,  remote  users  can  log  in  and  run standard shell
+commands  and  CLI "doors" such as online games.  Unwanted connections
+can  be  denied.   Calls  may  be  tracked  by a caller ID feature.  A
+"multi-line" BBS can be easily set up over the internet!
+
+telser  is  capable  of  unlimited device units, which means unlimited
+incoming  and  outgoing  connections  are  possible.  It supports both
+TCP/IP  packages on the Amiga, namely AmiTCP (tested with 3.x and 4.x)
+and  AS225r2  (or  compatible).   MLINK, is also supported.
+
+
+@ENDNODE
+
+@NODE 3. "Demo Restrictions"
+
+The  demo  version of telser allows one device unit.  Opening a second
+unit  causes  a  device busy result code.  If you use telser often you
+are  recommended  to  register.   When  you register you get unlimited
+device units and help keep this project alive...
+
+
+@ENDNODE
+
+@NODE 4. "Requirements"
+
+telser  runs  on  any  Amiga(tm)  with version 2.04 of the OS, running
+AmiTCP or AS225r2 (or compatible).  AmiTCP 3.0b2 and 4.0 demo has been
+tested, and it does not work with 2.3.  telser uses very little memory
+(perhaps  90K).   To  make  telser even more memory efficient, make it
+resident.  Then every device unit opened will use about 20K.
+
+
+@ENDNODE
+
+@NODE 5. "Installation"
+
+The telser archive contains the following files:
+
+telser_install      - Installer script
+telser_install.info - icon for above
+bin/launchd         - a program launcher daemon
+bin/telser          - telser main program for AmiTCP
+bin/telsermon       - telser monitor commodity
+bin/telsermon.info  - icon for telserMon
+bin/tsconfig        - hosts configuration program (GUI)
+bin/tsconfig.info   - icon for above
+bin/tsctl           - controls some operations of telser
+bin/tsgetpasswd     - gets password information for AmiTCP.  Used for
+                      setting up telnetd/rlogind.
+bin/tslogin         - asks user for password for AmiTCP.  Used for
+                      setting up telnetd/rlogind.
+bin/tssh            - a simple AmigaShell style shell for
+                      telnetd/rlogind.
+bin/tstdinit        - telnetd initiation batch file.
+                      called from db/telserd.conf.
+bin/tstdstart       - batch file to start up telnetd emulation.
+                      called from bin/tstdinit.
+bin/tstelnet        - comm program that uses telser.device
+c/telser            - telser main program for AS225
+c/tsgetpasswd       - gets password information for AS225.  Used for
+                      setting up telnetd/rlogind.
+c/tslogin           - asks user for password for AS225.  Used for
+                      setting up telnetd/rlogind.
+db/telser.conf      - configuration file for each device unit
+db/telser.hosts     - list of host aliases
+db/telser.mdm       - stores modem configuration
+db/telser.terms     - list of terminal types
+db/telserd.bans     - list of IP addresses banned
+db/telserd.conf     - configuration file for serv/telserd
+devs/telser.device_amitcp  -
+                       device driver that talks to bin/telser
+devs/telser.device_as22 -
+                       device driver that talks to c/telser
+doc/telser-Axsh-setup.doc - Axsh setup tutorial in text format
+doc/telser-Axsh-setup.doc.info -- icon for above
+doc/telser-Axsh-setup.guide - Axsh setup tutorial in AmigaGuide(r)
+                               format
+doc/telser-Axsh-setup.guide.info - icon for above
+doc/telser-DLG-setup.doc - DLG setup tutorial in text format
+doc/telser-DLG-setup.doc.info - icon for above
+doc/telser.doc      - telser documentation in text format
+doc/telser.guide    - telser documentation in AmigaGuide(r) format
+doc/telser.guide.info - icon for the above
+doc.info            - icon for doc/ directory
+libs/rawin.library  - linemode editing handling library
+serv/telserd_amitcp - telser daemon ("server") for AmiTCP
+serv/telserd_as225  - telser daemon for AS225
+src/tstelnet.c      - sample source that uses telser.device
+src/tstelnet.makefile - makefile for above
+s:telser.key        - registration keyfile for telser
+
+Once unpacked, the above files reside in the telser/ directory.
+
+AmiTCP Installation
+-------------------
+
+To install telser for AmiTCP, unpack the archive into AMITCP:
+ 1> lha x DH0:telser120.lha AMITCP:
+
+Copy and rename the device driver telser.device_amitcp into devs:
+ 1> copy AMITCP:telser/devs/telser.device_amitcp
+         devs:telser.device clone
+
+Rename the executables:
+ 1> rename AMITCP:telser/serv/telserd_amitcp AMITCP:serv/telserd
+
+AS225 Installation
+------------------
+
+To install telser for AS225, unpack the archive into INET:
+ 1> lha x DH0:telser120.lha INET:
+
+Copy and rename the device driver telser.device_as225 into devs:
+ 1> copy INET:telser/devs/telser.device_as225
+          devs:telser.device clone
+
+Copy/rename the executables to their respective locations:
+ 1> copy INET:telser/bin/ INET:c/ clone
+ 1> copy INET:telser/c/#? INET:c/ clone
+ 1> rename INET:telser/serv/telserd_as225 INET:serv/telserd
+
+Installer Script
+----------------
+
+An  Installer script ("telser/telser_install") is included to automate
+the above procedures.  Just click on the install icon and way you go.
+
+
+@{" Keyfile Installation " Link 5.1.}
+@ENDNODE
+
+@NODE 5.1. "Keyfile Installation"
+
+When  you  register,  you  will probably receive your key file through
+e-mail.   If  this  is  the  case,  you  must  use  a  UN*X compatible
+"uudecode"  utility  to  decode it.  Once decoded, you should copy the
+key  file  into  the S:  directory.  Alternately, you may point to the
+directory  containing the key file by setting the $KEYPATH environment
+variable.    e.g.,   "copy   telser.key   DH0:keys",  "setenv  KEYPATH
+DH0:keys".
+
+
+@ENDNODE
+
+@NODE 6. "Configuration"
+
+telser  is  a  very  configurable  program.  Most of the configuration
+files  can  be manipulated by the save buttons as described in section
+@{"Telser Options Window" Link 13.2.}.  The  rest must be edited with a text editor.
+In most files, a "#" or ";" ignores ("comments out") lines.
+
+@{" Device Unit Configuration " Link 6.1.}
+@{" Telnet Hosts Configuration " Link 6.2.}
+@{" Terminal Emulation Configuration " Link 6.3.}
+@{" Modem Profile Configuration " Link 6.4.}
+@{" Server Mode Configuration " Link 6.5.}
+@ENDNODE
+
+@NODE 6.1. "Device Unit Configuration"
+
+db/telser.conf allows you to configure each unit of telser.device.
+
+The follow is how db/telser.conf looks like:
+----------------------------------------------------------------------------------------------------------------
+#unit default host  map serial break to GUI/Startup LINGER      DEBUG   logfile       REDIRECT/     DOSHANDLER/
+#     (alias)       Nothing             HIDE        or          or      ("" for none) NOREDIRECT    NODOSHANDLER
+#                   OpenWindow          OPENWIN     NOLINGER    NODEBUG
+#                   AbortOutput         ICONIFY                                         
+#                   AreYouThere
+#                   Break
+#                   EraseChar
+#                   EraseLine
+#                   GoAhead
+#                   InterruptProcess
+#                   NoOperation
+#                   SynchOperation
+\\#?   ""            OpenWindow          HIDE       NOLINGER     NODEBUG  T:telser.log NOREDIRECT   DOSHANDLER
+ 0    ""            OpenWindow          HIDE       LINGER       NODEBUG  T:telser.log REDIRECT      NODOSHANDLER
+ 2    home          Nothing             OPENWIN    NOLINGER     DEBUG    T:telser.log NOREDIRECT    DOSHANDLER
+ 10   work          OpenWindow          ICONIFY    NOLINGER     DEBUG    ""           NOREDIRECT    DOSHANDLER
+----------------------------------------------------------------------------------------------------------------
+
+Unit field:
+    The  unit number the comm program will use.  It can be an AmigaDOS
+    pattern and will allow unconfigured units to share configurations.
+    If  the  pattern  begins  with  #?,  it must be rewritten as \\#?.
+    (Recall  "#" is used as a comment, so the "\\" is used to indicate
+    the  line  should  not  be  treated as a comment.) "\\" is skipped
+    before  pattern  matching.   For  example,  "1#?"  means  that all
+    unconfigured  units  that  begin  with  1  will  use  this  unit's
+    configuration.   Note that the order of configuration line matters
+    when  patterns  are used.  If there are more than one match in the
+    unit  field  of all the lines, the last configuration line will be
+    used.   (Note,  if  you  are  reading  the  text  version  of  the
+    documentation you will see two slashes.  The AmigaGuide verion has
+    one slash absorb by the translator.)
+
+Host (Alias) field:
+    This  field  tells  telser  which  host  should  a  connection  be
+    attempted once the comm program is started.  Enter "" if automatic
+    connection  is not desired at device opening time.  You may use an
+    IP address, host alias, or a real hostname for this field.
+
+Map Serial Break To field:
+    Most  comm programs allow the user to send a physical break signal
+    to   the   modem.   This  feature  is  inapplicable  to  a  telnet
+    connection.   Instead, telser allows the user to do various things
+    when he/she tries to send a "virtual" break.  When such a break is
+    sent, telser can be directed to do the following:
+
+    Nothing:    ignore the virtual break signal
+    OpenWindow: Open telser's main window if it's not already opened.
+                If already opened, bring the window to front.
+    AbortOutput: Send a telnet Abort Output command to host.
+    AreYouThere: Send a telnet Are You There command to host.
+    Break:       Send a telnet Break command to host.
+                 Note that this break is nothing like a modem break.
+    EraseChar:  Send a telnet Erase Character command to host.
+    EraseLine:  Send a telnet Erase Line command to host.
+    GoAhead:    Send a telnet Go Ahead command to host.
+    Interrupt Process: Send a telnet Interrupt Process command to host.
+                       Often this command kills the foreground process
+                       on Unix machines.
+    NoOperation: Send a telnet No Operation command to host.
+    SynchOperation: Send a telnet Synchronize Operation to host.
+
+    Consult  the  Telnet  RFC's (e.g., RFC854) for more information on
+    Telnet commands and options.
+
+GUI/Startup field:
+    If this flag is set to HIDE, telser will not open a window when it
+    starts.
+
+    If OPENWIN is specified, the telser window will be opened.
+
+    Otherwise,  If  ICONIFY is specified, the window will be opened in
+    iconified  mode.   When  the program is iconified, it displays the
+    connection  state.   When  a connection is made, the icon modifies
+    its   text   to   reflect   the   peer's  hostname.   telser  uses
+    ENV:telser_appicon.info  as  the  image  of  the icon, if the file
+    exists.   Otherwise,  Workbench's default tool icon is used.  Note
+    that  telser_appicon.info  is  not  included  in this distribution
+    because  I'm  too  impatient  to  draw one. :)  If you are an icon
+    artist  and are willing to contribute an icon suitable for telser,
+    I would really appreciate it!
+
+Linger/NoLinger field:
+    This  flag  allows  you  to  terminate  your  comm program without
+    closing  the  telnet  connection.  This is useful when you need to
+    switch  between  comm  programs.  When Linger is specified, telser
+    will not quit when the comm program exits.  Otherwise, if NoLinger
+    is  specified, the connection will be closed and telser terminates
+    when  the  comm program quits.  This flag sets the Linger checkbox
+    as   described   in  section  @{"Telser Options Window" Link 13.2.}.   Some  BBS
+    packages need this option on.
+
+Debug/NoDebug field:
+    When  Debug  is  specified,  all  telnet  negotiation  options and
+    commands  will be logged.  Also, modem commands are logged.  Modem
+    log  entries  have the format:  "MODEM: [command]",  where command
+    is the modem command without the "AT" prefix.
+
+Logfile field:
+    Specify  the  file  name  where  all  logs should go.  Enter "" to
+    disable  logging  to  file.   The  logfile is written after telser
+    exits.   For  an  explanation  on  the  format  of log entries see
+    section @{"Logging" Link 14.}.
+
+Redirect/NoRedirect field:
+    Specify whether this unit should be used as a redirector for other
+    units.   In  redirection  mode,  the comm program will attempt the
+    next  256 units after this unit until it succeeds.  To effectively
+    use  redirection,  the  comm  program  must  open telser.device in
+    exclusive (nonshared) mode.  This ensures no two programs open the
+    same  (non-redirected)  unit.  Redirection is particular useful if
+    you  want  to  load  the  same comm program over and over again to
+    connect  to  different hosts.  Note that redirectors do not handle
+    any network communications, so they can't make or accept calls.
+
+    Your  BBS  program  should  not  open redirection units because of
+    potential  side effects.  For example, some BBS's close and reopen
+    the  serial device after they connect.  But, the reopening may use
+    a different unit number.
+
+    Obviously, only the registered version allows unit redirection.
+
+DOSHandler/NoDOSHandler field:
+    This option allows you to tell telser to open an AmigaDOS handler
+    so simple file operations can be done through a telnet connection.
+    See section @{"AmigaDOS Handler" Link 10.} for more information.
+
+In  general,  this  file can be manipulated by the "Save Unit Options"
+button in section @{"Telser Options Window" Link 13.2.}.  This file is not necessary
+for  the  operation  of  telser.   If  a  unit  or the file is missing
+defaults  will be used.  Units with patterns can not be manipulated by
+the GUI.
+
+@ENDNODE
+
+@NODE 6.2. "Telnet Hosts Configuration"
+
+db/telser.hosts looks something like this:
+----------------------------------------------------------------------
+#                                       telnet options
+#                                       bitmap (if set)
+#                                       0 - initiate negotiation
+#                                       1 - do binary
+#                                       2 - do echo
+#                                       3 - do sga
+#                                       4 - will ttype
+#                                       5 - will naws
+#                                       6 - will linemode
+#                                       7 - will tspeed
+#                                       8 - will lineflow
+#                                       9 - force linemode
+#                                       10 - ignore neg.
+#alias   hostname or IP      port term  bits            rlogin? login id    login-script
+#                                       01234567890
+home     localhost           23   ansi  11111111010
+archie   archie.rutgers.edu  23   ansi  11111111010
+school   fraser.sfu.ca       23   vt100 11111100010     y       samy
+work     incognito.com       23   vt220 11111111010
+fun      res.com             0    vt100 11111111010     n       root        amitcp:db/res.login
+~        ""                  23   vt100 11111111000
+~10      ""                  23   vt220 11111111000
+-----------------------------------------------------------------------------------------------
+
+Alias field:
+    An  alias  for the host you want to connect to.  Aliases preceding
+    by  the  "~" (tilde) character has special meaning.  These aliases
+    are   used  to  store  the  default  telnet  configuration  for  a
+    telser.device  unit.   They  are  named with "~[unit-number]".  If
+    "unit-number"  is  left out, any unit without telnet configuration
+    will   use   this   configuration   entry   as  its  default.   If
+    "unit-number"  is  included, only the specified unit will use this
+    configuration  entry.   e.g., "~10" means only unit 10 can use it,
+    while "~" means any non-configured unit can use it.
+
+Hostname or IP field:
+    The real name or IP address of the host you want to connect to.
+
+Port field:
+    The  port  you  want to telnet into.  Normally this is 23, but for
+    MUD  (Multi-User  Dungeon) sites, this can be something like 6667.
+    Specify 0 if you don't care which port you are connecting to.
+
+Term field:
+    The terminal emulation you will be using for the connection.  Note
+    that  telser  does not handle terminal emulation per se.  It is up
+    to  your comm program to do so.  Term is provided so that the host
+    you  are  connected  to  will automatically know what term you are
+    using.   You  must enable automatic terminal emulation if you want
+    to  notify  the  host  about  the  terminal you are using.  Telnet
+    options bit #4 is used for this purpose.
+
+Telnet Options Bitmap field:
+    This  bitmap  allows you to specify what is to be performed during
+    telnet negotiation.  Putting a "1" at a bit position sets it.  The
+    bits are defined as follows.
+
+    Bit 0:  We initiate telnet negotiation with the host.
+            If   0,   telser   will   not  talk  first  during  Telnet
+            negotiation.
+    Bit 1:  We ask the host to go into binary mode.
+    Bit 2:  We ask the host to echo what we typed.  We will not do any
+            echoing.
+    Bit 3:  We ask the host to Suppress Go Ahead.
+    Bit 4:  We tell the host we will be sending our terminal type.
+    Bit 5:  We tell the host we will be sending our window size.
+    Bit 6:  We tell the host we will be going into linemode.
+            In  linemode,  editing  is  done  locally.  This speeds up
+            command line editing immensely.
+    Bit 7:  We tell the host we will be sending our terminal speed.
+    Bit 8:  We tell the host we can do local flow control.
+            If host grants permission, when user presses ^S (XOFF),
+            incoming TCP data is stopped until user presses ^Q (XON).
+            When incoming flow is stopped, outgoing flow is still
+            possible.
+    Bit 9:  We do linemode whether host allows it or not.  In linemode,
+            command line editing is performed locally.  This bit does
+            not result in any negotiation with the host.
+    Bit 10: If set, the telnet protocol is not used.  Telnet control
+            codes (if any) are passed directly to the comm program.
+            This is required to connect to some TCP ports, such as
+            UUCP and MUD servers.
+
+    Of course the host can refuse any of our requests.
+    To  understand what these Telnet options and commands do, refer to
+    their RFCs (Request-For-Comments).  The following RFCs deal with
+    the telnet protocol: 652, 653, 727, 854, 855, 856, 857, 858, 859,
+    860, 885, 930, 1073, 1079, 1143, and 1372,
+
+rlogin field:
+    This field indicates whether the host should be connected with the
+    rlogin  protocol.   Enter "Y" for yes, or "N" for no.  If "N" then
+    the login id field is ignored.  The rlogin protocol typically uses
+    TCP port 513.  See @{"Telser Main Window" Link 13.1.}.
+
+login: field:
+    This  field  specifies  the  login  ID  to  be used for the rlogin
+    protocol.  See @{"Telser Main Window" Link 13.1.}
+
+login-script field:
+    The script file used for auto-login.  See section @{"Login Scripts" Link 16.}
+    on the scripting language.
+
+This  file  can  be manipulated by the "Save Telnet Options" button in
+section @{"Telser Options Window" Link 13.2.}.
+
+@ENDNODE
+
+@NODE 6.3. "Terminal Emulation Configuration"
+
+db/telser.terms  allows you to specify the list of terminal emulations
+your  comm  programs can support.  They can be used to notify the host
+on what emulation you are using.
+
+db/telser.terms looks something like this:
+----------------------------------------------------------------------
+#Term           Cols Rows   Terminal-ID
+#(or alias)                 ("" = use term)
+ansi            80   24
+dumb            80   24
+vt52            80   24
+vt100           80   24
+vt102           80   24
+vt200           80   24
+vt220           80   24
+"vt220 (80x48)" 80   48     vt220
+vt240           80   24
+vt300           80   24
+vt320           80   24
+vt340           80   24
+vt420           80   24
+rip             80   48
+unknown         80   24
+xterm           160  128
+----------------------------------------------------------------------
+
+Term field:
+    The  terminal type supported by your comm program.  This field can
+    be  used  for display purpose only.  If this is the case, you must
+    specify  the  actual  terminal  type,  to send to the host, in the
+    Terminal-ID.
+
+Cols field:
+    The number of columns your comm window supports.
+
+Rows field:
+    The number of rows your comm window supports.
+
+Terminal-ID:
+    If this field is specified, its content is sent to the host you
+    are connected to.  Otherwise, the value at the Term field is used
+    instead.
+
+This  file is what gets displayed in the terminal list box in
+@{"Telser Main Window" Link 13.1.}.   Telnet negotiation on terminal type and window
+size will use these definitions.
+
+@ENDNODE
+
+@NODE 6.4. "Modem Profile Configuration"
+
+db/telser.mdm  stores  the  modem profile for each telser.device unit.
+The  profile  is  loaded  every  time  telser.device  is opened with a
+particular unit.
+
+db/telser.mdm looks something like this:
+----------------------------------------------------------------------
+[0]
+B0
+E1
+F1
+M1
+...
+----------------------------------------------------------------------
+
+The  number  in  [] is the unit number of the modem.  What follows are
+the  registers, etc.  for that unit.  In this case, telser.device unit
+ 0 will  use  the  above.   You  normally don't need to edit this file
+directly.   Configure  the "modem" with the "AT" commands in your comm
+program and then type "AT&W" to save it to this file.
+
+@ENDNODE
+
+@NODE 6.5. "Server Mode Configuration"
+
+db/telserd.conf  stores  the  units that telserd should attempt to use
+when an incoming call is detected.
+
+db/telserd.conf looks something like this:
+----------------------------------------------------------------------
+#unit ring-interval max-rings   startup-command cleanup-command logfile
+#     (seconds)                 "" for none     "" for none     "" for none
+ 0    2             2           ""              ""              t:telserd.log
+ 2    2             2           ""              ""              t:telserd.log
+ 200  2             4           "execute %bin/tstdinit %unit %bin/tstdstart %host %ip" "" t:telserd.log
+ 201  2             4           "execute %bin/tstdinit %unit %bin/tstdstart %host %ip" "" t:telserd.log
+...
+----------------------------------------------------------------------
+
+Unit field:
+    The  telser.device  unit  to check for the possibility of making a
+    connection.   If  this  unit  is  not already opened or is already
+    busy, the next one will be attempted.
+
+Ring-Interval field:
+    The  number of seconds between "RING" result codes are sent to the
+    unit.
+
+Max-Rings field:
+    The maximum number of "RING"s to send to the unit before giving up.
+    After giving up, the next unit will be attempted.
+
+Startup-Command field:
+    The command to execute before actually trying to talk to the unit.
+    If the command fails (errorcode non-zero), this unit is ignored.
+    Formatting codes can be in the command string.  The string is
+    first formatted before it's executed.  The codes are as follows.
+
+    %unit   - replaces %unit with the unit
+    %host   - replaces %host with the host name of the user calling in
+    %ip     - replaces %ip with the IP address of the host the user is
+              calling in from.
+    %bin    - replaces %bin with the command directory of the TCP
+              stack.  E.g., for AmiTCP it's AmiTCP:bin and for
+              AS225 it's Inet:c.
+
+    Example:
+        "execute %bin/tstdinit %unit %bin/tstdstart %host %ip"
+     -> "execute amitcp:bin/tstdinit 10 amitcp:bin/tstdstart res.com 204.244.102.1"
+
+Cleanup-Command field:
+    The command to execute after the telnet connection is closed.
+
+Logfile field:
+    The   file   where  all  logs  are  written  to.   If  logging  is
+    undesirable,  enter  ""  for  this  field.  The logfile is written
+    after telserd exits.
+
+In addition to editing the above file you must also edit db/inetd.conf
+and db/services.
+
+Your db/inetd.conf file should look like this:
+
+----------------------------------------------------------------------
+telnet    stream  tcp nowait root amitcp:serv/telserd -telserd
+----------------------------------------------------------------------
+
+If  you are using AS225r2 or newer, you must omit the "root" word from
+the above line!  (Also, amitcp: should be replaced with Inet:)
+
+Your db/services file should look like this:
+
+----------------------------------------------------------------------
+telnet          23/tcp
+----------------------------------------------------------------------
+
+Usually, the services file is already set up by your TCP package.
+
+To  get your BBS running over telser, be sure db/telserd.conf contains
+the   unit   number  that  is  opened  by  the  BBS  software.   Also,
+db/telser.conf  should  have an entry for the unit used.  All units to
+be  used  by telserd should not have auto-login enabled!!!  i.e., make
+sure  the  "host"  field  is  blank  ("").  You wouldn't want your BBS
+automatically  dial  out  everytime the device is openend.  If you are
+using  AXsh with telserd, make sure you have LINGER on or AT&D0!!!  It
+may apply to other BBS packages as well.
+
+@{" Using telserd Server on Multiple TCP Ports " Link 6.5.1.}
+@{" Using telserd without inetd " Link 6.5.2.}
+@{" Using telserd in rlogind mode " Link 6.5.3.}
+@{" Banning sites from calling in " Link 6.5.4.}
+@ENDNODE
+
+@NODE 6.5.1. "Using telserd Server on Multiple TCP Ports"
+
+If  you need telserd to launch from different TCP ports, you may do so
+by   passing  the  telserd  program  a  different  telserd.conf  file.
+telserd.conf specifies which telser.device units to connect the remote
+user to.  The command line options are:
+
+    serv/telserd -telserd -c db/telserd2.conf
+
+    (-telserd is the name of the newly created process.
+     telserd2.conf is your alternative telserd config file.
+     The filename is arbitrary.)
+
+In  addition,  you  must also edit your db/services and db/inetd.conf
+files:
+
+db/services:
+    telnet2  1234/tcp
+
+    (port 1234 is just an example.)
+
+db/inetd.conf:
+    telnet2 stream tcp nowait root amitcp:serv/telserd -telserd
+                                   -c db/telserd2.conf
+
+Note  that  telnet2  is  used  in  both  files.   This allows inetd to
+determine which daemon to launch when service is requested at a port.
+
+This  setup  is  useful  if  you  want  to run different programs from
+different  ports.   For example, your AXsh runs from port 23, BBS runs
+from port 3000, and AmigaMUD runs from 6667.
+
+@ENDNODE
+
+@NODE 6.5.2. "Using telserd without inetd"
+
+telserd  can  run as an active daemon, where it runs in the background
+and  listens  to  a port you specify.  This is particularly useful for
+TCP stacks that don't come with an inetd.  Once telserd receives a new
+connection  request,  it  re-launches  ("forks") itself using the same
+command  line  arguments you initially passed to it.  It then proceeds
+as  normal.   The new daemon acts just like its launcher.  The command
+line arguments to start an active daemon are:
+
+    telserd TCPPORT <port-num> ...
+
+    Example: telserd TCPPORT 6000
+
+You  just  need  to launch one telserd for each port you wish to grant
+telnet access.
+
+To stop any running telserd process, simply issue the "status" command
+from  AmigaShell and use the "break" command to send a ^C break signal
+to it.
+
+@ENDNODE
+
+@NODE 6.5.3. "Using telserd in rlogind mode"
+
+By  default, telserd acts as a telnet server, but it can also act as a
+rlogin  server.   This is accomplished by passing the "-r" or "RLOGIN"
+parameter  to  telserd.   db/services  must  have  the "login" service
+specified  and  db/inetd.conf  must determine which daemon to load for
+"login".
+
+Example:
+
+db/services:
+    login 513/tcp
+
+db/inetd.conf:
+    login stream tcp nowait root serv/telserd -telserd -r
+
+The standard rlogin port is 513, but you may change it.
+
+When the user logs on, the environment variables are set:  USER<unit>,
+<TERM><unit>,  and BAUD<unit>.  <unit> is the telser.device unit.  For
+example,  when I rlogin from a UN*X machine the variable contents are:
+USER2=samy,TERM2=vt100,BAUD2=9600.   If you are writing an application
+that uses telser, you may take advantage of these variables.
+
+While  the  user  is logged in, the standard way to forcibly terminate
+the connection is by pressing "<CR>~." (carriage-return tilde period).
+
+When  the  user disconnects, the above three environment variables are
+unset.
+
+
+@ENDNODE
+
+@NODE 6.5.4. "Banning sites from calling in"
+
+The db/telserd.bans file is used to ban sites you don't want access to
+your  system.   Each  line in the file contains an AmigaDOS pattern to
+match the peer's IP address with.  Lines beginning with "#" or ";" are
+ignored.  Some examples are "*.*.*.*" to ban all sites, "127.0.0.1" to
+ban localhost, and "11.*" to ban all machines in network 11.
+
+
+@ENDNODE
+
+@NODE 7. "How telser works"
+
+In client mode:
+
+<comm-prog> <--> <telser.device> <--> [telser] <-..->  [telnetd]
+                ((( LOCAL HOST)))             (TCP/IP)  ((( REMOTE HOST )))
+
+Your  <comm-prog>  opens telser.device and talks to it.  telser.device
+relays  all  your  serial commands to [telser].  [telser] also handles
+the  telnet/rlogin  protocols.  [telser] communicates with telnetd (or
+other daemons) on the remote host.
+
+In server mode:
+
+<BBS> <--> <telser.device> <--> [telser] <--> [telserd] <-..-> [telnet]
+                ((( LOCAL HOST)))                      (TCP/IP) (( REMOTE ))
+
+Your  <BBS> opens <telser.device> and waits for an incoming call.  The
+remote  user  uses  the  [telnet]  program  to  connect  to [telserd].
+([telserd]  is launched by inetd.) [telserd] simply moderates messages
+between  [telser] and [telnet].  Once [telserd] makes a connection, it
+sends  a  "RING" message to [telser], which is then passed back to the
+<BBS>.   If [telser] is set up to auto-answer it would do an automatic
+connection  with [telserd].  Otherwise, the <BBS> must explicitly send
+an "ATA" command to [telser] to answer the call.
+
+
+@ENDNODE
+
+@NODE 8. "Using telser.device"
+
+To use telser.device, run your comm program the usual way.  Select the
+option   to   change   the   serial  device  and  unit.   Change  from
+"serial.device" to "telser.device".  And if you need to have automatic
+connections,  define  a  unit  in  db/telser.conf.  See
+@{"Device Unit Configuration" Link 6.1.} for details.
+
+If  telser.device  is  opened  successfully you should be able to send
+modem  commands to it.
+
+To  make  a  connection with a host either type "ATDT <host>[,<port>]"
+from  your comm program or enter the host information and click on the
+Connect  button in the @{"Telser Main Window" Link 13.1.}.  To disconnect from host,
+either  log  off  from  the  host,  or  type  "+++ATH",  or  press the
+Disconnect button from the @{"Telser Main Window" Link 13.1.}.  After disconnection,
+a "NO CARRIER" message is returned.
+
+When  you  are done, just exit your comm program.  telser will stay in
+memory   and/or  close  any  connection  depending  on  the  following
+condition.  If LINGER on or AT&D0, telser will not exit.  If LINGER on
+and AT&D2, telser will disconnect if connected, but will not exit.  If
+LINGER  off  and  AT&D2,  telser  will  exit and close any connection.
+Under any other condition, telser stays running.
+
+Controlling telser from the Shell
+---------------------------------
+
+If  a  telser  client  is  still running (when running with the linger
+option on) but it is no longer needed, it may be terminated by sending
+a ^C break signal to it with the "break" command.
+
+For example:
+ 1> status
+ 2> break <telser-process> C
+
+To  open  a telser client's window, send it an E signal.  e.g., "break
+<telser-process> E".  To close the window, "break <telser-process> D".
+A telser process can also be controlled by @{"TelserMon" Link 12.}.
+
+
+@{" Opening telser.device from a task " Link 8.1.}
+@ENDNODE
+
+@NODE 8.1. "Opening telser.device from a task"
+
+When  telser.device  opens,  it  normally launches the manager program
+"telser".   This  is  a problem if the program opening the device is a
+task.  (Tasks cannot call DOS functions, such as launching an external
+program.)  To  solve this problem, telser.device sends the name of the
+command (as a message) to execute to the server program "launchd".  If
+you  are  opening  telser.device  from  a task, you must run "launchd"
+first.  To run launchd, issue "run >NIL:  <NIL:  launchd".
+
+
+@ENDNODE
+
+@NODE 9. "Using tstelnet (as telnet/rlogin client)"
+
+tstelnet  is a really simple comm program that opens telser.device and
+allows  you  to connect to a host.  tstelnet starts from device unit 0
+and  goes  through  to  20 until telser.device is opened successfully.
+You  may  of  course  specify  a unit to attempt.  By trying each unit
+until  it  succeeds  you  can  use  tstelnet  to act like the "telnet"
+program.
+
+Usage: tstelnet [ -d device,unit ] [ -l username ] [ -f ] hostname [port]
+
+Examples: tstelnet archie.rutgers.edu
+          tstelnet mud.com 6667
+          tstelnet -dtelser.device,100 res.com
+
+If  port is specified as "login" or "513" the rlogin protocol is used.
+For  the  remote  username used in rlogin, telser checks the following
+locations:    remote  username  as  specified  in  the  host  database
+(db/telser.hosts),  RUSER  environment  variable (ENV:RUSER), and USER
+environment  variable (ENV:USER).  If -l is specified, tstelnet simply
+writes  the  value  to  the RUSER variable.  When tstelnet terminates,
+RUSER is then deleted.
+
+A handy alias to put in your s:shell-startup is:
+
+alias rlogin tstelnet -l samy [] 513
+
+(samy is my username on some hosts).
+
+So, to rlogin into a host, you simply execute "rlogin <host>" from the
+Shell.
+
+There  is  currently  no  official  way  to abort an asynchronous read
+request  from  input  handlers.  However, there are unofficial ways to
+abort  requests for those input handlers that support it.  The -f flag
+is  for  forcing the abort of a read request by pushing a character to
+the file handler.  Because this is unofficial, you should use the flag
+with  caution.  If you are using tstelnet from AmigaShell through CON:
+or  KINGCON:,  then  -f  should be fine.  If -f crashes in your Shell,
+don't use the flag.
+
+tstelnet  essentially  sends  "ATDT <host>[,<port>]" to telser.device.
+If  the  host name is not given, the user is prompted for the host and
+port.  The following prompts are displayed:
+
+Telnet/RLogin Host: abc.edu
+Port [23]: 
+
+tstelnet is particularly useful for telnetting out of a BBS because it
+is  8  bit  clean,  so  file  transfers  will work.  It also cleans up
+properly when the user drops carrier.
+
+If you run tstelnet from a console window there is a way to notify the
+remote host that your window has changed dimensions.  Once you resized
+your  window,  hit  the  HELP key to notify the host about the change.
+Hitting HELP launches the "tsctl" command to ask the telser program to
+send a window change control sequence to the host.
+
+Note  that  tstelnet is not limited to the usage of telser.device.  It
+can  also  be  used  as  a comm program for a real serial port.  e.g.,
+"tstelnet  -dserial.device,0  1-604-434-3665" would open serial.device
+unit 0 and tone-dials 1-604-434-3665.  To exit tstelnet just hit ecape
+three  times.   (Three  ^C  break  signals  would also work.) For your
+enjoyment,  the  C  source  code  to  tstelnet is included in the src/
+directory.
+
+
+@ENDNODE
+
+@NODE 10. "AmigaDOS Handler"
+
+telser  has the ability to open an AmigaDOS handler to provide service
+to  external programs such as shells, commands, and CLI "doors".  When
+the  handler  is  opened,  external programs use it as if it's a file.
+For  example, you can copy a file to the connected host by the command
+"copy  signature.txt  TS0:".   Note  that  the  handler  would only be
+operational  when  there  is  an  opened  connection.   Otherwise, all
+handler commands are discarded.  A DOS handler makes it much easier to
+implement  a  "real"  telnetd/rlogind.  Each handler has a unique name
+that  is  derived  from  the  device  unit.   A  handler  has the name
+TS<unit>, where <unit> is the unit number of the device.  For example,
+TS10  is  the  handler  for unit 10.  Most interactive programs should
+work with the handler.  In particular, programs that work would use no
+more than the following DOS packets:
+
+ACTION_FORCE (not formally documented; 2001)
+ACTION_STACK (not formally documented; 2002)
+ACTION_QUEUE (not formally documented; 2003)
+    These  three a treated the same.  It allows the calling program to
+    stuff  some  data into the handler's input buffer.  This is a good
+    way to abort DOS packets.
+
+ACTION_CHANGE_SIGNAL
+    Change the message port where the ^C break signal should be sent.
+
+ACTION_DIE
+    Asks telser to remove the handler and quit.
+
+ACTION_END
+    The  calling  program  sends  this packet when it's done using the
+    file handle.
+
+ACTION_FINDINPUT
+    Open the file handle for reading.
+
+ACTION_FINDOUTPUT
+ACTION_FINDUPDATE
+    These two are treated the same--open the file handle for writing.
+
+ACTION_FLUSH
+    Does nothing, but returns success to calling program.
+
+ACTION_WAIT_CHAR
+    Wait  for  a  character to be in the input buffer (from the telnet
+    connection) with a time limit.
+
+ACTION_READ
+    Read some bytes from the input buffer.
+
+ACTION_SCREEN_MODE
+    Tells handler to go into "raw" mode.
+
+ACTION_WRITE
+    Send some data to the connected host.
+
+All other packets would cause an error code to be returned.
+
+Three  are  some special commands you can pass to the handler when the
+handler  is  opened.   The arguments are passed as TS<unit>:<command>.
+Currently,  only  one  command can be passed to the handler at a time.
+Commands are case insenstive.  The commands are described as follows.
+
+WIN:<console-description>
+    This  command  sets  the  snooper  console  window  description as
+    specified  by  <console-description>.   When snooping is activated
+    (tsctl  -o  <unit>), the window according to <console-description>
+    will be opened.
+
+    Examples:
+        echo noline >TS0:WIN:CON:0/0/0/0/SnoopWindow/AUTO/WAIT/CLOSE
+        echo noline >TS0:WIN:KCON:////KCON:Snoop/CLOSE
+
+LF2CR
+    In  "cooked"  console  mode,  for  each linefeed (LF; AmigaDOS EOL
+    char)  send  a  carriage return (CR) to the host.  This command is
+    ignored if the program you are running already sets the handler to
+    raw  mode.  The command is particular useful if you need to copy a
+    text file (e.g., a signature file) to an email text editor running
+    on  the  connected  host.   Normally,  in  cooked mode, each LF is
+    translated to a CRLF pair.
+
+    Example:
+        copy .signature TS0:LF2CR
+
+PASSTHRU
+    Send all data to the host verbatim (without translations) in both
+    "raw" and "cook" modes.
+
+    Example:
+        copy binary-file TS0:PASSTHRU
+
+
+@ENDNODE
+
+@NODE 11. "telnetd/rlogind simulation"
+
+In  combination  with telser's AmigaDOS handler, telser can be made to
+operate  like  a  "real" telnetd/rlogind.  A real telnetd/rlogind does
+not require a serial.device-based host application such as a BBS.  The
+telnetd/rlogind  simulation  is  made  possible  by a set of commands.
+These  commands  are  described  below.   Setting  up  telnetd/rlogind
+simulation  requires  several  steps,  but each step is pretty easy to
+follow.
+
+As  you  know,  when a user telnets into your machine, serv/telserd is
+launched  by  inetd.  telserd then loads up AmiTCP:db/telserd.conf and
+for  each  unit in the file, it will attempt to make a connection with
+the  unit.   Recall  that you can specify a startup command to execute
+prior  to  making  a  connection  with the unit.  This startup command
+provides  a  hook  for  setting up a simulated a telnetd/rlogind.  See
+section @{"Server Mode Configuration" Link 6.5.} for details.
+
+In  the sample db/telserd.conf file, telserd launches the bin/tstdinit
+batch  file.   tstdinit  simply  opens the unit (and keeps it open) so
+that  telserd  can  talk  to  the  unit  when  the tstdinit exits.  If
+tstdinit  is successful at opening the unit, it also executes ("runs")
+bin/tstdstart  in  the background.  tstdstart simply displays a login:
+prompt  and  asks  the  user  for  his  name  and  password.   If  the
+authentication is successful, a shell program (e.g., bin/tssh) is run.
+The  user  can  then issue many commands from the shell program.  When
+the  user  exits  the  shell,  the  AmigaDOS handler is closed and the
+telnet  connection  is  terminated.  If the user forcibly disconnects,
+the  DOS  handler  sends  a series of ^C break signals to the currenly
+running  process.   The  commands  the user runs should exit when they
+encounter ^C break signals.  If they don't exit, a telser session will
+be locked up.
+
+If  you  read  through  bin/tstdstart, you can see that there are many
+lines  where  file redirection is used.  File redirection (via the DOS
+handler)  allows  data  to  be  sent  and  received  through  a telnet
+connection.   You  are  free  to  modify tstdstart to run anything you
+want,  but remember to use file redirection if you need to send output
+to the telnet connection.
+
+@{" telnetd/rlogind support commands and files " Link 11.1.}
+@ENDNODE
+
+@NODE 11.1. "telnetd/rlogind support commands and files"
+
+bin/tsctl
+    Control some operations of telser.  It is needed for telnetd/
+    rlogind simulation.
+
+    Usage: tsctl < -s | -q | -o | -c | -w<cols>x<rows>> <unit>
+
+    where:
+        -s  start up the unit and keep it running.
+        -q  stop the unit.
+        -o  open the snooper window associated with the unit.
+            The  snooper  window  displays  what the logged in user is
+            typing and allows you to type for the user also.
+        -c  close the snooper window.
+        -w  tell the remote host that we changed our window
+            dimensions.  <cols> is the number of columns, and <rows>
+            is the number of rows.
+
+    Examples:
+        tsctl -s 0
+        tsctl -o 0
+        tsctl -c 0
+        tsctl -q 0
+        tsctl -w80x50 1
+
+----------------------------------------------------------------------
+
+bin/tsgetpasswd
+    Get various information about a user.  If the user is not found,
+    an error code of 1 is returned.  For success, result code 0 is
+    returned.
+
+    Usage: tsgetpasswd [ -o output-var ] user
+                       < passwd | uid | gid | gecos | dir | shell >
+
+    where:
+        -o output-var   Write the result to an environment variable.
+                        The variable must not be preceded by the $
+                        sign.  The parameter is optional.
+        passwd          Retrieve the passwd for a user.
+         uid            Retrieve the numeric user id for a user.
+         gid            Retrieve the numeric group id for a user.
+         gecos          Retrieve miscellaneous info about the user,
+                        such as the user's real name.
+         dir            Retrieve the home directory for the user.
+         shell          Retrieve the default shell for the user.
+
+                        On the command line, one and only one of the
+                        above six parameters may be used at a time.
+
+    Examples:
+        tsgetpasswd -o root shell
+
+----------------------------------------------------------------------
+
+bin/tslogin
+    Confirm  that  the  password entered by the user is correct.  Each
+    user  is given three tries.  For each incorrect password, there is
+    a  delay  of  two  seconds.   The  delay  is to slowdown potential
+    password  cracking.   If  the  user  has  successfully entered the
+    password,  a  result  code  of 0 is returned.  Otherwise, an error
+    code of 10 is returned.
+
+    Usage: tslogin [ -f user ] [ -o user-output-var ] [ -np ]
+
+    where:
+        -f user             Specifies a default user and ask the user
+                            only for the password.
+        -o user-output-var  Stores the user name into the specified
+                            environment variable.
+        -np                 Do not ask user for their password.
+                            This may be useful for allowing anonymous
+                            logins.
+
+    Examples:
+        tslogin -f root
+        tslogin -o USERxx
+        tslogin -o USERxx -np
+
+----------------------------------------------------------------------
+
+bin/tssh
+    An AmigaShell like shell.  It supports file redirection as well
+    as command line history/editing.  It is called from bin/tstdstart.
+
+    Usage: tssh
+
+    Example:
+        tssh
+
+----------------------------------------------------------------------
+
+bin/tstdinit
+    Opens  the telser unit and keeps it opened.  If the unit is opened
+    successfully,  bin/tstdstart  is  called  to  finish off the login
+    process.  This batch file is called by telserd and is specified in
+    db/telserd.conf.
+
+    Usage: tstdinit <unit> <start-cmd> <host-name> <ip-addr>
+
+    where:
+        <unit>      The unit of the device to open.
+        <start-cmd> The command to run if the unit opens successfully.
+        <host-name> The host name the user is from.
+        <ip-addr>   The IP address of the host the user is from.
+
+    Examples:
+        tstdinit 10 amitcp:bin/tstdstart res.com 204.244.102.1
+
+----------------------------------------------------------------------
+
+bin/tstdstart
+    Asks the user for the password and logs him in the shell if the
+    password is good.  This batch file is called from bin/tstdinit.
+
+    Usage: tstdstart <unit> <host-name> <ip-addr>
+
+    where:
+        <unit>      The unit of the device to open.
+        <host-name> The host name the user is from.
+        <ip-addr>   The IP address of the host the user is from.
+
+    Examples:
+        tstdinit 10 amitcp:bin/tstdstart res.com 204.244.102.1
+    
+
+@ENDNODE
+
+@NODE 12. "TelserMon"
+
+TelserMon is a commodity program that allows you to monitor the status
+of  each  telser unit.  The program should go into your SYS:WBstartup/
+drawer,  so it is run every time your system boots into Wokrbench.  In
+the telsermon.info icon, the following tooltypes are supported:
+
+DONOTWAIT
+    If  specified,  this  is a standard tooltype which tells Workbench
+    not  to wait for the program to return before it (WB) continues to
+    execute.
+
+CX_PRIORITY=<priority>
+    Specifies the priority the commodity should run at.
+
+    Default: CX_PRIORITY=0
+
+CX_POPUP=<YES|NO>
+    Specifies whether the TelserMon window should open when it starts.
+
+    Default: CX_POPUP=YES
+
+CX_POPKEY=<hotkey>
+    Specifies  the  key to press (or "hotkey") to bring up the monitor
+    window.
+
+    Some of the standard qualifier keys are:
+
+    lshift      - left shift
+    rshift      - right shift
+    capslock    - Caps Lock
+    control     - Ctrl
+    lalt        - left Alt
+    ralt        - right Alt
+    lcommand    - left Amiga
+    rcommand    - right Amiga
+
+    Default: CX_POPKEY=control alt t
+
+TCPDIR=<directory>
+    This  specifies  the  directory  where  db/telser.conf  is stored.
+    telser.conf lets TelserMon know which units it should check.
+
+    Default: TCPDIR=AmiTCP:
+
+WIN_LEFT=<left-coordinate>
+    Specifies the x coordinate where the telsermon window should open.
+    Default is 0.
+
+WIN_TOP=<top-coordinate>
+    Specifies the y coordinate where the telsermon window should open.
+    Default is 0.
+
+TelserMon can also be run from the command line, and it also uses the
+same arguments as the icon tooltypes.
+
+When the TelserMon window opens, it looks like the following:
+
++-------------------------------------------+-+
+|[]| TelserMon 1.40 - © 1995-1996 by Sam Yee|Z|
+|-------------------------------------------+-+
+| Unit CLI Owner          Connected Host      |
+|+-----------------------------------------+-+|
+||  11  10 prog           fraser.sfu.ca    | ||
+||                                         | ||
+||                                         | ||
+||                                         | ||
+||                                         | ||
+||                                         | ||
+||                                         | ||
+||                                         |_||
+||                                         |^||
+||                                         |v||
+|+-----------------------------------------+-+|
+|+--------------+--------------+-------------+|
+||  Open GUI    |  Snooper On  |   Hide Mon  ||
+|+--------------+--------------+-------------+|
+||  Close GUI   | Snooper Off  |   Break CLI ||
+|+--------------+--------------+-------------+|
++---------------------------------------------+
+
+Unit column:
+    The unit number being monitored.
+
+CLI column:
+    The CLI number of the telser process.
+
+Owner column:
+    The  name  of the program that opened the unit.  If this column is 
+    empty,   this   unit   has   no   owner.   Redirector  units  have
+    "<redirector>" for the owner name.
+
+Connected Host column:
+    The  host  the  unit  is  connected  to.  If the host is empty, no
+    connection is made.
+
+Open GUI button:
+    When  pressed,  the  window  associated  with the selected unit is
+    opened.   Essentially,  an  E  signal  is sent to the CLI.  Double
+    clicking  on  a unit in the units list box is effectively the same
+    as clicking on the unit and then Open GUI.
+
+Close GUI button:
+    When  pressed,  the  window  of the unit is closed.  A D signal is
+    sent to the CLI.
+
+Snooper On button:
+    If a user is logged on to telnetd/rlogind you may snoop at what
+    the user is doing.  A console window is opened and you may even
+    type for the user!
+
+Snooper Off button:
+    Close the snooper window and thus stop snooping at the logged in
+    user.
+
+Break CLI button:
+    Terminate the selected telser unit if it has no owner.
+
+Hide Mon button:
+    This  button causes the TelserMon window to close.  The window can
+    again be opened by pressing the hotkey.
+
+TelserMon can be terminated by either hitting the close gadget on the
+window or by sending the program a ^C break signal.
+
+
+@ENDNODE
+
+@NODE 13. "Gadtools Graphical User Interface"
+
+As  mentioned  before,  your  telnet connections can be managed with a
+GUI.   The  GUI  may  be  opened  on  any public screen by setting the
+environment  variable  "TELSERPUBSCREEN"  to  point to the name of the
+screen.  For example:
+
+ 1> setenv TELSERPUBSCREEN TERM
+ 1> copy ENV:TELSERPUBSCREEN envarc: ; permanently saves it
+
+If  the  public  screen cannot be opened, the Workbench screen is used
+instead.  Note that some comm programs, such as Term, opens the serial
+device  first  before opening its screen.  In this case, if telser was
+told  to  open  its  GUI  at  start up time, it will not appear in the
+comm's  screen.   To  solve  this  problem,  simply  close the GUI and
+re-open  it.  Note that the environment variable can be changed at any
+time and will take effect the next time the GUI is re-opened.
+
+Telser has 4 windows in which you can change things.
+
+@{" Telser Main Window " Link 13.1.}
+@{" Telser Options Window " Link 13.2.}
+@{" Telnet Send Commands Window " Link 13.3.}
+@{" Configure Hosts Window " Link 13.4.}
+@ENDNODE
+
+@NODE 13.1. "Telser Main Window"
+
+If  you  specify  it, when telser.device is opened a window that looks
+like   the  below  opens.  The  OpenWin/NoOpenWin  option  in  section
+@{"Device Unit Configuration" Link 6.1.}  can determine whether this window will be
+opened  at  device  opening  time.   Alternatively,  you  may  send  a
+"virtual"   break   signal   to   telser,   as  described  in  section
+@{"Device Unit Configuration" Link 6.1.}, or typing "AT[" in command mode.
+
++--------------------------------------------------+-+-+
+|[]| [0] Telser 1.40 - Copyright 1994-6 by Sam Yee |%|Z|
+|--------------------------------------------------+-+-+
+| Unregistered version              +---------+------+ |
+|      Select Host     Select Term  |Iconify  | Help | |
+| +----------------+-+ +--------+-+ +---------+------+ |
+| |home            |#| |ansi    |#| |     Connect    | |
+| |archie          |#| |dumb    | | +----------------+ |
+| |school          |_| |vt52    |_| |   Disconnect   | |
+| |work            |^| |vt100   |^| +----------------+ |
+| |fun             |v| |vt102   |v| |  Send Commands | |
+| +----------------+-+ +--------+-+ +----------------+ |
+| +------------------+ +----------+ |     Options    | |
+| |fun               | |vt100     | +----------------+ |
+| +------------------+ +----------+ |Configure Hosts | |
+| | |rlogin?   +-----+       +----+ +----------------+ |
+| +-+     Port |6667 |  Cols |80  |                    |
+|         +----+-----+       +----+                    |
+|  login: |root      |  Rows |24  |                    |
+|         +----------+       +----+                    |
+|  Script |amitcp:db/|              +--------+-------+ |
+|         +----------+ log          |Save As | Clear | |
+| +-------+-----+----------------------------------+-+ |
+| |[94-Oct-30 13:25:43] Trying localhost...        | | |
+| |[94-Oct-30 13:25:43] Connection established.    | | |
+| |                                                | | |
+| |                                                | | |
+| |                                                +-+ |
+| |                                                |^| |
+| |                                                |v| |
+| +------------------------------------------------+-+ |
++------------------------------------------------------+
+
+The title bar displays the unit number (e.g., "[0]") of telser.device.
+You  can  safely  close  the window if you don't need it anymore.  All
+other  windows  associated  with  this  window will be closed as well.
+Hitting the escape key also closes the window.
+
+The second line of text displays who telser is registered to.
+
+The gadgets are defines as follows.
+
+Select Host:
+    Select  a  host  you want to connect to.  To attempt a connection,
+    click  once  on a host and click on the Connect gadget.  Otherwise
+    double-click on the host.  If you want to connect to a host not in
+    the  list,  simply enter it in the edit box below the list box and
+    click on the Connect button.
+
+Port:
+    This edit box enables you to establish a connection with a host at
+    particular port number.  In this example, the familar port 6667 is
+    used.
+
+rlogin?:
+    The rlogin protocol allows you to connect to a site automatically,
+    without  enter  a login ID or even a password.  You should see the
+    Unix  man  pages  on rlogin(d) before trying this feature.  Rlogin
+    posts a security risk, so use it with caution.
+
+    Rlogin requires both the local username and the remote username to
+    be  sent  to  the host.  The local user name is retrieved from the
+    $USER  environment variable.  The remote name (or login id) can be
+    specified in the db/telser.hosts file or manually entered from the
+    username field below.
+
+    If  this  checkbox  is  checked, use the rlogin protocol to do the
+    connection.   After  it's checked, the login:  gadget is activated
+    and  the  port number is cleared if it is set at 23 (telnet).  For
+    the  port number, you may enter 513 (rlogin) or just leave it at 0
+    to  use  the  default.   If  the rlogin checkbox is unchecked, the
+    login id gadget is ghosted out.
+
+    Note  that rlogin is a simple protocol, unlike telnet, so the only
+    thing you can do while connected (if host permits) is changing the
+    window  size.  File transfers may not work properly because rlogin
+    is  not  100% 8-bit clean.  However, on some sites, file transfers
+    work better with rlogin!
+
+login:
+    The remote login id to use for the rlogin protocol.  It is ghosted
+    out if rlogin is not used.
+
+Script:
+    The script file to execute after connecting to the host.
+    See section @{"Login Scripts" Link 16.}
+
+Select Term:
+    Select  the  terminal  type you will be using for this connection.
+    Once  a  term  has  been  selected,  the  Cols and Rows edit boxes
+    reflect the type of terminal.  However, Cols and Rows can still be
+    manually  changed.   Note  that  telser  will only notify the host
+    which terminal you are using if you tell it to.
+    See @{"Telser Options Window" Link 13.2.}
+
+Cols:
+    This  edit  box  allows  you to specify the number of columns your
+    comm program supports.
+
+Rows:
+    The number of rows your comm program supports.
+
+Iconify:
+    Close the window and creates an application icon on Workbench.
+
+Help:
+    Brings up the AmigaGuide(r) help file.
+
+Connect:
+    Attempt  a  connection with the specified host.  Once a connection
+    has been established, this buttons is ghosted out.
+
+Disconnect:
+    Disconnect  from  the  host  you are connected to.  If you are not
+    connected to a host, this button is ghosted out.
+
+Send Commands:
+    When  a  connection is made, you may control the telnet connection
+    by  clicking  on this button.  It will then bring up a window with
+    many buttons you can push.  See @{"Telnet Send Commands Window" Link 13.3.}
+
+Options:
+    Clicking on this button brings up the @{"Telser Options Window" Link 13.2.}.
+
+Configure Hosts:
+    Clickong on this button brings up bin/tsconfig program, which then
+    opens the @{"Configure Hosts Window" Link 13.4.}.
+
+Save As:
+    Save the logs to a particular file.  A file requester will open up
+    to request for a filename.
+
+Clear:
+    Clear the logs.  No warning is given prior to the clear.
+
+@ENDNODE
+
+@NODE 13.2. "Telser Options Window"
+
+This  window  allows you to manipulate options for a telnet connection
+or a telser unit.
+
++-----------------------------------------------+-+-+
+|[]| [0] Telser Options                         |%|Z|
+|-----------------------------------------------+-+-+
+|         Telnet Client Negotiation Options         |
+|  _                         _                      |
+| |_| Ignore Negotiation    |_| Will Flow Control   |
+| |_| Initiate Negotiation  |_| Will Terminal Type  |
+| |_| Do Binary             |_| Will Window Size    |
+| |_| Do Echo               |_| Will Terminal Speed |
+| |_| Do Suppress Go Ahead  |_| Will Linemode       |
+|                           |_| Force Linemode      |
+|                                                   |
+|             telser.device Unit Options            |
+|                                                   |
+|   Map Serial Break To           GUI on Startup    |
+| +---------------------+   +---------------------+ |
+| |@|    Open Window    |   |@|      Iconify      | |
+| +-+-------------------+   +-+-------------------+ |
+| |_| Redirect Unit         |_| Open DOS Handler    |
+| |_| Linger on Close       |_| Debug               |
+|                                                   |
+| +---------------------+   +---------------------+ |
+| | Save Telnet Options |   |  Save Unit Options  | |
+| +---------------------+   +---------------------+ |
++---------------------------------------------------+
+
+The  "[0]"  above  indicates  that these options are for telser.device
+unit 0.
+
+Telnet Host Options:
+    These options are defined in @{"Telnet Hosts Configuration" Link 6.2.}
+
+Telser Unit Options:
+    These options are defined in @{"Device Unit Configuration" Link 6.1.}
+
+Save Telnet Options:
+    Save these telnet options to the db/telser.hosts file.
+
+Save Unit Options:
+    Save these telser.device unit options to the db/telser.conf file.
+
+
+@ENDNODE
+
+@NODE 13.3. "Telnet Send Commands Window"
+
+When  a telnet connection has been established, sometimes it is useful
+to send telnet commands to the host.  This window will allow you to do
+just that.
+
++-----------------------------+-+-+
+|[]| [0] Send Telnet Commands |%|Z|
+|-----------------------------+-+-+
+|+-------------------------------+|
+||         Abort Output          ||
+|+-------------------------------+|
+||         Are You There         ||
+|+-------------------------------+|
+||             Break             ||
+|+-------------------------------+|
+||        Change Terminal        ||
+|+-------------------------------+|
+||       Change Window Size      ||
+|+-------------------------------+|
+||        Erase Character        ||
+|+-------------------------------+|
+||          Erase Line           ||
+|+-------------------------------+|
+||           Go Ahead            ||
+|+-------------------------------+|
+||      Interrupt Process        ||
+|+-------------------------------+|
+||        No Operation           ||
+|+-------------------------------+|
+||       Synch Operation         ||
+|+-------------------------------+|
++---------------------------------+
+
+
+The  "[0]"  above  indicates  that these options are for telser.device
+unit 0.
+
+Most  of  these commands are documented in "Map Serial Break To field"
+of section @{"Device Unit Configuration" Link 6.1.}.  The rest of the commands are
+described below:
+
+Change Term Type:
+    If  you are already connected, you may tell the host what your new
+    terminal type is.  Most hosts only accept the terminal type during
+    initial  telnet  negotiation,  which  takes place before the login
+    prompt.
+
+Change Win Size:
+    If  you  are already connected, you may tell the host how big your
+    comm  program's  window  is.   Programs  like  "vi"  on  Unix will
+    auto-adjust its text buffer dimensions to reflect the change in
+    window size.
+
+
+@ENDNODE
+
+@NODE 13.4. "Configure Hosts Window"
+
+tsconfig  is  an  external  program  that allows you to configure your
+hosts.   It  modifies the db/telser.hosts file.  If tsconfig is called
+from  telser,  telser  will not send or receive data while tsconfig is
+running.  This is because telser waits for tsconfig to make changes to
+the  hosts  file and then later update its hosts window to reflect the
+changes.  When tsconfig runs it opens the following window.
+
++----------------------------------------------------------------+-+-+
+|[]| tsconfig 1.40 - Copyright (c) 1996 by Sam Yee               |%|Z|
+|----------------------------------------------------------------+-+-+
+|                 Host Aliases              Telnet Negotiation       |
+|+-------+-----------------------------+-+                           |
+||  Top  |alias1                       |_|Ignore Negotiation         |
+|+-------+alias2                       |_|Initiate Negotiation       |
+||  Up   |...                          |_|Do Binary                  |
+|+-------+                             |_|Do Echo                    |
+|| Down  |                             |_|Do Supress Go Ahead        |
+|+-------+                             |_|Will Flow Control          |
+||Bottom |                             |_|Will Terminal Type         |
+|+-------+                             |_|Will Window Size           |
+|| Sort  |-----------------------------+_|Will Terminal Speed        |
+|+---+---+-----------------------------+_|Will Linemode              |
+||Del|New|                             |_|Force Linemode             |
+|+---+---+----------------+------+-----+                             |
+|   Host:|                | Port:|0    |                             |
+|        +----------------+------+-----+                     +------+|
+| Rlogin?|_|       login:|             |   Terminal Type     | Okay ||
+|+------+================+-------------+-+------------------++------+|
+||Script|                              |@|       ANSI       ||Cancel||
+|+------+------------------------------+-+------------------++------+|
++--------------------------------------------------------------------+
+
+Top button:
+    Moves the selected host to the top of the list.
+
+Up button:
+    Moves the selected host one position up in the list.
+
+Bottom button:
+    Moves the selected host one position down in the list.
+
+Bottom button:
+    Moves the selected host to the bottom of the list.
+
+Sort button:
+    Sorts all the hosts in alphabetical order.
+
+Del button:
+    Deletes the selected host.  No warning is given.
+
+New button:
+    Adds a new host.
+
+Host string gadget:
+    Allows you to enter the host (or IP address) of the selected host
+    alias.
+
+Port button:
+    Allows you to enter the port number for the telnet/rlogin
+    connection.  If 0 is specified, the default is used.
+
+Rlogin? checkbox:
+    If checked, use the rlogin protocol to make a connection.
+
+login: string gadget:
+    Allows  you  to  specify  the  user  name  to  use  for  an rlogin
+    connection.
+
+Script string gadget:
+    Specifies which script file to execute at the beginning of a
+    connection.
+
+Terminal Type cycle gadget:
+    Allows  you  to  specify  the  terminal type to send to the telnet
+    host.
+
+Telnet Negotiation checkboxes:
+    These checkboxes are described in the section
+    @{"Telnet Hosts Configuration" Link 6.2.}.
+
+Okay button:
+    Clicking on this button will save the hosts to db/telser.hosts and
+    then the program exits.
+
+Cancel button:
+    Clicking on this button will cause the program to exit without
+    saving any changes.  No warning will be given, even if there are
+    changes.
+
+
+@ENDNODE
+
+@NODE 14. "Logging"
+
+All  log  entries have a time/date stamp.  The logs are written at the
+time  telser.device  closes,  unless  of course you click on the "Save
+Log"  button in the @{"Telser Main Window" Link 13.1.}.  Most of the log entry types
+are defined as follows.
+
+Connection closed by foreign host.
+    telnetd on the other end has closed our connection
+
+Connection closed.
+    you forcibly close the connection
+
+connect() error
+    Unable to connect to host at a particular port number.
+    Check your host name and port number and try again.
+    Port number 0 is the default.
+
+Connection established.
+    A successful outgoing connection has been made with the host.
+
+local: <local-name>; remote: <remote-name>; term: <term>; baud: <baud>
+    While   handling  incoming  rlogin  connections,  this  log  entry
+    displays  the local name the user wants to log in with, the remote
+    name of the user, terminal type used, and baud rate he/she is at.
+
+Received ^C break signal
+    You sent a break signal to the telser process.  If you are
+    connected, you will no longer.
+
+received TCP urgent data
+    
+rlogind connection established.
+    A successful incoming rlogind connection has been made.
+
+select() returns <result>: error <code>
+    Internal error <code> caused by select()
+
+socket() error
+    Unable to open a socket
+
+tcp/rlogin: unknown service
+    The ermote host does not have rlogind running.
+
+tcp/telnet: unknown service
+    The remote host does not have telnetd running.
+
+telnetd connection established.
+    A successful incoming telnetd connection has been made.
+
+Trying <host>...
+    Client is trying to open a telnet connection with <host>
+    Note that this may take a while if the host is unreachable.
+    Hitting a key on your keyboard won't abort it.
+
+unknown host: <host>
+    <host> is not in your hosts file or your name server.
+    Try again with an IP address instead.
+
+Refer to your TCP/IP package for other network error codes.
+
+
+@ENDNODE
+
+@NODE 15. "Modem Commands"
+
+The basic Hayes(r) compatible modem commands and options are supported
+by  telser.device.   Also,  several  new  commands are used by telser.
+Note  that  many  commands  and  options  are  there for compatibility
+reasons  and  are  ignored.   The  effective  commands and options are
+defined as follows.
+
+Command/    Function
+Options
+--------    ----------------------------------------------------------
+A           Manually answer an incoming call.
+A/          Re-execute the last command. Useful for redialing.
+            It does not take AT or <Enter>.
+AT          Attention: lets the telser know that commands are
+            being issued to it.
+DP or DT    Attempt to connect to a host.
+            E.g.,  "ATDT archie.rutgers.edu,23".  The 23 following the
+            host name is the port number.
+DSn         Connect to the host stored at host list position n.
+            See &Zn.  E.g., "ATDS3"
+En          Command mode local echo.
+            E0  Echo OFF
+            E1  telser.device displays keyboard commands
+Fn          Online local echo.
+            F0  Echo ON
+            F1  Echo OFF (default)
+H0          Disconnect from host.
+In          Information display.
+            I0  Three digit version number.
+            I4  Display current modem settings.
+            I5  Display nonvolatile memory (NVRAM) (ie., from file)
+                settings.
+            I7  Return version information
+O0          Return online.
+Qn          Result Codes displayed/suppressed.
+            Q0  Display result codes
+            Q1  Quiet mode; no result codes.
+Sr=n        Set register r to n.
+Sr?         Show contents of S-Register r.
+V0          Verbal/numeric result codes.
+            V0  Numeric codes
+            V1  Verbal codes
+Xn          Result code set.
+
+            Result Code     X0  X1  X2  X3  X4
+            ----------------------------------
+            0/OK            .   .   .   .   .
+            1/CONNECT       .   .   .   .   .
+            2/RING          .   .   .   .   .
+            3/NO CARRIER    .   .   .   .   .
+            4/ERROR         .   .   .   .   .
+            5/CONNECT 1200      .   .   .   .
+            6/NO DIALTONE           .       .
+            7/BUSY                      .   .
+            8/NO ANSWER                 .   .
+            10/CONNECT 2400     .   .   .   .
+            13/CONNECT 9600     .   .   .   .
+            18/CONNECT 4800     .   .   .   .
+            20/CONNECT 7200     .   .   .   .
+            21/CONNECT 12000    .   .   .   .
+            25/CONNECT 14400    .   .   .   .
+            26/CONNECT 19200    .   .   .   .
+            27/CONNECT 38400    .   .   .   .
+            28/CONNECT 57600    .   .   .   .
+            29/CONNECT 115200   .   .   .   .
+Z           Reset to software defaults.
+&Cn         Carrier Detect (CD) signal.
+            &C0 CD override
+            &C1 Normal CD operations
+&Dn         Data Terminal Ready operations.
+            &D0 DTR override; so DTR drop would not cause a
+                disconnection from host.
+            &D2 Normal DTR operations; telser disconnects when DTR
+                drops.
+&V          Same as "ATI4"
+&W          Write current configuration to NVRAM (ie., db/telser.mdm).
+&Zn=s       Write host name string s to NVRAM at position n.
++++         Escape to Online-command mode, or if S14=1, disconnect
+            from host and escape to command mode.
+[           Open the telser window. E.g., "AT[".
+]           Close the telser window. E.g., "AT]".
++CID=n      Caller ID
+            +CID=0 disable caller ID.
+            +CID=1 enable caller ID: display IP address of caller
+            +CID=2 enable caller ID: display hostname of caller
+            +CID=3 enable caller ID: display both address and name
+
+            When caller ID is on, incoming calls will cause the
+            following lines to be displayed:
+
+            RING
+            CID = IP address and/or hostname
+
+*cmd        Special modem commands for sending telnet commands.
+            *AO     Abort Output
+            *AYT    Are You There?
+            *BRK    Break
+            *EC     Erase Character
+            *EL     Erase Line
+            *GA     Go Ahead
+            *IP     Interrupt Process
+            *NOP    No Operation
+            *SYNCH  Synch Operation
+
+$           Display quick command summary.  E.g., "AT$"
+
+
+S-Registers
+
+Register    Default     Function
+--------    -------     ----------------------------------------------
+S0          0           Sets the number of rings on which to answer in
+                        Auto Answer mode.
+S1          0           Counts and stores the number of rings from an
+                        incoming call.
+S2          43          Stores the ASCII decimal code for the escape
+                        character.  The default is '+' (43).    A
+                        value of 128-255 disables the escape code.
+S3          13          Stores the ASCII decimal code for the
+                        Carriage Return Character.
+S4          10          Stores the ASCII decimal code for the Line
+                        Feed Character.
+S5          8           Stores the ASCII decimal code for the Back-
+                        space character.
+S14         0           If set to 1, the connection will be closed up
+                        on receipt of the escape code, returns to
+                        command mode and sends the NO CARRIER result
+                        code.
+S19         0           Sets the duration, in minutes, for the
+                        Inactivity Timer.  To disable it set it to 0.
+                        When the timer goes off, any connection will
+                        be closed.
+S50         0           The number of seconds to wait before returning
+                        the CONNECT string to the comm program.
+S51         0           Delay for packets of 1024 bytes or more.
+                        Time is in 100th of a second.
+
+@{" Connection Result Codes " Link 15.1.}
+@ENDNODE
+
+@NODE 15.1. "Connection Result Codes"
+
+Telnet  connection  result  codes  are  mapped  to the following modem
+result codes.
+
+BUSY
+    unknown service
+
+CONNECT ...
+    connection established.
+
+OK
+    the last modem command was successful.
+
+NO CARRIER
+    unknown host or disconnection closed
+
+NO ANSWER
+    unable to connect to host because host is down
+
+NO DIALTONE
+    unable to open a socket
+
+
+@ENDNODE
+
+@NODE 16. "Login Scripts"
+
+telser  supports  a  limited  scripting  language which enables you to
+auto-login into a host.  Lines in the script file can be commented out
+by  preceding  the lines with ";" or "#" characters.  Commands are not
+case sensitive.  Command arguments that contain spaces must be quoted.
+The script commands are described as follows.
+
+(Note:   the 2 slashes in escape codes only appear in the text version
+of the documentation.)
+
+DELAY <seconds>
+    Delay some seconds before executing the next line in the script.
+
+    Example: DELAY 5
+             delays 5 seconds
+
+DTENTHS <10th-seconds>
+    Delays some 10th seconds before executing the next line.
+
+    Example: DELAY 5
+             delays 1/2 seconds
+
+END
+    Ends  the  executing of the script.  This is optional and required
+    only if early termination of the script is desired.
+
+MESSAGE <string>
+    Sends a string to the comm program.  The string is the same format
+    as SEND.
+
+    Example: MESSAGE "About to auto-login...\\r\\n"
+
+SEND <string>
+    Sends  a  string  to  the  host.   The  string may contain special
+    control codes, which are defined as follows:
+
+    \\b   - backspace (control-H)
+    \\e   - escape (control-[)
+    \\f   - form-feed (control-L)
+    \\n   - newline (control-J)
+    \\r   - carriage-return (control-M)
+    \\t   - tab (control-I)
+    \\x## - ASCII character in hexa-decimal.
+    \\### - ASCII character in octal.
+
+    Examples: SEND "samy\\r"
+              sends samy<CR> to the host.  Usually sent when the host
+              prompts "login: "
+              SEND "\\033[1mBOLD\\x1bc"
+
+WAIT <string>
+    Waits until a string is received before executing the next line.
+
+    Example: WAIT "login: "
+             waits until the "login:" string is received before moving
+             on.
+
+The  script file may reside anywhere, and its name is specified in the
+telser.hosts file.  (See section @{"Telnet Hosts Configuration" Link 6.2.}).  Hosts
+may  share  the  same  script files.  This is particular useful if you
+connect to several hosts using the same user id and password.
+
+Example script file:
+
+    ; this script auto logins into my U
+    message "Auto logging into school...\\r\\n"
+    wait "ogin: "
+    send "samy\\r"
+    wait "assword:"
+    send "nicetry\\r"
+
+If  telser's scripting capability is primitive for your needs, you can
+always  use  the  script language built into your comm program.
+
+You  are  not  recommended to use login scripts that send passwords if
+your Amiga is used by someone you don't really trust.  They can easily
+steal your passwords!
+
+
+@ENDNODE
+
+@NODE 17. "serial.device compatibility"
+
+The basic serial.device commands are supported.  The ones that are not
+supported  are simply ignored and a successful result code is returned
+to the comm program.  Most comm programs are supported.  Some examples
+are:
+
+    o Term 4.1/4.2,
+    o VLT 5.867,
+    o NComm 3.0,
+    o Terminus 2.0c/d,
+      ("Ignore ODU" option in settings/port must be turned off)
+    o JR Comm,
+    o Termite 1.00 demo,
+    o Platinum Works! Comm,
+    o JPTC,
+    o TinyTerminal,
+    o X-Comm,
+      (When switching to telser.device in X-Comm, ensure you
+       activate the port (Device/Active) and then flush it
+       in the Device/Flush Port menu.)
+    o AXSH 1.3,
+    o DLG BBS/OS,
+    o AmiExpress BBS,
+    o CNet BBS,
+    o Xenolink,
+    o Zeus BBS,
+    o AmigaMud (game), and
+    o Carnage (game).
+
+The comm programs that don't work include:
+
+    o hft, and
+    o Baud Bandit.
+
+If you are a comm/BBS program author and telser doesn't work with your
+program let me know.
+
+
+@ENDNODE
+
+@NODE 18. "Troubleshooting"
+
+----------------------------------------------------------------------
+Problem:
+    Nothing happens after I see the "CONNECT" string.
+
+Cause:
+    Telnet negotiation failed.
+
+Solution:
+    Turn  BINARY  mode  off from the @{"Telser Options Window" Link 13.2.}.  On some
+    Suns,  use  the  terminal  "UNKNOWN"  when  logging in.  After you
+    logged  in,  issue  "setenv  TERM  <your-term>".  (The Suns I have
+    access to don't suffer this problem.)
+
+----------------------------------------------------------------------
+Problem:
+    You can't enter your user id and password.
+
+Cause:
+    The host expects a different end-of-line character that terminates
+    a line of input.
+
+Solution:
+    On  some  Suns,  use ^J (linefeed) instead of carriage-return.  If
+    possible, remap your carriage-return key to linefeed.  It may also
+    help if you uncheck the "Do Binary" checkbox in the
+    @{"Telser Options Window" Link 13.2.}.
+
+----------------------------------------------------------------------
+Problem:
+    You can't log into Amiga NetBSD systems.
+
+Cause:
+    Telnet negotiation failed.
+
+Solution (maybe):
+    Telser's  LINEMODE  options  are not 100% implemented.  Hopefully,
+    it'll  be  completed  in  the future releases.  Meanwhile, try the
+    host again with LINEMODE set off in the @{"Telser Options Window" Link 13.2.}
+
+----------------------------------------------------------------------
+Problem:
+    You  can  log  into a BSDI BSD/386 or BSD 4.4 system, but it won't
+    respond to your keystrokes.
+
+Cause:
+    Telnet negotiation failed.
+
+Solution:
+    telser  doesn't  support ("real" or "kludge") LINEMODE completely,
+    so turn off LINEMODE in the @{"Telser Options Window" Link 13.2.} and try again.
+
+----------------------------------------------------------------------
+Problem:
+    When you use DTR drop to hang up telser you don't see the full
+    "NO CARRIER" string.
+
+Cause:
+    DTR  drop  involves  closing and re-opening the device.  Some comm
+    programs  flush the device after it opens it, but before the first
+    read.  Therefore, the "NO CARRIER" can be partly flushed out.
+
+Solution:
+    Do not use DTR drop to hang up.  Instead use +++ATH\\r.
+
+----------------------------------------------------------------------
+Problem:
+    When  telser.device  is  opened  the second time, the comm program
+    reports busy.
+
+Cause:
+    The unregistered version of telser allows only one unit at a time.
+    You are recommended to register.  See @{"Registration Form" Link 21.}
+    You chose the same unit as the first comm program.
+
+Solution:
+    If you are already a registered user, make sure the telser.key
+    file is in S:
+    Chose a different unit and try again.
+
+----------------------------------------------------------------------
+Problem:
+    You can't do file transfers.
+
+Cause:
+    Intolerable time delays affecting the underlying transfer protocol.
+
+Solution:
+    Play  with  the protocol parameters such as relaxed timing, packet
+    sizes,  turn off LINEMODE, etc.  If all else fails, you can always
+    "uuencode"  the  file  and ascii capture the output from the "cat"
+    command.
+
+    Try  to log on with the rlogin protocol and do file transfers.  It
+    works on some systems, like IRIX.
+
+----------------------------------------------------------------------
+Problem:
+    You cannot abort dialing.
+
+Cause:
+    TCP/IP is taking a long time finding a route to the host.
+
+Solution:
+    Issue  a Ctrl-C break signal to the telser process responsible for
+    the  unit  you are using.  You can do it from TelserMon or finding
+    out the CLI number of telser by using "status" and using "break".
+
+----------------------------------------------------------------------
+Problem:
+    You see garbage after you connect.
+
+Cause:
+    Wrong TCP port
+
+Solution:
+    Make  sure  you  telnetted to the correct port (typically 23), and
+    rlogin  to  the  right  port also.  Telnetting to a rlogin port or
+    rloginning  to a telnet port will display garbage and possibly get
+    disconnected.
+
+----------------------------------------------------------------------
+Problem:
+    You cannot get telser to work with CNet BBS.
+
+Cause:
+    modem setup incorrectly.
+
+Solution: (written by Dan Fraser (IRC nick: Optic))
+    There are some simple changes that must be made to allow telser to
+    work properly with CNet BBS.
+
+    First,  load  CONFIG  and configure a new CNet port as if you were
+    installing a new modem.  Completely remove the "Init#1", "Init#2",
+    "Terminal", and "Term link" modem strings.  Set the "Idle baud" to
+    whatever  speed  you  would  like to use with telser (ie:  19200).
+    Remember  to  change the serial device to "telser.device".  Ensure
+    that the "Ans.  pause" field is set to at least 10.
+
+    Now,  load  the port in CNet's control panel, open its screen, and
+    enter  terminal  mode.   Type  "ATS0=0&D2&W" to make the necessary
+    changes  to  telser's config.  Exit terminal mode, and your telser
+    port is all ready to go.
+
+----------------------------------------------------------------------
+Problem:
+    You cannot get telser to work with TSL 2.0e (Terminus) from
+    Workbench
+
+Causes:
+    unknown
+
+Solution:
+    As reported by Dan Zerkle:
+
+    If  I  start  Terminus  directly from the workbench (without TSL),
+    it's fine.  It's also fine to run TSL from the shell.
+
+    To summarize:
+
+                    Shell   Workbench
+    Terminus        OK      OK
+    TSL             OK      HANGS
+
+    I  now  suspect that is is due to a bug or incompatibility in TSL,
+    not telser.
+
+----------------------------------------------------------------------
+Problem:
+    You must press [RETURN] before your keystrokes get send.
+
+Cause:
+    LINEMODE is turned on.
+
+Solution:
+    Turn off LINEMODE by un-checking the corresponding checkbox in the
+    @{"Telser Options Window" Link 13.2.}.
+
+----------------------------------------------------------------------
+Problem:
+    You can't send extended ASCII characters (>= 128)
+
+Cause:
+    Your comm program is stripping the 8-th bit.
+
+Solution:
+    Tell your comm program to stop doing that.
+
+
+@ENDNODE
+
+@NODE 19. "History"
+
+ Ver. YY/MM/DD Changes
+ ---- -------- --------------------------------------------------------
+ 1.40 96/03/17 - full telnetd/rlogind emulation without host program.
+               - DOS Handler (for support of above)
+               - new GUI for configuring hosts.
+               - improved file transfers for some comm programs.
+               - removed 4K memory leak in telserd.
+               - tstelnet client can now send the current window size
+                 to the remote host.
+               - miscellaenous bug fixes.
+ 1.30 95/09/11 - bug fix with ATDT<host> where host is not in host list
+                 Was causing enforcer hits when GUI not opened.
+               - telserd can now run without being launched by
+                 inetd.  (works with MLINK on most sites.)
+               - telser.device now loads a resident telser, if present.
+               - telser.device can now be opened from a task.
+               - also looks in $KEYPATH for key file
+               - device unit redirection (programs access other units
+                 through one unit)
+               - can ban IP addresses from calling in
+               - iconification at startup or any time.
+               - can adjust terminal type string sent to host
+               - device units can share configuration with each other
+               - units can now have default telnet configurations
+               - rawin.library is now optional, but still needed if
+                 LINEMODE is desirable.
+               - ATDT<host>[,<port>], <port> can be a service name that
+                 exists in the services file.
+               - tstelnet can fully simulate the UNIX rlogin client.
+               - should work better with some telnet-less MUDs.
+ 1.20 95/03/06 - save telnet options now saves the rlogin preferences
+                 and login ID.
+               - at startup, if window is opened, it will not be
+                 become active.  (Suggested by Vincent Hodges)
+               - telserd can now take config filename from command
+                 line.  Therefore, it can now service different ports.
+                 (Suggested by Vincent Hodges)
+               - now works with Platinum Works! comm program
+               - can disable telnet negotiation.  This is needed for
+                 some MUD servers and UUCP.
+               - added modem register S50 to allow CONNECT string
+                 report to be delayed while in hostmode
+               - added simple script capabilities
+                 (Suggested by Dennis Lee Bieber)
+               - added TelserMon to monitor telser units
+               - can now handle incoming rlogin connections
+               - file transfers much improved
+ 1.10 95/01/29 - Checkbox gadgets are now scaled.
+               - ZModem upload/downloading much improved.
+               - Spurious characters problem fixed.
+               - Caller ID can now report hostname as well as IP
+                 address.
+               - RLogin protocol now supported, as suggested by
+                 Eddy Carroll.
+               - serial EOF mode supported, but not fully tested.
+               - asynchronous connect, but stuff like address
+                 resolution is still synchronous.  You can abort
+                 host "dialing" some of the time, but not always.
+               - known enforcer hits removed
+               - added telnet flow control negotiation
+               - linemode can now be forced
+
+ 1.00 95/01/01 - Original release
+
+
+@ENDNODE
+
+@NODE 20. "Acknowledgements"
+
+Thank-you's go to...
+
+ - The AmiTCP group at Helsinki University for their great work,
+
+ - Stephan Sürken for Text2Guide, which made creating AmigaGuide
+   documents easy,
+
+ - Jan van den Baard for GadToolsBox, which help create telser's GUI,
+
+ - All the beta-testers (TOO many to list.), especially those who
+   made reports.
+
+   Special thanks to:
+
+   David Zvekic (IRC nick: Ensoniq) for major testing with the AS225
+        version;
+
+   NJ Verenini (IRC nick: Spumoni) for testing the AmiTCP version and
+        writing the AXsh installation guide;
+
+   Robert Reiswig (IRC nick: RobR) for writing the Installer script;
+        and
+
+   Dan Fraser (IRC nick: Optic) for writing the CNet BBS installation
+        tip in the Troubleshooting section,
+
+ - David Swasbrook (author of SwazBlanker, IRC nick: Swaz) for helping
+        debug TelserMon's popup key,
+
+ - Skip Watson (ciaran@phoenix.aldhfn.org) for writing the DLG setup
+   guide, and
+
+ - All registered users.  Without you, there probably wouldn't have
+   been as many enhancements since 1.0.
+
+
+@ENDNODE
+
+@NODE 21. "Registration Form"
+
+----------------------------------------------------------------------
+                        telser Registration
+
+Surname___________________________ Given Name_________________________
+
+Company Name_________________ Type of Business________________________
+
+Street Address________________________________________________________
+
+City______________________________ Prov./State________________________
+
+Postal/ZipCode_____________________ Country___________________________
+
+E-Mail_________________________________________ uuencoded files OK?___
+
+Networking software and hardware in use_______________________________
+
+______________________________________________________________________
+
+Hostname of BBS telserd is used on____________________________________
+
+Where did you get telser?__________________________ Version Number____
+
+Suggestions for future releases or new programs_______________________
+
+______________________________________________________________________
+
+Registration fee: $20US for unlimited units.
+                  Canadian users may send $27CAN.
+
+Method of payment:
+[ ] Money order
+[ ] Personal check, please allow 3-4 weeks for clearance.
+    No personal checks from outside of Canada and the US.
+[ ] Cash (wrapped with sufficient paper).
+    I hold no responsibility for missing cash.
+[ ] VISA / [ ] MC.
+    Card # ________________ Card Holder __________________ Expiry ____
+    (4% surcharge will be added.  Transactions are in Canadian funds.)
+
+I have read the section @{"Legal Issues" Link 1.} and agree with it.
+
+_________________________  ___________________________________________
+       (Date)                           (Signature)
+----------------------------------------------------------------------
+
+
+@ENDNODE
+
+@NODE 22. "Contact Address"
+
+Registration  fees,  questions,  ideas,  comments,  bug  reports, etc.
+should  go to the addresses below.  If you are reporting bugs, be sure
+to include a telser log (Options/Debug option on), and a SnoopDos log.
+
+Snail Mail: Sam Yee
+            4595 Nanaimo St.
+            Vancouver, B.C.
+            Canada  V5N 5J5
+
+  Internet: samy@res.com        (main mailbox)
+            samy@incognito.com  (secondary mailbox)
+            IRC nick: Encoder in channel #amiga
+   FidoNet: 1:153/765 (Terra Firma BBS (604) 434-3665)
+
+@ENDNODE
+

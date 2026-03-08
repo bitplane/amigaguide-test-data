@@ -1,0 +1,1027 @@
+@database Shell.guide
+@author "Pasi 'Albert' Ojala"
+@(c) "Copyright ©1991-1995 Pasi Ojala"
+@$VER: Shell 1.32 (2.1.95)
+
+@node Main "AXsh 1.32 - Shell manual"
+NAME
+	AXsh - a shell (command interpreter)
+
+SYNOPSIS
+	AXsh
+
+DESCRIPTION
+	AXsh, the AXshell, is a command  interpreter with a number of
+	convenient  features for interactive use that  are or are not
+	available with the standard AmigaDOS shell, including command
+	aliasing, history events, variables, filename and command name
+	completion, shell level protections and a number of built-in
+	commands.
+
+@{"OPTIONS" link OPTIONS}
+@{"Command Line Editing" link COMMANDLINE}
+	@{"Completions" link COMPLETIONS}
+@{"Command Execution" link COMMANDEXEC}
+@{"Variable substitution" link VARIABLES}
+@{"Aliases" link ALIASES}
+@{"Redirection" link REDIRECTION}
+@{"Signals" link SIGNALS}
+@{"Filename Expansion" link EXPANSION}
+@{"Built-In Commands" link BUILTIN}
+@{"Special variables" link SPECIALVARS}
+
+@{"Configuration" link CONFIG}
+
+FILES
+	/bin/AXsh		AXsh executable
+	/etc/rc			Configuration file
+	/etc/ForbiddenVars	File holding all untouchable variables:
+				   <varname> [<number of sets allowed>]
+	/etc/GlobalLogin	Script executed at login, can be used to
+				set system variables like POSTNEWS etc.
+				Still executed with user's privileges.
+	~/.lastlogin		Showed by the login shell at login.
+	~/.logout		Script which is EXECUTEd at logout
+	~/.login		Script which is EXECUTEd at login
+
+SEE ALSO
+	login, exit, cd, execute
+@endnode
+
+*****************************************************************************
+
+@node OPTIONS "Options"
+@{b}-con@{ub}
+	Turn off carrier checking (console mode) and allow superusers to run
+	any program they like, even those NOT in the /etc/rc file (they have
+	to be in the path though).
+
+@{b}-log@{ub}
+	Keep log (AXsh:etc/adm/log.*)
+
+@{b}-user <user>@{ub}
+	Accepts user without asking the password.  Account for the user must
+	still exist in /etc/passwd.  In this mode "login" command causes
+	relogin with the same login name.  This option is useful with closed
+	UUCP systems, where getty is answering the calls and you don't want
+	to have two login-prompts.
+
+@{b}-nullmodem@{ub}
+	Indicates that there will be no carrier signal present and AXsh should
+	ignore any carrier loss.
+
+@{b}-notrap@{ub}
+	Uses the default exception handler code instead of the custom AXsh
+	one that kicks the user out and resets the machine.
+
+@{b}-speed <speed>@{ub}
+	Sets the variable "speed" to the value specified.
+@endnode
+
+*****************************************************************************
+
+@node VARIABLES "Variable Substitution"
+In case '$' is encountered, it is treated as an environmental variable and
+the variable is replaced by its value.  If the variable is to be part of a
+word, it must be surrounded by braces of some kind.  The substitution is not
+done inside the quotes.  List of the reserved and special variables may be
+found elsewhere in this document.
+
+@{b}$name@{ub}
+	Normal type, will (usually) select the whole variable as is.
+
+@{b}$name[select]@{ub}
+	Selects only one word from the variable.  Numbering starts from zero.
+	If the referenced word doesn't exist,a NULL string is returned.
+
+@{b}${name}[select]@{ub}
+	When the variable name contains spaces or '[' chars, it must be
+	surrounded by braces.  Any pair of "()", "[]" and "{}" are considered
+	as braces.
+
+examples:
+
+> echo $user
+root
+> echo ${tty}/$[host] $(quota)kB
+con7/amiga.pasbox.fi 30kB
+
+> echo ${s p a c e}
+
+You can still use $-sign by doubling it ($$->$).  Another way to use $-sign
+is to preceed it with a back-slash (\\).
+
+There is a special variable:  $< , which reads a line from the standard input
+and that line is appended to the command line as is.  No future parsing is
+done to the string read.
+
+Each variable is inserted as a single argument, even if it consists of
+several words.  If you want to add something to the same argument, you can
+use e.g.
+
+	$[var1]" text "$var2	"a"\\"$[var]\\""b"
+@endnode
+
+*****************************************************************************
+
+@node COMMANDEXEC "Command Execution"
+A simple command is composed of a sequence of words.  The first word
+specifies the command to be executed.  One line can have several commands
+separated with a semicolon (";").
+
+Command Separator
+
+If you want to execute several commands from a single line you can use ';' as
+a delimiter.  This command separator works only with command line, not from
+scripts.
+
+In script files semicolon is used as a comment-mark!
+
+	e.g. "cd arc: ; ls"
+
+If you want to use semicolon on its own, preceed it with a backslash:  "\\;".
+The same applies to every special character.
+
+	e.g. "echo ls \\; more file\\ name ; ls ; more file\\ name"
+
+Command Execution
+
+If the command is a AXshell @{"built-in" link BUILTIN}, the shell executes it directly.
+Otherwise, the shell searches for a file by that name with execute
+permission.  If the command-name contains a / or a :  the shell takes it as a
+pathname, but completely ignores it.  This way unsecure commands won't be
+executed.  You can also use this feature to supress alias-replacement.
+
+	e.g. c:dir would use the command 'dir', not the alias for dir
+
+For superusers in local (console) mode things are not as simple.  Paths are
+used as is and the shell path is also searched.
+@endnode
+
+*****************************************************************************
+
+@node COMMANDLINE "Command Line Editing"
+The command line editor has two modes depending on the 'term' environmental
+variable (vt100 or ANSI).  In ANSI-mode it sends more bytes, so vt100-mode is
+recommended.  Just make sure that your emulation matches the setting.  It
+seems that most vt100- terminals really don't like to work with the
+ansi-mode and vice versa.
+
+The editor knows about these commands:
+
+left/right ^B/^F	Moves cursor left and right
+up/down    ^P/^N	Recalls @{"history events" link HISTORY}
+Shift-left    ^A	Goto the start of line
+Shift-right   ^E	Goto the end of line
+Shift-up, Shift-TAB	@{"History completion" link HISTORY}
+Backspace		Delete previous character
+Delete			Delete current (next) character
+^D			Like Delete or display matching
+			files if cursor is at the EOL
+^L, ^R			Refresh line
+^K			Delete to the end of line
+^U			Delete to the start of line
+^W			Delete previous word
+^X			Delete line
+^Y			Yank killed text back
+
+TAB (^I)		@{"Command/filename completion" link COMPLETIONS}
+Return/Newline (^J/^M)	End editing :-)
+
+HELP			String assigned in variable HELP
+F1			String in variable F1
+ :			 :
+ :			 :
+F20			String in variable F20
+@endnode
+
+*****************************************************************************
+
+@node BUILTIN "Built-In Commands"
+Built-in commands are executed within the AXshell.
+
+;	Null command.This command is interpreted,but performs
+	no action.  Actually this contains two null-commands.
+	In script files semicolon is used as a comment mark.
+
+alias [ name [ def ] ]
+	Assign "def" to the alias name. "name" is not allowed
+	to be "alias" or "unalias" .  If def is omitted , the
+	alias  name  is  displayed  along  with  its  current
+	definition. If both the name and def are omitted, all
+	aliases are displayed. The name is the first argument
+	and the definition is the second.
+
+	e.g. alias help "man axsh"
+
+	You can remove all aliases with "alias clear".
+
+cd [ dir ]
+	Change  the  shell's  working  directory to directory
+	dir.   If  no  argument  is given, change to the home
+	directory of the user. ~ denotes home directory and :
+	denotes  the  root  directory  of the current working
+	directory.  '..' is the parent directory and / is the
+	AXsh: assign or disk.
+
+	"cd" may be omitted ,  if there is no command mathing
+	the directory name.
+
+echo	Just prints out everything to the output. Mainly used
+	on  script files for output.  The trailing newline is
+	not printed if the first argument is "-n" or the last
+	argument is "noline".
+
+	Example: echo $realname has logged on $host
+
+execute script-file
+	Get the commands from a specified file. The execution
+	continues  until  the end of file is reached or if an
+	error occurs. Empty lines are skipped. Scripts can be
+	nested, but the recursion depth is limited.
+
+	Since 1.3 you can also redirect the output of a script.
+
+	"execute" may be omitted, if there is no command with
+	the same name as the script-file nor a directory with
+	the same name (currently this is impossible in Amiga).
+	"execute" still appears as the zeroth argument to the
+	script.  The  script file bit must also be set if you
+	plan to start the script with only its name !
+
+exit	The shell exits and hangs up, if remote connection.
+
+internal
+	Lists all internal commands. It is still possible that
+	they aren't allowed to all users, depending on /etc/rc.
+
+login	Terminate a login and initiate a new one.
+
+protect modes file [file2 ..]
+	Parses the mode argument and then sets the protection
+	bits accordingly. You can set, clear and toggle ANY
+	defined bit, including group and world protection
+	bits.
+
+	e.g.	protect go+r-w /etc/systemaliases
+
+	However, THESE BITS ARE NOT USED in AXsh yet, but ls
+	shows them.
+
+quit	A null-command. Otherwise used to exit scripts.
+
+quota	Shows  home  filesystem , number of files used , disk
+	space used and usage limit. Will return warning level
+	(5) if the quota is exceeded.
+
+set [ var [ definition ] ]
+	Create or modify a shell variable.  There are several
+	predefined ones that cannot be changed and some, with
+	whom the changes are discarded. Actually all variables
+	are  currently  environmental  variables, but this is
+	supposed to change.
+
+	The variable name is the first argument and the
+	definition is the second.
+
+	From version 1.3 all AXsh variables are exported to 2.0
+	shell local variables. You also have a list of WORM-
+	variables that can only be set once (/etc/ForbiddenVars).
+
+	e.g. set HELP "cat /etc/motd\\n"
+
+	@{"Special variables" link SPECIALVARS}
+
+sysinfo	Print out some information about the OS version etc.
+
+unalias word [word2 .. [wordn]]
+	Discard one or more aliases.
+
+unset var [var2 .. [varn] ]
+	Discard one or more shell variables.
+
+uptime	Displays uptime and system load information.
+
+wait time
+	Goto sleep for time (in seconds). Wait can be stopped
+	with a keypress.
+
+which command
+	Will show from where the command is executed. e.g.
+
+	%14 (root) AXsh:home/root/ 169 > which dir
+	AXsh ALIAS
+	DH0:Oldsys/C/Dir
+	c:dir
+
+	Dir is an alias, but otherwise DH0:oldsys/c/dir would
+	have been executed. There is also another dir in the
+	command search path, c:dir.
+
+who	Displays uptime and load information with a list of the
+	users currently logged in.
+
+whoami	Print out your current login name
+
+write user text [text ..]
+	Will send the text to another user in the system.
+	If the user is not logged in, an error message is
+	displayed instead.
+
+@{b}Special script file commands:@{ub}
+
+The if-construct is a bit lame, but there simply are some more important
+features to think about..
+
+if	Keywords for if-else-endif -contruct.
+else	The condition can be one of the forms :
+endif		"foo" == "foo"
+		"bar" != "foobar"
+		exists file
+
+	If you use variable, the form depends on the variable
+	   $var != "foo" will become:
+	   "" != "foo"	, if the variable is empty and
+	   var != "foo"	, if the variable is unset
+
+goto label
+	Jumps to a defined label. It is an error if the label
+	doesn't exist.
+
+quit	Exits the script
+
+label: [command]
+	Command  labeling .  The command is optional, and the
+	label is ignored in the command execution. A label
+	name cannot have spaces in it.
+
+; comment
+	Commenting. Starts a comment which proceeds to the
+	next end-of-line.
+@endnode
+
+*****************************************************************************
+
+@node HISTORY "History Events"
+History events allows you to call for already typed lines for editing.  You
+can use either cursor keys up/down or type the !-character and the command
+number.  History numbers can be found out with the 'history'-command,which is
+built in the getline-routine.  The number of history-lines is fixed and
+cannot be set by user.  History completion may also be used.  Write the start
+of the command line and press @{"shift-TAB" link COMMANDLINE}.  The history completion works almost
+like @{"filename completion" link COMPLETIONS}.
+@endnode
+
+*****************************************************************************
+
+@node COMPLETIONS "Command, history, directory and filename completion"
+The command line editor offers you the ability to complete a partial filename
+by pressing TAB (^I).  If the name matches several files or directories,
+expansion is made only to the extent it can be made and a BELL (^G) is
+printed.  You can also display all matching filenames by pressing ^D.
+However, the cursor should be at the end of the line.
+
+If you apply TAB (^I) to the first word on a line,the word is treated as a
+command and the completion is made accordingly.  If no perfect match was
+found on the command set, a filename completion is tried.  Remember that
+these actions are separate and a partial completion may be performed in the
+command completion routine before passing the partial filename to filename
+completion.  You can do completions on redirections too.
+
+@{"History completions" link HISTORY} are also possible.  This function can be invoked
+using shift+cursor_up or shift-TAB.  It behaves like filename completion and
+beeps for a partial completion.
+@endnode
+
+*****************************************************************************
+
+@node ALIASES "Aliases"
+The shell maintains a list of aliases that you can create, display and modify
+using the alias and unalias commands.  The shell checks the beginning of each
+command line to see if it matches a name of an existing alias.  If it does,
+the command is reprocessed with the alias definition replacing its name.
+
+Aliases shouldn't be nested .  An alias definition shouldn't contain another
+alias as the first command, because the alias substitution is made only once
+for each command.  So, recursive aliases are not possible, but looping
+aliases are easy to create.  To break such loop, you may have to send
+successive BREAKs (^C) for undefined period of time (depending on the command
+inside the loop).
+	(ex. alias loop wait 10\\;loop)
+
+You cannot make an alias for strings 'alias' or 'unalias', so these commands
+are always accessible.
+
+Aliases are case-sensitive, so you can escape an alias by typing the command
+using a different case.
+@endnode
+
+*****************************************************************************
+@node REDIRECTION "I/O Redirection"
+The following metachars indicate that the word is the name of a file to which
+the command's standard output is redirected.  Standard input cannot yet be
+redirected.  Redirection does not work with all of the shell builtins.
+
+>	Redirect  the standard output to a file . If the file
+	does not exist, it is created. If it does exist,it is
+	overwritten; its previous contents are lost.
+
+>>	Append the standard output. Like >, but places output
+	at the end of the file rather than overwriting it. If
+	the file does not to exist, it is created.
+
+|	Simple piping. Everything after the pipe symbol in the
+	command line is considered to be another command. The
+	piping uses temporary files created in T:.
+
+Redirection and piping can't be used simultaneously !
+@endnode
+*****************************************************************************
+@node SIGNALS "Signal Handling"
+AXsh normally ignores all signals.  Ctrl-D is checked only if the
+ignoreeof-variable it unset.  Ctrl-C it not yet used for anything.  It is
+upto the running program to acknowledge break signals.  AXsh will exit if it
+detects an EOF situation or a loss of carrier.  If you open AXsh in a window
+with a close-gadget, it can also be used to make AXsh exit.
+@endnode
+*****************************************************************************
+@node EXPANSION "Filename Expansion" Directory and filename expansion
+The shell expands all arguments containing ':' or '/' chars.  This way all
+external commands get the right parameters and you still have a consistent
+referencing in filesystem:  you can use '~/' to refer to home dir with any
+command.
+
+This expansion can be turned off by defining the 'f'-flag for the command in
+AXsh:etc/rc.  This means that the argument is not considered a filename.  DO
+NOT define this flag if the command takes filename arguments or you blow off
+the whole security.
+
+Wildcard expansion isn't made by AXsh, but the command itself, if it supports
+wildcards.  This may change in the future.
+@endnode
+*****************************************************************************
+@node SPECIALVARS "Special Variables"
+From version 1.3 all AXsh variables are exported to 2.0 shell local
+variables.  You also have a list of WORM- variables that can only be set once
+(/etc/ForbiddenVars).
+
+-- System variables:
+
+user		user's login name
+tty		which terminal 'line' the user uses
+accesslevel	just what it says.
+realname	full name of the user
+home		user's home directory
+host		current host name
+dosv		system version
+intime		time the user has been logged in (mins)
+
+-- Special variables:
+autologout	in minutes - time between keystrokes
+		in AXsh for automatic logout.
+
+language	What catalog to use. If the language is not found or the
+		variable is not set, English is used.
+
+		Currently you can select one of these:
+		 suomi		(Finnish)
+		 français	(French)
+		 dansk		(Danish)
+		 español	(Spanish)
+		 svenska	(Swedish)
+		Or use the default English.
+
+cwd		current working directory
+quota		disk space currently used (in kB)
+
+lasterr		return code from the last command
+ioerr		IoErr() returned by the last external command
+		Lasterr and ioerr are not seen in the variable list.
+
+term		terminal emulation (vt100 or ansi, def:ansi)
+rows		number of rows on terminal (default: 24)
+visual		name of the full screen editor (def: editor)
+edscroll	scroll length in lines (in editor)
+prompt		the prompt format:
+		 Variables:
+		   %%	% itself
+		   %d	current working directory
+		   %D	the last component of the CWD
+		   %h	command counter
+		   %l	line (terminal)
+		   %M	hostname
+		   %q	actual quota/limit
+		   %r	full name
+		   %t	time (full time now, might change)
+		   %u	username
+		   %i	intime (in minutes)
+
+		 C-style special codes:
+		   \\e	ESC
+		   \\t	TAB
+		   \\n	Newline
+		   \\r	CR
+		   \\a	BEL
+
+		 Control codes:
+		   ^L	Ctrl-l
+		   ^G	Ctrl-g
+		   etc..
+
+		 any other character as is, default prompt is "%h.%d> "
+
+		Example:
+		   set prompt "\\\\e[1m(%u)\\\\e[m %%%h \\\\e[7m%d\\\\e[m > "
+
+		Notice that you have to double the backslashes,
+		because they have precedence over doublequotes.
+
+ignoreeof	if this variable is not set, ^D will do exit.
+
+HELP		You can create macros by defining these variables. e.g.
+F1			set F1 "^a^d^d^d^drm^e"
+..		will goto start of line, delete 4 chars, add
+F20	 	"rm" and goto end of line when you press F1.
+		C-style codes and control characters are like in
+		the prompt.
+
+-- Special variables in scripts --
+
+argument	Works only with a word specifier, not as $argument.
+		argument[0] is 'execute', argument[1] is the
+		script name (possibly including path) etc.
+		This variable is not seen in the variable list.
+@endnode
+*****************************************************************************
+
+@node CONFIG "Configuration"
+
+This section is reserved for the actual configuring and
+customizing.  Remember that the identifier names are
+case-sensitive, should be always in lowercase and the colon is part
+of the name.  Rest of the line is ignored.  The setting for that
+specific entry follows on the next line.  All paths should end in a
+slash or a colon, for example AXsh:  and AXsh:home/ are legal
+values.
+
+There are no actual comment-separators in the configuration files.
+
+
+@{b}AXsh:etc/rc@{ub}
+
+AXsh:etc/rc is the main configuration file in AXsh.  In that file
+you define what commands and directories the users are allowed to
+use.  You have to decide what commands every access level can run
+and the directories they can access.
+
+(@{"Example /etc/rc" link ExampleRc})
+
+Directory and command definitions:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+There are two main sections which are splitted in several parts by
+user level names:
+	%dirs:			%commands:
+	$daemon:		$daemon:
+	$system:		$system:
+	$wizard:		$wizard:
+	$superuser:		$superuser:
+	$assistant:		$assistant:
+	$privileged:		$privileged:
+	$trusted:		$trusted:
+	$friend:		$friend:
+	$qualified:		$qualified:
+	$normal:		$normal:
+	$guest:			$guest:
+	$visitor:		$visitor:
+	#			#
+
+Each section begins with %<identifier>:  and usually ends with a #.
+Access level specifiers are defined with $<specifier> qualifier.
+There are four superuser access level specifiers:
+    @{b}daemon@{ub}, @{b}system@{ub}, @{b}wizard@{ub}, @{b}superuser@{ub} and eight normal user levels:
+    @{b}assistant@{ub}, @{b}privileged@{ub}, @{b}trusted@{ub}, @{b}friend@{ub}, @{b}qualified@{ub}, @{b}normal@{ub}, @{b}guest@{ub}, @{b}visitor@{ub}
+    (You can get a list of these with passwd -ll.)
+
+Allowed directories are defined in the %dirs:  section.  Each
+directory path name ends with a / or :.  All the paths defined
+after the access level specifier are valid for the corresponding
+access level.  This means that directories specified with lower
+level users are also valid for higher access level users, if you
+keep the access level specifiers in the same order as here and
+don't use the limiting character (#).
+
+You can also make separate definitions for each access level, if
+you end a level definition with a #-sign.  You can mix these two
+defining methods too, for example "normal" has some of its own
+directories and all of the directories that are defined for
+"guest", which has only its own definitions.
+
+	e.g.
+		%dirs:
+		$guest:
+		axsh:usr/
+		axsh:usr/spool/
+		axsh:usr/spool/news/
+		$visitor:
+		axsh:
+		axsh:man/
+		axsh:info/
+		#
+		$assistant:
+		axsh:
+		axsh:etc/
+		axsh:etc/adm/
+		#
+		$daemon:
+		$wizard:
+		$superuser:
+		...
+
+	Here "visitor" can access only his own home directories,
+	AXsh root directory, man and info directories.  "guest" has
+	all these and some additional directories to access.
+	"assistant" can do only administrative jobs and has access
+	to AXsh root directory and /etc and /etc/adm directories.
+
+
+The %commands:  section lists all the executable commands for each
+access level.  We suggest that you modify your own rc file based in
+the rc file which is included in the distribution.  Commands for
+each access level are specified in the same way as in the directory
+section.  You must not add any intuition-based programs to the
+list.  For local use, just use path to add directories to AXsh:s
+path.  Only superuser (root), when logged in on console, is allowed
+to run any program.  Any superuser can use any directory too.
+Starting from 1.26, AXsh can also run resident and shell-internal
+commands under KS2.0 .
+
+Before the command name in the /etc/rc file there are possibly some
+flags.  If you put a "p" before the command, it's arguments can
+point only to the home directory, but the command can be run
+anywhere.  Like "p editor".  You can start the editor anywhere, but
+only edit your own files.  "h" means that the command can be run
+only in the home directory.  Usually this means that the program
+stores its data files in the current (default) directory and
+allowing the use of the command elsewhere would cause configuration
+and other files pop up randomly anywhere the user can go.  "i" will
+make the arguments disappear.  These three flags has no effect on
+superusers
+
+"q" suggests that the used disk space is checked after the command.
+"r" will cause the command to be run in raw-mode, instead of the
+usual console-mode.  Must be used for those programs that expects
+to be run on RAW:  .  "f" will not try to do any interpretations on
+the arguments, otherwise ".." , "~" and other Unix-like paths are
+converted to AmigaDOS format.  So, what in fact "f" means is:  "Do
+not do any checking or tranformation of the arguments".  Use it
+with extreme care or you will blow out the whole security out of
+the door.
+
+
+Global definitions:
+~~~~~~~~~~~~~~~~~~~
+After (or before) dirs and commands there are a few other
+identifiers, which can be changed quite freely depending on the
+configuration of the AXsh system.
+
+First there's the default home directory for users.  We suggest
+that you use AXsh:home/, but it may be some other directory as
+well.  This controls where the registered users' home directories
+are created.  This does not have any effect to home directories
+that already exist.  All path definitions MUST end with a slash or
+colon ("/" or ":").
+
+%timezone:  sets the string that is appended to date strings when
+sending news or mail.  It may be 9 characters long, the default is
+GMT if this entry does not exist.
+
+%upload:  defines where the network uploads go.  It's possible to
+send binary files through net with news packets and they end up
+where this definition points.  Remember that this may or may not be
+the same directory that is used in XPR.  XPR upload directory is
+specified in /etc/xprotos.tab.
+
+%exampleuser:  defines a path that points to the directory that
+will be copied to new user's home when a new account is created.
+You can store read.me files etc.  there.  We recommend that you'd
+use AXsh:etc/exampleuser/ here.  Register uses c:copy to copy the
+files, so that should exist also.
+
+%priority:  is the priority that AXsh takes on startup.  You might
+use 1, because you're using the system on the console paying
+nothing but the electricity bill.  The poor guy on the phone line
+is paying the phone bill, so he should be the one getting CPU time
+whenever he wants.
+
+%thismachine:  tells the network name of this site.
+
+%organization:  defines an Internet organization line.  Could
+contain state and town and name of your system.
+
+%hub:  defines the machine that is your hub machine on the net.
+Hub refers to the main machine that you poll.  This and the
+%password:-entry are normally associated with the rc.server event
+definitions.
+
+%password:  defines the password that is sent when a net connection
+is established and the hub machine has taken your machines name.
+This is something you and your hub machines administrator should
+decide.  The password may not be too easy to guess, because other
+systems may have system privileges on the remote hubs.  You do not
+have to give another host system privileges if you give permission
+to use AXsh:bin/net to normal users.
+
+%tempdir:  defines the temporary directory for network files.
+Usually T:  or RAM:.  Currently this is only used to store network
+packets while receiving and sending them.  Rn also uses this while
+creating new articles.
+
+When the system crashes and AXsh notices it, it tries to reboot the
+system to avoid gurus and system down-times.  It's done by
+executing an external program which is defined in %reboot:.  We
+recommend that you use SetCPU romboot.
+
+%answers:  defines the file where AXsh:bin/register stores
+users'answers.  Usually AXsh:etc/adm/answers.
+
+%newregister:  enables or disables the login name "new".  "no" will
+disable the feature.
+
+%defuserlevel:  defines the user level for newly-registered users.
+Default level is "visitor".  You can also define the quota for new
+users with %defquota:.  Default quota is 50k.
+
+%reboot:  defines the command that is run when AXsh catches a GURU.
+
+%passwdfile: defines where the passwd file is located so that normal
+users can't even take a look into it.
+
+
+@{b}/etc/issue and /etc/motd@{ub}
+
+/etc/issue is displayed before the login prompt and could have e.g.
+the system name and OS version.  This file is optional:  if it does
+not exist, no error message is printed.  Don't use long issue
+files.
+
+/etc/motd is the `message-of-the-day' file, which is displayed to
+every user after a successful login.  It's recommended that the
+administrator modifies this file and adds at least some
+explanations about how to get help (man -k -).
+
+
+@{b}/etc/forbiddenvars@{ub}
+
+This file defines which variables can't be set by user.  You need
+this with 'foreign' newsreaders and other UUCP stuff, because a
+user shouldn't be allowed to change e.g.  the POSTNEWS variable.
+
+You can also define how many times a given variable can be set
+(usually 1), so that you can set them in /etc/globallogin, which is
+executed before .login.  AXsh 1.3 exports all the variables to 2.0
+shell local variables, if it is possible (if you have a ks2.0
+system).  Since AXsh version 1.3, all variable names are
+case-insensitive, but the case is preserved.
+
+/etc/ForbiddenVars:
+~~~~~~~~~~~~~~~~~~
+    user
+    USERNAME
+    HOME
+    organization
+    version
+    quota
+    lastlogin
+    MAILER	1
+
+    <variable-name> <soft-spaces> [<set's allowed>]
+
+All these variables can only be set by the system, except MAILER is
+allowed to be set once.  Of course you would want to use
+/etc/GlobalLogin to set the variable before the user can run his
+own scripts.
+
+
+@{b}/etc/globallogin@{ub}
+
+GlobalLogin is executed EVERY time a user logs in, before executing
+~/.login, so that you can be certain that needed variables are set.
+Globallogin is executed with user privileges, but if you use
+/etc/ForbiddenVars correctly, you can set the variables you like.
+
+Globallogin is especially well suited for running programs you
+really need executed in each login, because globallogin execution
+can not be aborted by user.
+
+
+@{b}/etc/adm/ directory@{ub}
+
+/etc/adm directory is used to store log files generated by AXsh and
+some external programs.  Administrator should check these files
+regularly.  The following files may be found on the active AXsh's
+/etc/adm directory:
+
+------rwed--------     5     2140 02-Mar-94 23:40 Answers
+------rwed--------     3     1218 05-Mar-94 23:37 Xpr.log
+------rwed--------    16     8148 06-Mar-94 02:07 netlog
+------rwed--------     3     1458 06-Mar-94 00:37 usage.log
+
+And maybe some other Log files.  Xpr.log contains short information
+about files sent or received using xpr.  Answers is the file, where
+AXsh:bin/register stores users' answers.  Netlog contains short
+status lines of net activity and usage.log shows user login/logout
+times with inline-times.  These lines can be analyzed with
+userstat, which reads xpr.log, netlog and usage.log and produces
+interesting summaries.
+
+
+@{b}/etc/nologin@{ub}
+
+When this file exists, no logins are allowed and any non-superuser
+users currently on the system are kicked out.  The file should
+contain the reason for shutdown, like "Owner's game session is
+about to begin" :-) Superusers get a polite message which informs
+them that the system is possibly going down and it would be nice if
+they logged out.
+
+@endnode
+
+*****************************************************************************
+
+@node ExampleRc "An Example of the /etc/rc file"
+
+%home:  /* users' home directories */
+AXsh:home/
+%timezone:	/* string to be added to Date: line, default GMT (max 9 chr) */
+EET
+%upload: /* system upload directory */
+AXsh:usr/spool/upload/
+%exampleuser: /* this dir is copied to a new home dir */
+AXsh:etc/ExampleUser/
+%priority: /* AXsh priority */
+0
+%thismachine: /* Hostname */
+pasbox
+%hub:  /* The machine we are supposed to call */
+news.cc.tut.fi
+%password: /* Password for us in the hub */
+huuhaa7
+%netsendto: /* Net packet send timeout in seconds */
+400
+%netreceiveto: /* Net packet receive timeout in seconds */
+600
+%organization:
+Digital Disaster Design - Wanna fry some chips ?
+%tempdir: /* Temporary place for e.g. mail/news packets */
+T:
+%answers: /* Answer file */
+AXsh:etc/adm/answers
+%newregister:	/* "no" will disable the "new"-loginname register feature */
+yes
+%defuserlevel:	/* default is "visitor" */
+visitor
+%defquota:		/* default is 50k */
+50
+%reboot:
+c:coldreboot
+
+%passwdfile:	/* New for 1.31 */
+AXsh:etc/adm/passwd
+
+; Permitted dirs. Only symbolic paths are necassasy
+%dirs:
+$system:
+#
+$daemon:
+$wizard:
+$superuser:
+$assistant:
+$privileged:
+$trusted:
+$friend:
+work:
+$qualified:
+$normal:
+$guest:
+$visitor:
+Fortunes:
+AXsh:
+AXsh:etc/
+AXsh:bin/
+AXsh:info/
+AXsh:info/InOtherSystems/
+AXsh:man/
+AXsh:usr/
+AXsh:usr/spool/
+AXsh:usr/spool/news/
+AXsh:usr/spool/upload/
+AXsh:usr/src/
+AXsh:home/
+C:
+sys:
+sys:Expansion/
+sys:System/
+sys:Tools/
+Libs:
+Docs:
+devs:
+devs:keymaps/
+devs:printers/
+L:
+fonts:
+#
+
+%commands: /* p-no path, h-in home, q-check quota */
+$system:
+f	AXsh:bin/mailserver
+f	AXsh:bin/net
+f	ECHO
+f	EXECUTE
+f	SET
+#
+$wizard:
+$superuser:	/* i-ignore args, f-not a filename r-raw mode */
+	run
+	path
+f	KICK
+$daemon:
+$assistant:
+$privileged:
+$trusted:
+$friend:
+$qualified:
+$normal:
+$guest:
+$visitor:
+f	ALIAS
+f	CD
+f	ECHO
+	EXECUTE
+f	FINGER
+	IF
+f	INTERNAL
+p	PROTECT
+f	QUOTA
+	QUIT
+f	SET
+f	SYSINFO
+f	UNALIAS
+f	UNSET
+f	UPTIME
+f	WAIT
+	WHICH
+f	WHO
+f	WHOAMI
+f	WRITE
+f	AXsh:bin/AMI
+f	AXsh:bin/ascii
+f	AXsh:bin/banner
+f	AXsh:bin/bigtext
+f	AXsh:bin/calendar
+	AXsh:bin/cat
+r	AXsh:bin/CC
+f	AXsh:bin/clear
+rf	AXsh:bin/consoletalk
+	AXsh:bin/du
+qph	AXsh:bin/editor
+qph	AXsh:bin/viseditor
+	AXsh:bin/ffe
+f	AXsh:bin/italics
+f	AXsh:bin/last
+	AXsh:bin/ls
+f	AXsh:bin/mach
+qf	AXsh:bin/mail
+	AXsh:bin/man
+	AXsh:bin/more
+f	AXsh:bin/netstat
+h	AXsh:bin/news
+f	AXsh:bin/passwd
+f	AXsh:bin/register
+qi	AXsh:bin/rn
+qph	AXsh:bin/rx
+qh	AXsh:bin/sigmaker
+	AXsh:bin/sx
+f	AXsh:bin/top
+	AXsh:bin/userstat
+	AXsh:bin/wc
+	AXsh:bin/XPR
+i	AXsh:bin/userinfo
+i	C:Assign
+f	C:Avail
+fi	C:Date
+i	C:Dir
+	C:Info
+	C:List
+f	C:Status
+	C:Version
+qph	Utils:LhA
+qp	C:Copy
+qp	C:Delete
+qp	C:Join
+qp	C:Sort
+qp	C:MakeDir
+qp	C:Rename
+	C:Type
+#
+
+@endnode

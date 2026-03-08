@@ -1,0 +1,456 @@
+@database DoArc.guide
+@node main DoArc
+
+    @{b}DoArc 1.0 by Rolf Max Rotvel@{ub}
+
+    @{" Description                         " link description}
+    @{" Requirements                        " link requirements}
+    @{" Installation                        " link installation}
+    @{" Configuration                       " link configuration}
+    @{" Usage                               " link usage}
+    @{" Notes                               " link notes}
+
+    @{" Author                              " link author}
+    @{" Copyright                           " link copyright}
+    @{" Disclaimer                          " link disclaimer}
+    @{" Credits                             " link credits}
+    @{" History                             " link history}
+
+@endnode
+@node description "Description"
+
+    DoArc is a tool for extracting, creating, viewing or converting all types
+    of archives. It acts as a frontend for all your archivers (LhA, Lzx, Zip
+    etc) and once it is configured you only need to use one command when
+    working with archives.
+
+    You can pass arguments to DoArc on the commandline or it can be driven
+    entirely through requesters. And you can mix and match - requesters will
+    pop up and ask for any arguments not supplied on the commandline.
+
+    DoArc has support for the XAD unarchiving system. You can use XAD as a
+    master unpacker/viewer and override it for specific archive formats (Say,
+    if you want to use a ppc unpacker for lzx archives).
+    The XAD support is fully automatic - you don't have to specify if it is a
+    file or a diskarchive and tar and dms unpacking is handled automatically.
+
+    As a archive converter DoArc (Unlike the typical lha to lzx converters)
+    can be configured to convert to and from any archive format you like.
+    Examples: gz to zip, tgz to lha, dms to lha (!) and of course lha to lzx.
+    You can also repack archives (Eg: lzx standard compression to lzx maximum
+    compression), DoArc detects this and renames the original archive.
+
+    When specifying which archive files to process you can use standard c:List
+    syntax. This means you can use wildcards and the ALL, PAT, etc options. 
+    Eg: "DoArc CONVERT file:downloads ALL PAT #?.zip LHA" will convert all zip
+    archives in file:downloads (And subdirectories!) to lha archives.
+
+    More features:
+
+    * You don't have to worry about archive names with spaces (Or dots) in the
+      path. DoArc uses a few tricks to circumvent such problems, without
+      changing the original files of course. This also applies when creating
+      archives - ie: You can create archives with any silly name you like :-)
+
+    * A lot of work has been put into making DoArc exit as cleanly as possible
+      if an error occurs or you send it a CTRL-C.
+
+    * DoArc displays the filenote of an archive if it has any and...
+
+    * When converting archives DoArc automatically copies any filenote from
+      the original archive to the new.
+
+@endnode
+@node requirements "Requirements"
+
+    RexxMast.
+
+    Workbench 3.0 with the standard c: commands (List, Delete, Requestchoice,
+    etc)
+
+    To use XAD for extracting or viewing archives you can 
+    a) Upgrade to Workbench 3.9 which comes with XAD installed or 
+    b) Install it yourself. You need xadmaster.library (+clients) in libs: and
+       the xadunfile, xadundisk and xaduntar commands somewhere in your shell
+       search path (Like c:).
+
+@endnode
+@node installation "Installation"
+
+    DoArc is actually an Arexx script disguised as an AmigaDos command. This
+    means that besides RexxMast running you also need to make sure that DoArc
+    has the "s" (Script) protection flag set. This flag may have been deleted
+    while you extracted this archive but you can
+    @{" Click here " system "requestchoice Flags: `list doarc lformat %a` Ok"} to check if it is set. And
+    @{" Click here " system "protect DoArc +s"} to set the flag.
+
+    Once that is done you can copy DoArc anywhere you like and simply use it
+    as a standard AmigaDos command (No need to use "Rx").
+    @{" Click here " system "copy CLONE DoArc `requestfile DRAWERSONLY`"} to copy DoArc to whereever you want. 
+
+    DoArc is fully localized.
+    @{" Click here " system "copy `requestfile locale/$language` locale:catalogs/$language"} to copy DoArc.catalog to your LOCALE: drawer.
+    NB: If there's an error in the filerequester it's because DoArc hasn't
+    been translated to your language yet. If you want to help with translating
+    it, please contact @{" me " link author}
+    
+    Finally you must deal with DoArc's configuration file
+    @{" Click here " system "copy DoArc.prefs s:"} to copy DoArc.prefs to s:
+    @{" Click here " system "Ed s:DoArc.prefs"} to launch Ed to @{" configure " link configuration} DoArc. 
+
+@endnode
+@node configuration "Configuration"
+
+    Load the configuration file (s:DoArc.prefs) into your text editor and
+    change the settings to suit your system. 
+
+    Two rules: @{u}Don't@{uu} put quotes around options or their values and
+    everything after a ';' is considered a comment.
+
+    @{" DEARC  " link cfg_dearc} (And VIEWARC) Specify dearchivers
+    @{" ARC    " link cfg_arc } Specify archivers
+    @{" TMPDIR " link cfg_tmpdir} Specify DoArc temporary directory
+    @{" XAD    " link cfg_xad} Enables or disables XAD usage.
+
+    Quick chart of configuration keyword templates:
+
+    DEARC  <Archive suffix> <Dearc cmd> [VIEWARC <Viewarc cmd>]
+    ARC    <Archiver suffix [.<name>]> <Archiver cmd>
+    TMPDIR <Tmp directory>
+    XAD    1|0
+    
+@endnode
+@node cfg_dearc "Configuration: DEARC (And VIEWARC) keyword"
+
+    This is the keyword you use to specify which command DoArc should use for
+    extracting or viewing archives. You can have as many of these as you want.
+
+    Template:
+    DEARC <Archive suffix> <Dearc cmd> [VIEWARC <Viewarc cmd>]
+
+    DoArc uses the archive suffix to figure out which dearchiver to launch.
+    You don't have to worry about case, and you must not include the dot (Eg:
+    LHA, ZIP, TAR.GZ, etc).
+
+    The dearchiver string is the actual command including options. If the
+    dearchiver requires redirection (Like GZip) you must include the '>' sign
+    at the end of the dearchiver string.
+
+    The view command is specified on the same line after the VIEWARC keyword.
+    Eg: DEARC LHA lha x VIEWARC lha v 
+
+    If you have XAD installed (See @{" XAD " link cfg_xad} keyword) DoArc will use XAD for
+    extracting or viewing any archives that you haven't specified a DEARC or
+    VIEWARC command for.
+
+    You can mix and match between normal archivers and XAD as you wish. Eg:
+    DEARC LHA VIEWARC lha v 
+    means that DoArc will use 'lha v' when viewing LhA archives but the XAD
+    system when extracting LhA archives.
+
+    And of course it's also possible to have no DEARC statements at all. In
+    this case DoArc will use XAD for all extracting or viewing of archives.
+
+@endnode
+@node cfg_arc "Configuration: ARC keyword"
+
+    This is where you specify which command DoArc should use when archiving
+    files. You can have as many of these as you want but there is a limitation
+    on the types of archivers that you can use when converting archives.
+
+    Template:
+    ARC <Archiver suffix [.<name>]> <Archiver cmd>
+
+    The archive type is the same as the suffix created by the archiver, but
+    without any dots (Eg: LHA, LZX). Case isn't important.
+    The rest of the archiver string is the actual command including options.
+
+    If you want to have two (Or more) different forms of the same archiver you
+    can give one (or both) a name to tell them apart. Eg:
+    ARC LZX cc:lzx040 -r af         ; Lzx standard compression
+    ARC LZX.9 cc:lzx040 -r -9 af    ; Lzx maximum compression
+    Or:
+    ARC LHA lha -r a                ; LhA
+    ARC LHA.store lha -r -z a       ; LhA no compression
+
+    Note: Don't forget to add the 'select all files in directory and
+    subdirectories' option (Typically -r) to your archiver commands.
+
+    It's not possible to use 'single file' archivers like GZip when converting
+    archives. You must use archivers capable of archiving the contents of a
+    directory like LhA, Lzx, Zip or the included TGZ AmigaDos script. 
+    Using single file archivers when @{" creating archives " link usage_a} probably works but 
+    hasn't been tested.
+
+@endnode
+@node cfg_tmpdir "Configuration: TMPDIR keyword"
+
+    Where DoArc creates it's temporary directory when converting archives.
+
+    Template:
+    TMPDIR <Tmp directory>
+
+    Tmpdir is the directory where DoArc creates its work directory when
+    converting archives. 
+
+    The default is t: But you may want to move it to somewhere on your
+    harddisk if you haven't got a lot of ram or are converting very big
+    archives.
+
+@endnode
+@node cfg_xad "Configuration: XAD keyword"
+
+    Master switch that enables or disables XAD usage.
+
+    Template:
+    XAD 1|0
+
+    This is a master switch that enables or disables the use of XAD for
+    extracting or viewing of archives.
+
+    This default is 1 (Enabled) if you have Workbench 3.9 (DoArc will
+    automatically detect this) because it has XAD support included. Else it is
+    0 (Disabled).
+
+@endnode
+@node usage "Usage"
+
+    DoArc has four different modes. You can only use one mode at a time.
+    If you don't specify any mode on the commandline (Eg: just 'DoArc') a
+    requester will appear asking you what you want to do.
+
+    @{" X=EXTRACT {<archives>} [extractdir|REQ] " link usage_x} for extracting archives.
+    @{" A=ADD     <archive> {<files>} [arctype] " link usage_a} for creating archives.
+    @{" V=VIEW    {<archives>}                  " link usage_v} for viewing archives.
+    @{" C=CONVERT {<archives>} [arctype]        " link usage_c} for converting archives.
+
+    Note: The mode keywords can appear anywhere on the commandline (And so can
+    the <arctype> for the A & C modes). But the rest of the arguments must
+    follow the order above. Have a look at the examples in the sections
+    describing the different modes.
+
+    The <archives> specification for modes X, V & C is special. DoArc uses
+    c:List to create a list of archives to process. This means you can use
+    wildcards and the List file selection options listed below when specifying
+    which archives to process:
+    
+    DIR/M,PAT/K,SUB/K,SINCE/K,UPTO/K,ALL/S
+
+    Don't use FILES/S or DIRS/S or any of the display format options like
+    LFORMAT/K. But nothing fatal should happen if you do anyway - DoArc will
+    simply display an error messages and exit.
+
+    Please read the @{" notes " link notes} too.
+
+@endnode
+@node usage_x "Usage: The archive EXTRACT mode"
+
+    The EXTRACT mode is for extracting archives to a directory.
+
+    Template:
+    X=EXTRACT {<archives>} [extractdir|REQ]
+
+    The mode specification (X or EXTRACT) can be placed anywhere on the
+    commandline. The extractdir argument must come after the archive
+    specification(s). You can specify as many archives as you wish.
+
+    A requester will appear asking for any argument (Including the mode!) not
+    included on the commandline (Except extractdir - see below)
+
+    The extractdir argument is special. If you don't specify it DoArc will
+    extract the archive(s) to the current directory.
+    If you specify "REQ" you will be presented with a filerequester asking for
+    a directory to extract to.
+    And if you specify a directory DoArc will (Of course) extract the archive(s)
+    to this directory.
+
+    The archives specification uses standard c:List syntax. This means that
+    you can use wildcards and the DIR/M,PAT/K,SUB/K,SINCE/K,UPTO/K,ALL/S
+    List keywords.
+
+    Examples:
+    DoArc EXTRACT dl:test.zip ram:
+    Extract "dl:test.zip" to "ram:"
+
+    DoArc X dl:#?.zip REQ
+    Extract all zip archives in dl: to a directory selected from a
+    filerequester.
+
+    DoArc dl: ALL EXTRACT
+    Extract all files in dl: (Incl. subdirectories!) to the current directory.
+    Note: It's up to you to make sure that the files in those directories are
+    actually archives...
+
+    DoArc X
+    Extract all files selected from a filerequester to the current directory.
+    Again: DoArc happily tries to extract anything you select...
+
+    DoArc dl: ALL PAT #?.lha ram:test.zip REQ
+    Extract all lha archives in dl: (Incl. subdirectories!) and "ram:test.zip"
+    to a directory selected from a filerequester.
+
+@endnode
+@node usage_a "Usage: The archive ADD mode"
+
+    The ADD mode is for creating (Or adding to existing) archives.
+
+    Template:
+    A=ADD <archive> {<files>} [arctype]
+
+    The mode (A or ADD) and the arctype specification can be placed anywhere
+    on the commandline. The archive specification must come before the files
+    you wish to archive (Similar to the common archivers like LhA or Lzx). You
+    can have as many file specifications as you wish.
+
+    A requester will appear asking for any argument (Including the mode!) not
+    included on the commandline. But the first file on the command line (Like 
+    this: "DoArc ADD lzx files:big_file") is always taken as the archive name.
+    So in this case the requester will ask for which files you want to add to
+    the 'big_file' archive.
+
+    Note: The files specification does _not_ use the List syntax like the
+    archives specification from the @{" EXTRACT " link usage_x}, @{" VIEW " link usage_v} or @{" CONVERT " link usage_c} modes. So 
+    be sure that you add the 'select all files in directory and
+    subdirectories' option (Typically -r) to your @{" archiver commands " link cfg_arc}.
+ 
+    Examples:
+    DoArc ram:test work:text/#?.guide ADD
+    Add all guide files in work:text to the ram:test archive. A requester will
+    appear asking for which archiver to use
+
+    DoArc A ram:test ZIP work:text/some.guide sys:#?.info
+    Add work:text/some.guide and all info files on your sys: partition to the
+    ram:test archive using Zip as archiver.
+
+    DoArc ADD 
+    A requester will appear asking for a) Which archiver to use, b) The name
+    of the archive and finally c) Which files to archive.
+
+@endnode
+@node usage_v "Usage: The archive VIEW mode"
+
+    The VIEW mode is for listing the contents of archives.
+
+    Template:
+    V=VIEW {<archives>}
+
+    The mode (V or VIEW) and the archive specifications can be placed anywhere
+    on the commandline. A requester will appear prompting for missing
+    arguments.
+
+    Examples:
+    DoArc V dl:#?.tgz
+    View all tgz archives in dl:
+
+    DoArc "dl:fu nny.lha" VIEW
+    View "dl:fu nny.lha"
+
+@endnode
+@node usage_c "Usage: The archive CONVERT mode"
+
+    The CONVERT mode is for converting archives to another archive format.
+
+    Template:
+    C=CONVERT {<archives>} [arctype]
+
+    The mode (C or CONVERT), the arctype and the archive specifications can be
+    placed anywhere on the commandline. A requester will appear asking for any
+    arguments not included
+
+    If you repack an archive (Eg: "DoArc C dl:test.lzx LZX") DoArc will detect
+    this and prevent overwriting the original by renaming it.
+    Otherwise if DoArc detects that you're about to overwrite an archive you
+    will be asked if you want to continue or skip converting this archive.
+
+    Examples:
+    DoArc ZIP dl:test1.lha dl:test2.lzx
+    This will create the archives dl:test1.zip and test2.zip
+
+    DoArc C dl:#?.zip
+    This will convert all your zip files in dl: to the archive format selected
+    by the requester.
+
+    DoArc CONVERT dl: ALL PAT #?.zip LHA
+    Scan all subdirectories of dl: for zip files and convert them to lha.
+
+    DoArc C "dl:te st1.lha" dl:test2.2.zip" LZX
+    This will create the archives "dl:te st1.lzx" and "dl:test2.2.lzx"
+
+    DoArc ZIP dl:test.lha dl:test.lzx CONVERT
+    Here DoArc detects that dl:test.zip will be created twice and asks if
+    you want to overwrite the first copy or skip converting this archive.
+
+@endnode
+@node notes "Notes"
+
+    Sometimes DoArc isn't able to delete its temp directory (When converting
+    archives), just the contents of it. This is probably because some
+    archivers doesn't release their lock on this directory properly. You'll
+    get an error message if this happens.
+
+    Don't forget to add all necessary options to your @{" archivers " link cfg_arc}. Like LhA -r
+    that enables archiving of subdirectories.
+
+    When extracting, viewing or converting archives with spaces or dots in
+    their names DoArc uses a temporary assign to circumvent any problems.
+    This is why you'll see some weird path and filenames when DoArc deals with
+    such archives.
+
+    When converting a disk (Eg: DMS) archive and using XAD as unpacker you'll
+    see the error message "Processed nothing." This is because DoArc first
+    tries with xadunfile (Which fails and gives the error message) then
+    xadundisk.
+
+    Viewing diskarchives (Eg: DMS) using XAD doesn't work and there isn't
+    anything I can do about it currently.
+
+@endnode
+@node author "Author"
+
+    Please send send any comments you might have to me.
+
+    Email: 
+    rolfrotvel@bigfoot.com
+
+    Address:
+    Rolf Max Rotvel
+    Groefthoejparken 163, 4 th.
+    DK-8260 Viby J.
+    Denmark
+
+@endnode
+@node credits "Credits"
+
+    Lots of thanks to Javier de las Rivas for betatesting and the spanish
+    catalog/documentation.
+
+@endnode
+@node copyright "Copyright"
+
+    DoArc is copyright © 2001 Rolf Max Rotvel.
+
+    I'm releasing this as 'niceware'
+
+    Which means: If you use DoArc it would be nice of you to send me $5 or the
+    equivalent in your currency - just stuff a bill in an envelope and send it
+    to @{" me " link author}.
+
+    But you're not in any way obligated to do so. If you want to use it
+    without paying, be my guest. Isn't that nice? :-)
+
+@endnode
+@node disclaimer "Disclaimer"
+
+    Basically, it's all your own fault :-) 
+
+    I won't take responsibility for anything bad that happens while using my
+    program. But I will try to fix bugs, just report them to @{" me " link author}.
+
+@endnode
+@node history "History"
+
+    1.0 - First release
+          Note: DoArc is the succesor of arc2arc. Basically DoArc does all
+          that arc2arc did (Converting archives) + lots lots more :-)
+
+@endnode

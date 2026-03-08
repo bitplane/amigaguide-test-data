@@ -1,0 +1,289 @@
+@database BMPdt.guide
+@author Gunther Nikl
+@$VER: BMPdt.guide 40.16 (1.5.2003)
+
+@node Main "BMP picture datatype"
+
+         BMP Picture DataType for Workbench 3.0 or above
+              Written by @{"Gunther Nikl" link Author} in 1995-2003
+
+
+                            @{"FreeWare" link Copyright}
+
+
+                        @{" Disclaimer      " link Disclaimer}
+                        @{" Introduction    " link Introduction}
+                        @{" Features        " link Features}
+                        @{" Installation    " link Installation}
+                        @{" Preferences     " link Preferences}
+                        @{" Datatype FAQ    " link FAQ}
+                        @{" Acknowledgments " link Acknowledgments}
+                        @{" History         " link History}
+                        @{" Author          " link Author}
+
+Final note: Use at your own risk!
+
+@endnode
+
+@node Copyright
+This BMP package is Copyright © 1995-2003 by Gunther Nikl. This software
+package may be used freely for non-commercial purposes. Distribution of
+this software package is allowed as long as it remains unaltered.
+
+Hereby permission is granted to distribute this software package on the
+"Meeting  Pearls"  CD-ROM series.  Distribution on other CD-ROMs, disks
+series or cover disks requires a permission of the @{"Author" LINK Author}.
+@endnode
+
+@node "Disclaimer"
+The author takes no responsibility for any results of the use of this
+program. This software is provided "AS IS" and there is no warranty of
+any kind, so that you use this software at your own risk.
+@endnode
+
+@node Introduction
+Starting with OS Release 3 the Amiga has the concept of `datatypes', which
+allow reading and viewing files of different types and formats. MultiView is
+an application that utilizes these datatypes and handles any file for which
+you have a data types class installed.
+
+This datatype was created to supersede the bmp.datatype 39.4 from the 3.1 NDK
+or pictdt_42_1.lha. That datatype was limited to 16 and 256 colour pictures,
+handled only Windows type BMPs (but didn't check for this) and had other quite
+serious bugs.
+
+Another reason to write this datatype was that I wanted to know whether it's
+indeed possible to use GNU CC to program one :^)
+@endnode
+
+@node Features
+The datatype supports 1, 4, 8, 16, 24 and 32 bit BMPs. It correctly handles
+OS/2 1.x, OS/2 2.x, Windows 3.x, Windows 9X and Windows NT styles of BMPs.
+Images with a bitdepth of 4 or 8 may be rle compressed (it even tolerates
+possibly corrupted rle images).
+The datatype supports TOPDOWN bmp images - a rather "esoteric" BMP feature.
+(Neither Win9X nor NT 4.0 support such images as some test revealed, mhm..)
+
+Other features:
+
+  - switches to V43 mode if a new picture.datatype V43 is found
+  - asynchronous file I/O to speedup image loading and decoding
+  - utilizes WritePixelLine8() for chunky-to-planar in V42 mode
+  - grayscales a true-colour image when working in V42 mode
+  - can convert a true-colour image into HAM6/HAM8
+  - can save BMPs (encoder does handle HAM and EHB pictures)
+  - can be @{"configured" link Preferences} to suit personal preferences
+  - OS 3.5 support (disables dithering for hi/true colour screens)
+  - FBlit support (affects V42 mode only)
+
+Please note:
+  1.) Some types of BMP pictures are called to be in 'DIB' format, but these
+      are simple BMPs only with another extension
+  2.) Pictures from OS/2 Warp are in OS/2 2.x format, thus can be handled by
+      this datatype
+  3.) Compressed BMPs have often a '.rle' file extension
+  4.) 24bit rle compressed images are not supported
+@endnode
+
+@node Installation
+This "BMP" datatype distribution should consist of the following files:
+
+   · Classes/DataTypes/680x0/bmp.datatype
+
+   · Devs/DataTypes/Windows BMP
+   · Devs/DataTypes/Windows BMP.info
+
+   · BMPdt.guide
+   · BMPdt.guide.info
+
+   · Source code
+
+Copy one "bmp.datatype" into the "SYS:Classes/DataTypes" drawer. The file
+"Windows BMP" and its info file should be placed in the "DEVS:DataTypes"
+drawer. In order to use the datatype doubleclick on "Windows BMP.info"
+(or reboot the machine).
+@endnode
+
+@node Preferences
+The datatype can be configured by placing desired options in an environment
+variable. The name of this variable is "classes/datatypes/bmp.prefs". Please
+use Setenv (or Echo if you prefer) to create *global* or use Set to create
+*local* preference settings. Local settings do override global ones.
+
+Note: You have to copy the variable from ENV: to ENVARC: if you want to keep
+      global settings permanently!
+
+The preference template is:
+
+  V42MODE/S,GRAY/S,HAM/K/N,UNSAFE/S,TOPDOWN/S
+
+  V42MODE
+  -------
+  Forces the datatype to work in the old V42 mode even if a new V43 picture
+  datatype is installed. The datatype switches automatically into this mode
+  if no V43 aware picture.datatype is found.
+
+  GRAY
+  ----
+  If specified the datatype emits grayscale images.
+
+  HAM
+  ---
+  Request the conversion of true-colour data into HAM. A value of 6 invokes
+  HAM6 and a value of 8 invokes HAM8 mode.
+
+  Note: This option is ignored if grayscaling is enabled or if the supplied
+        argument is invalid.
+
+  UNSAFE
+  ------
+  When working in V42 mode this option enables a FBlit related optimization
+  provided FBlit is installed.
+
+  TOPDOWN
+  -------
+  This option instructs the datatype to save an image with an inverted line
+  order.
+@endnode
+
+@node FAQ
+Q: Why is the datatype so slow with the P96 picture.datytpe V43?
+A: The picture.datatype coming with P96 dithers 24bit data even for 15/16 bit
+   screens. Either use only 24bit screens or disable dithering globally this
+   way (posted on the PML by Olaf "Olsen" Barthel):
+
+      setenv classes/datatypes/picture/dither 2
+
+and then following it up with
+
+      copy env:classes envarc:classes all
+
+   Note: it may be necessary to create the picture drawer manually to get the
+         Setenv command succeed!
+
+Q: Can I speedup decoding in V42 mode?
+A: Since the OS function graphics.library/WritePixelLine8() utilized for c2p
+   conversation when working in V42 mode is not the fastest one possible you
+   should consider installing a patch for this function. Highly recommended
+   is NewWP8 from Michael van Elst available on AmiNet.
+   Note: This probably affects native graphic chip-sets only!
+@endnode
+
+@node Acknowledgments
+This "BMP" datatype was written entirely from scratch using GNU CC 2.7.2.1 and
+GNU CC 2.95.2 (ADE/GG). All required information how to create a datatype were
+obtained from sample source code by David N. Junod found in the 3.1 NDK.
+
+The asynchronous file I/O functions used are taken from an example file of the
+original picture.datatype V43. It was written by Matthias Scheler who allowed
+me to use his `ffr.c'. I made some changes to adapt it to my needs, to add
+save capabilities and to get it compile with GNU CC cleanly.
+
+I have to thank Francis Labrie for his interest in this datatype and Deok-Min
+Yun who tracked down errors in the encoder part, tested several intermediate
+versions and added the initial HAM conversion functionality.
+
+Without Allan Odgaard wanting support for Win9x/WinNT style images, without
+Wolf Faust providing a pointer to the missing documentation (DDJ [3,4]/95)
+and without Randolf Schultz finding the flaw in the documentation for such
+images the ability to handle these images wouldn't be there.
+
+The class init code is loosely based on the class initialization from the AIFF
+datatype 1.16 by Olaf `Olsen' Barthel. The HAM6 and HAM8 conversion functions
+are derived from assembler functions written by Olaf.
+
+Futhermore, a thanks must go to Roland Mainz who pushed further datatypes
+development in the past and supplied useful example codes.
+@endnode
+
+@node History
+40.16 (01/05/2003) - improved endian abstraction code
+                   - improved VBCC support
+
+40.15 (03/03/2001) - modified library initialization to fix some holes
+                     according to hints from Thomas 'Thor' Richter
+                   - added FBlit support for V42 mode
+                     (Luca 'Hexaae' Longone)
+
+40.14 (17/09/2000) - fixed stupid V42 saver bug introduced with 40.12
+                     (image depth was trashed by write_bmp_header...)
+                   - changed method handling in V43 datatype mode
+                     (switched from vararg to "normal" method call)
+                   - disables dithering on hi/truecolour screens if
+                     picture.datatype V44 is detected (-> OS 3.5+)
+                   - added color icons ;-)
+
+40.13 (18/04/2000) - changed saver selection scheme (Mario Cattaneo)
+      (18/02/2000) - adapted sources for V44 includes
+
+40.12 (10/04/1999) - reduced stack usage of the V42 encoder for safety reasons
+                   - fixed skip and return code in read_bmp_header() (signed!)
+                   - added support for BITFIELDS encoded images with 16/32 bit
+                   - added a (probably) missing WaitBlit() in the V42 decoder
+                   - added support for images with a topdown line order
+                     (encoder can emit such images)
+                   - added a smakefile
+
+40.11 (19/09/1998) - V42MODE was always active for a valid HAM prefs entry
+                   - reduced stack usage during load for safety reasons ;(
+                   - fixed grayscaling of paletted images
+                     (RED and BLUE scaling was swapped by accident...)
+                   - added support for local preferences
+
+40.10 (20/08/1998) - used wrong function for B/W encoding in V42 mode
+                     and wrong function for 24bit data in V43 mode :(
+                     (nethertheless V43 save mode still doesn't work)
+                   - fixed broken B/W encoder (was totally messed up)
+                   - added support for true-colour images in V42 mode
+                     (default: grayscaling, optional HAM6/8 encoding)
+                   - added conversion of 24bit data into HAM6/8
+                   - EHB image now saved as paletted image
+                   - decoder partially rewritten ;-)
+                   - added a @{"preferences" link Preferences} system
+
+40.9  (16/06/1998) - class initialization partially rewritten (which fixed
+                     a stupid bug in LibOpen() - previous asm code was ok)
+                   - added encoder (HAM and EHB pictures saved as 24Bit)
+                   - several additional tweaks
+
+40.8  (03/06/1997) - class initialization rewritten in C (hi coto ;-)
+                   - a save request for DTWM_RAW returns a failure now
+
+40.7  (11/04/1997) - added missing sanity check for DTA_SourceType
+
+40.6  (19/07/1996) - buffer handling for asynchronous I/O improved to gain
+                     better performance on 68040/68060 based systems
+                     (size adjustment and quad-longword alignment)
+                   - 8bit colour value now spreaded over full 32bit
+                   - version for 68020+ equipped amigas included
+
+40.5  (21/04/1996) - added support for compresssed 4 and 8 bit images
+                   - added support for the new picture.datatype V43
+                   - added asynchronous file I/O
+                   - other optimizations
+
+40.4  (11/08/1995) [ previous version was released a little bit to fast ]
+                   - forgot to correct the normal address in the guide :(
+                   - source code cleanup (reduced the executable size :-)
+
+40.3  (10/08/1995) - fixed a serious bug with 8-bit images (did not use a
+                     separate pixel buffer for WritePixelLine8(), but this
+                     is *absolutely* required due to a size restriction...)
+                   - replaced AllocVec() with Exec pool-functions of V39+
+                   - reduced stack usage
+
+40.2  (24/06/1995) - library bases are now taken directly from the classbase
+                     (no additional global library bases required anymore)
+                   - fixed a (harmless) bug in the bmpheader decode function
+                   - freed a buffer in the image decoder at a wrong place...
+ 
+40.1  (22/05/1995) - initial release
+@endnode
+
+@node Author
+  email: see readme
+
+         or
+
+  irc:   munk on #amigager
+@endnode

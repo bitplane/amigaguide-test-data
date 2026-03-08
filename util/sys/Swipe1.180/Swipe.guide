@@ -1,0 +1,449 @@
+@database Swipe
+@author "Kai Haseloh (Laserdance / The Special Brothers)"
+@(c) "(C) Copyright 1998 Kai Haseloh (Laserdance Productions/TSB)"
+@font XEN.font 11
+
+Swipe documentation in Amigaguide - format
+
+
+Copyright © 1998 Laserdance Productions / T$B
+All Rights Reserved
+
+@node main "Swipe interactive hypertext documentation - Main-Menu"
+
+Welcome  to the interactive hypertext-documentation to Swipe.  Click
+one of the buttons below for more information on a topic.
+
+@{b}Swipe@{ub} is an enhanced version of the DOS delete command.  It is
+able to delete directories with assigns on them by identifying the assign
+and removing it before the deletion.  A special option allows to clear the
+@{b}whole@{ub} RAM disk in one go while leaving the systems directories as
+ENV:, etc.  intact.
+
+Items marked with (*) have been changed recently.
+
+@{b}Introductory Information@{ub}
+
+@{"   Getting started   " link install} Installing the program
+@{"       Examples      " link easystart} Some examples of the usage
+
+
+@{b}Tech Talk@{ub}
+
+@{" Commandline options " link tooltype} (*) Commandline options
+@{"  Technical details  " link tech} Swipe's strategy
+@{"Bugs and  limitations" link bugs} There was something ...
+@{"       History       " link history} (*) The story so far
+
+@{b}Addendum@{ub}
+
+@{" System requirements " link requirements} The stuff you need to get it going
+@{"Copyrights/Disclaimer" link copyright} Odds and ends
+@{" Credits and hellos  " link greetings} (*) Some messages to the world outside
+@{"       Contact       " link contact} Laserdance Productions
+@{"Other software/Future" link future} (*) Coming soon
+
+
+Hope you enjoy the program.
+
+Take care,
+
+Kai (laser@stud.uni-hannover.de)
+
+@endnode
+
+
+@node tech "Technical details"
+
+Well, do not expect too much new insights here. The program works pretty
+simple, and actually I wonder why no one had the idea before.
+
+It uses MatchFirst/MatchNext() in the dos.library to parse the object
+parameters and examines the returned objects:  if it is a directory it
+scans the doslist for an Assign-entry (simple and multi-assignments but no
+late-binding assigns) that points to that directory, removes it and then
+deletes the directory. And so on...
+
+@endnode
+
+
+
+@node bugs "Known bugs"
+There are no real bugs known to the author.  You shouldn't come across
+severe problems, like sudden meditations, even if you try to.  The program
+has been designed to be as reliable as possible.
+
+There are however some limitations and possible sources of bugs within the
+nature of the operating system that you should be aware of:
+
+· In very rare cases Swipe might run into trouble when you are trying
+  to delete files/directories on a disk when a different disk with the
+  _same_ name is inserted as well. Do not use Swipe in this case! (This
+  will be fixed in a later version.)
+
+· Links are not supported
+
+· Removal of assigns as performed by Swipe might lead to sudden crashes
+  if the assignment refers to an object is currently used by an application
+  that has used the functions DeviceProc() or GetDeviceProc(). DirectoryOpus 
+  is one good example of such an application; but do not worry too much, 
+  I did not manage to crash the system by running both programs at the same time
+  (no matter how hard I tried.)
+
+· When you are deleting a whole tree of directories or using patterns
+  sometimes directories that failed to be deleted will be examined again
+  later. This is a potential source for endless loops but so far I did
+  not encounter any problems, the reason for this strange behaviour lies
+  within the dos.library and its MatchFirst()/MatchNext()-functions.
+
+See also : @{" Contacting the author " link contact}
+@endnode
+
+
+
+@node tooltype "Commandline options"
+
+Swipe accepts the following options
+
+@{b}FILE/M@{ub} the name(s) of the file(s), directory(s) or pattern(s)
+that are supposed to be deleted. (NB: Be careful and do not specify directories
+by giving the name of an assign to them.  For example the command:
+@{i}Swipe T: ALL@{ui} would delete all the files in your T:  directory and
+then remove the assign on the directory T:  points to and then try to
+delete the directory "T:" which, then, is bound to fail.  This behaviour
+might change in later versions.)
+
+@{b}ALL/S@{ub} enables recursion into subdirectories, as with the normal
+delete command.
+
+@{b}QUIET/S@{ub} suppresses output of the programs messages.  Error
+messages will still be printed.
+
+@{b}FORCE/S@{ub} enables deletion of files that are protected from deletion
+by a cleared 'delete'-flag.
+
+@{b}SWIPERAM/S@{ub} clears the RAM:-disk of all files and directories while
+leaving the system directories env, t and clipboards intact. If you specify
+this argument Swipe will just clear the RAM disk and will not delete any
+other files/directories/patterns you specify on the commandline. It also
+turns on the options FORCE and ALL by default.
+
+@{b}SAFE/S@{ub} turns off assign-detection and deletion. Swipe will not
+be able to delete any directories with assigns on them in this mode.
+See also: @{"Bugs and limitations" link bugs}
+
+@{b}VERBOSITY/N@{ub} sets the level of verbosity of the program's output.
+Possible values are 0 (very little output) to 3 (tons of output).
+
+@{b}INTERACTIVE/S@{ub} turns on "Are you sure?"-requesters that ask for
+user confirmation before an assign is removed or a directory is deleted.
+This option is meant to replace the default 'delete' buttons of most
+directory tools.  An example file that exaplains how to use Swipe with your
+directory tool is available through the aminet.  This option requires
+reqtools.library to work.
+
+@{b}PUBSCREEN/K@{ub} allows specification of a public screen that will
+will be used for the requesters. Automatically enables the INTERACTIVE
+option.
+
+@{b}MATCHPATTERN/K@{ub} if this option is used to specify a filepattern
+all filenames will be matched against this pattern. This becomes useful
+for weeding out a certain group of files (.info files, say) from a directory
+tree, see the @{link "easy start" examples}. Not that only the filename is matched against this string,
+not the whole path of an object.  Thus patterns like "ram:test/#?.info"
+should not be used.  MATCHPATTERN automatically turns on the
+LEAVETREEINTACT option
+
+@{b}LEAVETREEINTACT/S@{ub} may be used to exempt all directories from
+deletion.
+
+@{b}BEEP/S@{ub} lets Swipe display a system beep when it is done.  Two
+beeps indicate an error.  This option is useful when you start Swipe with
+disabled output (from ToolManager, say).
+
+@{b}PRESERVE=PRESERVEDIR/K/F@{ub} may be used to protect arbitrary files
+or directories (and its contents)  or file from deletion.  (FORCE modifies 
+error handling with this option:  If FORCE is active, Swipe will still
+operate normally, even if the object  pointed  to  by PRESERVE is not found.  
+If FORCE is inactive, Swipe would stop at that point.  So beware of typos
+when using FORCE!) @{b}Note that this is an /F option, i.e. it takes the
+rest of the command line as an argument. No other options may be given
+after PRESERVE!@{ub}
+
+@{b}MEMORIZE/S@{ub} If this option is turned on all objects which can't
+be deleted because of DOS error #202 (object in use) will cause a
+line of text (see @{b}MEMOSTRING@{ub}) to be added to the file specified by
+@{b}MEMOFILE@{ub}. The idea is that you can create a batch file - which you
+would call in your startup-sequence - that removes all files that are busy
+at the moment on reboot.
+
+@{b}MEMOSTRING/K@{ub} This is a standard C string (that means that you may
+use e.g.  '\\n' for a newline character) which will be @{i}added@{ui} to the
+@{b}MEMOFILE@{ub} in case an object cannot be deleted because of DOS error
+#202.  You may use the placeholder %s (a percent sign followed by the
+letter s) up to four times, it will be replaced with the object name that
+caused the problem.  Note that you can use *" (a star followed by inverted
+commas) to generate inverted commas. The default string is: c:delete "%s"
+This option implies turning on MEMORIZE. 
+
+@{b}MEMOFILE/K@{ub} The name of the file which will be used for MEMORIZE
+output.  Defaults to the file "s:RemoveFiles".  This option implies turning
+on MEMORIZE.
+
+@endnode
+
+
+
+
+
+@node easystart "Easy start ..."
+
+Below are some example commandlines of possible usages of Swipe.  Note that
+a seperate archive with example buttons for different directory tools is
+available from Aminet.
+
+
+@{b}Swipe SwipeRAM@{ub}
+
+Clears RAM-disk of all debris but leaves T, ENV, Clipboards, disk.info
+intact.
+
+
+@{b}Swipe RAM: ALL FORCE@{ub}
+
+Clears RAM-disk of all files and directories, including the
+system-directories/files, careless of assigns and protection-flags.
+
+
+@{b}Swipe dh0:test/#? @{ub}
+
+Deletes all files and empty subdirectories in the directory dh0:test but
+leaves objects in subdirectories intact.
+
+
+@{b}Swipe dh0:test/#? ALL PRESERVE dh0:test/xxx@{ub}
+
+Deletes all files and subdirectories in the directory dh0:test but
+leaves the directory dh0:test/xxx and its contents intact.
+
+
+@{b}Swipe dh0:images ALL MATCHPATTERN #?.info @{ub}
+
+Removes all icon ".info"-files from the directory dh0:images and
+its subdirectories.
+
+
+
+@endnode
+
+
+
+
+@node install "Installing Swipe"
+
+Just copy the executeable to a directory of your choice, C: or any other
+directory in your command path is probably the best choice.
+
+Make sure you have reqtools.library installed if you want to use the
+INTERACTIVE option.  This option is meant to replace the default 'delete'
+buttons of most directory tools.  An example file that exaplains how to use
+Swipe with your directory tool is available through the aminet.
+
+@endnode
+
+
+
+
+
+@node requirements "Requirements"
+
+Swipe works with any version of the operating system after V37.175.
+Version numbers starting with 36 are also supported but not recommended
+(bug in the OS, see MatchFirst() autodocs)
+
+Reqtools.library is required for the INTERACTIVE option to work.
+
+@endnode
+
+
+@node history "Swipe Version history"
+
+V1.180 (08.12.1998) -- Seventh Aminet release
+
+	· MEMORIZE was always on. Fixed. Thanks Fredrik.
+
+
+V1.179 (04.12.1998) -- Sixth Aminet release
+
+	· Added option FLUSH which removes unused libraries and
+	  fonts from the system
+	· Combined options PRESERVE and PRESERVEDIR into one
+	  new option PRESERVE which allows the preservation of
+	  multiple files
+	· Added new options MEMORIZE,MEMOFILE and MEMOSTRING
+	  which allow creating a batch-file to remove 'objects
+	  in use' after reboot
+
+
+V1.128 (11.10.1998) -- Fifth Aminet relese
+
+	· added some 'thank-you's to the documentation
+	· new option BEEP added
+	· new option PRESERVEDIR works like pre-v1.101 PRESERVE,
+	  i.e. leaves a directory untouched while contents may be
+	  removed
+	· new option MATCHPATTERN matches files against a pattern,
+	  useful for removing info files from a tree of directories
+	· new option LEAVETREEINTACT exempts directories from
+	  deletion
+
+
+V1.101 (28.6.1998) -- Fourth Aminet release
+
+	· PRESERVEing a directory now leaves its contents intact
+	· ALL didn't work since V1.74. Fixed
+	· Now deletes empty subdirectories (as the normal
+	  'delete' command does)
+
+
+V1.85 (14.5.1998) -- Third Aminet release
+
+	· New option PRESERVE to protect one object from
+	  deletion
+	· Added version string to program's code (oops!)
+
+
+V1.74 (5.4.1998) -- Second release to the Aminet.  A seperate archive with
+button-examples for various directory tools is also available through the
+Aminet.
+
+	· New options: INTERACTIVE and PUBSCREENNAME for use
+	  with directory tools
+	· Does not delete 'disk.info' from RAM: disk in
+	  SWIPERAM-mode
+
+
+V1.56 (7.3.1998) -- First release to the Aminet.
+
+See also: the @{" Future " link future} section.
+
+@endnode
+
+
+
+@node copyright "Copyrights & Everything"
+
+Swipe and the sources of this program are copyright © 1998 by
+Laserdance Productions.  The program is freely distributable as long
+as all of its files are included in their original form without
+additions, deletions or modifications of any kind, and only a nominal
+fee is charged for their distribution.  (You have no permission to
+include the demo-version on compilation disks with other programs on
+the same medium.
+
+The software is provided »AS IS« without any warranty of any kind,
+either expressed or implied.  The sources are © 1998 Laserdance
+Productions and may not be distributed.  Unauthorized copying,
+reproduction, hiring, lending, prohibited.  By using the 'Swipe'
+software of the program, you accept the entire risk as to the quality
+and performance of the program.
+
+There  should  be  no bugs left, as the software supplied herein has
+been extensively tested, but if it destroys your grandma's toaster or
+kills  your  cat  (etc.)  either due to programming bugs or improper
+usage, it's not my problem.
+
+You are encouraged to copy the program freely as long as you include
+all  the  files that came with the distribution archive.  To contact
+the author for comments, complaints etc.  write to
+
+			@{"Laserdance Productions " link contact}.  
+
+Thank you in advance for your support.
+
+@endnode
+
+
+
+@node greetings "Greetings"
+
+I'd like to thank the following people for their support and suggestions
+regarding this software: Nils Goers, Roland de Herder, Andreas Neumann.
+
+More 'Hello's go to all my friends and all the users of my software
+throughout the world.  Keep the Amiga spirit alive!
+
+@endnode
+
+@node contact "Oh Mr. Postman, bring me a letter ..."
+
+If want to contact the author for any other reason please send some mail to
+the following address.
+
+                        laserdance productions
+                           c/o kai haseloh
+                            gaensebrink 6
+                             32479 hille
+                               germany
+
+
+                         email may be sent to
+
+                      laser@stud.uni-hannover.de
+
+
+         Updates may be found at my fine homepage located at:
+
+                  http://www.stud.uni-hannover.de/~laser
+
+
+                     !  Thanx for your support !
+@endnode
+
+
+@node future "..."
+
+Of course development of Swipe will go on in the future.  You should watch
+out for newer versions of this software and other releases from Laserdance
+Productions including :
+
+
+@{b}Swipe - buttons@{ub}
+
+Swipe is meant to replace the default 'delete' buttons of most directory
+tools.  An example file that exaplains how to use Swipe with your directory
+tool is available through the aminet.
+
+
+@{b}FiDED - further expansion@{ub}
+
+FiDED is shorthand for "File Id Extractor Deluxe" and one of the most
+advanced FileId-extractors available.  It includes a nice MUI user
+interface, thousands of options, and brillant performance while being
+compatible to Aminet-readme files as well.
+
+ 
+@{b}DePack! V38.204 :@{ub}
+
+My largest project so far.  Depack!  is a huge system to extract files by
+selecting them within a dirfile.  May be used by AmiX-sysops for their
+file-maintainance also.  Includes FiDED support.
+
+
+@{b}(no title)@{ub}
+
+I'm thinking about a C-conversion of an old C-64/Amiga-Basic program I
+found in a computer magazine almost a decade ago.  It renders
+pseudo-3D-images of the Mandelbrot-sea.  I just converted the old source
+codes to C but the GUI is almost non existant.  Be patient!
+
+
+
+See  AmiNet's  RECENT  file  for  new  releases  or  take a look at my
+fine homepage at:
+
+                http://www.stud.uni-hannover.de/~laser
+
+
+@endnode
+

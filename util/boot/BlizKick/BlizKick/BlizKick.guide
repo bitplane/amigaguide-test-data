@@ -1,0 +1,3164 @@
+@DATABASE BlizKick.guide
+@AUTHOR "Harry Sintonen"
+@(c) "Copyright © Harry Sintonen  PitPlane Productions"
+@$VER: BlizKick.guide 1.24 (26.5.07)
+@COMMENT
+@COMMENT  Right border at 62, no word wrap.
+@COMMENT
+@COMMENT Hands off dudes and dudettes!
+@COMMENT
+@COMMENT ASPECTFONT ruby.font 8
+@COMMENT
+@WORDWRAP
+@MASTER BlizKick.guide
+@INDEX Main
+@NODE Main "BlizKick Guide"
+                                                   26-May-2007
+Documentation for
+                      @{u}@{b}  BlizKick 1.24  @{ub}@{uu}
+
+          Copyright © 1996-2007 PitPlane Productions
+               Composed by Harry "Piru" Sintonen
+
+       IMPORTANT! Please read @{"copyrights" LINK Copyrights}, @{"disclaimer" LINK Disclaimer} and
+           @{"license" LINK License} parts of this document before use.
+
+   @{"  " LINK Copyrights   0}  Copyrights		© © ©
+   @{"  " LINK Introduction 0}  Introduction		What is BlizKick?
+   @{"  " LINK Package      0}  Package			What's included?
+   @{"  " LINK About        0}  About			Some words about BlizKick.
+   @{"  " LINK Features     0}  Features			!!
+   @{"  " LINK Requirements 0}  Requirements		What is required.
+   @{"  " LINK Installation 0}  Installation		How can I do it?
+   @{"  " LINK Usage1       0}  Usage			Fights and arguments... :)
+   @{"  " LINK Notes        0}  Important notes		Please read.
+   @{"  " LINK 040060Notes  0}  68040/68060 notes	Important!
+   @{"  " LINK TroubleShoot 0}  Troubleshooting		What if...
+   @{"  " LINK License      0}  License			FreeWare!
+   @{"  " LINK Disclaimer   0}  Disclaimer		"I didn't do it!"
+   @{"  " LINK History      0}  History			What has happened.
+   @{"  " LINK Future       0}  Future			What will happen.
+
+@ENDNODE
+@NODE rombugs "rom bugs"
+
+     @{b}ROM BUGS@{ub}
+
+Even V40 Kickstart rom has the following bugs:
+
+- console.device can crash on window resize (happens with KingCON a lot) *1
+- ram disk stack size is only 1200 bytes, should be more *1
+- ramlib stack size is only 2048 bytes, should be more *1 *2
+- ramlib msgport uses SIGB_SINGLE, causes hangs with semaphores *1
+- ROM resident command `resident' illegal memory location 4 read *1
+- graphics.library WriteChunkyPixels() trashes a2/a6 registers with Akiko chip *1
+- graphics.library WritePixelArray8() and WritePixelLine8() trash the source array *1
+- mathieeesingbas.library 40.4 romtag has non-FPU IEEESPMul() and IEEESPDiv() functions disconnected *3
+- exec.library ReleaseSemaphore() problem with simultanous pending Procure() and ObtainSemaphore() *1
+- 68000/68010 utility.library UMult64() and SMult64() have result registers d0 and d1 swapped *1
+- A4000/A4000T IDE scsi.device initroutine peeking random memory *1
+- graphics/InitArea() doesn't initialize the vector collection matrix to all zeroes, graphics/AreaEllipse() cause enforcer hits *1
+- there could be even more...
+
+*1 fixed by romfixes module
+*2 fixed by ramlibstack module
+*3 fixed by FixMath404 module
+@ENDNODE
+@NODE blizzppcfeatures "Blizzard PPC features"
+
+     @{b}BLIZZARD PPC "FEATURES"@{ub}
+
+Placing ppc.library (and 680x0.libraries) on flashrom has caused some known side effects. I will not go into the debate whether these "things" were intentional or not. But placing 680x0.libraries to flashrom has caused some "side effects" that are less known:
+
+ - crash + reboot + alert is disabled completely (well some might consider this a positive thing:)
+ - some flashrom versions only enable 4k instruction cache for 68060 (halfinstcache) (this bug is actually fixed now)
+
+Here is a rather clumsy explanation of what is going wrong with crash + reboot + alert:
+
+There is a bug in blizzppc flash: Alerts will never survive reset.
+
+This is due the fact that `flash 68060.library' remaps zeropage to fastmem and that alert system uses memory location $0, $100 and $104 to deliver alert request (#'HELP' is placed to $0), alert number (placed to $100) and task address (placed to $104).
+
+Now what happens is that if program fails and you get the usual led blinking, alert request is written to $0, alert number to $100 and task address to $104, next system will try to display the alert if only possible. If displaying succeeded $0 request is removed. But, if system crashes before alert gets displayed, $0 request will remain there and when system is rebuilded after crash $100 and $104 will be copied to execbase LastAlert. Finally alert.hook will *clear $0 request* and see if execbase LastAlert gives it a reason try display postponed alert and will display it if needed.
+
+The problem is that 68060.library MMU tables redirect writes to zeropage, and after a crash MMU is disabled thus system rebuilding will not find the alert request from $0, nor $100 and $104 -> execbase LastAlert will get wrong values -> alert will never show up.
+
+Also, as a side-effect if system crashes when MMU is disabled temporarily, you get infinite alert display (this is particularily annoying as you get the same alert on EVERY boot time after time.. :-) This happens because alert.hook is executed AFTER 68060.library has installed new MMU tables. This table again redirects zeropage to the same address thus alert.hook `CLR.L (0).W' will not do the desired action (that is to remove the alert request:-).
+
+
+The `4k instruction cache' alias `halfinstcache' problem (cpu060 reports INST: 1/2 Cache Burst) is due the fact that early system initilization is examining the hardware by probing CPU registers. After finding out that the machine is running with 68040 CPU (system doesn't see any difference between 68040 and 68060) system will write $0000A009 to cacr (cache control register). $0000A009 means `Enable 68040 instruction cache, 68030 Write-Allocate mode, 68030 Enable instruction cache and 68030 Clear instruction cache'. For 68040 these 68030 bits are harmless, but for 68060 one of them has a new meaning: bit 14: FIC - 1/2 cache operation mode enable (instruction cache). So what happens is that instruction cache is halved from 8k to 4k. Also later on 68060.library initialization doesn't clear bit 14, so unless one manually forces it (cpu060 nohalfinstcache) 68060 will only use 4k instruction cache!
+
+(this bug is fixed in new flashroms)
+@ENDNODE
+@NODE Future "What will (probably ;-) happen."
+
+     @{b}FUTURE@{ub}
+
+Unfortunately I no longer have the development environment, or system set up to do further major changes to the program.
+
+This is likely to be the final release of the program. It was a fun ride though. :-)
+@ENDNODE
+@NODE Introduction "What is BlizKick anyway?"
+
+     @{b}INTRODUCTION@{ub}
+
+BlizKick is used to rekick any @{"Kickstart ROM" LINK KickImage} with phase5/DCE turbo boards having @{"MAPROM" LINK MAPROMJumper} feature (jumper). Also many CPU Cards have this feature and are supported. Kickstart 1.2, 1.3, 2.04, 2.05, 3.0 and 3.1 are currently tested ROM images.
+
+@{"SaveROM" LINK SaveROM} program can be used to save (grab) Kickstart ROM image into a kickfile.
+
+@{"applypatch" LINK Usage3} program can be used to "prepatch" ROM image with BlizKick "patch" kind of @{"modules" LINK Modules}.
+
+@{"romupdatesplit" LINK Usage4} can be used to split @{"AmigaOS 3.5/3.9 ROM Update file" LINK OS35setup}.
+
+@{"loadresident" LINK Usage5} can be used to load resident tags to EXTRES buffer after running BlizKick. @{"protectextresbuf" LINK Usage8} can be used to MMU protect the EXTRES buffer area.
+
+See @{"here" LINK Others}, if you want to know why you should use BlizKick instead of other similar programs.
+
+See BlizKick package @{"features" LINK Features} and @{"requirements" LINK Requirements}.
+@ENDNODE
+@NODE Others "Other MapROM tools"
+
+     @{b}OTHER MAPROM TOOLS@{ub}
+
+There are few programs similar to BlizKick. Here are some comparisations. After reading these, I'm sure you'll agree with me that BlizKick is the best choice. If not, use some of these programs instead... :-(
+
+ @{" BlizzMagic          " LINK Other1}
+ @{" BKick               " LINK Other2}
+ @{" CyberMap            " LINK Other3}
+ @{" phase5's CyberMap   " LINK Other6}
+ @{" Kick                " LINK Other4}
+ @{" KickBlizz           " LINK Other5}
+ 
+@{b}NOTE:@{ub} This section needs some serious updating.
+@ENDNODE
+@NODE Other1 "BlizKick 1.24 vs. BlizzMagic 3.3"
+
+     @{b}BLIZKICK 1.24 VS. BLIZZMAGIC 3.3@{ub}
+
+BlizzMagic 3.3, FreeWare, util/boot/BlizzMagic.lha
+Author: Jan Hlavaty <mamlason@tnet.cz>
+
+			BlizKick 1.24	BlizzMagic 3.3
+
+Supported boards	all		all but 20x0, PPC & CPU Cards
+Orig. ROM restoration	yes		OS2.0+ only
+256K ROM		yes *)		yes
+Needed AmigaOS		1.2+		2.0+
+ROM grabber included	yes		yes
+Need file preparing	no		no
+AutoReSum		yes		no
+ROM speed-up		internal	external
+External Modules	yes		no
+Additional programs	lots *2)	three
+"prepareemul"		yes		yes
+"movevbr"		yes		yes
+SoftSCSI		yes		no
+
+*) @{b}All@{ub} parts of BlizKick package will work on both 256K and 512K ROM images, as opposite to BlizzMagic.
+*2) BlizKick really needs only one additional program: ROM saver (grabber).
+
+Hi Jan!! I really liked you comment on your BlizMagic's documentation!!
+
+Well, I have few things to say:
+
+@{b}a)@{ub} I @{i}really@{ui} was first!! [g]
+
+@{b}b)@{ub} I developed BlizKick independently (well, at least up to version 1.3... ;-)
+
+@{b}c)@{ub} BlizKick has great module system and way better documentation...
+
+@{b}d)@{ub} BlizKick has really cool @{"modules" LINK Modules}!
+@ENDNODE
+@NODE Other2 "BlizKick 1.24 vs. BKick 1.1"
+
+     @{b}BLIZKICK 1.24 VS. BKICK 1.1@{ub}
+
+BKick 1.1, FreeWare, util/boot/BKick.lha
+Author: Adam Ciarcinski <ciarcins@beta.ii.tuniv.szczecin.pl>
+
+			BlizKick 1.24	BKick 1.1
+
+Supported boards	all		all but PPC & CPU Cards
+Orig. ROM restoration	yes		yes
+256K ROM		yes		yes
+Needed AmigaOS		1.2+		2.0+
+ROM grabber included	yes		no
+Need file preparing	no	 	no
+AutoReSum		yes		no
+ROM speed-up		internal	no
+External Modules	yes		no
+Additional programs	lots		none
+"prepareemul"		yes		no
+"movevbr"		yes		no
+SoftSCSI		yes		no
+@ENDNODE
+@NODE Other3 "BlizKick 1.24 vs. CyberMap 39.14"
+
+     @{b}BLIZKICK 1.24 VS. CYBERMAP 39.14@{ub}
+
+CyberMap 39.14, FreeWare, util/boot/CyberMap.lha
+Author: Carsten Schlote <schlote@stud.uni-frankfurt.de>
+
+			BlizKick 1.24	CyberMap 39.14
+
+Supported boards	all		2060, CPU Cards
+Orig. ROM restoration	yes		no
+256K ROM		yes		no
+Needed AmigaOS		1.2+		2.0+
+ROM grabber included	yes		no
+Need file preparing	no	 	no
+AutoReSum		yes		no
+ROM speed-up		internal	no
+External Modules	yes		no
+Additional programs	lots		none
+"prepareemul"		yes		no
+"movevbr"		yes		no
+SoftSCSI		yes		no
+@ENDNODE
+@NODE Other6 "BlizKick 1.24 vs. Phase5's CyberMap 1.12"
+
+     @{b}BLIZKICK 1.24 VS. CYBERMAP 1.12@{ub}
+
+CyberMap 1.12, FreeWare, © 1999 by Phase5, http://www.dcecom.de/pub/68060-ddmmyy.lha (get the latest 68060 archive!)
+Author: Matthias Scheler and Ralph Schmidt
+
+CyberMap is the `official' maprom tool for Phase5/DCE cards. If BlizKick should fail for some reason try this tool.
+
+			BlizKick 1.24	CyberMap 1.12
+
+Supported boards	all		all but 12x0
+Orig. ROM restoration	yes		no
+256K ROM		yes		no
+Needed AmigaOS		1.2+		2.0+
+ROM grabber included	yes		no
+Need file preparing	no	 	no
+AutoReSum		yes		yes
+ROM speed-up		internal	yes
+External Modules	yes		no
+Additional programs	lots		none
+"prepareemul"		yes		yes
+"movevbr"		yes		no
+SoftSCSI		yes		no
+@ENDNODE
+@NODE Other4 "BlizKick 1.24 vs. Kick 1.0"
+
+     @{b}BLIZKICK 1.24 VS. KICK 1.0@{ub}
+
+Kick 1.0, ShareWare, util/boot/Kick.lha
+Author: D.N.A
+
+			BlizKick 1.24	Kick 1.0
+
+Supported boards	all		1230-IV & 1260
+Orig. ROM restoration	yes		yes
+256K ROM		yes		yes
+Init bypassing		yes		no
+Local on-board memory	yes		no
+Needed AmigaOS		1.2+		1.0+
+ROM grabber included	yes		yes
+Need file preparing	no	 	no
+AutoReSum		yes		no
+ROM speed-up		internal	no
+External Modules	yes		no
+Additional programs	lots		two
+"prepareemul"		yes		no
+"movevbr"		yes		no
+SoftSCSI		yes		no
+@ENDNODE
+@NODE Other5 "BlizKick 1.24 vs. KickBlizz 1.0"
+
+     @{b}BLIZKICK 1.24 VS. KICKBLIZZ 1.0@{ub}
+
+Kick 1.0, FreeWare?, util/boot/KickROM07ß.lha
+Author: Gideon Zenz <gzenz@ernie.mi.uni-koeln.de>
+
+			BlizKick 1.24	KickBlizz 1.0
+
+Supported boards	all		1230-IV
+Orig. ROM restoration	yes		no
+256K ROM		yes		yes
+Init bypassing		yes		no
+Local on-board memory	yes		no
+Needed AmigaOS		1.2+		2.0+
+ROM grabber included	yes		no
+Need file preparing	no	 	no
+AutoReSum		yes		no
+ROM speed-up		internal	no
+External Modules	yes		no
+Additional programs	lots		none
+"prepareemul"		yes		no
+"movevbr"		yes		no
+SoftSCSI		yes		no
+@ENDNODE
+@NODE KickImage "About Kickstart ROM"
+
+     @{b}KICKSTART ROM@{ub}
+
+On Amiga computers, most of the operating system is on ROM chip. This differs from the Wintel PC's, whose OS will be loaded from the disk (by BIOS). Both methods have their benefits and misadvantages.
+
+(1) If you have OS on ROM you don't have to wait until it's loaded from the disk and the OS takes minimal amount of the RAM when operating. The dark sides are that ROM chip isn't cheap and it's hard to change ROM chip (you'll have to open your Amiga and by doing this you'll invalidate your Amiga's warranty).
+
+(2) If you have OS on the disk it'll take some time to load it to memory and it'll eat some of your precious RAM. On the other hand it's very simple to update or even change the OS, because no "srewdriving" is needed.
+
+BlizKick helps in case 1: It enables you to have different Kickstart ROM images on the disk. On power-up BlizKick will load the ROM image from the disk and install it, overriding the old ROM. BlizKick is needed only once: while powering up your Amiga. In fact, BlizKick will make the case 1 look like case 2: It even takes part of the RAM (512KB) for the "fake" ROM. :(
+
+BlizKick requires that the Kickstart ROM is saved to a kickfile. Two kickfile (and ROM) sizes are allowed:
+  256K  KS 1.x
+  512K  KS 2.x, 3.x
+
+There are several utilities available for saving (grabbing) Kickstart ROMs. I've included my own piece of artwork, named @{"SaveROM" LINK SaveROM}.
+@ENDNODE
+@NODE MAPROMJumper "MAPROM feature (jumper)"
+
+     @{b}MAPROM@{ub}
+
+"If memory is installed on the BLIZZARD 1230-III you can load Kickstart into the faster RAM to speed up the execution of operating system functions. If the MAPROM jumper is removed, Kickstart will be automatically copied over to the RAM. If the jumper is installed Kickstart will be executed on the ROM. If activated, MAPROM feature takes 512 KB of the RAM installed on the BLIZZARD 1230-III."  (quated from the BLIZZARD 1230-III User's Manual)
+
+Apparently, at least 1230-I, 1230-II, 1230-III, 1230-IV, 1240-T/ERC, 1260, 2040-ERC and 2060 models have MAPROM jumper.
+
+Also Cyberstorm MK I, MK II, MK III, PPC, Blizzard PPC and Commodore A3640 have similar feature.
+
+Note that at least Cyberstorm MK III and PPC must have the maprom feature @{b}disabled@{ub} from bootmenu before BlizKick is run. Also remember to power down when you change the option from bootmenu because maprom survive reset.
+@ENDNODE
+@NODE About "About BlizKick"
+
+     @{b}ABOUT BLIZKICK@{ub}
+
+@{b}BlizKick package software and documentation are Copyright © 1996-2007 PitPlane Productions. All Rights Reserved.@{ub}
+
+BlizKick package is FreeWare. See @{"license" LINK License}.
+
+If you have any suggestions or remarks about this program, or if you find any bugs, please let me know. However, please note that the program development has now ceased.
+
+The best way to reach me is IRC (ohno... don't blame IRC for stalled BlizKick development;):
+
+	@{b}IRC:@{ub}		@{"Piru" LINK xyz} (#AmigaFIN, #amiga)
+
+Again, absolutely the best way to reach me is to use IRC. Best channel for BlizKick questions/bug-reports is probably #amiga or #AmigaFIN if you are finnish. :-)
+
+Write to the following address (for @{"bug-reports" LINK BugReports}, comments etc.):
+
+	@{b}e-Mail:@{ub}		sintonen@iki.fi
+
+	@{b}WWW:@{ub}		http://www.iki.fi/sintonen/
+
+			@{b}http://www.iki.fi/sintonen/sw.html@{ub}
+			Latest beta release of BlizKick
+			should be found here. If you can't find it
+			from there try msging Piru on irc. ;)
+@ENDNODE
+@NODE xyz "Hmm"
+
+     @{b}GREAT!!@{ub}
+
+Hmm... I think I'm above average programmer (aren't we all?;). I use mostly C in my Amiga programmes. Sometimes I also use AmigaE and Assembler (DevPac). I'm also quite good ARexx/CLI script writer. I love CygnusEd. I really hate GoldED. Hmm... What else? That's about it. :)
+
+Oh, my Amiga's configuration?
+
+Well, it's a good old A1200 put into 300W full tower case, 60 GB IDE hard disk, 40x IDE CD-ROM, HP CD-Writer+ 8100 CD-RW (with selfmade idefix hardware), 4.3 GB and 2.1 GB SCSI hard disks. Blizzard PPC Power Board equipped with 266 MHz 603e and 64.1 MHz 68060 (overclocking rules), and 32 MB + 64 MB 50ns SIMMs (total 96 MB fast), 10Mbit PCMCIA ethernet ($80 PC-card + PCMCIA reset hack), BlizzardVision PPC 8 MB graphics card (Permedia2 overclocked to 99MHz memclock), U.S.Blaster MM500 loudspeakers and finally HITACHI CM752ET 19" monitor. Quite ok system, no? :-)
+
+Check http://www.iki.fi/sintonen/hw.html for updates. :)
+
+And of course good old A500 (in 1001 pieces nowadays), few external drives and other stuff in my closet. ;)
+@ENDNODE
+@NODE Features "Features"
+
+     @{b}FEATURES@{ub}
+
+- @{"MuMove4K" LINK Modules} module, substitutes MuMove4K by Thomas Richter.
+
+- CopyIDEfixPrefs and KingCON-handler.pch.
+
+- QUICKBOOT feature as an external @{"QuickBoot" LINK Modules} module. Note that this module can probably only be used with Blizzard 1230s. You @{b}MUST@{ub} use LocalFast module too if you use this!
+
+- Reintroduced LOCALFAST feature as an external @{"LocalFast" LINK Modules} module. Only use this module if you need to (mainly Blizzard 12x0s)! Also note that if you use LocalFast module you must start BlizKick before PoolMem.
+
+- If PoolMem should cause troubles, doesn't crash anymore.
+
+- Implemented EXTRESBUF more OS friendly way, fixes some problems
+
+- New commandline argument: @{"SANITY" LINK Usage1}
+
+- mmu.library support (not tested)
+
+- Three new tools: @{"romupdatesplit" LINK Usage4}, @{"loadresident" LINK Usage5} and @{"protectextresbuf" LINK Usage8}.
+
+- New section in guide about how to set up @{"AmigaOS 3.5/3.9 single boot system" LINK OS35setup}.
+
+- You can give any executable as module! Renders SCSIDEV43 module obsolete (if using non-beta scsi.device!). Use V43 scsi.device, new fastfilesystem as a module and so on :)
+
+- @{"applypatch" LINK Usage3} program to apply BlizKick patch kind of @{"modules" LINK Modules} to ROM image
+
+- romfixes module to fix some @{"bugs" LINK rombugs} from rom
+
+- AlertFix module to fix Blizzard PPC @{"`crash + reboot + alert' problem" LINK blizzppcfeatures} and other Alert related bugs.
+
+- BPPCFix and BPPCFix040 modules to substitute BPPCFix by by Frank Wille <frank@phoenix.owl.de>
+
+- ramlibstack module to substitute MCPRamlibPatch (also romfixes module has this functionality!)
+
+- Support for Blizzard PPC
+
+- Support for CPU Cards & CS MKI, MKII, MKIII and PPC!
+
+- FusionReserve module to substitute RsrvCold tool of Fusion MAC Emulator (Also Mac1200), A1000Jingle to play some tune on reset, PatchMath020 to optimize C-compiler math routines in ROM, RebootFix to fix problems with A1200 and 060 (at least with BLIZZARD 1260) reboot when display is in multisync mode, and SpeedyChip module for patching 060 MMU lists for improved chip memory write speed.
+
+- SCSIDEV43 module to kick V43 beta scsi.device. No more @{"4GB drive limit" LINK 4GBLimit}!
+
+- Free100buf for freeing buffer created by ChipSaver module
+
+- EXTRESBUF is put into fast memory now!
+
+- ChipSaver, RemCards, SpeedyIDE and WaitIDE modules.
+
+- NewAlert & BBlank modules by Jens Lorenz
+
+- BKMODPATH env-variable can be used to specify location of BlizKick modules
+
+- QUIET switch
+
+- KICKFILE * can be used to kick original ROM found on chip
+
+- BlizKick can replace SoftSCSI program!
+
+- KICKFILE can be packed with XPK
+
+- BlizKick can replace PrepareEmul 100%
+
+- Can "expand" the ResidentTag area. No more "iffucient ROM space" -problem!
+
+- Can be run any time (no more need to start before SetPatch on 1260)
+
+- This package is free! (see @{"license" LINK License})
+
+- Has possibility to plant ResidentTag @{"modules" LINK Modules} into ROM image!
+
+- No kickstart file preparation or similar is needed. You can just save any ROM image and give it to BlizKick!
+
+- Can restore the original Kickstart.
+
+- Can make memory on Blizzard board LOCAL, bypass flashy boot of the board and speed up ROM boot.
+
+- Has built-in FastWaitBlit patch.
+
+- BlizKick is 100% assembler!
+
+- BlizKick doesn't use MMU, KickMem, KickTag, ColdCapture or CoolCapture vectors. @{b}-> 100% transparent!@{ub}
+
+- Works with almost any AmigaOS version! (that is AmigaOS 1.2 or better)
+
+- BlizKick executable is only about 7K !
+
+- BlizKick should be compatible with all future Kickstarts.
+
+- Program for saving Kickstart ROM images included!
+@ENDNODE
+@NODE Requirements "Requirements"
+
+     @{b}REQUIREMENTS@{ub}
+
+BlizKick requires Amiga computer with AmigaOS 1.2 or better and phase5/DCE turbo board with its @{"MAPROM" LINK MAPROMJumper} feature enabled (or disabled for @{"some cards" LINK MAPROMJumper}!) or a CPU Card.
+
+@{"SaveROM" LINK SaveROM} requires AmigaOS 1.0 or better.
+
+Hard disk drive is highly recommended, but not required. You can also have problems reading this AmigaGuide document if you don't have MultiView because of \@WORDWRAP.
+
+BlizKick should work with:
+
+ ?  BLIZZARD 1230-I
+ ?  BLIZZARD 1230-II
+ x  BLIZZARD 1230-III
+ x  BLIZZARD 1230-IV
+ x  BLIZZARD 1240-T/ERC
+ x  BLIZZARD 1260
+ x  BLIZZARD 2040-ERC
+ x  BLIZZARD 2060
+ x  BLIZZARD Cyberstorm MKI
+ x  BLIZZARD Cyberstorm MKII
+ x  BLIZZARD Cyberstorm MKIII
+ x  BLIZZARD Cyberstorm PPC
+ x  BLIZZARD Blizzard PPC
+ x  Commodore A3640
+
+ x = tested and works
+ ? = not tested, but should work
+ - = not yet functional
+ $ = might not work, I don't know if these boards have @{"MAPROM" LINK MAPROMJumper} feature
+@ENDNODE
+@NODE SaveROM "SaveROM utility"
+
+     @{b}SAVEROM@{ub}
+
+With this program you can save the current Kickstart ROM image into a kickfile. Kickfiles created with SaveROM can be @{"used" LINK Usage1} with BlizKick. See @{"usage" LINK Usage2} and @{"installation" LINK Installation} of the SaveROM.
+@ENDNODE
+@NODE Installation "BlizKick installation"
+
+     @{b}INSTALLATION@{ub}
+
+
+@{b}Just click @{"here" SYSTEM "Execute install_script"} to get BlizKick installed! (WILL COPY FILES AUTOMATICALLY! You still need to add BlizKick commandline to s:startup-sequence, see @{"BlizKick usage" LINK Usage1})@{ub}
+
+
+If you simply want to get all programs and documentation installed automatically, click @{"here" SYSTEM "Execute install_script"}. Programs will be copied into C: -drawer, @{"Modules" LINK Modules} will be copied into DEVS:Modules -drawer, BKMODPATH env-variable is created and requester will pop up (OS 3.x) requesting destination directory for this AmigaGuide document. If you're OS 1.x/2.x user you should have HELP: -assign, as this document is copied into HELP:English or HELP: -drawer.
+
+If you want to save your current Kickstart ROM into a file (DEVS:rom_@{fg shine}ver@{fg text}.@{fg shine}rev@{fg text}), click @{"here" SYSTEM "SaveROM DEVS:rom_v$kickstart"}. This kickfile can be used with BlizKick, it is the same version as already used, though :)
+
+If you'll use @{"ChipSaver" LINK Modules} module you probably want to copy Free100buf to C: -drawer or drag it into WBStartup -drawer (You only should put Free100buf into WBStartup if you start ripper software before Workbench is loaded). You may @{" Copy Free100buf TO C: " SYSTEM "Copy FROM Free100buf TO C:"} and/or @{" Copy Free100buf Free100buf.info TO SYS:WBStartup/ " SYSTEM "Copy FROM Free100buf Free100buf.info TO SYS:WBStartup/"}.
+
+Now, see @{"usage" LINK Usage1} section.
+
+If you're interested in programming "@{"modules" LINK Modules}" or "@{"patches" LINK Modules}" see notes @{"here" LINK PrgNotes}.
+
+
+     @{b}DETAILED INSTALLATION@{ub}
+  (For you who hate automatic installation scripts)
+
+BlizKick's installation is quite simple: just copy executable named @{b}BlizKick@{ub} into your C: -drawer. You also need @{"ROM image(s)" LINK KickImage} you want to rekick. If you're really lazy just hit the following button:
+
+  @{" Copy BlizKick TO C:BlizKick " SYSTEM "Copy FROM BlizKick TO C:BlizKick"}
+
+There is also a program for saving (grabbing) Kickstart ROMs included (@{"SaveROM" LINK SaveROM}). If you want, you can copy it into your C: -drawer by clicking the following button:
+
+  @{" Copy SaveROM TO C:SaveROM " SYSTEM "Copy FROM SaveROM TO C:SaveROM"}
+
+If you want to "prepatch" ROM image with patch kind of @{"modules" LINK Modules} install @{"applypatch" LINK Usage3} by clicking the button below:
+
+  @{" Copy applypatch TO C:applypatch " SYSTEM "Copy FROM applypatch TO C:applypatch"}
+
+If you want to split AmigaOS 3.5/3.9 ROM Update file install @{"romupdatesplit" LINK Usage4} by clicking the button below:
+
+  @{" Copy romupdatesplit TO C:romupdatesplit " SYSTEM "Copy FROM romupdatesplit TO C:romupdatesplit"}
+
+If you want to add resident modules to EXTRES buffer after BlizKick has been run install @{"loadresident" LINK Usage5} by clicking the button below:
+
+  @{" Copy loadresident TO C:loadresident " SYSTEM "Copy FROM loadresident TO C:loadresident"}
+
+If you want to MMU protect resident modules in EXTRES buffer, install @{"protectextresbuf" LINK Usage8} by clicking the button below:
+
+  @{" Copy protectextresbuf TO C:protectextresbuf" SYSTEM "Copy FROM protectextresbuf TO C:protectextresbuf"}
+
+If you want to use new IDEfix as a module CopyIDEfixPrefs can be used to update the IDEfixPrefs to C:IDEfix file. Install @{"CopyIDEfixPrefs" LINK Usage6} by clicking the button below:
+
+  @{" Copy CopyIDEfixPrefs TO C:CopyIDEfixPrefs " SYSTEM "Copy FROM CopyIDEfixPrefs TO C:CopyIDEfixPrefs"}
+
+There are some example @{"modules" LINK Modules} included. If you want, you can copy them into your DEVS: -drawer by clicking the following button:
+
+  @{" Copy Modules/~(#?.(ASM|i)) DEVS:Modules " SYSTEM "Copy >NIL: Modules/~(#?.(ASM|i)) DEVS:Modules"}
+
+Finally you could add a environment variable BKMODPATH which contains path for BlizKick modules (default "DEVS:Modules/").
+
+Of course, you should copy (drag?) this AmigaGuide documentation into your Docs-drawer.
+
+See usage of @{"BlizKick" LINK Usage1}, @{"SaveROM" LINK Usage2} and @{"applypatch" LINK Usage3}.
+
+
+     @{b}UNINSTALLATION@{ub}
+
+Delete C:BlizKick, C:SaveROM, C:applypatch, C:romupdatesplit, C:loadresident, C:protectextresbuf and C:CopyIDEfixPrefs, delete DEVS:Modules ALL, delete ENVARC:BKMODPATH and delete this guide file.
+(Above is valid for default installation)
+If you have copied Free100buf to C: and/or SYS:WBStartup/ -drawer(s) you should delete it too.
+@ENDNODE
+@NODE PrgNotes "Programmer's notes"
+
+     @{b}PROGRAMMER'S NOTES@{ub}
+
+You should copy file Modules/@{"blizkickmodule.i" LINK Modules/blizkickmodule.i/main} into your @{b}include:@{ub} -drawer.
+
+There are assembler source code for all included modules! These files aren't copied by installation process. You might want to create Modules drawer to place where this guide file is located and copy all .ASM files into it.
+
+Then see @{"example modules" LINK ExampleModules}.
+@ENDNODE
+@NODE doub! "How it is done?"
+
+     @{b}HOW IT IS DONE?@{ub}
+
+Certain phase5/DCE turbo boards have @{"MAPROM" LINK MAPROMJumper} feature, which can be used to load (copy) currently installed ROM chip into the 32-bit fast memory. I found that the memory for the Kickstart ROM is "allocated" from the end of the memory installed on board. Because the memory isn't actually allocated, but the AddMemList() function parameters are changed a bit, the memory area containing the ROM is outside the system memory pool.
+
+What I do in BlizKick is really quite simple: I test whether system has somewhat valid phase5/DCE turbo board installed and its MAPROM feature enabled. If all is OK so far, I allocate memory for the specified @{"Kickstart ROM" LINK KickImage} kickfile and load it. The I Disable() system and run some piece of code in CPU's supervisor state. It effectivily does nothing exceptional: It just copies the loaded ROM over the Kickstart ROM created by boards own "MAPROM" and flushes CPU caches. Finally, execbase is trashed and reset is done.
+
+Wow! Isn't that simple!
+@ENDNODE
+@NODE Notes "Important notes"
+
+     @{b}NOTES@{ub}
+
+MorphOS loader takes over whole system memory overwriting everything, including EXTRES area. So EXTRESBUF can't be used if you're going to use MorphOS. Also be sure you use qstartup/startup Kickstart option, and do NOT use applypatched ROM Image here, but the original ROM! MorphOS @{b}will@{ub} misbehave if it can't apply its' own patches!
+
+If you have Blizzard PPC read @{"Blizzard PPC special" LINK blizzppcspecial} notes.
+
+It might be that RemCards module can't be used if you have CD-ROM drive. This depends on the drive controller/device driver.
+
+If you want to use SCSIDEV43 module with SpeedyIDE and/or WaitIDE module then SpeedyIDE and/or WaitIDE must be specified after SCSIDEV43 or else it won't work (as patches are made to ROM scsi.device which is immeditially replaced by V43 scsi.device).
+
+As of version 1.11ß1 EXTRESBUF is put into board's own fast memory, not chip memory.
+
+If you want to use NoClick module with Hackdisk module then NoClick must be specified after Hackdisk or else drives will continue clicking. I've also found that hackdisk.device has some problems in conjugation with CrossDos6. If you have any problems, just don't use hackdisk module.
+
+Kickstart 1.2 (33.180) works now, as BlizKick automagically patches some bugs of it.
+
+Please, see @{"why" LINK Others} you show use BlizKick 1.24 instead of other similar programs.
+
+If you're interested in programming "@{"modules" LINK Modules}" or "@{"patches" LINK Modules}" for BlizKick see notes @{"here" LINK PrgNotes}.
+
+There's a @{"certain bug" LINK BlizBug} in at least 1230-II and 1230-III boards: memory node name can sometimes be a null string.
+
+You can save (grab) the modified ROM created by BlizKick. It can be used with other "kicking" tools with no problems (at least if EXTRESBUF feature isn't used). Using it with BlizKick again requires use of the FORCE switch. See @{"usage" LINK Usage1} of the BlizKick.
+
+BlizKick can be used in conjugation with Enforcer, CPU FASTROM, VMM, GigaMem etc. BTW: BlizKick has few Enforcer hits, but they'll never show up as Enforcer is turned off when needed... :) I'm well aware that no program should access memory areas outside of memory lists, but this is a @{"hack" LINK doub!} anyway...
+
+Note that you should @{b}not@{ub} use Kickstart 1.3 or lower on systems equipped with MC68040 or better processor. This doesn't mean you can't do it though... :)
+
+BlizKick has been tested on following systems:
+
+  A1200, BLIZZARD 1230-I 68EC030 @ 40MHz
+  A1200, BLIZZARD 1230-III 68030 @ 50MHz
+  A1200, BLIZZARD 1230-IV 68030 @ 50MHz
+  A1200, BLIZZARD 1240-T/ERC 68040 @ 40MHz
+  A1200, BLIZZARD 1260 68060 @ 50MHz
+  A1200, BLIZZARD 1260 68060 @ 50MHz
+  A1200, Blizzard PPC 603e+ @ 270Mhz, 68060 @ 64.1MHz
+  A?000, BLIZZARD 2040-ERC 68040 @ 40MHz
+  A2000, BLIZZARD 2060 68060 @ 50MHz
+  A4000, Cyberstorm MK II 68060 @ 50MHz
+  A4000, Cyberstorm MK III 68060 @ 50MHz
+  A4000, Cyberstorm PPC 604e @ 200MHz, 68060 @ 50MHz
+
+  (+ many other configurations)
+
+BlizKick should work with all @{"phase5/DCE turbo boards" LINK Requirements} that have @{"MAPROM" LINK MAPROMJumper} feature enabled. If you're having troubles with BlizKick on your system and you're sure that your board is Blizzard board and it has MAPROM feature, then contact @{"me" LINK About}. I'll fix BlizKick, if possible. I cannot guarantine BlizKick to be 100% software/hardware compatible!
+
+You @{b}must@{ub} have the @{"MAPROM" LINK MAPROMJumper} feature enabled or BlizKick won't work!
+
+Note that BlizKick uses always 512K of memory, even if the ROM image to rekick is only 256K (KS 1.x). This is because of phase5/DCE turbo's own MAPROM feature and can't be fixed (easily). The memory area before 256K ROM ($F80000-$FBFFFF) contains the same data as at $FC0000 (this is what happens with real 256K ROM too).
+
+You can use modified ROM images as BlizKick always resums the image before it's kicked. Naturally you should be careful when changing ROM contents, but simple funny things like string modifications etc. should be easy thing to do. Of course, you should always have backup of the original ROM kickfile!
+
+BlizKick doesn't use kickmem or kicktag vectors, or Cold- or CoolCapture.
+
+BlizKick should be compatible with all future Kickstarts and Kickstart images. There is one restriction though: 1MB ROM images can't be used. Again, this is because of phase5/DCE turbo's MAPROM feature. KS 1.2, 1.3, 2.04, 2.05, 3.0 and 3.1 are currently tested ROM images. If BlizKick refuses to co-operate with other ROM images (256K/512K) then contact @{"me" LINK About}.
+
+If you rekick older kickstart than originally used one, it may be impossible to use all hardware and/or peripherals of your system (e.g. If you originally use KS 3.0 in your A1200 and rekick KS 1.3 you can't use your hard disk drives or PCMCIA slot. Direct banging of AGA hardware works, if someone is smart (?) enough to do it).
+
+Here is some @{"information" LINK Disclaimer} about different Kickstart ROM images:
+
+KS		SIZE VERS	NOTES
+
+1.0		¼MB 30.x	Used in old AMIGA 1000
+1.1 ntsc		¼MB 31.x	Used in AMIGA 1000
+1.1 pal		¼MB 32.x	Used in AMIGA 1000
+1.2		¼MB 33.x	Original A500 ROM
+1.3		¼MB 34.x	Can run AUTOBOOT devices
+1.4		??MB 35.x	KS 1.3 with A2410 support
+2.0,2.01,2.02	½MB 36.x	Beta OS 2.0
+2.04 		½MB 37.175	Official OS 2.0
+2.05		½MB 37.300	Used in A600's, knows how to
+				use internal AMIGA 600/AMIGA
+				1200/AMIGA 4000 IDE
+				peripherals and PCMCIA slot.
+				Doesn't work with Bliz 1260!
+3.0		½MB 39.106	Official OS 3.0
+3.0beta		½MB 39.107	Beta?
+3.0beta		½MB 39.110	Beta?
+3.1		½MB 40.x	Support for Akiko and CD-ROM
+3.2		½MB 43.x	Would have been used in
+				"Walker"...?
+@ENDNODE
+@NODE BlizBug "Bug in BLIZZARD 1230-II and 1230-III"
+
+     @{b}BLIZZARD BOARD BUG@{ub}
+
+There's a little bug in Blizzard boards autoconfig(TM) code (at least 1230-II and 1230-III):
+
+When the board allocates memory for the memory node name of the boards' memory it can sometimes fail.
+
+There's a code like this:
+
+	move.l	(.stringsize,pc),d0
+	moveq	#MEMF_ANY,d1
+	movea.l	(4).w,a6
+	jsr	(_LVOAllocMem,a6)
+	movea.l	d0,a3		@{b}movea.l <ea>,An WON'T set@{ub}
+	beq.b	.nomem		@{b}condition codes! -> fail!@{ub}
+	movea.l	a3,a1
+	lea	(.blizmem,pc),a0
+.copy	move.b	(a0)+,(a1)+
+	bne.b	.copy
+.nomem
+	movea.l	a3,a1
+	;...
+	; add memory to system memory pool
+	; a1=ptr to memory node name
+	;...
+
+.stringsize	dc.l	20
+.blizmem	dc.b	'Blizzard_Mem',0
+
+@{bg shine}@{b} THIS IS TOTALLY WRONG! @{ub}@{bg back}
+
+@{b}1]@{ub} movea.l <ea>,an does @{b}not@{ub} set condition codes like move <ea>,<ea> does! This code can think allocation failed when it succeeded, and think it succeeded when it really failed (!).
+
+@{b}1)@{ub} Should movea.l d0,a3, tst.l d0, beq.b .nomem
+
+@{b}1>@{ub} Now if there's no memory, Blizzard memory node won't have any name which is perfectly legal.
+@ENDNODE
+@NODE 040060Notes "Attention, 68040/68060 user!"
+
+     @{b}68040/68060 NOTES@{ub}
+
+You need @{b}not@{ub} start BlizKick before SetPatch. See @{"why" LINK Because}. 
+From version 1.6 and on you can start BlizKick anytime!
+
+I've received some reports that BlizKick 1.9 wouldn't have worked if run after SetPatch on 68040 or 68060 systems. It this still happens please contact @{"me" LINK About}.
+@ENDNODE
+@NODE Because "SetPatch and 68040/68060"
+
+     @{b}SETPATCH AND 68040/68060@{ub}
+
+When SetPatch is run, it'll load 680x0.library. 680x0.library will set up MMU tables so that it'll hide magic MAPROM memory areas from all other programs.
+
+To get around this BlizKick will toggle MMU on and off couple of times while it's run. Note that BlizKick won't change MMU tables in any way, or turn MMU off if it was initially on.
+@ENDNODE
+@NODE blizzppcspecial "Blizzard PPC special"
+
+     @{b}BLIZZARD PPC SPECIAL@{ub}
+
+From version 1.19 on, BlizKick is cabable of starting more than once per poweron (use @{"FORCE" LINK Usage1})! You can also restore the original ROM (give no @{"KICKFILE" LINK Usage1}). I finally managed to find the way to disable the Blizzard PPC maprom... :)
+
+@ENDNODE
+@NODE ffs62fuckup "ffs62 module fuckup"
+
+     @{b}STORY OF FFS62 MODULE@{ub}
+
+  Background story:
+
+Once I was examining ffs partition with diskmontools and found out that there seemed to be "empty" space after file/dir name in file/dir block. So after hours of resourcing I was able to locate all places in which fastfilesystem handles file/dir names (hashing routines etc). Then I wrote patch to modify these places, and wow: I had fastfilesystem with max. 62 char filesnames. Well, I really thought so, but it was too good to be true... :-(
+
+  What went wrong then?
+
+Well I accidently included this beta module to BlizKick 1.13 Aminet release. It wasn't supposed to get included but my automatic aminet packaging script was a bit too efficient.
+
+Then later I was talking with Ralph Schmidt and he told me that this ffs62 patch overwrites some fields in file/dir block. Ooops, bad luck! I still don't know 100% what these fields are but apparently this ffs62 just seemed to work for me (by luck).
+
+  Conlusion:
+
+see @{"disclaimer" LINK Disclaimer}. ;-)
+@ENDNODE
+
+@NODE TroubleShoot "Troubleshooting"
+
+     @{b}TROUBLESHOOTING@{ub}
+
+
+@{b}IMPORTANT:@{ub} If your problem isn't covered here it might be a good idea to look at http://www.iki.fi/sintonen/sw.html for the latest BlizKick beta release (topmost BlizKick in the table). It could be that the bug has been fixed already!
+
+@{b}Q: romfixes module print errors! It appears to work nevertheless.
+
+A: Since the 1.24rc3 release, romfixes module no longer fail completely, but print "warning" messages of patches it cannot apply. Those messages are harmless and can be ignored.
+
+@{b}Q: I use scsi.device 43.35+ and SCSIDEV43 module doesn't seem to work anymore! My system only see scsi.device 40.x.@{ub}
+
+A: AmigaOS 3.5 and 3.9 scsi.device should be used as a module. Copy scsi.device into your modules dir and use "scsi.device" as a module.
+
+@{b}Q: I added the new MuMove4K module and removed PrepareEmul/FusionReserve module. Now ShapeShifter/Fusion don't work anymore!@{ub}
+
+A: Don't remove PrepareEmul/FusionReserve module, it's still needed. (Michael D)
+
+@{b}Q: When BlizKick has loaded it reboots the system, and then my system give me red screen (ROM checksum error). If I give my machine three-finger-salute (Ctrl-Amiga-Amiga) and afterwards it works just fine, and the ROM is mapped ok. What's up?@{ub}
+
+A: I finally managed to trace the root of this problem! It seems that the reboot magic in some PowerUP boards is somehow broken, and cause this "one-shot ROM checksum error". I could avoid this problem by replacing the official PowerUP reboot code with standard one. You can choose this new reboot method with @{"NOPUPREBOOT option" LINK Usage1} (new in BlizKick 1.24beta8).
+
+@{b}Q: I have a JST installed game X that doesn't work anymore!@{ub}
+
+A: Try removing SpeedyIDE module, it might help. (Jacob Jensen)
+
+@{b}Q: AmigaOS 3.5/3.9 romupdate console.device doesn't work as module!@{ub}
+
+A: Pre-1.6 romfixes module didn't like OS 3.5/3.5 console.device. romfixes 1.6 silently skip the console.device patching if V44+ console.device is around.
+
+@{b}Q: I put BlizKick to my s:startup-sequence and now it keeps on rebooting my machine over and over again!@{ub}
+
+A: This can happen if you have used some other tool to map the ROM before BlizKick is run. Make sure you've disabled the other tools (incl. CS PPC/MKIII's maprom from bootmenu!), then power off, and turn your Amiga back on. It should work then (just one reboot). (Thanks to Gunther Nikl for this one.)
+
+@{b}Q: Rafal Mania's InitPPCLib 1.1 doesn't work with BPPFix 1.2 module!?@{ub}
+
+A: Yep. At least the 'os-friendly version' doesn't. But hey you can always use 'BPPCFixFix' or 'loadppclib' written by me... :-)
+
+@{b}Q: I am running UAE on my amiga and I don't use rom-file. If I am using EXTRESBUF with BlizKick, UAE fail to start. Why?@{ub}
+
+A: UAE cannot find the EXTRES buffer memory and fail miserably. However this is easy to fix; just use rom-file with UAE.
+
+@{b}Q: With my A4000 + A3640 BlizKick work when started from shell when system has booted. However it fails when I put it to startup-sequence. Why?@{ub}
+
+A: It seems that with A3640 you need to place the BlizKick command after SetPatch line. If someone has ideas how to make it work before SetPatch let me know.
+
+@{b}Q: muFastZero FASTEXEC doesn't work with BlizKick?@{ub}
+
+A: Seems so. Use BlizKick's LocalFast module instead. (Thanks to Matt for this one.)
+
+@{b}Q: When I use BlizKick and start MorphOS my system just freezes. Even if it did work I can't get back to AmigaOS without powering down. Why?@{ub}
+
+A: MorphOS loader takes over whole system memory overwriting everything, including EXTRES area. So EXTRESBUF can't be used if you're going to use MorphOS. Also be sure you use qstartup/startup Kickstart option, and do NOT use applypatched ROM Image here, but the original ROM! MorphOS @{b}will@{ub} misbehave if it can't apply its' own patches!
+
+@{b}Q: I have AlertFix module installed and every app doing exec/Alert() gives me error instead of alert.@{ub}
+
+A: AlertFix-module V1.0 was broken and caused this problem as a side effect. 1.22beta12 added new fixed 1.1 version of AlertFix. (a fix on a fix :-)
+
+@{b}Q: KingCON-module doesn't werk, you sux!@{ub}
+
+A: It doesn't work with AmigaOS 3.5/3.9. Too bad. The patch was written by Mikolaj Calusinski so I'm afraid I can't help much. On the other hand, who need KingCON in ROM anyway? :-)
+
+@{b}Q: BlizKick seems to work properly on the 1st boot. On the next reboot I get red screen and/or system hangs/infinite reboots.@{ub}
+
+A: Four possibilities:
+
+a) If you have a SCSI-kit or BlizzardPPC and only one SIMM module installed you might want to try swapping the slot the module is in or try adding 2nd SIMM. This could help. (thanks for the tip CISC!)
+b) Some program is trashing the MAPROM area. Try to find and remove such program, use enforcer kind of tool to find the offending software.
+c) Your card's MAPROM is defective (I know at least one case).
+d) BlizKick has a bug (again:). If it doesn't seem to be neither a), b) nor c) please let @{"me" LINK About} know.
+e) Did I say four? Oh well it can be some stupid mistake or weird hardware problem. Wave a chicken over it, might help...
+
+@{b}Q: BlizKick seems to reboot the system twice!? I am using AmigaOS 3.5/3.9.@{ub}
+
+A: BlizKick doesn't reboot the system 2nd time, it's the SetPatch installing "devs:AmigaOS ROM Update" -file. However, the 2nd boot can be avoided. Read how to set up @{"AmigaOS 3.5/3.9 single boot system" LINK OS35setup}.
+
+@{b}Q: This new LocalFast module doesn't work! The old BlizKick that had it built in worked!@{ub}
+
+A: Due silly mistake external LocalFast module didn't work before 1.22beta4. I'm truly sorry. :)
+
+@{b}Q: BlizKick seems to do its job properly but then it fails my startup-sequence with failure code 20. What's up?@{ub}
+
+A: Most probably bug in BlizKick. You might be still able to use BlizKick though, just add 'failat 21' command before BlizKick. Also please report this behaviour to @{"me" LINK About}.
+
+@{b}Q: I added QuickBoot module to my setup and it fails/hangs/crashes my system!@{ub}
+
+A: QuickBoot probably only works with Blizzard 1230-II and III. Possibly also 1230-IV, 1240 and 1260.
+
+A: You must use LocalFast module with QuickBoot, it won't work without.
+
+@{b}Q: I have ramlibstack and romfixes modules on BlizKick commandline and BlizKick just fails with returncode 10. Why?@{ub}
+
+A: romfixes module includes ramlibstack module functionality. Remove ramlibstack module from commandline.
+
+@{b}Q: When I use romupdatesplit to split "devs:AmigaOS ROM Update" -file I don't get the modules shown in @{"romupdatesplit example" LINK Usage4}! (FileSystem.resource file is missing!) Why?@{ub}
+
+A: That example run is done with AmigaOS 3.5 BoingBag2a service pack installed. And that list shows the module output on a A1200 machine. You should update to BoingBag2a anyhow, it contains lots of bug fixes!
+
+@{b}Q: BlizKick 1.19 and 1.20 didn't work at all!@{ub}
+
+A: There was a major bug in copymem routine for 68040 and 68060 CPUs. Fixed in 1.21.
+
+@{b}Q: I get weird crash and/or alert 80010000! What can I do?@{ub}
+
+A: BlizKick 1.20+ can probably help here, use new @{"SANITY option" LINK Usage1}.
+
+@{b}Q: I have a module called ffs62 what is supposed to give me max 62 character filenames for FFS. It seems to work, but should I really use it?@{ub}
+
+A: @{b}DON'T USE IT!@{ub} It @{"never worked" LINK ffs62fuckup}.
+
+@{b}Q: BlizKick seems to be unable to find any modules without paths! I have `assign ENV: RAM:' line before BlizKick line.@{ub} (Thanks to Max for pointing this one out :)
+
+A: BlizKick 1.19 and later will find modules in this case too, previous releases had problems with this.
+
+@{b}Q: BlizKick doesn't work with my Blizzard PPC!@{ub}
+
+A: It does work, read @{"Blizzard PPC special" LINK blizzppcspecial}.
+
+@{b}Q: BlizKick doesn't work for me.@{ub}
+
+A: Don't turn on every feature, you know what happened in Tshernobyl... Try it as 'BlizKick *', if that doesn't work then BlizKick is a bit broken (probably). You could try contacting @{"me" LINK About}, I might even be able to fix it. Don't expect miracles though.
+
+@{b}Q: FusionReserve module doesn't work!@{ub}
+
+A: It does work. Get FixPATCHMAC.lha from aminet and use it conjugation with FusionReserve module.
+
+@{b}Q: PrepareEmul and FusionReserve modules don't work together!@{ub}
+
+A: FusionReserve substitutes PrepareEmul in this case. If you use FusionReserve module you don't need to use MoveVBR module either as FusionReserve moves VBR by itself too.
+
+@{b}Q: My CD-ROM drive refuses to work when I use BlizKick!@{ub}
+
+A: Don't use RemCards module. If you still have problems then contact @{"me" LINK About}.
+
+@{b}Q: When I use BlizKick and start Linux my system just freezes. Even if it did work I can't get back to AmigaOS without powering down. Why?@{ub}
+
+A: Linux loader takes over whole system memory overwriting everything, including EXTRES area. So EXTRESBUF can't be used if you're about to boot Linux.
+
+@{b}Q: WaitIDE doesn't work on V43.17 scsi.device!@{ub}
+
+A: It didn't work in 1.11ß3. WaitIDE should work with it as of 1.11ß4. V43.17 IDE device recognization is broken. :(
+
+@{b}Q: I use SCSIDEV43 module but I only get boot-hand picture. What's wrong?@{ub}
+
+A: Well some releases of V43 scsi.device are broken. At least V43.17 doesn't work for me. V43.11 and V43.18 work.
+
+@{b}Q: SpeedyIDE and/or WaitIDE don't seem to work when used with SCSIDEV43 module. Why?@{ub}
+
+A: You must always specify SpeedyIDE and WaitIDE modules after SCSIDEV43.
+
+@{b}Q: SpeedyIDE causes checksum errors (or other failures) on my hard disk(s)!?@{ub}
+
+A: It works on my A1200, I see no reason why it should't work on your system too. If any problems arise, please disable SpeedyIDE and let DiskSalv or similar program fix your hard disk(s). See also @{"disclaimer" LINK Disclaimer} :).
+
+@{b}Q: I install hackdisk module, but my system freezes immeditially after I've installed disk. I have CrossDos6 or newer. What's wrong?@{ub}
+
+A: I've found that hackdisk.device has some problems in conjugation with CrossDos v6+. If you have any problems, just don't use hackdisk module. I can't fix this yet because I really don't have a clue what's wrong with hackdisk... :(
+
+A: I've heard that original author of Hackdisk, Dan Babcock, is about to release V3.0 of Hackdisk soon. That version is supposed to fix all current problems (I hope so! :).
+
+@{b}Q: When I use hackdisk module ARTM (for example) shows that there's no hackdisk.device resident tag installed! Why?@{ub}
+
+A: This is normal! If hackdisk module initializes without errors it should be there! It is supposed to look like trackdisk.device because it's a full trackdisk replacement (It is even copied over trackdisk.device in ROM!). There's a HackDiskTest program included in NewHackdisk distribution (disk/misc/NewHackdisk.lha) which will display hackdisk version string (and return RC as 0) if it's installed. You can also use other tools (for example DiskMon) to see if hackdisk is really there...
+
+@{b}Q: BlicKick doesn't work! I have memory only on SCSI-Kit.@{ub}
+
+A: MAPROM requires memory on turbo board itself. Solution to this would be to purchase 2, 4 or 8 MB SIMM to be installed into boards SIMM slot. Problems may arise if you have, for example overclocked 68060 to 66MHz and the fan covers SIMM socket (partially).
+
+@{b}Q: NoClick doesn't work when used with hackdisk module!@{ub}
+
+A: Try specifying NoClick module after hackdisk. It should work then.
+
+@{b}Q: When I use BlizKick with EXTRESBUF ShowConfig will report something like this:
+        Node type $A, Attributes $703 (CHIP), at $1E000020-$1FFFFF (~3618.0 meg)@{ub}
+
+A: ShowConfig is bad. This is not my fault. @{b}NOTE:@{ub} EXTRESBUF doesn't magically add chip memory... :)
+
+@{b}Q: If I already have latest ROM in my machine how can I use for example EXTRESBUF without romfile?@{ub}
+
+A: Use * as KICKFILE. 512K of ram is lost (as usual) though.
+
+@{b}Q: EXTRESBUF fails on 1240/2040/2060!? System locks up!@{ub}
+
+A: Hmmm... It should work. Please inform @{"me" LINK About}!
+
+@{b}Q: SoftSCSI does not work.@{ub}
+
+A: It didn't work in 1.9ß5, but should work now. Be sure to have DEVS:Modules/A1234.ROM file present!
+
+@{b}Q: Kickstart 1.2 doesn't seem to work! I get only a yellow screen etc... What's up?@{ub}
+
+A: As of version 1.10ß3 Kickstart 1.2 (33.180) should work! BlizKick automagically patches some bugs of it.
+
+@{b}Q: I know that BlizKick 1.10 on BLIZZARD 1260 can be started after SetPatch, but is the any difference starting it before or after? Which should I prefer?@{ub}
+
+A: No, there shouldn't be any difference. If you use BlizKick just to change (update) your Kickstart (for example 3.0 to 3.1), then you should insert line running BlizKick as first command in your s:startup-sequence. You can - of course - start BlizKick later on too, but I'll then take more time to boot up at the first time...
+
+A: I've received some reports that BlizKick 1.9 wouldn't have worked if run after SetPatch on 68040 or 68060 systems. It this still happens please contact @{"me" LINK About}.
+
+@{b}Q: Help! BlizKick doesn't work!?@{ub}
+
+A: You need @{"phase5/DCE turbo board" LINK Requirements} with its @{"MAPROM" LINK MAPROMJumper} feature enabled.
+
+@{b}Q: Why should I use BlizKick? BlizzMagic looks fine to me...@{ub}
+
+A: OK! OK! Use BlizzMagic if you like... But then you'll of course miss some nice features only present in BlizKick, like external @{"modules" LINK Modules}... @{"See" LINK Other1} why I prefer BlizKick. It's up to you.
+
+A: To see comparisations between BlizKick and other similar programs, see @{"here" LINK Others}.
+
+@{b}Q: IDE devices of my AMIGA 600/AMIGA 1200/AMIGA 4000 don't work when I use KS 1.x or 2.04. Why?@{ub}
+
+A: If you rekick older kickstart than originally used one, it may be impossible to use all hardware and/or peripherals of your system (e.g. If you originally use KS 3.0 in your A1200 and rekick KS 1.3 you can't use your hard disk drives or PCMCIA slot). Kickstart 2.05 (37.300) should be able to use IDE controller of the AMIGA 600/AMIGA 1200/AMIGA 4000. Sadly it seems as 2.05 wouldn't work on BLIZZARD 1260... ;-(
+
+@{b}Q: My 68040/68060 system crashes when I try to use KS 1.x! This is definitely BlizKick's fault!?@{ub}
+
+A: No. KS 1.x @{b}won't@{ub} work properly with 68040/68060.
+
+A: Actually, you might be able to use it... :)
+
+@{b}Q: I took kickfile from XYZKicker and it doesn't work with BlizKick! Why?@{ub}
+
+A: Hmm... Probably "XYZKicker" has specially tuned ROM images (relocated to $200000? ;-( ) Kickfiles used with BlizKick mustn't be (de)relocated or tempered with. To get 100% working kickfile, use @{"SaveROM" LINK SaveROM} program to grab it from ROM chip.
+
+@{b}Q: BlizKick sucks!?@{ub}
+
+A: No. BlizKick is great.
+
+@{b}Q: I try to use kickfile for KS 40.70, but it fails! Why?@{ub}
+
+A: Be sure you don't have A4000 version as it doesn't work on A1200. A1200 version of KS 40.70 should work, although it isn't tested.
+
+@{b}Q: I use kickfile for KS 40.68, but it can't use any external Modules! Why?@{ub}
+
+A: Kickstart 40.68 doesn't have enough @{"free ROM space" LINK Planting} in it. ;-( Well, this is not a problem anymore with BlizKick 1.6 and on: Just use @{"EXTRESBUF" LINK Usage1} feature!
+
+@{b}Q: Oh-no!! BlizKick failed saying "object too large, Couldn't plant module 'xxx'!" Help!!@{ub}
+
+A: There's no more space for external Modules, so you must use @{"EXTRESBUF" LINK Usage1} feature or increase the buffer size if it's already in use.
+
+@{b}Q: BlizKick failed saying "object wrong type, Couldn't plant module 'xxx'!" !! What's up!?@{ub}
+
+A: You tried to use non-module file as @{"module" LINK Modules} or the module isn't supported by this BlizKick version.
+
+@{b}Q: HOGWAITBLIT don't work with KS 1.x!?@{ub}
+
+A: Right. Nothing can be done about this.
+
+@{b}Q: Why are you releasing this great package as freeware? I'd ask money for it!@{ub}
+
+A: Sorry, I like it free. ;-)
+
+@{b}Q: When I kick 256K ROM 512K of memory is lost! Why?@{ub}
+
+A: @{"MAPROM" LINK MAPROMJumper} feature of the phase5/DCE boards normally take 512K. It @{b}could@{ub} be possible to patch ROM in such way it would add those unused 256K back to system memory pool, but since it's only 256K I won't bother. And hey: who uses KS 1.x anyway!?
+
+@{b}Q: I have a phase5/DCE board and memory on it, but when I examine my system's memory node list, there's no node with name 'Blizzard_Mem' (or similar). Why?@{ub}
+
+A: There's a @{"bug" LINK BlizBug} in at least 1230-II and 1230-III boards: memory node name can sometimes be a null string.
+
+A: On BLIZZARD 1260 memory node name pointer is always null (which is, btw, 100% legal!).
+
+@{b}Q: When I tried to kick ROM, my machine just hangs! Keyboard reset doesn't help either. Why?@{ub}
+
+A: You @{b}might@{ub} have used trashed/bad kickstart ROM. You have to turn power off and on again. If you have BlizKick installed into your startup-sequence and your machine hangs again and again you have to break booting and remove (comment) line running BlizKick.
+
+A: I have received a report that at least BlizKick release 1.5b caused a hang when used in conjugation with 1230-IV and SCSI-Kit. If you're sure you have 100% working ROM (it works on your friends machine for example), but BlizKick hangs on your system, you should send me a detailed @{"bug report" LINK BugReports}. If this terrible thing should happen you could also try some @{"other" LINK Others} similar programs available... (NOT! :)
+
+A: There are also different Kickstart ROM versions for different Amiga models (A500, A2000, A3000 should work with A1200 too). A4000 tuned ROMs may not work on A1200. Sorry, but I really don't know for sure! :(
+
+@{b}Q: I have program called FastExec installed in my s:startup-sequence. Should it be before or after BlizKick?@{ub}
+
+A: If you need FastExec, it should be after BlizKick.
+@ENDNODE
+@NODE Package "The Package"
+
+     @{b}PACKAGE@{ub}
+
+BlizKick 1.24 distribution package contains following files:
+
+BlizKick/
+
+  Modules/
+    A1000Jingle			Module playing A1k bootjingle
+    A1000Jingle.ASM		Source code.
+    AlertFix			Fix BlizzPPC crash+reboot+alert & other bugs
+    AlertFix.ASM		Source code.
+    BBlank			Borderblank "module"
+    BBlank.ASM			Source code.
+    BPPCFix			BPPCFix "module"
+    BPPCFix.ASM			Source code.
+    BPPCFix11			BPPCFix 1.1 "module"
+    BPPCFix11.ASM		Source code.
+    BPPCFix040			BPPCFix040 "module"
+    BPPCFix040.ASM		Source code.
+    ChipSaver			Chip2fast copier "module"
+    ChipSaver.ASM		Source code.
+    Colour			Stripy-colours "module"
+    Colour.ASM			Source code.
+    FixGetMsg			Fix 68060 GetMsg() loop hang
+    FixGetMsg.ASM		Source code.
+    FixMath404			Fix math 40.4 "module"
+    FixMath404.ASM		Source code.
+    FusionReserve		Fusion RsrvCold patch "module"
+    FusionReserve.ASM		Source code.
+    hackdisk			hackdisk.device "module"
+    hackdisk.ASM		Source code.
+    LocalFast			Exec & supervisor stack to fast "module"
+    LocalFast.ASM		Source code.
+    Magia			Example patch "module"
+    Magia.ASM			Source code.
+    MoveVBR			MoveVBR "module"
+    MoveVBR.ASM			Source code.
+    MuMove4K			MuMove4K "module"
+    MuMove4K.ASM		Source code.
+    NewAlert			Improved alert.hook "module"
+    NewAlert.ASM		Source code.
+    NoClick			NoClick "module"
+    NoClick.ASM			Source code.
+    PatchMath020		020+ optimizer "module"
+    PatchMath020.ASM		Source code.
+    PrepareEmul			PrepareEmul patch "module"
+    PrepareEmul.ASM		Source code.
+    QuickBoot			Blizzard flashy bootdelay patch "module"
+    QuickBoot.ASM		Source code.
+    ramlibstack			Make ramlib stack 8k
+    ramlibstack.ASM		Source code.
+    RebootFix			Fix A1200/060 reboot problems
+    RebootFix.ASM		Source code.
+    RemCards			PCMCIA-killer "module"
+    RemCards.ASM		Source code.
+    Replace			Example replacing "module"
+    Replace.ASM			Source code.
+    romfixes			Fix misc rom bugs
+    romfixes.ASM		Source code.
+    SCSIDEV43			Kick V43 beta scsi.device
+    SCSIDEV43.ASM		Source code.
+    SoftSCSI			SoftSCSI "module"
+    SoftSCSI.ASM		Source code.
+    SpeedyChip			Improves 060 chipmem speed
+    SpeedyChip.ASM		Source code.
+    SpeedyIDE			IDE device boost "module"
+    SpeedyIDE.ASM		Source code.
+    Test			Example library "module"
+    Test.ASM			Source code.
+    WaitIDE			IDE spin-up-fix "module"
+    WaitIDE.ASM			Source code.
+    blizkickmodule.i		Include file for "Modules"
+
+  applypatch			Apply modules to ROM image
+  applypatch.e			Source code.
+  AspectFont			Tool for fixing guide font
+  AspectFont.e			Source code.
+  bkapi.lha			EXTRES buffer API example
+  BKGUI				Experimental beta GUI
+  BKGUI.e			Source code.
+  BlizKick			The main executable
+  BlizKick.ASM			Source code.
+  BlizKick.guide		This AmigaGuide document
+  BlizKick.guide.info		Icon for the Guide
+  CopyIDEfixPrefs		Copy sys:prefs/IDEfix.prefs to c:IDEfix
+  Free100buf			Free buffer created with ChipSaver
+  Free100buf.ASM		Source code.
+  Free100buf.info		Icon for the above
+  install_script		Installation script
+  KingCON-handler.pch		Makes KingCON-handler resident installable.
+  loadresident			Load resident tags to EXTRESBUF
+  protectextresbuf		MMU protect EXTRESBUF
+  romupdatesplit		AmigaOS 3.5/3.9 ROM Update splitter.
+  romupdatesplit.e		Source code.
+  SaveROM			KS ROM grabber executable
+  SaveROM.ASM			Source code.
+
+BlizKick.info			Icon of the drawer
+BlizKick.readme			Aminet std readme file
+
+@{b}No additional files (including BBS adds) may be included!@{ub}
+@ENDNODE
+@NODE Usage8 "protectextresbuf: MMU protect EXTRES buffer"
+
+     @{b}USAGE@{ub}
+
+protectextresbuf's template is
+
+  @{b}WRITEPROTECT/T, QUIET/S@{ub}
+
+  @{b}WRITEPROTECT/T@{ub}
+		Change EXTRES buffer write protect status.
+		ON, YES: Turn writeprotect on.
+		OFF, NO: Turn writeprotect off.
+
+		@{b}NOTE:@{ub} If you use loadresident 1.0.2
+		or better, you don't need to disable writeprotect
+		if you want to load modules to EXTRES buffer.
+
+  @{b}QUIET/S@{ub}
+		Suppress program output.
+
+
+Sample run:
+
+  > protectextresbuf WRITEPROTECT ON
+  protectextresbuf 1.0.1 by Harry "Piru" Sintonen
+  EXTRES buffer is write enabled, change to write protected.
+
+Another sample run:
+
+  > protectextresbuf
+  protectextresbuf 1.0.1 by Harry "Piru" Sintonen
+  EXTRES buffer is write protected.
+
+
+@{b}NOTES@{ub}
+
+protectextresbuf support both Phase5/DCE 680x0.library and Thor's mmu.library. protectextresbuf should be started after SetPatch. The best solution is to add 'protectextresbuf >nil: writeprotect on', as this will suppress output even if BlizKick is not active.
+
+Not all modules are ROMable. ROMable modules don't write EXTRES buffer by themselves. All modules provided by BlizKick itself are ROMable.
+
+AmigaOS 3.5 and 3.9 ROM Update modules are ROMable.
+
+3rd party modules might not be ROMable, for example IDEFix and KingCON-handler are @{b}NOT@{ub}, it will cause write hits if used in EXTRESBUF and EXTRESBUF is write protected.
+
+protectextresbuf does not install any exception handler. If some application cause write hit to EXTRESBUF, the app will crash, unless Enforcer/Cyberguard/MuForce tool is running. Generally it is a good idea to run Cyberguard or MuForce.
+@ENDNODE
+@NODE Usage7 "make KingCON resident installable: KingCON-handler.pch"
+
+     @{b}USAGE@{ub}
+
+To be able to use l:KingCON-handler as external module it needs to be patched before. You need KingCON-handler 1.3, 020+ for this to work:
+
+spatch -ot:KingCON-module -pKingCON-handler.pch l:KingCON-handler
+
+If you get no error message and file t:KingCON-module exists spatch worked. Now you can copy t:KingCON-module to your module dir and add KingCON-module to BlizKick commandline.
+@ENDNODE
+@NODE Usage6 "copy new IDEFix prefs file to IDEfix executable: CopyIDEfixPrefs"
+
+     @{b}USAGE@{ub}
+
+This program is used to update the new IDEFix prefs file to IDEfix executable. This is needed if you use c:IDEfix as external module.
+
+Sample run:
+
+  > IDEfixPrefs
+
+Change the preferences with the prefs editor. Save changes.
+
+  > CopyIDEfixPrefs
+
+This copies the modified preferences to c:IDEfix. You also *must* restart BlizKick, new setting won't take effect before.
+@ENDNODE
+@NODE Usage5 "Load resident tags to EXTRES buffer: loadresident"
+
+     @{b}USAGE@{ub}
+
+loadresident's template is
+
+  @{b}MODULES/M, REBOOT/S@{ub}
+
+  @{b}MODULES/M@{ub}
+		Here you give list of all modules to load.
+		You can NOT give BlizKick modules here!
+		You can give scsi.device, FastFileSystem etc.
+		If omit all resident tags inside EXTRES buffer
+		are listed.
+
+  @{b}REBOOT/S@{ub}
+		After installing all modules succesfully,
+		reboot after 1 second delay.
+
+
+Sample run:
+
+  > loadresident devs:modules/romupdate.idtag
+  loadresident 1.0.3 by Harry "Piru" Sintonen
+  Loading resident module devs:modules/romupdate.idtag... ok
+
+Another sample run:
+
+  > loadresident
+  loadresident 1.0.3 by Harry "Piru" Sintonen
+
+  EXTRESBUF at $6BD4E050 - $6BD6681F [MMU align at $6BD4E000 - $6BD67FFF, WRITE PROTECTED]
+  Free: 18920 bytes  Largest: 18880 bytes
+  Resident tags:
+
+  $6BD4E050: EXTRES Handler
+  $6BD4E170: FusionReserveVBR
+  $6BD4E240: alert.hook
+  $6BD4E590: console 44.6 (31.3.2000)
+  $6BD52492: ram 44.21 (2.9.2000)
+  $6BD548B0: filesysres 45.7 (17.9.2000)
+  $6BD54A7E: fs 45.9 (3.9.2000)
+  $6BD5B0C0: BPPCFix 1.2 (2.9.00)
+  $6BD5B158: devprocfix.patchcode
+  $6BD5B228: shellppc 50.8 (21.5.02) © 2001-2002 by Harry Sintonen, written by Harry Sint
+  $6BD5F5DC: shellcmdppc 50.6 (17.5.02) © 2001-2002 by Harry Sintonen, written by Harry S
+
+
+ps. Similarities with RemAPollo's loadresident are purely coincidental. :-)
+@ENDNODE
+@NODE Usage4 "AmigaOS 3.5/3.9 support: romupdatesplit"
+
+     @{b}USAGE@{ub}
+
+romupdatesplit's template is
+
+  @{b}FROM=FILE/A, A600/S, A1200/S, A3000/S, A4000I/S,
+  A4000S/S, CD32/S, CPU/K/N, FPU/K/N, NOBOARDCHECK/S,
+  NOCOMMENT/S, ALL/S, TO@{ub}
+
+  @{b}FROM=FILE/A@{ub}
+		Here you specify full path of the AmigaOS 3.5/
+		3.9 rom update file. It is installed to
+		`DEVS:AmigaOS ROM Update' by default.
+
+  @{b}A600/S@{ub}
+		Extract Amiga 600 compatible module set. (Hardly
+		useful but included for completeness;)
+
+  @{b}A1200/S@{ub}
+		Extract Amiga 1200 compatible module set.
+
+  @{b}A3000/S@{ub}
+		Extract Amiga 3000 compatible module set.
+
+  @{b}A4000I/S@{ub}
+		Extract Amiga 4000 IDE compatible module set.
+
+  @{b}A4000S/S@{ub}
+		Extract Amiga 4000[T] IDE *and* NCR scsi
+		compatible module set.
+
+  @{b}CD32/S@{ub}
+		Extract CD32 specific module set.
+
+  @{b}CPU/K/N@{ub}
+		Specify CPU for CPU tagged modules.
+		Can be 68000, 68010, 68020, 68030, 68040,
+		68060.
+
+  @{b}FPU/K/N@{ub}
+		Specify FPU for FPU tagged modules.
+		Can be 68881, 68882, 68040, 68060.
+
+  @{b}NOBOARDCHECK/S@{ub}
+		Extract all manufacturer / productid tagged
+		modules.
+
+  @{b}NOCOMMENT/S@{ub}
+		By default romupdatesplit generates romtag
+		idstring comments for generated files. This
+		switch turns comment creation off.
+
+  @{b}ALL/S@{ub}
+		Get ALL modules from file.
+
+  @{b}TO@{ub}
+		Destination directory for resident tags
+		written. Current directory by default.
+
+
+@{b}NOTE:@{ub} If you don't specify any of the machine, cpu, fpu, noboardcheck or all switches romupdatesplit will extract modules the same way SetPatch does. This is usually what you want, as this is the module set compatible for your configuration.
+
+
+Sample run:
+
+  > romupdatesplit "devs:AmigaOS ROM Update" to t:
+  00: flags $0000  offset $00003C  len $0000BC  "romupdate.idtag"
+  01: flags $0000  offset $000108  len $0066C0  "FastFileSystem"
+  02: flags $0000  offset $0067D8  len $0001E8  "FileSystem.resource"
+  03: flags $0100  offset $0069D0  len $003B18  "scsi.device"
+  08: flags $0000  offset $018FDC  len $002498  "ram-handler"
+  09: flags $0000  offset $01B484  len $003F50  "console.device"
+
+  *1  *2           *3              *4           *5
+
+1: number of the executable the romupdate file
+2: requirement flags for this resident tag, intentionally not
+   documented here.
+3: offset to beginning of executable file in the romupdate file
+4: lenght of the executable file in the romupdate file
+5: filename of the executable written. romupdatesplit tries its
+   best on guessing this name.
+
+
+This sample run was done with ROMUpdate 44.26 (2000-09-17) from AmigaOS 3.5 BoingBag2a. For A1200 it contains:
+
+romupdate.idtag     - version tag for SetPatch
+FastFileSystem      - fastfilesystem 45.9, same file is in l: ;)
+FileSystem.resource - filesystem.resource 45.7
+scsi.device         - A1200 IDE scsi.device 43.35
+ram-handler         - ram-handler 44.21
+console.device      - console.device 44.6
+
+Personally I use FastFileSystem, FileSystem.resource, scsi.device, ram-handler and console.device as modules.
+
+Read more about how to set up @{"AmigaOS 3.5/3.9 single boot system" LINK OS35setup}.
+
+ps. Similarities with RemAPollo's RUX are purely coincidental. I coded romupdatesplit without knowing about RemAPollo... :-)
+@ENDNODE
+@NODE OS35setup "AmigaOS 3.5/3.9 single boot system"
+
+     @{b}AMIGAOS 3.5/3.9 SINGLE BOOT SYSTEM@{ub}
+
+AmigaOS 3.5/3.9 has updates for both Kickstart 3.1 and Workbench 3.1. SetPatch reads kickstart updates from "DEVS:AmigaOS ROM Update" -file and Workbench updates from libs:workbench.library and libs:icon.library files.
+
+Kickstart updates require system reboot when installed. Workbench updates do not require boot.
+
+It is possible to set up a BlizKick + AmigaOS 3.5/3.9 system that reboots only once at system power on. This is how it goes:
+
+ - Use @{"romupdatesplit" LINK Usage4} program to extract AmigaOS 3.5/3.9 rom update modules:
+   > romupdatesplit "devs:AmigaOS ROM Update" to devs:modules/
+   00: flags $0000  offset $00003C  len $0000BC  "romupdate.idtag"
+   01: flags $0000  offset $000108  len $0066C0  "FastFileSystem"
+   02: flags $0000  offset $0067D8  len $0001E8  "FileSystem.resource"
+   03: flags $0100  offset $0069D0  len $003B18  "scsi.device"
+   08: flags $0000  offset $018FDC  len $002498  "ram-handler"
+   09: flags $0000  offset $01B484  len $003F50  "console.device"
+
+   (NOTE: the module output depends on "devs:AmigaOS ROM Update" version and your system configuration! This is just an example!)
+
+ - Rename "devs:AmigaOS ROM Update" -file to something else or use NOROMUPDATE option with SetPatch (this prevents SetPatch from loading it)
+
+ - Add EXTRESBUF=80000 and "FastFileSystem FileSystem.resource scsi.device ram-handler console.device" to MODULE line on BlizKick commandline:
+
+   c:BlizKick [...] EXTRESBUF=80000 MODULE [...] FastFileSystem FileSystem.resource scsi.device ram-handler console.device [...]
+
+ - You may want to add SpeedyIDE module after scsi.device to speed it up:
+
+   c:BlizKick [...] EXTRESBUF=80000 MODULE [...] FastFileSystem FileSystem.resource scsi.device SpeedyIDE ram-handler console.device [...]
+
+ - That's it!
+@ENDNODE
+@NODE Usage3 "How do I use applypatch?"
+
+     @{b}USAGE@{ub}
+
+applypatch's template is
+
+  @{b}FROM=KICKFILE/A, TO/K/A, MODULE/M, FORCE/S, SPEEDROM/S,
+  IGNPATH=IGNOREBKMODPATH/S, HOGWAITBLIT/S@{ub}
+
+  @{b}FROM=KICKFILE/A@{ub}
+		Here you specify full path of the source ROM
+		image to apply patches to. Note that applypatch
+		requires 512K ROM image. This argument is
+		always required.
+
+  @{b}TO/K/A@{ub}
+		This argument specifies the full path of the
+		destination ROM image to write. Note that you
+                should not overwrite the source ROM image,
+                always keep bakcups! This argument is always
+                required.
+
+  @{b}MODULE/M@{ub}
+		Here you can give "patch" kind of @{"modules" LINK Modules} to
+		apply to source ROM image. Multiple modules
+		are allowed. BKMODPATH variable is supported.
+		See @{"BlizKick usage" LINK Usage1} for more information.
+
+		IMPORTANT! Not all modules can be given to
+		applypatch! There is no easy way of knowing which
+		modules work and which don't. However at least
+		fixmath404, hogwaitblit, noclick, patchmath020,
+		romfixes, speedrom, speedyide and waitide modules
+		work.
+
+  @{b}FORCE/S@{ub}
+		If this switch is specified applypatch will use
+		this ROM image, even if it has bad kickstart
+		ROM checksum. This is switch is also needed if
+		you're about to use grabbed ROM that has been
+		previously used with BlizKick.
+
+  @{b}SPEEDROM/S@{ub}
+		This feature will speed up ROM. It will
+		remove/disable some not so important parts of
+		the ROM to gain some speed.
+
+  @{b}HOGWAITBLIT/S@{ub}
+		If you have an AGA chipset you use this switch
+		to patch graphics.library/WaitBlit() to turn
+		@{"BLITHOG" LINK BLITHOG} on during blit wait. This does almost
+		the same thing as @{"FastWaitBlit" LINK FastWaitBlit} by Dave Jones,
+		but is even @{"faster" LINK GfxBenchmarks}.
+		HOGWAITBLIT requires V39 or better ROM image.
+
+  @{b}IGNPATH=IGNOREBKMODPATH/S@{ub}
+		If this switch is present MODULE option load
+		the modules relative to current directory. Also
+		BKMODPATH environment variable is not used then.
+
+Sample run says it all:
+
+  > applypatch DEVS:rom40068.A1200 TO T:rom40068.A1200.patched HOGWAITBLIT SPEEDROM NoClick FixMath404 SpeedyIDE PatchMath020 romfixes
+  reading kickfile "DEVS:rom40068.A1200"...
+  rom image ok, applying patches...
+  applying hogwaitblit patch...
+  applying NoClick patch...
+  applying FixMath404 patch...
+  applying SpeedyIDE patch...
+  applying PatchMath020 patch...
+  Patched DiceC Mulu routine at offset $27748
+  applying romfixes patch...
+  applying speedrom patch...
+
+  ---- total 7 patches applied ----
+  calculating new checksum for image... $04E754B7
+  writing patched rom image to "T:rom40068.A1200.patched"...
+  done.
+
+Obviously you then copy this patched ROM image on harddisk and use it with BlizKick also removing patches already applied from BlizKick commandline.
+
+@{b}NOTE:@{ub} If you intend to use SCSIDEV43 module with SpeedyIDE patched ROM image and you want the SpeedyIDE to take effect then you need to specify SpeedyIDE module again! (Otherwise scsi.device loaded by SCSIDEV43 module would overwrite the SpeedyIDE patched ROM scsi.device.)
+
+Take this example:
+
+C:BlizKick DEVS:rom40068.A1200.patched EXTRESBUF=16384 MODULE FusionReserve @{u}SCSIDEV43 SpeedyIDE@{uu} AlertFix QUIET
+@ENDNODE
+
+@NODE Usage1 "How do I use BlizKick?"
+
+     @{b}USAGE@{ub}
+
+BlizKick's template is
+
+  @{b}KICKFILE, MODULE/M, EXTRESBUF/N, SANITY/K/N, FORCE/S,
+  (LOCALFAST/S), (QUICKBOOT/S), SPEEDROM/S, HOGWAITBLIT/S,
+  CPUCARD/S, IGNPATH=IGNOREBKMODPATH/S, NOPUPREBOOT/S,
+  KEEPEXEC/S, QUIET/S@{ub}
+
+  @{b}KICKFILE@{ub}
+                Here you specify full path of the ROM image
+		you want to kick.
+		e.g. BlizKick KICKFILE="DEVS:rom image 3.1"
+
+		If you don't specify kickfile and you've used
+		BlizKick previously, original Kickstart will
+		be restored.
+
+		By specifying * as kickfile BlizKick will use
+		the original ROM found on chip.
+
+  @{b}MODULE/M@{ub}
+		You can expand and patch your KS ROM by
+		using "@{"Modules" LINK Modules}". From BlizKick 1.5 on it
+		has been  possible to @{"plant" LINK Planting} external
+		"@{"modules" LINK Modules}" into ROM image. Multiple modules
+		are allowed. If you've @{"installed" LINK Installation} BlizKick,
+		modules should reside on 'DEVS:Modules'
+		-drawer. MODULE option will try to load the
+		modules from DEVS:Modules by default:
+
+	e.g. BlizKick DEVS:rom3.1 MODULE ColourModule romfixes
+
+		Note that you can override the default directory
+		with absolute path:
+
+	e.g. BlizKick DEVS:rom3.1 MODULE work:blizkick/modules/romfixes
+
+		As of version 1.10ß4 there can be a
+		environment variable called BKMODPATH which
+		holds path of BlizKick modules. This is handy
+		if you for some reason keep the modules in some
+		other directory. For example:
+
+	> setenv BKMODPATH work:blizkick/modules/
+	> copy env:BKMODPATH envarc:
+
+		Now BlizKick MODULE default path is
+		"work:blizkick/modules/".
+
+		@{b}NEW in 1.20:@{ub} You can give @{b}any@{ub} executable
+		file as module! Naturally this executable should
+		contain valid resident tag or else it doesn't do
+		anything. This feature renders SCSIDEV43 module
+		obsolete (if using non-beta scsi.device!), you can
+		give scsi.device as a module, also you can update
+		ROM filesystem by just giving l:fastfilesystem as a
+		module!
+
+		As of 1.22beta6 two new support tools were added:
+		@{"CopyIDEfixPrefs" LINK Usage6} and @{"KingCON-handler.pch" LINK Usage7}. With
+	 	these it is possible to use c:IDEfix and
+		l:KingCON-handler as modules!
+
+		@{"romupdatesplit" LINK Usage4} tool can be used to
+		extract resident tags from AmigaOS 3.5/3.9
+		`DEVS:AmigaOS ROM Update' file.
+
+		See how to set up @{"AmigaOS 3.5/3.9 single boot system" LINK OS35setup}.
+
+		@{"loadresident" LINK Usage5} tool can be used to load
+		resident tags to EXTRES buffer after running
+		BlizKick. @{"protectextresbuf" LINK Usage8} can be used to MMU
+		protect the EXTRES buffer memory.
+
+		@{"Installation" LINK Installation} automagically defines BKMODPATH
+		variable to "DEVS:Modules/".
+
+		@{"applypatch" LINK Usage3} program can be used to "prepatch"
+		ROM image.
+
+  @{b}EXTRESBUF/N@{ub}
+		Insufficient @{"free ROM space" LINK Planting} isn't a problem
+		anymore! With this keyword you can specify
+		amount of memory (in bytes) which is allocated
+		for the external "module" buffer. Now you can
+		plant any number of @{"modules" LINK Modules}!
+		@{b}EXTRESBUF requires at least V36 ROM image!@{ub}
+
+		See @{"How to calculate EXTRESBUF amount" LINK EXTRESBUFAmount}. Please
+		note that there is no need to calculate exact
+		value for EXTRESBUF, just use large enough buffer.
+		Good values are 50000, 100000, 150000 and so on.
+
+		@{b}NOTE:@{ub} If you use this feature then this
+		kicked ROM @{b}mustn't@{ub} be ripped with SaveROM or any
+		other similar program. This means: don't rip ROM
+		Image from BlizKicked Amiga, if EXTRESBUF was
+		used.
+
+		@{"loadresident" LINK Usage5} tool can be used to
+		load resident tags to EXTRES buffer after running
+		BlizKick. @{"protectextresbuf" LINK Usage8} can be used to MMU
+		protect the EXTRES buffer memory.
+
+		@{b}NOTE:@{ub} ShowConfig output gets a bit @{"garbled" LINK ShowConfigBug}.
+
+  @{b}SANITY/K/N@{ub}
+		This argument specifies safery buffer size that
+		is allocated after EXTRESBEF. If you seem to get
+		weird crashes and/or alert 80010000 use
+		SANITY=1000. If it still fails try ~2000 or ~4000.
+		Note that using this option reduces the largest
+		available memory block (ie. causes fragmentition).
+
+		@{b}NOTE:@{ub} Normally this option is not needed.
+
+  @{b}FORCE/S@{ub}
+		If this switch is specified BlizKick will kick
+		this ROM image, even if it has same version
+		and revision number and checksum as in the
+		currently kicked ROM. This is switch is also
+		needed if you're about to use grabbed ROM that
+		has been previously used with BlizKick. This
+		switch comes in handy if you use scripts to
+		lauch different Kickstart versions. With FORCE
+		you can ensure that Kickstart really changes,
+		even if you've used BlizKick previously.
+		@{b}CAUTION!! DO NOT SPECIFY THIS SWITCH IF
+		YOU USE BLIZKICK IN S:STARTUP-SEQUENCE
+		OR YOU'LL GET @{"INFINITE BOOT LOOP" LINK Bootloop}.@{ub}
+
+  @{b}(LOCALFAST/S)@{ub}
+		By using this switch you can have memory on
+		your Blizzard board used for RAD-disks and
+		reset-proof programs. If there's enough memory
+		provided you can have @{b}huge@{ub} RAD-disk!
+		This also enables fast memory for exec.library
+		and supervisor stack.
+
+		@{u}This feature has been disabled in BlizKick 1.20+.
+		As of BlizKick 1.21 you can use external module
+		called @{"LocalFast" LINK Modules} instead.@{uu}
+
+		Note that most new cards do @{b}NOT@{ub} need this
+		module, only some old Blizzard 1230s.
+
+		@{b}NOTE:@{ub} If you use LocalFast module you must
+		start BlizKick before PoolMem.
+
+  @{b}(QUICKBOOT/S)@{ub}
+		If this switch is specified BlizKick will
+		bypass flashy delay in Blizzard boards' boot.
+		@{b}NOTE:@{ub} Bypassing can cause problems! My hard
+		disk doesn't boot when I use this feature!
+		Note also that this thing currently only
+		works on Pre-IV 1230 boards.
+
+		@{u}This feature has been disabled in BlizKick 1.20+.
+		As of BlizKick 1.22 you can use external module
+		called @{"QuickBoot" LINK Modules} instead.@{uu}
+
+		@{b}NOTE:@{ub} If you use QuickBoot module you @{b}must@{ub}
+		use LocalFast module too or else you're in trouble.
+
+  @{b}SPEEDROM/S@{ub}
+		This feature will speed up ROM. It will
+		remove/disable some not so important parts of
+		the ROM to gain some speed.
+
+  @{b}HOGWAITBLIT/S@{ub}
+		If you have an AGA chipset you use this switch
+		to patch graphics.library/WaitBlit() to turn
+		@{"BLITHOG" LINK BLITHOG} on during blit wait. This does almost
+		the same thing as @{"FastWaitBlit" LINK FastWaitBlit} by Dave Jones,
+		but is even @{"faster" LINK GfxBenchmarks}.
+		HOGWAITBLIT requires V39 or better ROM image.
+
+  @{b}CPUCARD/S@{ub}
+		Specify this if you use CPU Card. Should work
+		at least with CBM (A3640) and Cyberstorm MKI
+		cards. Cyberstorm MKII, MKIII and PPC are
+		detected automatically so don't use this switch
+		with those.
+
+		@{b}NOTE:@{ub} If you experience problems try placing
+		BlizKick commandline after SetPatch -line.
+
+  @{b}IGNPATH=IGNOREBKMODPATH/S@{ub}
+		If this switch is present MODULE option load
+		the modules relative to current directory. Also
+		BKMODPATH environment variable is not used then.
+
+  @{b}NOPUPREBOOT/S@{ub}
+                Use the new reboot method with PowerUP boards,
+                this try to avoid the infamous
+                @{"RED screen crash at cold start" LINK TroubleShoot} problem.
+		(Only affect PowerUP cards)
+
+  @{b}KEEPEXEC/S@{ub}
+		Try to retain exec.library and reset proof
+                applications when rebooting the system. There
+                really is no reason to use this switch, but
+                sometimes it could be useful, if the reset
+                proof application can cope ROM changing on
+                them. @{b}PLEASE DON'T USE THIS SWITCH WITHOUT
+                A GOOD REASON@{ub}. You have been warned. Normal
+                users can forget all about this switch. :)
+
+  @{b}QUIET/S@{ub}
+		Guess what happens if you specify this switch?
+		There won't be any output at all! =o)
+
+Under 1.x Kickstart you cannot use MODULE, FORCE, SPEEDROM, HOGWAITBLIT or QUIET because the whole paramline is interpeted as KICKFILE name. Original Kickstart will be restored if you don't specify KICKFILE parameter. Also, you can't specify keyword KICKFILE in the argument line:
+
+1.x		@{b}BlizKick DEVS:rom image 3.1@{ub}
+2.04 +		@{b}BlizKick KICKFILE "DEVS:rom image 3.1"@{ub}
+
+
+If you want to rekick for example Kickstart 1.3 then you need the ROM image itself (in @{"devs:rom1.3" LINK Kick13} file in this example). Write in CLI/Shell:
+
+@{b}1.Workbench> BlizKick DEVS:rom1.3@{ub}
+
+If everything worked ok system should boot up with KS 1.3.
+
+If you want to start BlizKick automatically (you use never Kickstart than on your chip all the time, KS 3.1 on 3.0 machine, as in this example), you need to copy BlizKick executable into your C: -drawer (if not yet done) and insert the following line to the beginning of your s:startup-sequence file:
+
+@{b}C:BlizKick DEVS:rom3.1 QUIET@{ub}
+
+Now, at the first system boot up the new ROM image will be kicked. Your system will boot twice at power-up, but that isn't too disturbing, I think!
+
+@{b}NOTE:@{ub} You @{b}should@{ub} install BlizKick @{b}before@{ub} any reset-proof programs because BlizKick will trash execbase. If you install it after any other reset-proof program you might get @{"infinite boot loop" LINK Bootloop}.
+
+If multiple reset-proof patches are used you can have triple boot at power-up (Just a slow-down).
+
+After rekicking system with BlizKick there is virtually nothing that can trash the new ROM (except accessing @{"certain" LINK doub!} very high memory addresses). Of course, power-down will restore the original ROM.
+
+@{b}NOTE:@{ub} If you rekick older kickstart than originally used one, it may be impossible to use all hardware and/or peripherals of your system (e.g. If you originally use KS 3.x in your A1200 and rekick KS 1.3 you can't use your hard disk drives or PCMCIA slot. Direct banging of AGA hardware works, if someone is smart (?) enough to do it).
+
+You can easily build cool system in which you can select kickstart by clicking cooresponding icon, you can use @{b}iconx@{ub} program and scripts.
+
+See @{"usage" LINK Usage2} of the SaveROM program.
+
+     @{b}ERROR CONDITIONS@{ub}
+
+RC (return code) is set:
+
+  OK (0)
+		BlizKick installed ok. You'll never see this,
+		though... :)
+  WARN (5)
+		BlizKick isn't needed. You're trying to kick
+		same ROM image as currently used.
+  ERROR (10)
+		Things went wrong. Couldn't get memory?
+		Couldn't access kickfile? Invalid ROM image?
+		You're trying to restore kickstart, but you
+		haven't used BlizKick to kick it previously?
+		Failed to plant module?
+  FAIL (20)
+		Something fatal happened! Dos didn't open? No
+		phase5/DCE turbo board or MAPROM jumper not
+		installed?
+
+Some special error codes can be generated by BlizKick in addition to standard error codes (see your AmigaDOS Users's Guide for expanation of most common errors.)
+Problems concerning module system begin with line: "Couldn't plant module 'modulename'!"
+
+205: "object not found"
+
+  Module file can't be found.
+
+207: "object too large"
+
+  Module can't fit into ROM. Use EXTRESBUF, or if it's already in use @{"increase" LINK EXTRESBUFAmount} the amount of allocated memory.
+
+212: "object is not of required type"
+
+  Module file you specified is not valid.
+
+118: "wrong number of arguments"
+
+  You have specified multiple occurences of module that can only be planted once.
+
+     @{b}EXAMPLES@{ub}
+
+@{b}C:BlizKick DEVS:rom40068@{ub}
+Now then... This line does nothing special, it only installs v40.68 ROM and reboots if it is not yet installed.
+
+@{b}C:BlizKick@{ub}
+This commandline restores original ROM if it was previously kicked with BlizKick.
+
+@{b}c:BlizKick DEVS:rom40068.A1200.patched EXTRESBUF=90000 MODULE FusionReserve FixGetMsg AlertFix FileSystem.resource FastFileSystem scsi.device ram-handler console.device SpeedyIDE QUIET@{ub}
+This is the first line in my s:startup-sequence. It uses @{"applypatched" LINK Usage3} (SPEEDROM NoClick FixMath404 SpeedyIDE PatchMath020 romfixes) v40.68 ROM Image (A1200), 90000 byte EXTRES buffer, and uses FusionReserve, AlertFix, FileSystem.resource, FastFileSystem, scsi.device, ram-handler, console.device and SpeedyIDE modules, disabling annoying drive clicking, fixing 68060 GetMsg() loop hang, fixing bug from V40.4 mathieeesingbas.library, optimizing some math routines inside ROM, fixing some @{"rom bugs" LINK rombugs}, allowing me to get rid of ShapeShifter's PrepareEmul (and Fusion's rsrvcold/warm), fixing Blizzard PPC @{"crash + reboot + alert" LINK blizzppcfeatures} problem, installing @{"AmigaOS 3.5" LINK OS35setup} filesystem.resource, fastfilesystem, scsi.device, ram-handler and console.device and speeding up scsi.device access.
+
+@{b}C:BlizKick DEVS:rom40068.A1200 EXTRESBUF=16384 HOGWAITBLIT SPEEDROM MODULE NoClick FixMath404 PrepareEmul BBlank SCSIDEV43 SpeedyIDE RemCards QUIET@{ub}
+This was the first line in my s:startup-sequence when I had B1230-III. It uses v40.68 ROM Image (A1200), 16K EXTRES buffer, speeds up gfx WaitBlit, speeds up ROM, and uses NoClick, FixMath404, PrepareEmul, BBlank, SCSIDEV43, SpeedyIDE and RemCards modules, disabling annoying drive clicking, fixing bug from V40.4 mathieeesingbas.library, allowing me to get rid of ShapeShifter's PrepareEmul, enabling borderblanking already in bootmenu, installing beta V43 scsi.device, speeding scsi.device access and removing all PCMCIA stuff from system. Phew! Nice one, ehh? ;)
+
+@{b}C:BlizKick DEVS:rom40068.A1200 EXTRESBUF=32768 HOGWAITBLIT SPEEDROM MODULE NoClick FixMath404 PrepareEmul BBlank SoftSCSI SCSIDEV43 SpeedyIDE RemCards QUIET@{ub}
+If I'd have B1260, I'd probably use this commandline. SoftSCSI module "replaces" SCSI (ep)rom (27C256) of BLIZZARD 1230-IV, 1240-T/ERC or 1260, allowing use of latest SCSI driver beta ROM with SCSI-Kit.
+
+@{b}C:BlizKick DEVS:rom40068.A1200 EXTRESBUF=512 MODULE DEVS:Modules/FixMath404 QUIET@{ub}
+This line will only fix bug from V40.4 mathieeesingbas.library.
+
+@{b}C:BlizKick DEVS:rom37300@{ub}
+Anyone wants to test software on kick 2.05? ;) BTW: PCMCIA slot and hard drives work with ROM 37.300!!
+
+@{b}C:BlizKick DEVS:rom34005@{ub}
+Will give you a handy pic... saying KS 1.3. @{b}NOTE:@{ub} works on most 060 systems too!
+
+@{b}C:BlizKick * EXTRESBUF=256 HOGWAITBLIT@{ub}
+This line will use the original ROM found in chip and use HOGWAITBLIT.
+
+@{b}C:BlizKick * EXTRESBUF 256 HOGWAITBLIT DEVS:Modules/MoveVBR@{ub}
+This line will use the original ROM found in chip and use HOGWAITBLIT, plus move VBR to fast memory.
+
+     @{b}WHAT BLIZKICK COMMANDLINE SHOULD I USE?@{ub}
+
+Okay. Now this is the tricky part: you need to experiment and find out what modules you need/want. It hardly makes sense to add every module there is. This will not work. Read @{"description of the modules" LINK Modules} carefully and try to figure out what you need. Some modules require specific hardware or software, so spend few minutes on this.. :) BlizKick never was or will be easy to use, I didn't claim that. If you really can't work out configuration for your system, ask your local amiga guru or take my configuration and remove the stuff that doesn't work on your system.
+
+@ENDNODE
+@NODE ShowConfigBug "Garbled ShowConfig output"
+4·Workbench:% showconfig
+PROCESSOR:      CPU 68060/68060fpu/68060mmu
+CUSTOM CHIPS:   AA PAL Alice (id=$0023), AA Lisa (id=$00F8)
+VERS:   Kickstart version 40.68, Exec version 40.10, Disk version 44.2
+RAM:    Node type $A, Attributes $405 (FAST), at $7672AD78-$79EFFFFF (57216 K)
+        Node type $A, Attributes $415 (FAST), at $76000000-$7672AD77 (7360 K)
+        Node type $A, Attributes $703 (CHIP), at $760002F0-$1FFFFF (@{b}~2210.0 meg@{ub})
+BOARDS:
+ Board + ROM (HD?) (phase 5):   Prod=8512/110($2140/$6E) (@$F00C38 128K)
+@ENDNODE
+@NODE EXTRESBUFAmount "Calculating EXTRESBUF amount"
+
+     @{b}CALCULATING EXTRESBUF AMOUNT@{ub}
+
+@{"EXTRESBUF" LINK Usage1} argument of BlizKick can be used to increase @{"free ROM space" LINK Planting} when external @{"Modules" LINK Modules} are installed.
+
+The value given for EXTRESBUF depends of selected modules and @{"ROM Image version" LINK Planting}. In most cases 40960 bytes is sufficient.
+
+To understand memory requirements of modules you should know that there are (currently) two types of them: "real" and "patch" modules. "real" modules need some space for themselves, but "patch" ones need not.
+
+Here are approximated memory requirements for currently included modules:
+
+    A1000Jingle		 ~8 Kbytes
+    AlertFix		362 bytes
+    BBlank		 88 bytes
+    BPPCFix		152 bytes
+    BPPCFix11		144 bytes
+    BPPCFix040		192 bytes
+    ChipSaver		272 bytes
+    Colour		240 bytes
+    FusionReserve	208 bytes
+    LocalFast		136 bytes
+    MoveVBR		160 bytes
+    NewAlert		824 bytes
+    QuickBoot		136 bytes
+    Replace		344 bytes
+    RebootFix		72 bytes
+    SCSIDEV43		~13 Kbytes
+    SpeedyChip		384 bytes
+    SoftSCSI		138 bytes + ~20Kbytes (A1234.ROM)
+    Test		264 bytes
+
+Other modules included in BlizKick package are plain "patch" type, so they don't need any ROM space.
+@ENDNODE
+@NODE Planting "Plainting 'Modules'"
+
+     @{b}PLANTING MODULES@{ub}
+
+There's some empty space in 512K ROM images. This space can be used for BlizKick's "@{"modules" LINK Modules}", allowing bug fixes, patches, speed-up kludges etc.
+
+Size of the free space area varies between different Kickstart releases, here is some information:
+
+@{b}Kickstart		Empty space in bytes@{ub}
+
+37.175			2276 + 10216
+37.300			132 + 24
+39.106			404 + 100
+40.63			32 + 452
+40.68			84 ;-(
+40.70			4800 + 4
+
+Now you're no more limited by "empty space"! You can expand the module buffer by using @{"EXTRESBUF" LINK Usage1} feature!
+@ENDNODE
+@NODE Modules "About BlizKick 'Modules'"
+
+     @{b}BLIZKICK MODULES@{ub}
+
+With BlizKick "Modules" you can expand the current Kickstart ROM.
+
+There are currently @{"thirty-two" LINK ExampleModules} example modules included, but I expect @{b}you@{ub} to code more...
+
+See @{"module programming examples" LINK ExampleModules}.
+
+P.S. If someone is in need for some features in BlizKick they can (mostly) be easily implemented with external modules. I suppose Aminet will be full of PD/Freeware BlizKick modules soon... ;-) I made this possible because I @{b}can and will not@{ub} change BlizKick constantly...
+
+So if you think something essential is missing, look Aminet first, then ask your programming skilled friend to do it, and finally, if nothing else helps: contact @{"me" LINK About}.
+
+     @{b}INCLUDED BLIZKICK MODULES@{ub}
+
+@{u}A1000Jingle@{uu} playing A1000 boottune.
+
+@{u}AlertFix@{uu} fixes Blizzard PPC @{"`crash + reboot + alert' problem" LINK blizzppcfeatures} and other Alert bugs. NOTE: If you use both NewAlert and AlertFix you're recommended to specify NewAlert before AlertFix.
+
+@{u}BBlank@{uu} turns on borderblank, even in bootmenu.
+
+@{u}BPPCFix(11)@{uu} and @{u}BPPCFix040@{uu} subtitute BPPCFix by Frank Wille <frank@phoenix.owl.de>. BPPCFix module disables the flashrom ppc.library of BlizzarzPPC board. BPPCFix040 module disables 68040.library (and 68060.library if available). If you want to disable both ppc.library and 0x0 libraries use both modules. BPPCFix11 is the older 1.1 version of the BPPCFix module. You can use that if the new module doesn't work.
+
+@{u}ChipSaver@{uu} is *the ultimate* ripping aid! When installed this module will copy *whole* chip memory to fastmem if right mouse button is pressed while booting thus enabling to rip any music module. This module creates so-called $100 -buffer which can be used with most advanced module rippers (ExoticRipper for example). Included tool, Free100buf, can be used to free this buffer if you want to get rid of it. For technical reasons you should have at least four (4) megabytes of memory installed on your BLIZZARD turbo board (hackish code inside TM). This shouldn't be a problem nowadays though... :) Note also that reset surviving programs (RAD etc.) should not be used when using ChipSaver. Don't use this module in everyday use!
+
+@{u}Colour@{uu} displays some dull colour bars on screen. Useless really.
+
+@{u}FixGetMsg@{uu} fixes hang that happens on 68060 system if program calls GetMsg() in tight loop. Substitutes FixGetMsg by Frederick H. G. Wright II <fw@well.com>.
+
+@{u}FixMath404@{uu} fixes two bugs in V40.4 mathieeesingbas.library (non-FPU IEEESPMul() and IEEESPDiv() are disconnected). Note that A3000 ROMs don't need this module (its mathieeesingbas.library does only have FPU routines, since A3000 is guaranteed to have a FPU).
+
+@{u}FusionReserve@{uu} substitutes FUSION's RsrvCold tool (Also Mac1200). Also substitutes ShapeShifter's PrepareEmul tool.
+
+@{u}hackdisk@{uu} replaces trackdisk.device with faster and more reliable code. Useless if want to use @{"v6/v7 CrossDos" LINK TroubleShoot}.
+
+@{u}LocalFast@{uu} does the same as pre-1.20 BlizKick @{"LOCALFAST option" LINK Usage1}, this is to move exec.library and supervisor stack to fastmemory. Also makes RAD: use fastmem instead of chipmem. @{b}NOTE1: Only use this module if you need to (mainly Blizzard 12x0s)! NOTE2: If you use LocalFast module you must start BlizKick before PoolMem.@{ub}
+
+@{u}Magia@{uu} is a funny example on how to replace strings in rom (Amiga -> Magia). Useless really.
+
+@{u}MoveVBR@{uu} moves low level interrupt vector table to fastmem. Note that also FusionReserve module moves VBR to fastmem.
+
+@{u}MuMove4K@{uu} prepares system memory for MuFastZero's FastExec option. Substitutes MuMove4K by Thomas Richter.
+
+@{u}NewAlert@{uu} is improved alert.hook, displaying task/process name. NOTE: If you use both NewAlert and AlertFix you're recommended to specify NewAlert before AlertFix.
+
+@{u}NoClick@{uu} turns off drive clicking. Supports hackdisk module.
+
+@{u}PatchMath020@{uu} optimizes C-compiler math routines inside ROM.
+
+@{u}PrepareEmul@{uu} substitutes ShapeShifter's PrepareEmul tool. Note that FusionReserve module works with both FUSION and ShapeShifter, so you probably should use that.
+
+@{u}QuickBoot@{uu} does the same as pre-1.20 BlizKick @{"QUICKBOOT option" LINK Usage1}, this is to disable board initcode completely (ie. the flashy display on Blizzard cards). @{b}NOTE1: This module can cause boot problems, ie. you might not be able to boot from hard disk! NOTE2: You MUST use LocalFast module too if you use this!@{ub}
+
+@{u}ramlibstack@{uu} fixes ramlib stack to 8k instead of original 2k. Substitutes MCPRamlibPatch. Also romfixes module has this functionality! Adding both romfixes and ramlibstack causes an error!
+
+@{u}RebootFix@{uu} module fixes reboot problems with A1200 and 060 (at least BLIZZARD 1260) when display is in multisync mode. This module is hacky so please don't use it unless you really need it.
+
+@{u}RemCards@{uu} patch disables all PCMCIA stuff from system, thus freeing some memory and system resources.
+
+@{u}Replace@{uu} is a example on how to replace existing rom parts. Useless really (just an programming exaple).
+
+@{u}romfixes@{uu} fixing some @{"rom bugs" LINK rombugs}. This module is a @{b}must@{ub}!
+
+@{u}SCSIDEV43@{uu} patches Kickstart 3.0 or newer to use beta V43 scsi.device. No more @{"4GB drive limit" LINK 4GBLimit}! Note that you need V43 scsi.device in DEVS:scsi43.device -file. The beta scsi.device can be obtained from SCSI_IDE43_nn developer package, "a300.ld_strip" is to be used with A1200, "a1000.ld_strip" with A4000[T] IDE, "a4000t.ld_strip" with A4000T SCSI and "scsidisk.ld_strip" with A3000[T]. You must move correct file (according to your system configuration) to DEVS:scsi43.device -file. This module is obsolete (if using non-beta scsi.device!), you can use correct .ld_strip file as module directly!
+
+@{u}SoftSCSI@{uu} replaces the SCSI ROM of BLIZZARD 1230-IV, 1240-T/ERC or 1260 via software. Requires A1234.ROM file in DEVS:Modules directory! Substitutes SoftSCSI program by Gideon Zenz.
+
+@{u}SpeedyChip@{uu} module patches 060 MMU lists improving chip memory write speed! 68060 only. NOTE: This module is obsolete with phase5/DCE 68060.library V46+.
+
+@{u}SpeedyIDE@{uu} patch speeds up IDE-devices accessed with scsi.device upto 20%! (or even more! yes, this does work!) New IDEFix97 software has this functionality built-in.
+
+@{u}Test@{uu} is a simple example on how to add a library to rom. Useless really (just an programming exaple).
+
+@{u}WaitIDE@{uu} patches Kickstart 3.0 or newer to wait all IDE devices (even those slowly spinning-up ones!).
+
+
+See @{"How to calculate EXTRESBUF amount" LINK EXTRESBUFAmount}.
+@ENDNODE
+@NODE 4GBLimit "SCSIDEV43 -- Get beyond 4GB limit!"
+
+     @{b}NOTES ABOUT >4GB DEVICES@{ub}
+
+SCSIDEV43 module can be used to kick Kickstart ROM to use 64bit V43 scsi.device which supports over-4GB drives. There are some caveats though:
+
+1. You must also use V43 FFS in RDB to make use of V43 scsi.device. Without this new filesystem over-4GB cannot be accessed correctly (new FastFileSystem can be obtained from FFS43_nn developer package).
+
+2. Because BlizKick is loaded from disk, the partition on which BlizKick and related files are located should not exceed 4GB size. It might work, but probably not. You should not use over-4GB drives as boot disks, that is. The sefest way would be to mount such partitions manually in DEVS:DosDrivers/ or in S:startup-sequence.
+
+You might also want to use DirectSCSI version of AFS/pfs2/pfs3 or SFS instead.
+@ENDNODE
+@NODE AminetModules "BlizKick Module Names (in Aminet)"
+
+     @{b}MODULE NAMING CONVENTIONS@{ub}
+
+Q: What should I call my module?
+A: Name should tell what the module does or be otherwise descriptive. For example: I've used such names as PrepareEmul and SoftSCSI when my module replaces these programs. I also think that 'NoClick' and 'hackdisk' are kind of descriptive names. Hint: Think about module name before uploading... Could it be even better?
+
+Q: So now I have created my own module... Where and with what name should I put it into Aminet then?
+A: The first BlizKick module pioneer Christian Sauer <sauer@cip.informatik.uni-wuerzburg.de> created the standard... ;) So I'll advice you to do it in same way:
+
+1. Name the lha packaga as BK_<modulename>.lha.
+2. Put your lha package to util/boot directory in Aminet. (Type:  util/boot)
+
+     EXAMPLE (util/boot/BK_FooHelloWorld.lha)
+
+Short:    BlizKick-Module: Says "hello world" while booting
+Author:   foojack@inter.net (Jack the Coder)
+Uploader: foojack@inter.net (Jack the Coder)
+Type:     util/boot
+
+FooHelloWorld is a module for BlizKick by Harry Sintonen. It says
+"Hello World" while system is booting... etc... blahblah...
+@ENDNODE
+@NODE ExampleModules "Programming modules"
+
+     @{b}PROGRAMMING MODULES@{ub}
+
+Programming BlizKick modules is relatively easy. If you've ever written ResidentTag or a library/device you should be able to code a module.
+
+Currently there are two different forms of BlizKick modules: @{b}"real"@{ub} modules and @{b}patch@{ub} modules.
+
+There are numerous example sources included (source codes for all included modules in fact:):
+
+  @{b}file			type description@{ub}
+
+  @{"A1000Jingle.ASM" LINK Modules/A1000Jingle.ASM/main}	 m   Plays A1000 bootjingle
+  @{"AlertFix.ASM" LINK Modules/AlertFix.ASM/main}		 p   Complex rom patch to fix alerts
+  @{"BBlank.ASM" LINK Modules/BBlank.ASM/main}		 m   Turn on border blanking
+  @{"BPPCFix.ASM" LINK Modules/BPPCFix.ASM/main}		 m   Disable BPPC ppc.library
+  @{"BPPCFix11.ASM" LINK Modules/BPPCFix11.ASM/main}		 m   Disable BPPC ppc.library (V1.1)
+  @{"BPPCFix040.ASM" LINK Modules/BPPCFix040.ASM/main}	 m   Disable BPPC 040/060.library
+  @{"ChipSaver.ASM" LINK Modules/ChipSaver.ASM/main}		 p   Copy chip to fastmem if RMB
+  @{"Colour.ASM" LINK Modules/Colour.ASM/main}		 m   Colour-bars on screen
+  @{"FixGetMsg.ASM" LINK Modules/FixGetMsg.ASM/main}		 m   Fixes GetMsg() loop hang on 68060
+  @{"FixMath404.ASM" LINK Modules/FixMath404.ASM/main}	 p   Fixes mathieeesingbas.library 40.4
+  @{"FusionReserve.ASM" LINK Modules/FusionReserve.ASM/main}	 p   Substitutes RsrvCold
+  @{"hackdisk.ASM" LINK Modules/hackdisk.ASM/main}		 p   Makes hackdisk.dev resident
+  @{"LocalFast.ASM" LINK Modules/LocalFast.ASM/main}		 p   exec & sv stack to fast
+  @{"Magia.ASM" LINK Modules/Magia.ASM/main}		 p   Changes ROM strings :)
+  @{"MoveVBR.ASM" LINK Modules/MoveVBR.ASM/main}		 m   Moves VBR to fastmem
+  @{"MuMove4K.ASM" LINK Modules/MuMove4K.ASM/main}		 m   Prepare lowmem for MuFastZero.
+  @{"NewAlert.ASM" LINK Modules/NewAlert.ASM/main}		 m   Improved alert.hook
+  @{"NoClick.ASM" LINK Modules/NoClick.ASM/main}		 p   Turns off drive clicking
+  @{"PatchMath020.ASM" LINK Modules/PatchMath020.ASM/main}	 p   020+ Optimizes ROM image
+  @{"PrepareEmul.ASM" LINK Modules/PrepareEmul.ASM/main}	 p   Moves chipmem start to $2000
+  @{"ramlibstack.ASM" LINK Modules/ramlibstack.ASM/main}	 p   Fix ramlib stack to 8k
+  @{"QuickBoot.ASM" LINK Modules/QuickBoot.ASM/main}		 p   Disable flashy blizzard bootdelay
+  @{"RebootFix.ASM" LINK Modules/RebootFix.ASM/main}		 m   Fix A1200/060 reboot
+  @{"RemCards.ASM" LINK Modules/RemCards.ASM/main}		 p   Removes PCMCIA stuff
+  @{"Replace.ASM" LINK Modules/Replace.ASM/main}		 m   Replaces OS "alert.hook"
+  @{"romfixes.ASM" LINK Modules/romfixes.ASM/main}		 p   Fixes some rom bugs
+  @{"SCSIDEV43.ASM" LINK Modules/SCSIDEV43.ASM/main}		 p   Kick V43 beta scsi.device
+  @{"SoftSCSI.ASM" LINK Modules/SoftSCSI.ASM/main}		 m   Installs SCSI ROM kicktag
+  @{"SpeedyChip.ASM" LINK Modules/SpeedyChip.ASM/main}	 m   Speed up 060 chipmem writes
+  @{"SpeedyIDE.ASM" LINK Modules/SpeedyIDE.ASM/main}		 p   Speed up IDE upto 20%
+  @{"Test.ASM" LINK Modules/Test.ASM/main}		 m   "testmodule.library"
+  @{"WaitIDE.ASM" LINK Modules/WaitIDE.ASM/main}		 p   Wait IDE spin-up
+
+You should also peek @{"blizkickmodule.i" LINK Modules/blizkickmodule.i/main}.
+
+If you're about to release your BlizKick module in Aminet, see @{"module naming conventions" LINK AminetModules}.
+
+You can, of course, distribute your modules and patches in any form you like [#?ware (or *ware if you're UN*X fan :-)].
+@ENDNODE
+@NODE BLITHOG "Blitter BLITHOG mode"
+
+     @{b}BLITHOG MODE@{ub}
+
+The BLITHOG ("blitter-nasty") bit controls the blitter DMA priority (over CPU micro). If BLITHOG is on it'll prevent CPU from stealing any bus cycles while blitter DMA is running.
+
+Normally BLITHOG is off.
+@ENDNODE
+@NODE GfxBenchmarks "Graphics Benchmarks"
+
+     @{b}GRAPHICS BENCHMARKS@{ub}
+
+Hardware: Amiga 1200, BLIZZARD 1230-III, 16MB 60ns SIMM,
+	   Kickstart 3.1 (V40.68)
+Software: SetPatch 43.5, AIBB 6.5
+
+ROM	- @{"MAPROM" LINK MAPROMJumper} off
+MROM	- MAPROM on
+FWB	- @{"FastWaitBlit 2.12" LINK FastWaitBlit}, MAPROM on
+BHOG	- @{"BLITHOG" LINK BLITHOG} and MAPROM on
+HWB	- BlizKick @{"HOGWAITBLIT" LINK Usage1}, MAPROM on
+
+		@{b}ROM	MROM	FWB	BHOG	HWB@{ub}
+
+WritePixel	7345	10674	10552	10776	@{b}10674@{ub}
+EllipseTest	7.96	6.77	6.83	6.83	@{b}6.70@{ub}
+TGTest		1420	1680	1678	1698	@{b}1729@{ub}
+LineTest	1385	1431	1431	1432	@{b}1445@{ub}
+
+WritePixel	- Pixels/Second
+EllipseTest	- Seconds
+TGTest		- Characters/Second
+LineTest	- Lines/Second
+
+As we can see BlizKick's HOGWAITBLIT gives the best results. HOGWAITBLIT is faster than FastWaitBlit because BlizKick automagically ;-) patches also Kickstart ROM's internal calls to WaitBlit().
+
+HOGWAITBLIT is average 1.64 % faster than ROM code (MAPROM on).
+
+HOGWAITBLIT is average 1.78 % faster than @{"FastWaitBlit 2.12" LINK FastWaitBlit}.
+
+NOTES:
+a) MAPROM off results are with KS 3.0 and 8MB 70ns SIMM.
+@ENDNODE
+@NODE FastWaitBlit "FastWaitBlit program"
+
+     @{b}FASTWAITBLIT@{ub}
+
+FastWaitBlit 2.12, GiftWare, Aminet
+Author: Dave Jones <DJones@CardiffCyberCafe.Co.Uk>
+
+FastWaitBlit program turns @{"BLITHOG" LINK BLITHOG} on while system is waiting for blit to finish. This will speed up graphics, at the cost of CPU performance.
+@ENDNODE
+@NODE Usage2 "How do I use SaveROM?"
+
+     @{b}USAGE@{ub}
+
+SameROM's usage is
+
+  SaveROM @{b}<KICKFILE>@{ub}
+
+  @{b}<KICKFILE>@{ub}
+                Here you specify full path for the ROM image
+		to save. You can't quate the filename, even
+		if it contains spaces!
+		e.g. SaveROM DEVS:rom image 1.3
+
+SaveROM functions identically in all Kickstart versions: The whole paramline is interpeted as KICKFILE name.
+
+RC (return code) is set:
+
+  OK (0)
+		SaveROM succeeded.
+  ERROR (10)
+		Couldn't create or write kickfile! Destination
+		file is removed.
+  FAIL (20)
+		Something fatal happened! Dos didn't open?
+
+
+Here is a detailed example of the SaveROM use: @{"Get Kickstart 1.3 ROM" LINK Kick13}.
+@ENDNODE
+@NODE Bootloop "Infinite boot loop"
+
+     @{b}BOOT LOOP@{ub}
+
+If you don't install BlizKick as your first reset-proof program you might get infinite boot loop. This happens because BlizKick trashes execbase and therefore any reset-proof programs run before BlizKick will get flushed from memory. If you experience such a problem just press both mouse buttons while your Amiga is booting and you'll get to bootmenu. Then select 'Boot without Startup-sequence' -button. Now you must edit your s:startup-sequence file: move BlizKick as your first reset-proof program or if BlizKick refuses to work properly, remove it completely (and report the problem to @{"me" LINK About}).
+
+If you use FORCE switch in your startup-sequence, you @{b}will@{ub} get infinite boot loop, @{b}so don't use it there!@{ub}
+@ENDNODE
+@NODE Copyrights "Copyrights"
+
+     @{b}COPYRIGHTS@{ub}
+
+Amiga is Copyright © 1985-2007 Amiga, Inc. AMIGA and the AMIGA logo are registered trademarks.
+
+Blizzard and Cyberstorm Turbo Boards are Copyright © DCE. All rights reserved.
+
+Enforcer is Copyright © 1992-1998 Michael Sinz.
+
+ShapeShifter is Copyright © 1993-1999 Christian Bauer.
+
+Mac1200 is Copyright © 1992-1996 Jim Drew & Utilities Unlimited International, Inc.
+
+FUSION is Copyright © 1997-1998 Jim Drew & Microcode Solutions. All rights reserved.
+
+RemAPollo is Copyright © 1998-2002 Mikolaj Calusinski.
+
+IDEfix is Copyright © 1993-1999 Elaborate Bytes, Oliver Kastl.
+
+KingCON-handler is Copyright © 1993,1994 David Larsson.
+
+spatch is Copyright © 1992 SAS Institute, Inc.
+
+MorphOS is Copyright © 1999-2007 by Ralph Schmidt, Frank Mariak, Emmanuel Lesueur, Teemu Suikki, Harry Sintonen.
+
+MMULib is Copyright © 1999-2002 THOR - Software, Thomas Richter.
+
+BlizKick package is Copyright © 1996-2007 PitPlane Productions.
+
+Products names are trademarks and registered trademarks of their respective companies.
+@ENDNODE
+@NODE Kick13 "SaveROM example: Get Kickstart 1.3 ROM"
+
+     @{b}GET KICKSTART 1.3 ROM IMAGE@{ub}
+
+To get Kickstart 1.3 ROM, you need, of course, Amiga with Kickstart 1.3 (old A500 from your closet!) and my program called @{"SaveROM" LINK SaveROM} or similar. Here are the detailed instructions:
+
+I assume here, that you own an AMIGA 500 (KS 1.3) and an AMIGA 1200 (KS 3.x) and that you've already @{"installed" LINK Installation} BlizKick package.
+
+1. Format and install 1.3 disk. This can be done with commands:
+  @{b}1.Workbench> Format DRIVE DF0: Name FooBar OFS
+      ...
+  1.Workbench> Install FooBar:@{ub}
+
+2. Copy SaveROM program to the disk:
+
+  @{b}1.Workbench> Copy C:SaveROM FooBar:@{ub}
+
+3. Boot your Kickstart 1.3 Amiga (A500) with this disk.
+
+4. Write in CLI:
+
+  @{b}1.> SaveROM rom1.3@{ub}
+ 
+5. Now, copy the rom1.3 kickfile from the disk into your better (A1200) machine's Devs: -drawer:
+
+  @{b}1.Workbench> Copy FooBar:rom1.3 DEVS:@{ub}
+
+  Now this kickfile can be used with @{"BlizKick" LINK Usage1} program.
+@ENDNODE
+@NODE BugReports "About bug-reports"
+
+     @{b}ABOUT BUG-REPORTS@{ub}
+
+When sending in bug reports, please state exactly under what circumstances the bug occurred, what equipment was used and what happened. If possible also try to give me enough information to reproduce the bug. Dumps produced by common debugging tools are welcome. It is very difficult to find bugs when you don't know exactly what happened.
+
+You are strongly encouriged to use included @{"bug-report -form" link BugForm} to report bugs.
+@ENDNODE
+@NODE BugForm "Form for sending bug reports"
+
+     @{b}BUG-REPORT@{ub}
+
+I HAVE FOUND BUG(S) FROM BlizKick. I HAVE VERSION _____.
+
+NAME:__________________________________________________
+
+
+ADDRESS:_______________________________________________
+
+
+         _______________________________________________
+
+
+         _______________________________________________
+
+ELECTRONIC ADDRESSES:
+(if any, ie. Internet Email, FidoNet Netmail etc.)
+
+
+         _______________________________________________
+
+MACHINE CONFIGURATION:
+(ie. 500, 600, 1000, 1200, 1400, 1500, 2000, 2500, 3000, 4000, accelerator...)
+
+
+ _______________________________________________________
+
+
+ _______________________________________________________
+
+DETAILED DESCRIPTION OF BUG (ENVIRONMENT, ANY DEBUGGING INFORMATION RECEIVED FROM YOUR FAVORITE DEBUGGING TOOLS (Enforcer etc.), WHAT YOU WERE DOING WHEN BUG OCCURED OR SIMILAR STUFF:
+
+
+ _______________________________________________________
+
+
+ _______________________________________________________
+
+
+ _______________________________________________________
+
+
+ _______________________________________________________
+
+
+ _______________________________________________________
+
+
+ _______________________________________________________
+
+
+ _______________________________________________________
+
+
+ _______________________________________________________
+
+
+
+
+ __________________   __________________________________
+        (Date)                   (Signature)
+@ENDNODE
+@NODE History "History"
+
+     @{b}PROGRAM HISTORY@{ub}
+
+     ==== Version 1.24 = May 26th 2007 ======================
+
+     - BlizKick 1.24 final release.
+     - PUBLIC SOURCE CODE RELEASE !
+     - Fixed a bug in Cyberstorm memlist scanner.
+     - Added WinUAE support.
+
+     ==== Version 1.24 = Jan 11th 2003 ======================
+
+     - 1.24rc5 release.
+     - PUBLIC SOURCE CODE RELEASE !
+     - Fixed embarrasing bug from mmuapi (loadresident and
+       protectextresbuf), it didn't work on 68040 systems
+       with p5/dce 68040.library (report by Marcin Kurek).
+     - Fixed a silly bug in PatchMath020 module, it only
+       patched the first matching routine (report again by
+       Marcin Kurek).
+     - Fixed applypatch reporting bogus errormsg when
+       kickfile doesn't exist.
+
+     ==== Version 1.24 = Jun 12th 2002 ======================
+
+     - 1.24rc4 release.
+     - PUBLIC SOURCE CODE RELEASE !
+     - Added new tool for MMU writeprotecting EXTRESBUF:
+       @{"protectextresbuf" LINK Usage8}. It work with both p5/dce
+       680x0.library and mmu.library. (kindly betatested by
+       KennyR, Cap`n^HIT, jPV and Hercules). WARNING! Read
+       the documentation about protectextresbuf before use!
+     - Updated BlizKick EXTRES buffer API (bkapi.lha).
+     - Updated loadresident to use the new EXTRES buffer API.
+     - Fixed SpeedyIDE module to work with OS3.9BB2
+       scsi.device (several reports, thanks to Joru for
+       testing).
+     - Updated BlizKick.guide.
+
+     ==== Version 1.24 = Mar 22nd 2002 ======================
+
+     - 1.24rc3 release.
+     - PUBLIC SOURCE CODE RELEASE !
+     - Fixed V45 exec.library of AmigaOS 3.9 BoingBag2. It
+       use quite crude hack to enable it, you'd better have
+       true 32bit memory that doesn't go away at reset for
+       this to work. Works on my BlizzPPC, Wizor's & SMF^'s
+       Blizzard 1260, Cyber2th's CSMkII and Zerohero's
+       Blizzard 2060 at least. YMMV. Note that this hack
+       automagically fix some buggy programs that peek
+       $f80000 for version information. Thanks to my
+       impatient betetesters: Wizor, Jagge, Cyber2th,
+       Zerohero, SMF^ and Lizard. Special thanks to Lizard
+       for bugging me about this. Also thanks to everyone who
+       mailed me about the problem.
+     - Improved romfixes module: No longer fail whole module
+       if some sub-patch fail. Now it should be possible to
+       use romfixes as the last module.
+     - Unless something critical show up, this could become
+       the final BlizKick 1.24 release.
+
+     ==== Version 1.24 = Mar 21st 2002 ======================
+
+     - 1.24rc2 release.
+     - PUBLIC SOURCE CODE RELEASE !
+     - Updated romupdatesplit to handle OS 3.9 BoingBag2. It
+       kind of worked before too, but named some modules
+       unknown.
+
+     ==== Version 1.24 = Mar 10th 2002 ======================
+
+     - 1.24rc1 release.
+     - PUBLIC SOURCE CODE RELEASE !
+     - Now set destination function code (dfc) for pflusha on
+       68040 and 68060. It could fix some systems where dfc
+       is not 1 or 2 by default and that have some magic
+       supervisor mmu mapping.
+
+     ==== Version 1.24 = Oct 26th 2001 ======================
+
+     - 1.24beta8 release.
+     - PUBLIC SOURCE CODE RELEASE !
+     - Fixed silly bug from mmu.library support, now BlizKick
+       try to use mmu.library if SetPatch is run *and*
+       mmu.library is loaded in memory.
+     - Fixed a silly bug: If initializing MAPROM failed,
+       BlizKick crashed horribly (could only happen with
+       Blizzard 2040-ETC and 2060 cards MAPROM disabled).
+     - Added @{"KEEPEXEC option" LINK Usage1} to reboot without killing
+       exec.library. @{b}Read the documentation before using!@{ub}
+     - Fixed PowerUP card (CyberStorm PPC (and MK III), and
+       Blizzard PPC) reboot code to kill exec.library, like
+       with other cards. This fix some weirdo crashes from
+       some reset proof applications that don't like ROM
+       version changing on them.
+     - Fixed the infamous @{"RED screen crash at cold start" LINK TroubleShoot}
+       problem with some PowerUP cards by adding
+       @{"NOPUPREBOOT option" LINK Usage1}.
+     - Improved romfixes module: Added graphics/InitArea()
+       patch.
+     - Added new module: MuMove4K prepares system memory for
+       MuFastZero's FastExec option. Substitutes MuMove4K by
+       Thomas Richter.
+     - Fixed BlizKick main program to work with 20011012
+       BlizzPPC flashrom. (several reports)
+     - Fixed a deadly bug from FixGetMsg module. (Marcin
+       Kurek)
+     - Added EXTRESBUF support for CPU Cards. (^Berserk^)
+     - Now MODULE's default directory default to
+       "DEVS:Modules/" directory if BKMODPATH env variable
+       cannot be found, (Lizard) Added IGNPATH=
+       IGNOREBKMODPATH/S option to ignore the directory
+       change completely.
+     - Changed applypatch program to default BKMODPATH like
+       BlizKick main program.
+     - Fixed RebootFix module to work with exec44. (several
+       reports)
+     - Reworked some internal BlizKick routines, hopefully
+       B20x0's work better now. Lets hope I didn't break
+       anything. :) (vege)
+     - Fixed romfixes module: It no longer fail if put after
+       OS3.5/3.9 console.device module. (several reports)
+     - Updated @{"romupdatesplit" LINK Usage4} and
+       @{"AmigaOS 3.5/3.9 single boot system" LINK OS35setup}
+       guide chapters. (Téfal)
+     - BlizKick work just fine with AmigaOS 3.9, modified the
+       guide accordingly.
+     - Improved hackdisk module: Made it possible to patch
+       the trackdisk.device that is inside extresbuf.
+     - Improved NoClick module: Changed the patching method to
+       work with all V37+ ROM versions. Made it possible to
+       patch the trackdisk.device that is inside extresbuf.
+     - Improved romfixes module: Added patch for utility
+       68000/68010 UMult64() bug.
+     - Improved FixMath404 module: Made it possible to patch
+       the mathieeesingbas.library that is inside extresbuf.
+       Made the module recognize the A3000
+       mathieeesingbas.library that has only FPU routines, and
+       thus doesn't have the bug. (Max)
+     - Improved romfixes module: Added patch for exec
+       ReleaseSemaphore() bug.
+     - Fixed very long-standing and stupid bug in BlizKick
+       that affected CLI it was run from (BlizKick used to do
+       Forbid() before terminating, very bad idea for a CLI
+       program). Probably solves lots of problems that I
+       haven't been able to identify before (for example, this
+       bug caused CLI's TC_EXCEPTCODE to work very
+       unreliably).
+     - I broke CPU Card support in 1.22beta8 when I added 256K
+       ROM support: I wrote 'move.l' when I should have
+       written 'cmp.l'. Again this makes me think asm coding is
+       something really stupid. Now A3640 and friends should
+       work again, I hope.
+     - Improved romfixes module: Added patches for exec
+       FreePooled(), graphics WriteChunkyPixels(),
+       WritePixelArray8() and WritePixelLine8() bugs.
+     - Included new KingCON-handler.pch from new RemAPollo,
+       maybe it works with OS 3.5 now?
+     - Fixed SPEEDROM from BlizKick and @{"applypatch" LINK Usage3}, it used
+       to make the last romtag's RT_EndSkip point at $fffffe,
+       and due to a bug in ROM (as a side-effect it made
+       longword read access from that address) this made the
+       hw buserror machines barf. Fixed it to point at
+       $fffffa. Special thanks to Gunther Nikl for help.
+     - Fixed @{"SaveROM" LINK SaveROM} to work with broken DMA SCSI device
+       drivers and MMU mapped ROM.
+     - Total rewrite of BlizKick 68040 and 68060 cache & MMU
+       routines. *Much* better now.
+     - Improved AlertFix module: Fixed to work with 68040
+       (Henes). Added NewAlert module support to AlertFix, ie.
+       now it makes regular Alerts call NewAlert too. Found
+       two bugs from OS Alert code, now has fix for these.
+       Fixed silly bug that has been there from v1.0 of the
+       module, it never got the task pointer right (on BPPC).
+       No longer requires 68040+ CPU, work 68020+.
+     - Improved romfixes module: Added patch for the alert
+       bug (yes, only one of the two new bugs can be fixed by
+       romfixes module).
+     - Improved NewAlert module: It is now MMU aware where
+       needed. Made it play well together with AlertFix
+       module.
+
+     ==== Version 1.23 === Sep 4th, 2000 =====================
+
+     - 20th Aminet release.
+     - PUBLIC SOURCE CODE RELEASE !
+     - Fixed silly bug from 030 MMU code. (Remco Komduur)
+
+     ==== Version 1.22 === Sep 2nd, 2000 =====================
+
+     - 19th Aminet release.
+     - PUBLIC SOURCE CODE RELEASE !
+     - Added notes about A4K with A3640. (S7reaM)
+     - Added notes about muFastZero FASTEXEC probs. (Matt)
+     - Added notes about UAE + EXTRESBUF probs. (Thematic)
+     - Improved BPPCFix module, booting sped up by 3.3
+       seconds! If this new version causes problems the
+       old BPPCFix 1.1 is still included as BPPCFix11.
+     - Fixed wrong 'Kickstart wasn't kicked using BlizKick!'
+       -error when kickstart restoring wasn't possible. Now
+       give 'Kickstart restoring not supported!' instead.
+     - Seems that CS MK II support is finally working
+       properly.
+     - Now will quit quietly (RC = WARN) if MorphOS is
+       running.
+     - Bugfix: ChipSaver, LocalFast, RebootFix and QuickBoot
+       modules would have misbehaved if the patch code was
+       installed inside ROM. That is, these modules only
+       worked if installed in EXTRESBUF. Very long-standing
+       bug, it dates back to 1997. :-)
+     - Improved AlertFix: it can be installed inside ROM now
+       (not by applypatch though).
+     - Bugfix: Due a stupid bug in LocalFast module, memory
+       node name was referencing wrong memory. Caused the name
+       to be somewhat random. Ouch. Special thanks to Hexaae
+       for help.
+     - Fixes to DisableCacheS: now invalidate cache on 040/
+       060. Made disable 060 superscalar dispatch.
+     - Terrible horrible stupid "nggh ngggh!" -level bug
+       fixed from 020/030 MMU test code, it fucked up VBR
+       completely! Many thanks go to "John Stunner" who found
+       this and reported it at ru.amiga 2nd Aug. Also special
+       thanks to Useless who redirected this message to me 3rd
+       Aug.
+     - Added more MorphOS information to guide. Also fixed
+       some copyright information.
+     - Fixed terrible bug from AlertFix module, it made the
+       exec/Alert() call fail. Ouch! I really wonder how I
+       could miss this. :)
+     - Minor bugfix in main program: the 040+ cacheclear
+       routine didn't invalidate the data and inst cache
+       after flush.
+     - Guide improvements: Added more notes that QuickBoot
+       module doesn't work without LocalFast. Improved
+       troubleshooting about `red screen crash' problem
+       (CISC). Made it really really clear that LocalFast
+       module is only needed with Blizzard 1230s. Added
+       information about KingCON-module + AOS 3.5 problems.
+       Added section about buggy AlertFix-module.
+     - @{"romupdatesplit" LINK Usage4}: Fixed FROM-relative-to-TO bug and
+       added comment creation.
+     - No longer tries to open mmu.library if run before
+       SetPatch. (Thematic)
+     - Fixed a typo. (Oleg Sergeev)
+     - Updated my hardware config info. :)
+     - Added elfloadseg-patch ioerr bug workaround to
+       @{"applypatch" LINK Usage3}, now you get proper error message if module
+       is not found.
+     - Added new module: FixGetMsg fixes the 68060 GetMsg()
+       loop hang. Substitutes the FixGetMsg patch by Frederick
+       H. G. Wright II <fw@well.com>. (RobinC)
+     - 68030 MMU code was broken in 1.22.beta9 (several
+       reports).
+     - Improved @{"applypatch" LINK Usage3} guide, it wasn't that clear which
+       modules can be applied and which can't (indy).
+     - Added troubleshooting about `red screen crash' problem
+       (CISC).
+     - Some minor improvements to guide.
+     - Added 256k ROM support for CPU Cards.
+     - Fixed BPPCFix module to work if it's placed into ROM.
+       Now it finally works Nadir. :)
+     - Added workaround for elfloadseg-patch ioerr bug, now
+       you get proper error message if module is not found.
+     - Fixed MMU code a bit.
+     - Hopefully linux/APUS loader will support BlizKick
+       EXTRES buffer soon. This should mean that booting back
+       to AmigaOS would work even if EXTRESBUF was used.
+     - Fixed stupid bug, I forgot to remove LOCALFAST
+       commandline argument when I added the external
+       LocalFast module. In case you've wondered why LocalFast
+       module hasn't worked this might well be it. Thanks to
+       Nadir for this one.
+     - Fixed a bug that made BlizKick ignore error when
+       multiple occurences of single-only module were being
+       planted. You never got "wrong number of arguments"
+       -error for this.
+     - Fixed guide about SCSIDEV43 module, it's not completely
+       obsolete (it does disable the beta warning).
+     - Fixed a typo. Thanks to EkSOTiC for annoying me. :)
+     - Added BPPCFix040 module. Use both BPPCFix and
+       BPPCFix040 to disable both ppc.library and 680x0
+       libraries. You happy now SimplePPC? =)
+     - Added Copy @{"CopyIDEfixPrefs" LINK Usage6} tool and
+       @{"KingCON-handler.pch" LINK Usage7} from RemAPollo, now you can use
+       c:IDEfix and l:KingCON-handler as modules. Many thanks
+       to Mikolaj Calusinski for letting me include these.
+     - Fixed nasty bug caused by bad BK_MOD macro.
+     - Fixed really stupid bug from LocalFast module, it
+       didn't work properly (you just got yellow crashes).
+     - Disabled memory header name checks, should now work
+       better if node name is fucked. hi brotheris:)
+     - Now that BlizKick finally seems to work better with
+       other phase5/DCE cards, worked on the guide a bit.
+     - CS MK II works now, however beta2 failed to recognize
+       if BlizKick was run before. Fixed this I hope.
+     - CPU card support could work now.
+     - Fixed major bug from CS MK II support! Also B20x0
+       support could have been affected.
+     - B1230 maprom testcode had some flaws, fixed.
+     - Improved @{"romupdatesplit" LINK Usage4} a bit.
+     - Reintroduced QuickBoot feature as external module. It
+       seems this thing is useful for some B1230 users after
+       all.
+     - Added note to @{"troubleshooting" LINK TroubleShoot} about ramlibstack +
+       romfixed module. Some people didn't realise romfixes
+       includes ramlibstack patch.
+
+     ==== Version 1.21 == Jan 17th, 2000 =====================
+
+     - 18th Aminet release.
+     - PUBLIC SOURCE CODE RELEASE !
+     - @{b}MAJOR BUGFIX:@{ub} the 040/060 move16 copyloop introduced
+       in 1.19 easily got off by 8 bytes, causing spurious
+       crashes! Stupid bug, but now it's gone. Special thanks
+       and hellos go to @{b}MeTRiXX@{ub} who tested BlizKick
+       on his B1260 and helped me to narrow the problem area.
+       Thanks again!
+     - Fixed a bug that called dos/Open instead exec/
+       Supervisor, and believe me or not, it didn't have any
+       side effects. This is what you get when you code in
+       asm. :-)
+     - Updated @{"loadresident" LINK Usage5} to show free / largest EXTRESBUF.
+     - Reintroduced LocalFast feature as external module, it
+       was requested by Hexaae. Probably others won't mind
+       either. ;) @{b}NOTE1: Only use this module if you need to!
+       NOTE2: If you use LocalFast module you must start
+       BlizKick before PoolMem!@{ub}
+
+     ==== Version 1.20 == Jan 15th, 2000 =====================
+
+     - 17th Aminet release.
+     - PUBLIC SOURCE CODE RELEASE !
+     - Reservi. jee. :)
+     - After finishing my service in army I finally have time
+       to work on BlizKick again. This is a major release,
+       fixing some stupid bugs and introducing new features.
+       Enjoy!
+     - Added new tool: @{"loadresident" LINK Usage5}, it loads resident tags
+       to EXTRES buffer after BlizKick has been run.
+     - Found RemAPollo from aminet. Cool now I don't need to
+       add support for Apollo cards. Seems to be cool program
+       with lots of cool features (support for BlizKick
+       modules and all!), I'll probably implement some of
+       those features for BlizKick too. If you're Apollo user
+       reading this, get util/boot/RemAPollo.lha NOW :)
+     - Overall guide cleanup.
+     - Added new section to guide about how to set up
+       @{"AmigaOS 3.5 single boot system" LINK OS35setup}.
+     - Found out that PoolMem could have easily fucked up
+       BlizKick in several ways. Won't do that anymore.
+     - Finally fixed these weird hangs with some systems (at
+       least Blizzard PPC), changed EXTRES buffer
+       implementation to be more OS friendly. As a side
+       effect LOCALFAST and QUICKBOOT are no-op from now on.
+       If this is a problem for you, use older version of
+       BlizKick ;) As a result also some other crashes and
+       incompatibilities might be gone.
+     - Added new commandline argument: SANITY/K/N, this
+       specifies the safety buffer added to EXTRES buffer in
+       kbytes - if you get weird crash or alert 80010000 on
+       boot, add (for example) SANITY=1024 to BlizKick
+       commandline. This will allocate 1 megabyte sanity buffer
+       after EXTRES buffer. Using big SANITY buffer reduces
+       largest available memory block though.
+     - Added mmu.library V41+ support. Not tested though.
+     - Added new tool: @{"romupdatesplit" LINK Usage4}, it splits AmigaOS 3.5
+       `DEVS:AmigaOS ROM Update' file back to executable
+       files. These can be given to BlizKick as modules (see
+       below).
+     - Added @{b}cool new feature@{ub}: you can use ANY executable
+       file as module!! Resident modules inside will be
+       initialized. Cool. Renders SCSIDEV43 module obsolete,
+       just give scsi.device as one module! You can also give
+       l:fastfilesystem and so on. @{b}:)@{ub}
+     - Fixed horrible mistake from romfixes `resident' patch,
+       resident command froze if resident was added without
+       ADD keyword (this freezes AmigaOS 3.5 installer for
+       example). oops. :-/
+       @{b}NOTE:@{ub} If you use @{"applypatch" LINK Usage3}'d ROM Image with BlizKick
+       and you have applied romfixes module to it, you *must*
+       run applypatch with same arguments again to create
+       working ROM Image!
+     - Modified romfixes module to also work on V37 ROM
+       images, and added @{"ramlib msgport sigbit" LINK rombugs} patch.
+
+     ==== Version 1.19 == Dec 21st, 1999 =====================
+
+     - 16th Aminet release.
+     - PUBLIC SOURCE CODE RELEASE !
+     - GTJ10 - viis kassuaamua, hajotkaa läjät! (finnish army
+       joke;)
+     - bought Nokia 3210 dual band cell phone today, boy it's
+       cool. (paid advert;)
+     - @{"applypatch" LINK Usage3} program to apply BlizKick patch kind of
+       modules to ROM image. Useful if BlizKick doesn't
+       support your system for some reason, but you have a
+       working maprom tool for it. applypatch can also be used
+       to speed up BlizKick booting by pre-patching rom image.
+       Commandline also gets quite a bit cleaner. ;)
+       @{b}NOTE:@{ub} It is a good idea to keep the original ROM images
+       in safe place, as there is no undo... :)
+     - BlizKick loads faster now (no longer uses chipmem for
+       code to avoid VMEM, but memory allocated with
+       MEMF_PUBLIC). Optimized memory copies to use
+       ultrafast movem- (upto 68030) or move16-loop (68040,
+       68060). Also if QUIET is specified doesn't delay for
+       half a second before booting.
+     - Found out that CopyMem[Quick] are AmigaOS 1.2+ so fixed
+       guide accordingly.
+     - Finally figured out how to disable maprom for blizzppc,
+       so you can run BlizKick more than once per poweron
+       (by using FORCE). Also as a side effect the original
+       Kickstart can be restored (give no KICKFILE).
+     - Updated this guide a bit.
+     - Added two new modules: romfixes, that fixes couple of
+       @{"rom bugs" LINK rombugs} and AlertFix module that enables alerts for
+       BlizzardPPC system again. See @{"description" LINK blizzppcfeatures} of
+       this Blizzard PPC "feature".
+
+     ==== Version 1.18 == May 10th, 1999 =====================
+
+     - 15th Aminet release.
+     - PUBLIC SOURCE CODE RELEASE !
+     - Added BPPCFix module for WarpOS lowers. I personally
+       like PowerUP better but lots of ppl asked this.
+
+     ==== Version 1.17 == Jan 24th, 1999 =====================
+
+     - 14th Aminet release.
+     - PUBLIC SOURCE CODE RELEASE !
+     - EXTRES buffer was overwritten by blizzppc/csppc kernel,
+       now allocates 1mb extra memory to ensure this will
+       never happen again. This probably was the cause for
+       reboot loops with some PPC systems.
+     - Special hellos to Frank Eiche: Thanks for the letter :)
+
+     ==== Version 1.16 === Nov 3rd, 1998 =====================
+
+     - 13th Aminet release.
+     - PUBLIC SOURCE CODE RELEASE !
+     - Removed rom checksum disable from SPEEDROM, as it was a
+       bit too dangerous.
+     - Added ramlibstack module.
+     - Again tried to fix CS MK II support. Maybe I get it
+       right some day. =) Ta again ChaoZer.
+     - Fixed some stuff in places. I hope I didn't break
+       anything. =)
+     - @{"Fixed guide" LINK blizzppcspecial} a bit.
+
+     ==== Version 1.15 === Oct 9th, 1998 =====================
+
+     - 12th Aminet release. (well I did upload this version,
+       apparently they lost it)
+     - PUBLIC SOURCE CODE RELEASE !
+     - Fixed memory node area for CS MK II, it could work now.
+     - Fixed guide about @{"Blizzard PPC" LINK blizzppcspecial}, read it.
+     - Fixed installation script.
+
+     ==== Version 1.14 === Oct 6th, 1998 =====================
+
+     - 11th Aminet release.
+     - PUBLIC SOURCE CODE RELEASE !
+     - Major flaw, I accidently didn't remove the nonfuntional
+       ffs62 module in 1.13. WARNING: DO NOT USE FFS62 MODULE!
+     - Fixed support for KS 1.1NTSC and 1.1PAL. Should work at
+       least in theory. :)
+
+     ==== Version 1.13 === Oct 4th, 1998 =====================
+
+     - 10th Aminet release. Finally.
+     - PUBLIC SOURCE CODE RELEASE !
+     - Fixed BlizzPPC bug. It was due wrong priority in
+       _localfast_module... sigh.
+     - FusionReverve module has been working all the time, just
+       get FixPATCHMAC.lha from aminet and use it. Ouch.
+     - CS MK I, II and other CPU card support is probably
+       still broken. Sorry.
+     - Special greeting to laire: Thank you for the superior
+       PowerUP system software. =)
+
+     ==== Version 1.13ß1 July 17th, 1998 =====================
+
+     - PUBLIC SOURCE CODE RELEASE !
+     - Fixed bug in CS MK II support. Maybe it finally works.
+     - Improved BlizKick_install script a bit.
+     - Added NewIcons for BlizKick.guide and Free100buf.
+     - VERY mucho thanks go to duet / #AmigaFIN for verifying
+       Blizzard PPC support.
+     - Apparently there are some problems with 1240 and
+       SCSI-Kit (memory on both board itself and SCSI-Kit). If
+       someone has ideas how to fix this problem please tell
+       @{"me" LINK About}.
+
+     ==== Version 1.12ß9  July 8th, 1998 =====================
+
+     - PUBLIC SOURCE CODE RELEASE !
+     - Due to (kindof) huge public demand I finally added
+       support for Blizzard PPC cards. Thanks for all who
+       mailed and msg'd me about it. Special thanks go to
+       Zer0-X / #AmigaFIN for providing me bliz ppc rom at
+       Motorola Inside 98 (that party ruled;), [Kiste] /
+       #amiga, Spin / #AmigaFIN, FoZZ / #AmigaSWE and JohanE /
+       #AmigaSWE for testing bliz ppc MAPROM. Also thanks and
+       hellos to LloydROSN / #amycoders for kindly compiling
+       some blizppc stuff. Also hellos to laire / #amiga -
+       and sorry for asking all those stupid questions ;)
+       Big thanks to Cithara / #AmigaFIN and manatee / #amiga
+       for digging up nicks from logs when that bloody WinNT
+       (boo!) bluescreened;) without their help credits
+       wouldn't have been far as complete as they're now...
+     - I've been told that CPU Card / CS MK I / CS MK II
+       support doesn't work. Those will be fixed when someone
+       just finds out what's wrong with them.
+     - However, I did fix a little bug from CS MK II code, so
+       CS MK II might work now.
+     - Forgot to mention in previous beta that there is a
+       (experimental, non-functional) beta-version of GUI
+       included (BKGUI, BKGUI.e). If you manage to improve/
+       finish it just drop @{"me" LINK About} a line.
+
+     ==== Version 1.12ß8  May 13th, 1998 =====================
+
+     - PUBLIC SOURCE CODE RELEASE !
+     - Due the fact that I haven't been able to work on
+       BlizKick for ages now, I decided to release the source
+       code for public. You can consider the source code PD,
+       though I would really appreciate if you would credit me
+       for the hard work I've done in these years. The idea is
+       that someone would continue development of BlizKick and
+       add features I haven't been able to implement:
+       BlizzardPPC support, some sort of GUI (simple AmigaE
+       GUI is included), IDEFix97 support, OxyPatcher support,
+       Installer script etc. Anyways, have fun with it!
+     - BTW I'm not quitting Amiga ;)
+
+     ==== Version 1.12ß7  Dec 16th, 1997 =====================
+
+     - BETA RELEASE !
+     - Rewrote board detection to be more clean & robust. Now
+       adding new boards is a lot easier.
+     - Fixed some stupid bugs... Now works at least with CS
+       PPC (tested) and CS MK III. (Thanks Duken!)
+     - Fixed some Lock bugs.
+
+     ==== Version 1.12ß6 = Dec 9th, 1997 =====================
+
+     - BETA RELEASE !
+     - Oh shit. Wrote nice CPU Card support to BlizKick 1.12ß1
+       but forgot to enable it... hmmm ;)
+     - Now should work with at least following CPU Cards:
+       CBM A4000 CPU Cards, Cyberstorm MKI, Cyberstorm MKIII
+       and @{b}Cyberstorm PPC@{ub}.
+
+     ==== Version 1.12ß5 = Dec 3rd, 1997 =====================
+
+     - BETA RELEASE !
+     - PatchMath020 now patches routines whose replacement
+       routines don't use 64bit mul/div on 68060.
+     - Fixed stupid movem bug from SpeedyChip module.
+     - Tried another (simpler) approach in RebootFix.
+     - FusionReserve _still_ refuses to work.
+    
+     ==== Version 1.12ß4  Nov 28th, 1997 =====================
+
+     - BETA RELEASE !
+     - I'm not dead, just busy/lazy. ;)
+     - Fixed this guide a bit. (Hi Max)
+     - Fixed little bug in ROM image validation test.
+     - Fixed FusionReserve module, it wasn't doing
+       "Fusion-magic" if vbr was moved _before_ FusionReserve
+       module. :-I
+     - Added two modules: RebootFix to fix problems with A1200
+       and 060 (at least with BLIZZARD 1260) reboot when
+       display is in multisync mode, and SpeedyChip module
+       patching 060 MMU lists for improved chip memory write
+       speed.
+
+     ==== Version 1.12ß3  Aug 22th, 1997 =====================
+
+     - BETA RELEASE !
+     - Now KS 1.x are only patched if they're original
+       versions. This should prevent some problems with
+       patched 1.x ROM images.
+
+     ==== Version 1.12ß2  Aug 15th, 1997 =====================
+
+     - BETA RELEASE !
+     - SCSIDEV43 module tested with scsi.device V43.18
+     - Modified CPU Card support to work after SetPatch too.
+     - Hopefully fixed FusionReserve module. Note that it
+       should also work with Mac1200 emulator.
+     - Added two new modules: A1000Jingle (Try it out! ;) and
+       PatchMath020 (Optimizes C-compiler math routines).
+
+     ==== Version 1.12ß1  Aug 14th, 1997 =====================
+
+     - BETA RELEASE !
+     - After over month of lazyness (blame it on IRC:) added
+       support for (A4000?) CPU Cards! Should work at least
+       with CBM and Cyberstorm cards. See CPUCARD switch.
+     - New module: FusionReserve substituting RsrvCold of
+       FUSION MAC emulator.
+
+     ==== Version 1.11 === Jul 4th, 1997 =====================
+
+     - 9th Aminet release.
+     - RemCards module causes some troubles with CD-ROM
+       devices. Added this information.
+
+     ==== Version 1.11ß4 = Jun 5th, 1997 =====================
+
+     - BETA RELEASE !
+     - Fiddled with this guide a bit.
+     - It seems as SpeedyIDE could cause some errors on
+       specific hard drives/setups. It has now been
+       successfully tested on 1230, 1240 and 1260 BLIZZARD
+       boards. Only one beta tester has reported problems, but
+       his problems could have been caused by some other
+       software interfering with SpeedyIDE. Be careful with
+       SpeedyIDE though! BTW: I've never had any problems on
+       my machine... :)
+     - Found out that V43.17 scsi.device is broken: it doesn't
+       recognize any IDE devices. Ouch! (thanks again Max)
+     - Improved WaitIDE module.
+     - Improved SCSIDEV43 module to disable beta message of
+       scsi.device.
+
+     ==== Version 1.11ß3  May 28th, 1997 =====================
+
+     - BETA RELEASE !
+     - Fixed MAPROM jumper OFF detection, it had been broken
+       since v1.9...
+     - SpeedyIDE module may cause problems on some machines...
+       :( It should be used on A1200 only. It seems to work at
+       least with 1230 and 1240 boards.
+     - Added SCSIDEV43 module; kick V43 beta scsi.device!!
+       (Tested with scsi.device 43.11)
+
+     ==== Version 1.11ß2  May 26th, 1997 =====================
+
+     - BETA RELEASE !
+     - Fixed this guide a bit.
+     - Added Free100buf program (used with ChipSaver module).
+       Funny icon for Free100buf drawn by Max Romanoff
+       <hurtman@usa.net>. Thanks a lot for icon, numerous
+       suggestions (ChipSaver, RemCards, SpeedyIDE, WaitIDE)
+       and extensive betatesting !
+
+     ==== Version 1.11ß1  May 24th, 1997 =====================
+
+     - BETA RELEASE !
+     - Added information about Kickstart 2.04 (37.175).
+     - Added four new modules: ChipSaver, RemCards, SpeedyIDE
+       and WaitIDE.
+     - Now EXTRESBUF is put into fast memory!!
+
+     ==== Version 1.10 === May 4th, 1997 =====================
+
+     - Eighth Aminet release.
+
+     ==== Version 1.10ß7  Apr 21st, 1997 =====================
+
+     - BETA RELEASE !
+     - Fixed reset code to disable caches. Previously caches
+       were only flushed.
+
+     ==== Version 1.10ß6  Apr 11th, 1997 =====================
+
+     - BETA RELEASE !
+     - Added BBlank module by Jens Lorenz.
+     - Added some detailed information about included modules
+
+     ==== Version 1.10ß5 = Apr 2nd, 1997 =====================
+
+     - BETA RELEASE !
+     - NoClick supports hackdisk.device now.
+     - Improved HOGWAITBLIT. Requires V39+ ROM now.
+     - Added NewAlert module by Jens Lorenz.
+
+     ==== Version 1.10ß4  Mar 22nd, 1997 =====================
+
+     - BETA RELEASE ! 2nd on the *same* day! phew...
+     - Added BKMODPATH environment variable. Now you can set
+       BKMODPATH to DEVS:Modules/ (or whatever) and BlizKick
+       knows to load modules from there. Now you can specify
+       MODULE PrepareEmul MoveVBR SoftSCSI
+
+     ==== Version 1.10ß3  Mar 22nd, 1997 =====================
+
+     - BETA RELEASE !
+     - Added QUIET switch
+     - Removed enforcer hit from AspectFont (hi Walter! ;)
+     - Now 256K ROM map two times (at $F80000 & $FC0000)
+     - Fixed PrepareEmul module to work with KS 37.300
+     - Got KS 33.180 ROM function! (There was a bug in ranger
+       ($C00000) memory test and in expansion.library)
+     - Fixed manual in places
+
+     ==== Version 1.10ß2  Mar 21st, 1997 =====================
+
+     - BETA RELEASE !
+     - Now automagically patches 34.5 ROM.
+     - Fixed bug when EXTRESBUF was and LOCALFAST was *not*
+       specified. Supervisor stack could have trashed
+       EXTRESBUF area!
+     - Hopefully fixed some 040/060 MMU code
+
+     ==== Version 1.10ß1  Mar 13th, 1997 =====================
+
+     - BETA RELEASE !
+     - Implemented pseudo kickfile *
+     - Hopefully fixed 040/060 MMU bug (wasn't able to start
+       after SetPatch)
+     - Updated menual a bit
+
+     ==== Version 1.9 === Mar 10th, 1997 =====================
+
+     - Seventh Aminet release.
+     - Now BlizKick accepts same kickstart file as in ROM chip
+       again (as in ß5 and backwards). The fun part is that
+       BlizKick should have rejected such kickstart files. I
+       "fixed" this for ß6... :) I apologise the unconvience
+       caused.
+     - Fixed bug in PrepareEmul module: It didn't cope with
+       A1200 rom (it has chipmem start always at $3000).
+
+     ==== Version 1.9ß8 = Feb 27th, 1997 =====================
+
+     - BETA RELEASE !
+     - Fixed terrible bug from reset code! Thanks to Flemming
+       Steffensen for reporting these autoconfig problems...
+       =o)
+
+	lea	$01000004,a0
+	sub.l	(-$14-4,a0),a0
+	move.l	(a0),a0	; Sometimes this code skipped reset
+	subq.l	#2,a0	; instruction!! DevPac produces zero
+	CNOP	0,4	; word instead of $4E71. Quite stupid
+	reset		; bug actually... but hard to trace!
+	jmp	(a0)
+	; Executing reset instruction only once will cause
+	; some expansion devices not to autoconfig properly.
+
+     ==== Version 1.9ß7 = Feb 26th, 1997 =====================
+
+     - BETA RELEASE !
+     - Now LOCALFAST relocates memheaders to fast memory,
+       thus speeding AllocMem() etc.
+     - Improved manual.
+
+     ==== Version 1.9ß6 = Feb 25th, 1997 =====================
+
+     - BETA RELEASE !
+     - Found out that EXTRESBUF works on 1260. Hi Jani T! =o)
+     - Fixed one minor bug from main program.
+     - SoftSCSI didn't work. It should work now.
+     - Improved this guide file.
+     - Maybe I finally can release v1.9 in Aminet... ;)
+
+     ==== Version 1.9ß5 = Feb 13th, 1997 =====================
+
+     - BETA RELEASE !
+     - Fixed EXTRESBUF. Now it requires at least V36 ROM image
+       to work, but should work on xx40/xx60!
+     - Now BlizKick.guide font is automagically adjusted
+       depending on screen aspect ratio while install script
+       is run. (2:1 -> ruby.font, 1:1 -> system default font)
+
+     ==== Version 1.9ß4 == Feb 4th, 1997 =====================
+
+     - BETA RELEASE !
+     - Added SoftSCSI module.
+     - Beta-testers have reported some problems with EXTRESBUF
+       on 1240, 1260, 2040-ERC and 2060. Aminet release
+       delayed. :(
+
+     ==== Version 1.9ß3 = Jan 29th, 1997 =====================
+
+     - BETA RELEASE !
+     - Support for 1240-T/ERC, 2040-ERC and 2060 boards.
+     - Some bugs fixed.
+
+     ==== Version 1.9ß2 = Jan 14th, 1997 =====================
+
+     - BETA RELEASE !
+     - Fixed BLIZZARD 2060 code. Used rte to exit subroutine.
+       Didn't work! Wonder why... :P Now B2060 code could
+       work... :)
+
+     ==== Version 1.9ß1 == Dec 3rd, 1996 =====================
+
+     - BETA RELEASE !
+     - Fixed BLIZZARD 2060 code.
+     - Fixed bug in EXTRESBUF (Occured with V40.60 ROM).
+     - Fixed negative return code bug. Stupid.
+     - Added ROM address validity test.
+     - Updated the documentation.
+
+     ==== Version 1.8 === Nov 19th, 1996 =====================
+
+     - Sixth Aminet release.
+     - Added XPK support for KICKFILE.
+     - Fixed long standed bug from install_script.
+     - Updated the documentation.
+
+     ==== Version 1.7 ==== Nov 5th, 1996 =====================
+
+     - Fifth Aminet release.
+     - Fixed stupid bug in 68040/68060 MMU test code...
+     - Now really gracefully exits if no Blizzard board is
+       present. This thing was too hard to test! ;)
+     - Added hackdisk.device patch module.
+
+     ==== Version 1.6 ==== Oct 1st, 1996 =====================
+
+     - Fourth Aminet release.
+     - Updated the documentation.
+     - Improved 68040/68060 cache flushing code
+     - Added two patch modules: "FixMath404" and
+       "NoClick". These two are really useful ones,
+       esp. NoClick... just try it!
+
+     ==== Version 1.6ß4 = Sep 19th, 1996 =====================
+
+     - BETA RELEASE -- DO NOT REDISTRIBUTE !
+     - Now BlizKick can be run even if Enforcer, VMM,
+       GigaMem or similar program is started first.
+     - Updated the documentation.
+
+     ==== Version 1.6ß3 = Sep 16th, 1996 =====================
+
+     - BETA RELEASE -- DO NOT REDISTRIBUTE !
+     - Fixed KS 2.x EXTRESBUF
+     - Fixed not to allocate MEMF_KICK memory on 2.x systems
+     - Now can be run after SetPatch on 1260 systems
+
+     ==== Version 1.6ß2 = Sep 12th, 1996 =====================
+
+     - Sep 11th BETA release didn't work! :( Sorry folks!
+       (It was a @{b}really stupid mistake@{ub} indeed!!)
+
+     - Some bugs fixed.
+     - Added EXTRESBUF feature.
+     - Added external patches (kind of "module").
+     - Improved "module" -system. (BKMB_ExtResBuf flag)
+     - Didn't work with all 1230-IV and 1260 memory
+       configurations. FIXED.
+     - Fixed BlizKick to need FORCE only if same KS was
+       kicked with BlizKick previously (no more: @{b}"...used
+       previously"@{ub}, as it was before)
+     - Added PrepareEmul and MoveVBR modules.
+     - Didn't always work with SCSI-Kit. FIXED?
+
+     ==== Version 1.5b === Jul 6th, 1996 =====================
+
+     - Third Aminet release.
+     - Some fixes to documentation.
+
+     ==== Version 1.5 ==== Jul 5th, 1996 =====================
+
+     - Second Aminet release.
+     - Several bugs fixed.
+     - Added original Kickstart restoration.
+     - Improved error messages.
+     - Improved MAPROM test.
+     - Improved CacheClear routine.
+     - Added HOGWAITBLIT feature.
+     - Added SetPatch (680x0.library) test.
+     - Added MODULE feature.
+     - Documentation improved.
+     - Release 1.4 had wrong executable included. Well,
+       version 1.4 release packet was constructed in a hurry
+       anyway, so I forgot to copy the correct executable into
+       it... ;-)) Please, forgive me!
+
+     ==== Version 1.4 ==== Jun 29th, 1996 ====================
+
+     - First Aminet release.
+     - Works with 1260, of course!
+
+     ==== Version 1.3 ==== Jun 17th, 1996 ====================
+
+     - Added SPEEDROM feature and improved LOCALFAST.
+     - Improved error messages ;-)
+
+     ==== Version 1.2 ==== Jun 16th, 1996 ====================
+
+     - Added LOCALFAST and QUICKBOOT features.
+
+     ==== Version 1.1 ==== Jun 10th, 1996 ====================
+
+     - First local release.
+@ENDNODE
+@NODE License "License"
+
+     @{b}LICENSE@{ub}
+
+ 1. This license applies to the product called "BlizKick", a program for the Amiga computer, published by PitPlane Productions under the concepts of FreeWare, and the accompanying documentation. The terms "Program" and "BlizKick" below, refer to this product. The licensee is addressed as "you".
+
+ 2. You may copy and distribute verbatim copies of the program's executable code and documentation as you receive it, in any medium, provided that you conspicuously and appropriately publish only the original, unmodified program, with all copyright notices and disclaimers of warranty intact and including all the accompanying documentation, example files and anything else that came with the original.
+
+ 3. You may not copy and/or distribute this program without the accompanying documentation and other additional files that came with the original. You may not copy and/or distribute modified versions of this program.
+
+ 4. You may not copy, modify, sublicense, distribute or transfer the program except as expressly provided under this license. Any attempt otherwise to copy, modify, sublicense, distribute or transfer the program is void, and will automatically terminate your rights to use the program under this license. However, parties who have received copies, or rights to use copies, from you under this license will not have their licenses terminated so long as such parties remain in full compliance.
+
+ 5. By copying, distributing and/or using the program you indicate your acceptance of this license to do so, and all its terms and conditions.
+
+ 6. Each time you redistribute the program, the recipient automatically receives a license from the original licensor to copy, distribute and/or use the program subject to these terms and conditions.  You may not impose any further restrictions on the recipients' exercise of the rights granted herein.
+
+ 7. You may not disassemble, decompile, re-source or otherwise reverse engineer the program.
+
+ 8. If you wish to incorporate parts of the program into other programs, write to the author to ask for permission.
+
+ 9. You agree to cease distributing the program and data involved if requested to do so by the author.
+
+10. You may charge a fee to recover distribution costs. The fee for diskette distribution may not be more than the cost to obtain a public domain diskette from Fred Fish.
+@ENDNODE
+@NODE Disclaimer "Disclaimer"
+
+     @{b}DISCLAIMER@{ub}
+
+NO GUARANTEE IS GIVEN NOR IMPLIED THAT THIS PROGRAM IS FIT FOR ANY USE. THIS PROGRAM AND THE INFORMATION WITHIN THIS TEXT IS PROVIDED ON "AS IS" BASIS. THE ENTIRE RISK AS TO ITS QUALITY AND PERFORMANCE IS WITH THE USER. SHOULD THE PROGRAM PROVE DEFECTIVE, THE USER (AND NOT THE AUTHOR) ASSUMES THE ENTIRE COST OF ALL NECCESSARY DAMAGES. IN NO EVENT WILL THE AUTHOR BE LIABLE FOR DIRECT, INDIRECT, INCIDENTAL OR CONSEQUENTIAL DAMAGES RESULTING FROM ANY DEFECT IN THE PROGRAM. THE AUTHOR RESERVES THE RIGHT TO MAKE CHANGES TO THE SOFTWARE OR DOCUMENTATION WITHOUT NOTICE.
+@ENDNODE

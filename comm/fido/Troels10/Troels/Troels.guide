@@ -1,0 +1,205 @@
+@DATABASE "Guide for Troels"
+
+@NODE MAIN "Troels 1.0 documentation"
+				       
+		######                           ###           
+		######                            ##           
+		# ## #                            ##           
+		  ##   ## ###   #####   #####     ##    #####  
+		  ##    ### ## ##   ## ##   ##    ##   ##   ## 
+		  ##    ##  ## ##   ## #######    ##    ###    
+		  ##    ##     ##   ## ##         ##      ###  
+		  ##    ##     ##   ## ##   ##    ##   ##   ## 
+		 ####  ####     #####   #####    ####   #####  
+				       
+			    by Anders Melchiorsen
+				       
+		      Version 1.0 - Released on 9-Jun-95
+    
+	@{" Distribution            " Link 0.}        @{" Compatibility           " Link 6.}
+	@{" What is Troels?         " Link 1.}        @{" Source code             " Link 10.}
+	@{" Installing Troels       " Link 3.}        @{" Quotes from happy users " Link 12.}
+	@{" Arguments               " Link 4.}        @{" Author                  " Link 13.}
+	@{" How Troels works        " Link 5.}        @{" History                 " Link 15.}
+@ENDNODE
+
+@NODE 0. "Distribution"
+    Troels is Public Domain.  Copy it to your  friends, improve your  file
+    ratio by uploading it everywhere, include it on CDs, and basically  do
+    whatever you please with it. I  am just happy if someone likes what  I
+    have made.
+    
+    Naturally, with  Troels  being  a  Public  Domain  program,  I  cannot
+    guarantee that it will work for you,  nor can you be sure that I  will
+    even try to correct a bug you may  find. I can only say that it  works
+    for me and that  I will MOST  LIKELY be happy  to remove any  reported
+    bugs.
+    
+    If you want to thank me anyway, I would like that very much; check out
+    the @{"author" Link 13.} section for my address.
+@ENDNODE
+
+@NODE 1. "What is Troels?"
+    Troels is a tiny program  that I wrote in  order to make my work  with
+    Spot more  pleseant. Specifically,  it improves  (IMHO) the  way  Spot
+    imports messages.
+    
+    Troels simply scans your inbound directory for mail bundles (the stuff
+    that ends in  .MO0, TU7, and  so on) and  unarchives them by  spawning
+    either LhA or LZX, depending on what the bundle was archived with.
+    
+    Therefore, when Spot gets to import the mail, there will only be  .PKT
+    files and consequently  the progress  indicator will  only get  filled
+    once instead of  once for each  of the mail  bundles. This makes  much
+    more sense to me.
+    
+    As a side effect, if LhA or LZX decides to crash while unpacking mail,
+    Spot's message base will *not* be destroyed -- as is the case if  Spot
+    does the unarchiving by itself. Still, if Spot crashes while  actually
+    importing (not just unarchiving), your message base will probably  end
+    up inconsistent -- but with Troels, the risk is less.
+    
+    Finally, you don't  have to specify  in Spot what  archiver your  boss
+    node(s) use; Troels figures this out by himself (as long as it is  LhA
+    or LZX).
+    
+    Troels may be useful with other FidoNet applications which access your
+    inbound directory, but that would be entirely by luck. 
+@ENDNODE
+
+@NODE 3. "Installing Troels"
+    I suggest putting Troels together with Spot. Troels is a Shell program
+    and does not  have an  icon and  therefore you  must move  it by  hand
+    (hopefully you do not need an Installer script to do that).
+    
+    If you have a registered copy  of Spot I suggest using this script  as
+    your import ARexx  script (call it  _Import.spot and put  it with  the
+    other ARexx scripts).
+    
+    ===== Start of _Import.spot (this line is not included)
+    /* Call Troels to unarchive bundles and then import into Spot */
+    ADDRESS COMMAND 'MAIL:Troels INBOUND=MAIL:Inbound LHA=LhA LZX=LZX'
+    
+    IMPORT
+    
+    EXIT 0
+    ===== End of _Import.spot (this line is not included)
+    
+    You will probably  need to change  the paths, more  about this in  the
+    section @{"arguments" Link 4.}. A sample ARexx script is included.
+    
+    If you are not a registered user of Spot and thus cannot use ARexx,  I
+    suggest you put the  call to Troels onto  a hotkey using  ToolsDaemon,
+    Yak, or similar.  This is not  quite as convienient  but probably  the
+    best you can do with an unregistered Spot.
+
+    Troels should  be pure enough  to be made  resident if you  are of the
+    kind which like to do this.
+@ENDNODE
+
+@NODE 4. "Arguments"
+    Troels REQUIRES three arguments: where your inbound directory is, what
+    your LhA is  called, and what  your LZX is  called. The arguments  are
+    called INBOUND, LHA, and LZX. 
+    
+    INBOUND  is  the  directory  where  you  incoming  mail  is,   usually
+    MAIL:inbound -- the unarchived .PKT files will end here as well.
+    
+    LHA and LZX are the FULL  PATH to your packer. Unless it is  resident,
+    it will most probably not be enough to just specify 'LhA' or 'LZX'. Do
+    not make assumptions  as to  what the  current directory  may be  when
+    running Troels through Spot!
+    
+    Even if you do  not need/have either LhA or  LZX, you need to  specify
+    them! Simply use LHA=LhA or LZX=LZX even if the program actually  does
+    not exist; Troels will not use the program name for anything until  it
+    comes across an archive that needs this archiver.
+@ENDNODE
+
+@NODE 5. "How Troels works"
+    Troels scans the given  inbound directory for  all files matching  the
+    wild card #?.(MO|TU|WE|TH|FR|SA|SU)[0-9]  and check each  match for  a
+    special cookie that both LZX and LhA  put in the start of the file  to
+    know what kind of archive it is. It then calls the appropiate archiver
+    with this command line:
+    
+	   ARCHIVERNAME -x0 x FILENAME
+    
+    where ARCHIVERNAME is what  you specified with either  the LHA or  LZX
+    arguments (depending on  archive type) and  FILENAME is whatever  file
+    Troels is now processing.
+    
+    If the  archiver returns  an error  code that  is not  0, Troels  will
+    rename the file  to FILENAME.bad  -- if  the archiver  does return  0,
+    everything should have been handled  correctly and Troels will  delete
+    the original file.
+    
+    Troels itself  will return  an error  code of  10 and  print an  error
+    message if it could not allocate  some resource or find the  path/file
+    you specified with the  arguments, otherwise 0 is  returned - even  if
+    some archive did not unarchive correctly.
+@ENDNODE
+
+@NODE 6. "Compatibility"
+    Troels was tested  with LhA  1.50r and LZX  1.20e; it  should work  on
+    older LhAs, but I think that the  first couple of LZXs had a bug  that
+    prevents them from working with Troels. Anyway, this is not checked --
+    just keep your archivers up to date :-).
+    
+    Troels should run  on any Amiga  with dos.library version  37 or  more
+    (Kickstart 2.04+).
+@ENDNODE
+
+@NODE 10. "Source code"
+    The source (in C) is included for your pleasure. I have learned a  lot
+    by looking at others sources and I want to give that chance to  others
+    as well.
+    
+    I compile it using DICE do doing this:
+    
+     dcc Troels.c -o Troels.o -2.0 -mi -ms -mRR -c
+     dlink Troels.o -o Troels -r
+    
+    You should be extremely careful if you start playing with the  source;
+    I do  not use  any startup  code  (in fact,  Troels is  complely  self
+    contained and does not need to  be linked with anything) and  altering
+    something may destroy it! Be sure to know what you are doing...
+@ENDNODE
+
+@NODE 12. "Quotes from happy users"
+     Damn, I like it!
+	   (Anders Melchiorsen)
+     
+     Good move!
+	   (Anders Melchiorsen)
+     
+     Totally beats the ARexx script I had written to do the job.
+	   (Anders Melchiorsen)
+@ENDNODE
+
+@NODE 13. "Author"
+     If  something  is  unclear  to  you,  if  you  have  suggestions  on
+     improvements (to the program, this documentation or anything else)  
+     or you just want  to send me a postcard  or netmail (I would  surely
+     like that), this is where you can reach me:
+     
+     Anders Melchiorsen
+     Kirkebyen 5
+     7950 Erslev
+     Denmark
+     
+     Fido: 2:238/97.9
+@ENDNODE
+
+@NODE 15. "History"
+     Below is a description of what  has changed in the various  versions
+     of Troels that have been. Each link describes what changed with that
+     particular version.
+     
+@{" Version 1.0 (9-Jun-95) " Link 15.1.}
+@ENDNODE
+
+@NODE 15.1. "Version 1.0 (9-Jun-95)"
+     Initial release. How do you like it?
+@ENDNODE
+

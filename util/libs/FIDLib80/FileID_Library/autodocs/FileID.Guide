@@ -1,0 +1,216 @@
+@database FileID.Guide
+@author "Oliver 'Bloodrock' Lange"
+@$VER: FileID AmigaGuide documentation 8.0
+@wordwrap
+@node Main "FileID.Guide: Contents"
+
+FileID.library V 8.0                                   function reference
+
+                  (C) 1993-1998 Oliver "Bloodrock" Lange
+                   EMail: bloodrock@bloody.in-berlin.de
+
+Developer note:
+---------------
+Last changes in the autodoc section were made in V8.0.
+
+@{" FIAllocFileInfo() " link "FIAlloc"}
+@{" FIFreeFileInfo() " link "FIFree"}
+@{" FIIdentify() " link "FIID"}
+@{" FIIdentifyFromName() " link "FIIDName"}
+@{" FIGetHighID() " link "FIGetHighID"}
+@{" FIGetIDString() " link "FIGetIDString"}
+
+@{" Notes " link "Notes"}
+@endnode
+@node FIAlloc "FileID.library/FIAllocFileInfo"
+
+        NAME
+                FIAllocFileInfo    -- Create a FI_FileInfo structure.
+
+        SYNOPSIS
+                FIAllocFileInfo (void)
+
+                struct FI_FileInfo * FIAllocFileInfo (void)
+
+        FUNCTION
+                Allocates & initializes an FI_FileInfo structure to store all
+                identification information about a file. This structure must
+                be allocated once before identifying files.
+
+        RESULT
+                FileInfo     - (struct FI_FileInfo *). A pointer to the allocated
+                               structure or NULL if out of memory. This structure
+                               must be freed using @{"FIFreeFileInfo()" link "FIFree"}.
+
+        SEE ALSO
+                @{"FIFreeFileInfo()" link "FIFree"}
+@endnode
+@node FIFree "FileID.library/FIFreeFileInfo"
+
+        NAME
+                FIFreeFileInfo    -- Free a FI_FileInfo structure.
+
+        SYNOPSIS
+                FIFreeFileInfo (FileInfo)
+                                   A1
+
+                void FIFreeFileInfo (struct FI_FileInfo *)
+
+        FUNCTION
+                Frees an FI_FileInfo structure back to memory.
+
+        INPUTS
+                FileInfo        - A FIFileInfo structure as allocated with
+                                  @{"FIAllocFileInfo()" link "FIAlloc"}
+
+        SEE ALSO
+                @{"FIAllocFileInfo()" link "FIAlloc"}
+@endnode
+@node FIID "FileID.library/FIIdentify"
+
+        NAME
+                FIIdentify     -- Identify a file type
+
+        SYNOPSIS
+                FIIdentify (Address, FileInfo)
+                              A0        A1
+
+                void FIIdentify (APTR, struct FI_FileInfo *)
+
+        FUNCTION
+                Examines a file already loaded into memory. Only the first
+                1200 bytes are used therefor.
+
+        INPUTS
+                Address      - The start address of a file already read
+                               into memory. This address *MUST* be even.
+                               For a complete file analysis, the first 1200
+                               bytes are analyzed. If the file is smaller
+                               than 1200 bytes, fill up the buffer with
+                               null-bytes to avoid wrong results !
+
+                FileInfo     - An FI_FileInfo structure, allocated using
+                               @{"FIAllocFileInfo()" link "FIAlloc"}.
+
+                               This structure gets filled with all available
+                               information. Beyond that, this function does
+                               not return a Result.
+
+        NOTES
+                Assembler programmers note that this function preserves A1.
+
+        SEE ALSO
+                @{"FIAllocFileInfo()" link "FIAlloc"}, @{"FIIdentifyFromName()" link "FIIDName"}
+@endnode
+@node FIIDName "FileID.library/FIIdentifyFromName"
+
+        NAME
+                FIIdentifyFromName    -- Identify a file type
+
+        SYNOPSIS
+                FIIdentifyFromName (FileInfo, Name)
+                                       A1      D1
+
+                long FIIdentifyFromName (struct FI_FileInfo *, STRPTR)
+
+        FUNCTION
+                Identifies a file by file name. Don't mischange this:
+                the name itself doesn't get analyzed anyway. This function
+                opens the file, reads the first 1200 bytes (the whole file
+                if smaller) and then tries to identify it.
+
+        INPUTS
+                FileInfo     - An FI_FileInfo structure, allocated using
+                               @{"FIAllocFileInfo()" link "FIAlloc"}.
+
+                               This structure gets filled with all available
+                               information.
+
+                Name         - A standard AmigaDOS file name.
+
+        RESULT
+                Error        - NULL if everything went ok. The passed FI_FileInfo
+                               structure will then be filled. If an error occured,
+                               FI_FileInfo->FI_Description points to an error text
+                               instead of a file description.
+
+        NOTES
+                Assembler programmers note that this function preserves A1.
+
+        SEE ALSO
+                @{"FIAllocFileInfo()" link "FIAlloc"}, @{"FIIdentify()" link "FIID"}
+@endnode
+@node FIGetHighID "FileID.library/FIGetHighID"
+
+        NAME
+                FIGetHighID - Get the highest FileID number currently defined.
+
+        SYNOPSIS
+                FIGetHighID (void)
+
+                long FIGetHighID (void)
+
+        FUNCTION
+                Returns the highest file ID number supported by the
+                currently installed FileID.library version.
+
+        RESULT
+                HighID   (long).
+
+        NOTES
+                Assembler programmers note that this function preserves all
+                CPU registers except D0.
+
+        SEE ALSO
+                @{"FIGetIDString()" link "FIGetIDString"}
+@endnode
+@node FIGetIDString "FileID.library/FIGetIDString"
+
+        NAME
+                FIGetIDString    -- Get a specific FileID string.
+
+        SYNOPSIS
+                FIGetIDString (IDNumber)
+                                  D0
+
+                STRPTR FIGetIDString (long)
+
+        INPUTS
+                IDNumber   - Any file type number, as defined in
+                             include:libraries/FileID.h.
+
+        FUNCTION
+                Returns the FI_Description string belonging to the given
+                ID number.
+
+        RESULT
+                String     - (STRPTR). The description string or NULL if the
+                             given number was out of range.
+
+        SEE ALSO
+                @{"FIGetHighID()" link "FIGetHighID"}
+@endnode
+
+@node Notes "FileID.Guide: Notes"
+
+Don't open FileID.library with VERSION_ANY or VERSION == 1, because V 1.0
+includes a serious bug ! Always request a library version >= 2.
+
+The maximum length of a file description string equals 35 bytes.
+
+You may re-use an FI_FileInfo structure as often as you want. If you want
+to examine lots of files, you don't have to FIAllocFileInfo() for every
+single file.
+
+The FI_FileInfo structure is read-only. Do not modify.
+
+Don't misunderstand @{"FIIdentifyFromName()" link "FIIDName"}. Currently, this function checks
+only the file contents. The filename itself is not examined for any
+extensions, making assumptions about what the file might be. This is much
+too unsure.
+
+Note that FIIdentifyFromName() was made for easy single file analysis.
+If you wish to examine lots of files, you can save some time when managing
+file I/O yourself and then using FIIdentify(), because FIIdentifyFromName()
+must allocate and deallocate the needed memory for every single file.
+@endnode

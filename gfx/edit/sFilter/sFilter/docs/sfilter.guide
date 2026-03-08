@@ -1,0 +1,1351 @@
+@database "sfilter.guide"
+@author "Thomas Frieden"
+@remark "$VER: sfilter Guide 1.1 (18. August 1997)"
+@remark "Created with GoldED 4.7.2 (10.6.97)"
+@index INDEX
+
+@node MAIN "Welcome"
+
+                               @{b} sFilter  1.12 @{ub}
+
+                  @{i}A program for script-based image manipulation @{ui}
+
+                              Written by Thomas Frieden
+                               (tfrieden@uni-trier.de)
+
+
+
+        @{b}@{u}Table of Contents:@{uu}@{ub}
+
+        @{"  Legal  stuff  " link Legal} - Copyright and disclaimer
+        @{"  Introduction  " link Introduction} - Purpose of sFilter
+        @{"  Requirements  " link Requirements} - What you need for sFilter
+        @{"  Installation  " link Installation} - How to install sFilter
+        @{"     Usage      " link Options} - Command line options
+        @{"   Operation    " link Operation} - How to use sFilter
+        @{"   Commands     " link Commands} - What is available
+        @{"  Error Codes   " link Error} - AREXX error messages
+
+
+
+
+@endnode
+@node LEGAL "Legal stuff"
+
+                     @{b}sfilter@{ub} v 1.12
+
+                     © 1997 by Thomas and Hans-Jörg Frieden
+                               Schlosstraße 176
+                               54293 Trier
+                        email: tfrieden@uni-trier.de
+                               hfrieden@uni-trier.de
+
+Cinema4D is a trademark of Maxon Computer GmbH.
+
+This software may be freely distributed. As always, standard disclaimer rules apply.
+Neither the author nor the copyright holders are responsible for any damage
+resulting from the usage of this software. To put it in other words,
+USE AT YOUR OWN RISK.
+
+I`m not asking money for it (on the other hand, I won`t turn it down :). If you use
+sFilter in a project, please mention us in the readme file.
+
+The most recent version can always be found on our website at
+
+        http://www.informatik.uni-trier.de/CIP/hfrieden.
+
+
+@endnode
+@node INTRODUCTION "Introduction"
+
+@{u}Introduction@{uu}
+
+sFilter is a program for batch (script based) image manipulation.
+It`s main usage is to process a sequence of images based on an AREXX script.
+It can be used (and this is its intended usage) as a post-processing filter
+for a rendering program (e.g. Cinema4D).
+
+@{u}Some features:@{uu}
+
+  o Supports multiple buffers for layering
+  o Supports alpha channel operation
+  o Filters include basic color changes (saturation, hue, brightness),
+    alpha channel operation, convolution, and drawing functions (lines,
+    circles, frame, and text)
+  o plugin support: plugin functionality is build into shared libraries.
+    You can write your own plugins, sample code is included.
+  o Scripts are written in AREXX, thus giving you the whole flexibility of
+    this language
+  o Supports Cinema4D Objectmap files. Create an alpha channel from object map
+    to limit operations to object
+
+
+@endnode
+@node Requirements "What you need for sFilter"
+
+@{u}Requirements@{uu}
+
+Currently, sFilter requires the following:
+
+  o Picture datatype V43, and thus, OS 3.x.
+    *Should* also work with the Picasso96 datatype.
+  o CyberGraphX is not needed for normal filter operation, only
+    for interactive work (see the @{"Visual" link visual} command)
+  o Some memory :). Depending on how large your frames are, some more :)
+    A frame in memory uses width by height by 3 bytes, an alpha channel
+    only width by height.
+  o AREXX. As AREXX is part of the OS, this should be no problem.
+    An assign rexxc: should be set to the directory where rx resides.
+    This is needed as Cinema doesn`t set a proper shell environment (no path).
+  o For FPU versions, a 020 is the minimum. Supported systems are 68000 (no fpu),
+    68020, 68040, 68060 (all including FPU).
+
+
+@endnode
+@node INSTALLATION "Installation"
+
+@{u}Installation@{uu}
+
+Installation is easy. Just double click on the install icon and follow the
+on-screen instructions.
+
+@endnode
+
+@node Options "Usage"
+
+@{u}Usage@{uu}
+
+sfilter can only be used from shell or shell-like environment, e.g. it
+can be started from Cinema4D. The command template is as follows:
+
+        FILE/A,SCRIPT/K,SHOWINFO/S,FRAME/K/N
+
+@{b}FILE@{ub} is the name of the image file to be operated on. The file is loaded via the
+    datatypes system, so every type it supports can be loaded. Saving is done in
+    JPEG or PPM P6.
+@{b}SCRIPT@{ub} is the name of an AREXX script to be executed with this frame.
+@{b}SHOWINFO@{ub} is a switch that, when specified on the command line, will give some
+    information: The name of the AREXX port, the frame number, and the name of
+    the current file. Only useful for debugging...
+@{b}FRAME@{ub} overrides the frame number. Normally, the frame number is derived from the
+    filename extension (@{i}file@{ui}.@{i}####@{ui}). This is the way Cinema4D writes its output.
+    Other formats will be supported in future versions.
+
+
+Some examples:
+
+    sFilter frame.0010                      Work on file frame.0010. Nothing
+                                            is done, though, as no script is
+                                            given. SFilter is listening for
+                                            commands on it`s AREXX port.
+
+    sFilter frame.0010 script test.sflt     Work on file frame.0010. Script
+                                            test.sflt is executed via the rx
+                                            command
+
+    sfilter $bild script rexx:test.sflt     Invoke sfilter from Cinema4D. Note
+                                            that $bild is for the german version.
+                                            My guess is $picture for the english
+                                            Version, but you`d better have a look
+                                            at the manual :)
+
+    sfilter pic frame 10                    Override the frame number.
+
+@endnode
+@node OPERATION "Operation"
+
+@{u}Operation@{uu}
+
+As mentioned before, sFilter is used with an AREXX script. This script is invoked
+with the rexxc:rx command (Note that the assign must be set. See @{"Requirements" link Requirements}
+for details why). The name of the AREXX port is given to the script as the first
+parameter. This can be read (in AREXX) by the following code fragment:
+
+    /* Get the AREXX port name */
+
+    parse arg port
+
+    address VALUE port
+
+    /* Do something */
+
+This reads the port name and sets it. From here on, commands can be issued to sFilter.
+
+
+@{u}Basic principles@{uu}
+
+@{b}Buffers@{ub}
+sFilter operates on named buffers. A buffer is simply a chunk of memory representing
+a picture frame. Buffers can be created, deleted, image data can be loaded into them
+and single buffers can be converted into alpha channels. Although buffers can be
+created at any size, the default behavior is to create buffers at the same size
+as the primary frame. The primary frame, once loaded, is always accessible under
+the name 'default'.
+
+@{b}Colors@{ub}
+Colors are specified as RGB triplets. All components are in the range from
+0 to 255.
+
+@{b}Numbers@{ub}
+Fractional numbers are defined scaled to 255. To make this clearer, consider the
+following example:
+Changing saturation to 0 means that no color will be left in the image (grayscale).
+A saturation of 255 is equivalent to 1.0 (no color change). A value of 511 means
+saturation is doubled.
+
+@{b}Coordinates@{ub}
+The coordinate system has X growing from left to right, and Y growing from top to
+bottom.
+
+@{b}Alpha channel@{ub}
+Alpha channeling is done via linear interpolation. Alpha data is in the range
+from 0 to 255, with 255 being full transparency.
+
+@{b}AREXX@{ub}
+sFilter uses dos/ReadArgs for parsing. This function does not recognize floating
+point numbers. Therefore, you must @{b}TRUNC()@{ub} all floating point numbers.
+
+@endnode
+@node COMMANDS "Commands"
+
+@{u}Commands@{uu}
+
+There are two major groups of commands: internal and external (plugin commands).
+Internal command include management functions and text functions, while external
+functions provide different possibilities. The functions are:
+
+@{b}Control functions:@{ub}
+    @{"     Quit     " link QUIT} - Quit sfilter.
+    @{"   UsePlugin  " link USEPLUGIN} - Prepare an external plugin for use.
+    @{"    Visual    " link VISUAL} - Switch visual mode.
+    @{"    Window    " link WINDOW} - Set a window on the current frame.
+    @{"  FrameInfo   " link FRAMEINFO} - Get information on frame.
+
+@{b}Buffer management functions:@{ub}
+    @{"   LoadFrame  " link LOADFRAME} - Load the frame indicated on command line.
+    @{"   SaveFrame  " link SAVEFRAME} - Save the frame.
+    @{" CreateBuffer " link CREATEBUFFER} - Create a new buffer.
+    @{" DeleteBuffer " link DELETEBUFFER} - Delete the named buffer.
+    @{"   UseBuffer  " link USEBUFFER} - Use the named buffer for all subsequent operation.
+    @{"   UseSecond  " link USESECOND} - Use the named buffer as secondary buffer.
+    @{"  LoadBuffer  " link LOADBUFFER} - Load a file and create a new buffer with it.
+    @{" ClearBuffer  " link CLEARBUFFER} - Clear a named buffer to a given color.
+    @{"  CopyBuffer  " link COPYBUFFER} - Copy one buffer into another.
+
+@{b}Alpha channel management functions:@{ub}
+    @{"   MakeAlpha  " link MAKEALPHA} - Create an alpha channel from a given buffer.
+    @{"  ClearAlpha  " link CLEARALPHA} - Clear alpha channel to a given value
+    @{" InvertAlpha  " link INVERTALPHA} - Invert the alpha channel.
+
+@{b}Text functions:@{ub}
+    @{"    GotoXY    " link GOTOXY} - Set current print position (remember BASIC ?).
+    @{"     Font     " link FONT} - Open an Amiga font.
+    @{"     Pen      " link PEN} - Set a pen to given color.
+    @{"    Print     " link PRINT} - Print text.
+
+@{b}Object map functions:@{ub}
+    @{"    LoadOM    " link LOADOM} - Load a Cinema4D object map.
+    @{"   OMSelect   " link OMSELECT} - "Paint" an object to a named buffer.
+
+
+
+The following functions are external and must be '@{b}UsePlugin@{ub}ed'. Note that
+when specifying plugin names case @{i}does@{ui} matter.
+
+@{b}Color:@{ub}
+    @{"    Balance   " link BALANCE} - Color balancing
+    @{"  Brightness  " link BRIGHTNESS} - Change the brightness
+    @{"   Contrast   " link CONTRAST} - Change contrast
+    @{"  Grayscale   " link GRAYSCALE} - Change buffer to grayscale
+    @{"  Saturation  " link SATURATION} - Change color saturation
+    @{"     Tint     " link TINT} - Change the overall color
+
+@{b}Effects:@{ub}
+    @{"   Convolve   " link CONVOLVE} - Do a matrix convolution
+    @{"     Glow     " link GLOW} - Make an OMSelected object glow
+    @{" Interpolate  " link INTERPOLATE} - Interpolate one buffer with another
+    @{"    Noise     " link NOISE} - Add noise to the frame
+    @{"     RGB      " link RGB} - Do a color separation
+    @{"    Video     " link VIDEO} - Make the buffer look like a video screen
+
+@{b}Drawing:@{ub}
+    @{"     Box      " link BOX} - Draw a filled box
+    @{"    Circle    " link CIRCLE} - Draw an unfilled circle
+    @{"     Disc     " link DISC} - Draw a filled circle
+    @{"    Frame     " link FRAME} - Draw an unfilled frame
+    @{"     Line     " link LINE} - Draw a line
+    @{"     Plot     " link PLOT} - Draw a dot
+
+@{b}Buffer to buffer operation:@{ub}
+    @{"    Boole     " link BOOLE} - Do a boolean operation between two buffers
+    @{"     Mix      " link MIX} - Mix two buffers with alpha channeling
+
+
+@endnode
+
+@node QUIT "Quit"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    QUIT
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    This command simply quits sfilter. @{u}Warning:@{uu} @{i}Nothing will be saved.@{ui} Your data
+    is only saved when you issue the @{"SaveFrame" link SAVEFRAME} command.
+
+@endnode
+
+@node USEPLUGIN "UsePlugin"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    UsePlugin   NAME/M,ALL/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Initialize a plugin library for use in the current script. Plugins are implemented
+    as shared libraries. The UsePlugin command asks the named plugin for the command it
+    provides.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    NAME    One or more names of plugins. The name of a plugin is the name of the library
+            without the .library suffix. Note that case matters, e.g. grayscale != GRAYSCALE.
+            Note that AREXX converts all strings to upper case, unless they are surrounded by
+            single quotes (').
+
+    ALL     Instead of giving names, you can use the ALL keyword. The plugin directory
+            is being scanned and all plugins are activated. Note, though, that no matter how
+            many plugins are activated, only one will be in memory at any time. In normal
+            cases, you can use the ALL switch.
+
+
+@endnode
+
+@node VISUAL "Visual"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    Visual  ON/S,OFF/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Switch "visual" mode. In visual mode, a window is opened and all operations
+    are shown in it. A frame must be loaded (via the @{"LoadFrame" link LOADFRAME} command).
+    @{u}Note:@{uu} @{i}Visual mode is not available if you don`t have CyberGraphX! @{ui} Note,
+    though, that even if you have CyberGraphX, visual mode is only available if the window
+    actually @{i}opens@{ui} on a CyberGraphX screen
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    ON      Switch visual mode on.
+
+    OFF     Switch visual mode off (surprise!)
+
+
+@endnode
+
+@node WINDOW "Window"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    Window  X/N,Y/N,W/N,H/N,DEFAULT/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Set a window on the current buffer. All subsequent operation only affect the region
+    defined by the window.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    X,Y         Define the upper right corner of the window
+
+    W,H         Width and height of the window
+
+    DEFAULT     Set window to full buffer size. Note that changing buffers
+                also resets the window
+
+    @{u}Note:@{uu} Either DEFAULT, or dimensions @{i}must@{ui} be given.
+
+
+@endnode
+@node FRAMEINFO "FrameInfo"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    FrameInfo   NUMBER/S,WIDTH/S,HEIGHT/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Returns information on current (loaded) frame. The result is returned
+    via the normal AREXX @{b}OPTIONS RESULTS@{ub} command.
+
+    @{i}Example:@{ui}
+
+        OPTIONS RESULTS
+        FrameInfo NUMBER
+        frame = result
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    NUMBER      Return the number of the current frame
+
+    WIDTH       Return width
+
+    HEIGHT      Return height
+
+
+@endnode
+@node LOADFRAME "LoadFrame"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    LoadFrame
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Load the frame indicated by command line argument FILE to memory. Note that this
+    command must be executed before any other buffer can be created. A buffer named
+    @{b}default@{ub} is created.
+
+
+@endnode
+
+@node SAVEFRAME "SaveFrame"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    SaveFrame   PPM/S,STDOUT/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Save the buffer named @{b}default@{ub} to a JPEG or PPM file. The name is
+    indicated by the command line argument FILE (i.e. the original file is
+    overwritten). If no argument is given, a JPEG file will be written, with
+    a quality setting of 95 %.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    PPM         Write a PPM P6 file instead of JPEG. This option is included
+                to support a non-lossy format. At the present time, I am working
+                on a IFF  writer. Unfortunately, there is not much information
+                available on 24 bit IFFs, let alone compressed ones (same goes for
+                datatypes). If you want to directly write an IFF file, use the
+                STDOUT keyword (see below) and pipe it to something like ppmtoilbm.
+
+    STDOUT      Can only be used with PPM. The PPM file is written to stdout.
+                The output can be piped to an external program, e.g. a netpbm
+                program, whirlgif, or mpegencode.
+
+@endnode
+
+@node CREATEBUFFER "CreateBuffer"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    CreateBuffer    NAME/A,X/N,Y/N,DEFAULT/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Create a new buffer. The buffer is not clear, so it`s contents is complete
+    garbage.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    NAME        Every buffer is identified by a unique name. This parameter specifies
+                it.
+
+    X,Y         Dimensions of the buffer. These @{i}can@{ui} be different from the
+                "default" dimensions. Currently, this is useless because no operations
+                between different sized buffers can be made. It is implemented for
+                future versions.
+
+    DEFAULT     Set the dimensions of the buffer to the dimensions of the @{b}default@{ub}
+                buffer.
+
+@endnode
+
+@node DELETEBUFFER "DeleteBuffer"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    DeleteBuffer    NAME/A
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Delete the named buffer. All memory is freed and it`s contents is lost.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    NAME        Name of the buffer to be deleted
+
+
+@endnode
+
+@node USEBUFFER "UseBuffer"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    UseBuffer   NAME/A
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Set the named buffer to be the current buffer. All subsequent operation
+    is done on this buffer.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    NAME        Name of the buffer to be used
+
+@endnode
+
+@node USESECOND "UseSecond"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    UseSecond   NAME/A
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Set the named buffer to be the current secondary buffer. Some operations do
+    require this (e.g. convolution, mixing).
+
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    NAME        Name of the buffer to be used as secondary
+
+@endnode
+
+@node LOADBUFFER "LoadBuffer"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    LoadBuffer  NAME/A,FILE/A
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Create a new buffer and load an image file into it. The file is loaded via
+    datatypes.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    NAME        The name of the new buffer
+
+    FILE        The name of the file
+
+@endnode
+
+@node CLEARBUFFER "ClearBuffer"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    ClearBuffer     NAME/A,R/N,G/N,B/N
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Clear a named buffer to a selected color (defined in RGB)
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    NAME        Name of the buffer
+
+    R/G/B       The color to clear the buffer with
+
+@endnode
+
+@node COPYBUFFER "CopyBuffer"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    CopyBuffer  FROM/A,TO/A
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Copy buffer @{b}from@{ub} to buffer @{b}to@{ub}.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    FROM        Name of the source buffer
+
+    TO          Name of the target buffer
+
+@endnode
+
+@node MAKEALPHA "MakeAlpha"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    MakeAlpha   NAME,THRESHOLD=T/N,VALUE/N
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Convert named buffer to alpha channel. The color data from the buffer is converted
+    to the corresponding gray levels and put into the alpha channel.
+    If THRESHOLD/VALUE is given, the current foreground pen (see @{"Pen" link PEN}) is taken as a
+    transparent color, and all colors with euclidian distance smaller than
+    THRESHOLD are set to zero in the alpha channel, while all others are set to VALUE.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    NAME        Name of the buffer to be converted
+
+    THRESHOLD   Maximum distance from foreground pen
+
+    VALUE       Value to set for opaque pixels
+
+@endnode
+
+@node CLEARALPHA "ClearAlpha"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    ClearAlpha  LEVEL/N
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Clear alpha channel to LEVEL
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    LEVEL       Value to clear the alpha channel with.
+
+@endnode
+
+@node INVERTALPHA "InvertAlpha"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    InvertAlpha
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Inverts the alpha channel by negating all bytes (i.e. alpha = ~alpha).
+
+@endnode
+
+@node GOTOXY "GotoXY"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    GotoXY      X=COLUMN/N/A,Y=LINE/N/A
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Set the current print position to x,y. Note that these coordinates are the
+    top left corner of the text box, not the baseline like in graphics.library
+    Text function.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    X           The x coordinate (or column) for printing. This is given in
+                @{i}pixel@{ui} coordinates.
+
+    Y           The y coordinate (or line) for printing. This is also given
+                in pixel coordinates
+
+@endnode
+
+@node FONT "Font"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    Font        NAME/A,SIZE/N/A
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Load an Amiga font into memory. This can be any font available in your system,
+    with the exception of color fonts. Outline fonts are supported.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    NAME        The name of the font. This must be given in full, i.e. @{b}topaz.font@{ub}.
+
+    SIZE        Height of the font in pixels. Fonts are scaled automatically if they are
+                not available in that size.
+
+
+@endnode
+
+@node PEN "Pen"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    Pen     RED=R/N/A,GREEN=G/N/A,BLUE=B/N/A,FOREGROUND=FG/S,BACKGROUND=BG/S,
+                HILITE=HL/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Sets the pen specified by FOREGROUND, BACKGROUND or HILITE to the specified
+    color. sFilter uses three pens, Foreground, Background, and Hilite. These pens
+    are used for different operations, including printing and drawing.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    R,G,B       Specifies red, green and blue components
+
+    FOREGROUND  Set this color to be the foreground (drawing) pen.
+
+    BACKGROUND  Set this color to be the background (eraser) pen.
+
+    HILITE      Set this color to be the hilite pen.
+
+@endnode
+@node PRINT "Print"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    Print       TEXT/A,FRAME/N/A,END/N/A,RATE/N/A,BRIGHT/S,FLARE/S,CURSOR/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Print a text to the current buffer. The text is printed according to the frame
+    numbers and rate specified.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    TEXT        The text to be printed. If the text contains spaces, it must
+                be put into quotes like that:
+                @{b}'"Blah fasel"'@{ub}
+
+    FRAME       Starting frame. Starting with this frame, the text is displayed
+                with rate RATE.
+
+    END         End frame. After this frame, the text is no longer displayed.
+
+    RATE        The frame rate which is used to output text. If it is 0, the
+                whole text is printed at frame FRAME and stays on screen until
+                END. If non-zero, every RATE frame, a new letter is printed.
+                Example:
+                    Print 'Test' 10 100 2
+                Starting with frame 10, characters are written every two frames.
+                When all is output, the text stays on "screen", until frame 100
+                is reached.
+
+    BRIGHT      Normal text is printed in the foreground color. If BRIGHT is set,
+                the last letter is printed in the HILITE pen color.
+
+    CURSOR      A "cursor" is printed after the text.
+
+    FLARE       A "flare" effect is overlayed on the last letter.
+
+@endnode
+
+@node LOADOM "LoadOM"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    LoadOM      DEFAULT/S,FILE/K
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Load the object map for this frame, or a user define object map.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    DEFAULT     Load the default map (i.e. @{i}file@{ui}.OM)
+
+    FILE        An alternate file name (full name, including the
+                extension).
+
+@endnode
+
+@node OMSELECT "OMSelect"
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    OMSelect    BUFFER/A,OBJECT,SKY/S,GROUND/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    "Paint" the named OBJECT into the buffer BUFFER, i.e. all pixels occupied
+    by the named object are set to the foreground pen color.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    BUFFER      Name of the buffer to be used.
+
+    OBJECT      Name of the object
+
+    SKY         Select the sky. No object name must be given
+
+    GROUND      Select the ground. No object name must be given
+
+@endnode
+
+@node BALANCE "Balance"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'balance'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    BALANCE     RED=R/N/A,GREEN=G/N/A,BLUE=B/N/A,ALPHA/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Balance color in current buffer. The red, green and blue component are raised
+    (positive value) or lowered (negative value) according to parameters. Values
+    are given according to the fractional number rule in @{"Operation" link Operation}.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    RED         Scale value for red.
+
+    GREEN       Same as above, green.
+
+    BLUE        Same as above, blue.
+
+    ALPHA       Use the alpha channel. The values are computed and interpolated between
+                original (buffer) value, and new (computed) value, weighted by alpha.
+@endnode
+
+@node BRIGHTNESS "Brightness"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin   'brightness'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    BRIGHTNESS  LEVEL/A/N,ALPHA/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Change the brightness of a buffer.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    LEVEL       Level of change. Positive numbers raise brightness, negative numbers
+                lower it.
+
+    ALPHA       Use alpha channel for this operation
+@endnode
+
+@node CONTRAST "Contrast"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'contrast'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    CONTRAST    AMOUNT/A/N,ALPHA/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Change the contrast of the buffer.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    AMOUNT      Amount of change.
+
+    ALPHA       Use alpha channel
+@endnode
+
+@node GRAYSCALE "Grayscale"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'grayscale'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    GRAYSCALE   ALPHA/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Convert a buffer to grayscale.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    ALPHA       Use alpha channel
+
+@endnode
+
+@node SATURATION "Saturation"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'saturation'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    SATURATION  LEVEL/A/N,ALPHA/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Change color saturation for this buffer. A value of -255 removes
+    all color, positive values enhance it.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    LEVEL       Amount of change
+
+    ALPHA       Use alpha channel
+
+@endnode
+
+@node TINT "Tint"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'tint'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    TINT    RED=R/N,GREEN=G/N,BLUE=B/N,ALPHA/S,ANTIQUE/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Tint a buffer (i.e. colorize).
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    RED         Color to tint to.
+    GREEN
+    BLUE
+
+    ALPHA       Use alpha channel.
+
+    ANTIQUE     Use "antique" coloring scheme (yellowish brown).
+
+@endnode
+
+@node CONVOLVE "Convolve"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'convolve'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    CONVOLVE    A/N,B/N,C/N,D/N,E/N,F/N,G/N,H/N,I/N,Q/N
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Convolve the primary buffer and put the result into the secondary
+    buffer, without changing the source.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    A B C       Convolution matrix components.
+    D E F
+    G H I
+
+        Q       Quotient. If none is given, the sum of all matrix
+                components will be used.
+
+@endnode
+
+@node GLOW "Glow"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'glow'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    GLOW    X/N/A,Y/N/A,SCALE/N,NOCOPY/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    The glow effect makes an object that was previously "selected" glow.
+    Data is read from the primary buffer, and put into the secondary.
+
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    X,Y     The size of the glow effect. The effect is implemented as a
+            rectangular weighted sum. X and Y give the width and height of
+            this rectangle. @{i}Note:@{ui} This effect can be really slow, especially
+            with large X and Y values.
+
+    SCALE   Scale factor to "lighten up" the glow.
+
+    NOCOPY  Do not copy pixels from primary buffers (i.e. the secondary buffer will
+            only contain the outline of the object).
+
+
+@endnode
+
+@node INTERPOLATE "Interpolate"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'interpolate'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    INTERPOLATE AMOUNT/N,SECONDARY=SEC/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Interpolate color values from primary buffer to alpha channel, or from
+    primary buffer to secondary via alpha channel. This function is @{i}very@{ui} powerful,
+    although describing it in full is beyond the scope of this manual. For a
+    good description of the effect, see
+        @{b}http://www.sgi.com/grafica/interp/index.htm@{ub}
+
+    For examples, look at
+        @{i}http://www.informatik.uni-trier.de/CIP/hfrieden/@{ui}
+    in the tutorials section (coming soon).
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    AMOUNT      Weight of interpolation. Must be given when no secondary is given.
+                Corresponds to a constant secondary buffer.
+
+    SECONDARY   Use the secondary buffer for interpolation. The color information
+                in this buffer is converted to its gray value, and interpolation
+                is done between buffer data and alpha channel data weighted by
+                this grey value on a pixel per pixel basis (boy, this is hard
+                to explain!!).
+
+@{u}@{i}Example:@{ui}@{uu}
+
+    I guess an example would be handy here:
+
+    When lowering saturation in an image, the color values of the picture
+    are "moved" towards gray. This can be expressed by a linear interpolation
+    between a color and its gray level. The amount of this interpolation is
+    given by the AMOUNT parameter. Thus, you can simulate a saturation filter
+    by converting a frame to an alpha channel (remember that the alpha channel
+    is made of the gray values of the frame) and then interpolating by an amount
+    equal to the amount of saturation change.
+
+    Another possibility is sharpening: Convolve the buffer with a gaussian
+    blur matrix (all ones) to the secondary buffer, convert the latter to alpha
+    channel, and interpolate. The mount of interpolation represents the amount
+    of sharpening.
+
+    The Grafica Obscura article gives more details on this, and it`s worth
+    reading.
+
+@endnode
+@node NOISE "Noise"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'noise'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    NOISE   AMOUNT/N/A,ALPHA/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Adds random noise to the picture by changing the brightness of pixels.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    AMOUNT      Maximum noise amplitude.
+
+    ALPHA       Use alpha channel.
+
+@endnode
+
+@node RGB "RGB"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'RGB'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    RGB     R=RED/S,G=GREEN/S,BLUE=B/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Do a color "separation". All color components @{i}not@{ui} given in the parameter
+    list are set to zero. @{i}Note:@{ui} This function is only useful for things like
+    MPEG encoders, so no alpha channel is supported.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    RED         The color components to be left in the buffer.
+    GREEN
+    BLUE
+
+@endnode
+
+@node VIDEO "Video"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'video'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    VIDEO   AMOUNT/N
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Make the current buffer look like a video screen. Every other line
+    is reduced in brightness.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    AMOUNT      Factor by which brightness is reduced.
+@endnode
+
+@node BOX "Box"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'box'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    BOX     Xs/N/A,Ys/N/A,Xe/N/A,Ye/N/A
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Draw a filled box to the current buffer, using the current foreground pen.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    Xs,Ys   Upper left corner.
+
+    Xe,Ye   Lower right corner.
+
+@endnode
+
+@node CIRCLE "Circle"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'circle'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    CIRCLE  X/N/A,Y/N/A,RADIUS=R/N/A
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Draw a circle with current foreground pen.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    X,Y     Center of circle.
+
+    RADIUS  Radius of circle.
+
+@endnode
+
+
+@node DISC "Disc"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'disc'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    DISC    X/N/A,Y/N/A,RADIUS=R/N/A
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Draw a filled circle with current foreground pen.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    X,Y     Center of circle.
+
+    RADIUS  Radius of circle.
+
+@endnode
+
+@node FRAME "Frame"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'frame'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    FRAME   Xs/N/A,Ys/N/A,Xe/N/A,Ye/N/A
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Draw a frame to the current buffer, using the current foreground pen.
+
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    Xs,Ys   Upper left corner.
+
+    Xe,Ye   Lower right corner.
+
+@endnode
+
+@node LINE "Line"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'line'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    LINE    Xs/N/A,Ys/N/A,Xe/N/A,Ye/N/A
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Draw a line.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    Xs,Ys   Start point
+
+    Xe,Ye   End point.
+
+@endnode
+
+@node PLOT "Plot"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'plot'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    PLOT    X/N/A,Y/N/A
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Set a point in the current forground color.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+
+    X,Y     Coordinates of point.
+
+@endnode
+
+@node BOOLE "Boole"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'logic'   (Ha! That`s something new!)
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    BOOLE   AND/S,OR/S,NOT/S,XOR/S
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Combine the current buffer with the secondary buffer by a logical
+    operation. @{i}Note:@{ui} Both buffers @{b}must@{ub} have the same size.
+
+@{b}@{u}Parameters:@{uu}@{ub}
+@endnode
+
+@node MIX "Mix"
+
+@{b}@{u}"UsePlugin" name:@{uu}@{ub}
+
+    UsePlugin 'mix'
+
+@{b}@{u}Command template:@{uu}@{ub}
+
+    MIX
+
+@{b}@{u}Function:@{uu}@{ub}
+
+    Mixes the current buffer with the secondary via alpha channel.
+    @{i}Note:@{ui} Both buffers @{b}must@{ub} have the same size.
+
+@endnode
+
+@node ERROR "Error"
+
+Whenever an error is encountered, the variable sfilter.lasterror is set.
+The error level will always be set to 10. The following errors can
+be encountered:
+
+    @{b}E01: Unknown command @{i}command@{ui}.@{ub}
+    The command @{i}command@{ui} is not an sfilter command. Note that
+    this error is also issued when a plugin is not loaded.
+
+    @{b}E02: Can`t load frame @{i}file@{ui}@{ub}
+    The file can`t be loaded. It`s either not there, or too large
+    to fit into memory,
+
+    @{b}E03: Can`t create buffer@{ub}
+    There is either not enough memory to create the buffer, or the
+    default keyword was given with no default frame in memory.
+
+    @{b}E04: Plugin @{i}plugin@{ui} reported error@{ub}
+    The plugin could not execute the operation. This can have many reasons,
+    including a missing secondary buffer, or parameters that were out of
+    range.
+
+    @{b}E05: Plugin library @{i}plugin@{ui} not found@{ub}
+    The plugin was not found in the plugin directory.
+
+    @{b}E06: No frame to work on@{ub}
+    No frame was loaded, so nothing can be done.
+
+    @{b}E07: Can`t open font @{i}font@{ui}@{ub}
+    The requested font could not be loaded.
+
+    @{b}E08: No font@{ub}
+    No font was loaded when trying to print.
+
+    @{b}E09: Can`t open object map@{ub}
+    The object map could not be loaded. Either the file was not found, or
+    there was not enough memory available.
+
+    @{b}E10: No default buffer@{ub}
+    The default buffer was not loaded. Load it with @{"LoadFrame" link LOADFRAME}.
+
+    @{b}E11: No buffer @{i}buffer@@{ui}@{ub}
+    The buffer @{i}buffer@{ui} was not found.
+
+    @{b}E12: Could not complete operation @{ub}
+    The operation could not be completed (Ok, I know this is stupid, but
+    who cares ?).
+
+    @{b}E13: Buffers do not match@{ub}
+    The buffers do not match in size.
+
+    @{b}E14: No alpha channel@{ub}
+    You tried an operation requiring an alpha channel without creating one.
+
+    @{b}E15: no pen given@{ub}
+    This error is obsolete in the latest version.
+
+    @{b}E16: No such object@{ub}
+    The named object could not be found in the loaded object map.
+
+    @{b}E17: Can`t save file@{ub}
+    The buffer could not be save. This can have several reasons, including
+    memory shortage, not enough space on the device, or a locked file.
+
+
+
+@endnode
+
+@node INDEX "Index"
+    @{"    Balance   " link BALANCE}  @{"  Grayscale   " link GRAYSCALE}  @{" Requirements " link Requirements}
+    @{"    Boole     " link BOOLE}  @{" Installation " link Installation}  @{"     RGB      " link RGB}
+    @{"     Box      " link BOX}  @{" Interpolate  " link INTERPOLATE}  @{"  Saturation  " link SATURATION}
+    @{"  Brightness  " link BRIGHTNESS}  @{" Introduction " link Introduction}  @{"   SaveFrame  " link SAVEFRAME}
+    @{"    Circle    " link CIRCLE}  @{" InvertAlpha  " link INVERTALPHA}  @{"     Tint     " link TINT}
+    @{"  ClearAlpha  " link CLEARALPHA}  @{" Legal stuff  " link Legal}  @{"   UseBuffer  " link USEBUFFER}
+    @{" ClearBuffer  " link CLEARBUFFER}  @{"     Line     " link LINE}  @{"   UsePlugin  " link USEPLUGIN}
+    @{"  Commands    " link Commands}  @{"  LoadBuffer  " link LOADBUFFER}  @{"   UseSecond  " link USESECOND}
+    @{"   Contrast   " link CONTRAST}  @{"   LoadFrame  " link LOADFRAME}  @{"    Video     " link VIDEO}
+    @{"   Convolve   " link CONVOLVE}  @{"    LoadOM    " link LOADOM}  @{"    Visual    " link VISUAL}
+    @{"  CopyBuffer  " link COPYBUFFER}  @{"   MakeAlpha  " link MAKEALPHA}  @{"    Window    " link WINDOW}
+    @{" CreateBuffer " link CREATEBUFFER}  @{"     Mix      " link MIX}
+    @{" DeleteBuffer " link DELETEBUFFER}  @{"    Noise     " link NOISE}
+    @{"     Disc     " link DISC}  @{"   OMSelect   " link OMSELECT}
+    @{" Error Codes  " link Error}  @{"  Operation   " link Operation}
+    @{"     Font     " link FONT}  @{"    Usage     " link Options}
+    @{"  FrameInfo   " link FRAMEINFO}  @{"     Pen      " link PEN}
+    @{"    Frame     " link FRAME}  @{"     Plot     " link PLOT}
+    @{"     Glow     " link GLOW}  @{"    Print     " link PRINT}
+    @{"    GotoXY    " link GOTOXY}  @{"     Quit     " link QUIT}
+@endnode

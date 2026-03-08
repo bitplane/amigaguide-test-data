@@ -1,0 +1,358 @@
+@database
+@author "Stefan Fuchs"
+@(c) "Stefan Fuchs"
+
+@node "Main" "Documentación de la biblioteca 'Patch.library'"
+
+                       @{b}Biblioteca 'patch.library' 4.0@{ub}
+              Gestión a alto nivel de la función SetFunction()
+
+                 Copyright © Stefan Fuchs, Febrero de 1996.
+                       Distribución libre y gratuíta.
+
+
+   Elija uno de los siguientes tópicos para información más detallada:
+
+        @{" Prestaciones  " link "Features" 0}  ¿Porqué usar la biblioteca 'patch.library'?
+        @{" Instalación   " link "Installation" 0}  Cómo instalarla.
+        @{" Programadores " link "Programmers" 0}  Lo que los programadores deben saber.
+        @{" Ejemplos      " link "Examples" 0}  Cómo emplear los programas de ejemplo.
+        @{" Soporte       " link "Support" 0}  Qué programas soportan por ahora esta biblioteca.
+
+        @{" Distribución  " link "Distribution" 0}  Condiciones de redistribución
+        @{" Historia      " link "History" 0}  Información sobre versiones presentes y pasadas.
+        @{" El futuro     " link "Future" 0}  Lo planeado para versiones futuras.
+        @{" Autor         " link "Author" 0}  Cómo contactar con el autor.
+
+
+    Cuando desee volver aquí, ¡presione el botón CONTENIDO ('CONTENTS')!
+
+                 Traducción al español de @{"Dámaso D. Estévez" link "Translation"}
+@endnode
+
+@node "Features" "Características y prestaciones"
+
+Características y prestaciones:
+
+ - En  general  la  biblioteca  'patch.library'  ofrece  una  forma  fácil de
+   instalar  y  eliminar  los  parches  aplicados  a  las  funciones  de  las
+   bibliotecas.
+
+ - La  biblioteca 'patch.library' comprueba, si su parche puede ser eliminado
+   sin  riesgos (por ejemplo asegurándose de que no hay otra tarea ejecutando
+   el código del parche).
+
+ - En  general,  los  parches pueden ser sólo eliminados en orden LIFO ('last
+   in,  first  out',  o  sea,  'último en aplicarse, primero en eliminarse').
+   Esta   biblioteca  proporciona  un  mecanismo  que  permite  eliminar,  en
+   cualquier  momento  y  orden,  cualquier  parche  instalado  (si  éste  ha
+   utilizado la biblioteca 'patch.library' naturalmente).
+
+ - Además  le  proporciona  una  prioridad  de  sistema,  lo  que  le permite
+   especificar  la  secuencia  de  los  parches, si más de un parche debe ser
+   instalado para una función de biblioteca.
+
+ - También  proporciona  una forma de comprobar, si el parche ya se encuentra
+   instalado,  a  través  de un campo (nombre) suministrado por la biblioteca
+   para cada parche.
+
+ - La biblioteca vacía automáticamente los cachés, cuando es necesario.  Así,
+   el  software que emplea esta biblioteca continuará funcionando en sistemas
+   con procesadores 68040 o 68060.
+
+ - Con  la bibliteca 'patch.library' no tendrá problemas parcheando funciones
+   de  la  bibliteca  'dos.library'  para  v. 36  o  inferior,  pues  detecta
+   automáticamente  estas  funciones no estándar y toma las medidas oportunas
+   para parchear correctamente estas funciones.
+
+ - Puede  limitarse  las  tareas  que  usan un parche según sus nombres o sus
+   identificadores de tarea ('taskID').
+
+ - Recuerde siempre que instalando y, especialmente, eliminando parches nunca
+   se  puede programar sin correr algún riesgo de bloquear la máquina; aunque
+   'patch.library' debe minimizar este  riesgo, no abuse de las funciones que
+   proporciona   (minimice,   por   ejemplo,  el  número  de  operaciones  de
+   (des)instalación  de  los  parches).  ¡Nos veremos en la versión 5.0 de la
+   biblioteca!
+@endnode
+
+@node "Installation" "Instalación"
+
+   Para  instalar  la biblioteca 'patch.library' simplemente copie el fichero
+'libs/patch.library' en su directorio 'LIBS:'.  La biblioteca 'patch.library'
+funcionará  en  cualquier Amiga con cualquier versión de Kickstart, pero sólo
+podrá  sacarle el máximo partido con las versiones más avanzadas de éste (por
+ejemplo  para  usar  los  servicios de memoria --'memory pools'-- disponibles
+sólo a partir de Kicskstart 3.0 o superior).
+@endnode
+
+@node "Programmers" "Programadores"
+
+El código del parche a instalar debe cumplir las siguientes normas:
+
+ - ¡El  código  TIENE  QUE  ser  reentrante!,  o  sea,  las  funciones de las
+   bibliotecas  deben  poder  ser  siempre utilizadas por múltiples tareas al
+   mismo tiempo.
+
+ - El código TIENE QUE preservar el contenido de TODOS los registros!  (si al
+   reemplazar una función de una biblioteca, en algún momento debe devolverse
+   un código de error, debe ser tal como está documentado en los Autodocs).
+
+ - El  código  de  los parches TIENE QUE utilizar direccionamientos relativos
+   respecto al contador del programa (pc), ¡si NewCodeSize > 0!
+
+ - El  código  debe  emplear un tamaño de pila lo menor posible, ya que si no
+   fuese así, las tareas que utilicen dicho código podrían debordar ésta.
+
+ - El código del parche debe finalizarle con la instrucción rts (el método
+   normal) o con la macro FALLBACK suministrada en 'Patch.i'.  Esta macro
+   FALLBACK le permite terminar la ejecución del código del parche y
+   ejecutar el código original de la función parcheada si la ha
+   reemplazado (prioridad = 0).  Las funciones de la macro FALLBACK
+   equivalen a la instrucción rts, si la prioridad es distinta de 0.
+
+ - ADVERTENCIA: la macro FALLBACK puede ser sustituída por una mejor
+   solución en la versión 5, y puede que no funcione más en versiones
+   posteriores.  Por favor, escríbame vía email, si emplea
+   la macro FALLBACK.
+
+
+Algunas notas y advertencias adicionales, si desea emplear esta bibliteca:
+
+ - Algunas funciones de bibliotecas emplean código en línea ('in-line code')
+   como por ejemplo exec.library/GetCC().  El parcheo de estas funciones
+   siempre fallará.
+
+ - El parcheo de la función exec.library/Switch() con la biblioteca
+   'patch.library' no es posible y puede bloquear el sistema, ya que
+   esta llamada cambia entre pilas (esta función es parcheada por
+   XOper).  No debería causarse daño ya que esta función es
+   siempre PRIVADA.
+
+ - Siempre hay la posibilidad (muy pequeña) de liberar la memoria reservada
+   mientras las instrucciones colocadas en dicha zona se están ejecutando
+   (lo cual suele conllevan el bloqueo/fallo del sistema).
+
+ - Las funciones de parcheo usarán algo de la pila (al menos 4 bytes) al
+   emplearse desde programas que llaman a la función parcheada. Esto puede
+   bloquear la máquina, si un programa dispone únicamente de una pila
+   de tamaño muy reducido.
+
+ - Los parches deben ser programados en ensamblador (el soporte en C aún no
+   se proporciona, pero debería ser posible escribirlo).
+
+   Puede  encontrar  más  información para los programadores en el fichero que
+acompaña a este paquete llamado 'patch.doc' y en los ficheros de ejemplo.
+@endnode
+
+@node "Examples" "Programas de ejemplo"
+
+   Este  paquete incluye dos programas con sus ficheros fuente en ensamblador
+para mostrar cómo emplear la biblioteca 'patch.library':
+
+   1. CPUClr:
+           Parchea la función graphics.library/BltClear(), de manera que
+           se emplea el procesador en lugar del BLITTER para limpiar
+           la memoria Chip.  Este ejemplo muestra lo fácil que es instalar
+           y eliminar un parche, sin desperdiciar memoria y/o tiempo de
+           procesador.  Con el programa CPUClrTEST podrá comprobar
+           el incremento en la velocidad de dicha función (para más
+           información sobre este programa consulte el fichero
+           CPUClr.doc).
+
+   2. ShowNeededFiles:        (programa sencillo estilo SnoopDos)
+           Instala algunos parches para monitorizar las funciones
+           dos.library/Open(), Lock() y LoadSeg(). Éste muestra cómo
+           la prioridad del sistema de 'patch.library' funciona.
+           Note que este programa funciona con todas las versiones
+           de la biblioteca 'dos.library'.
+           Para salir de él, utilice CTRL+C.
+@endnode
+
+@node "Support" "Programas que soportan la biblioteca"
+
+   Los  siguientes  programas  soportan la biblioteca 'patch.library' y deben
+encontrarse disponibles en Aminet:
+
+ - PatchSetFunc
+        Parchea la función exec.library/SetFunction() utilizando la
+        biblioteca 'patch.library' en lugar de la función normal
+        del sistema operativo.
+
+ - PatchSupervisor
+        Parchea las funciones exec.library/OldOpenLibrary(), OpenLibrary(),
+        OpenDevice() y permite que las bibliotecas externas (en disco)
+        sean eliminadas de memoria, si ninguna tarea las está utilizando
+        (contador de aperturas a cero), pero los parches permanecen
+        instalados.  Si la biblioteca (o dispositivo) es abierto de nuevo,
+        el parche vuelve a ser reinstalado automáticamente.
+
+        Así este programa puede ahorrar alguna preciosa y escasa memoria
+        (en mi sistema más de 150 Kb), especialmente cuando se emplea en
+        conjunción con PatchSetFunc.
+@endnode
+
+@node "Distribution" "Distribución"
+
+   Este material es propiedad de © Copyright 1993-96 Stefan Fuchs.  Todos los
+derechos reservados (All rights reserved).
+
+   Puede  ser distribuido gratuítamente siempre que se cumplan las siguientes
+condiciones:
+
+      · El  distribuidor  puede  cobrar  una pequeña cantidad para cubrir los
+        costes  de dicha distribución:  esa cantidad en distribución a través
+        de  discos  flexibles  no  puede  ser superior al coste de obtener el
+        mismo disco a través de Fred Fish.
+
+      · El  distribuidor  deberá  cesar en la distribución de los programas y
+        datos involucrados si es solicitado por el autor.
+
+      · Puede  copiar y distribuir este paquete siempre que no lo modifique en
+        forma  alguna y lo distribuya completo, o sea, con todos los elementos
+        que constituían el paquete original.
+
+      · Si  está  interesado  en  incluir este material (o parte de él) en un
+        producto  comercial,  deberá  contactar  con el autor para obtener su
+        permiso.
+
+      · El  autor  no  se  hace  responsable de cualquier daño causado por el
+        fallo del funcionamiento (tal como se ha descrito) de los programas o
+        de  la biblioteca, ni se hace responsable de cualquier destrucción de
+        otros  programas  que  usen las bibliotecas residentes en un sistema.
+        Aunque  sé  que  no  hay  errores dañinos, el usuario de este paquete
+        siempre lo empleará asumiendo él los riesgos.
+
+   Este paquete puede ser distribuído a través de colecciones de DP (como por
+ejemplo la biblioteca Fred Fish) o de Aminet.
+@endnode
+
+@node "History" "Historia"
+
+NOVEDADES EN LA VERSION 4:
+
+ - Nuevas funciones de la versión 4:
+   * CreatePatchProject()
+        Introduce el nuevo sistema de gestión de proyectos.
+   * RemovePatchProject()
+        Elimina múltiples parches con una sola llamada a la función.
+
+ - Ahora se proporciona un nuevo mecanismo de resorte ('hook mechanism'),
+   el cual se invocará cuando un parche es eliminado de forma permanente
+   del sistema.
+
+ - FindPatchTags() dispone ahora de etiquetas ('tags') que permiten
+   búsquedas sensibles (es capaz de diferenciar las mayúsculas de las
+   minúsculas) y búsquedas de varios parches con el mismo nombre.
+
+ - Los parches pueden ahora ser (des)conectados.
+
+ - Ahora los cachés se borrarán cuando sea necesario con todas las versiones
+   de Kickstart.  También se corrige un error, que bloqueaba los equipos con
+   procesador 68040 o superior (se suponía de forma incorrecta el orden de
+   los bytes en un caché desbordado por escritura)
+
+ - Ahora 'patch.library' soporta el programa externo PatchSupervisor,
+   el cual ayuda a ahorrar memoria cuando una biblioteca está parcheada,
+   pero no es empleada por las aplicaciones.
+
+ - Ahora se emplean los servicios de memoria ('memory pools'), cuando el
+   sistema dispone de Kickstart 3.0 o superior.
+
+
+NOVEDADES EN LA VERSION 3:
+
+ - Nuevas funciones de la versión 3:
+   * FindPatchTags()
+        Puede ser empleada en lugar de la vieja función FindPatch(), pero
+        utiliza como parámetro una lista de etiquetas ('taglist') para
+        así poder mejorarla en un futuro.
+   * SetPatch()
+        Permite limitar las tareas que utilizarán un parche (por ejemplo:
+        la función parcheada OpenWindow() sólo se aplicará si CygnusED
+        abre una ventana, la función parcheada DisplayBeep() se empleará
+        con todas las tareas, salvo la que tenga como identificador
+        $007c835a...).  Pueden ser definidos algunos otros atributos
+        de un parche.
+   * GetPatch()
+        Esta función devolverá algunos atributos y listas de un parche.
+   * PatchFreeVec()
+        Libera la memoria devuelta por GetPatch().
+
+
+NOVEDADES EN LA VERSION 2:
+
+ - Nuevas funciones de la versión 2:
+    * RemovePatchTags()
+         Reemplaza las obsoletas funciones RemovePatch() y WaitRemovePatch()
+         pudiendo ser eliminados los parches ahora en CUALQUIER MOMENTO.
+    * InstallPatchTags()
+         Reemplaza la función ya obsoleta InstallPatch(); el parcheo
+         de bibliotecas, dispositivos y recusos ya es ahora posible.
+
+ - Algunas de las estrucuturas internas se han hecho públicas, de manera que
+   las listas pueden ser exploradas por las aplicaciones.  Percátese que
+   estas esctructuras han sido reajustadas para la versión 2, así que debe
+   asegurarse que la versión instalada de 'patch.library' es al menos ésta.
+   Además debe asegurarse de utilizar la protección otorgada por el sistema
+   de semáforos cuando las listas están siendo exploradas.
+
+ - Eliminados algunos errores y ciertos problemas (escasos) de bloqueo.
+@endnode
+
+@node "Future" "El futuro de 'patch.library'"
+
+Pretendo implementar en el futuro como mejoras:
+
+ - Crear documentación AmigaGuide para todos los programas.
+
+ - Escribir una comodidad similar al programa 'Exchange' que permita
+   manipular listas de inclusión y exclusión de tareas para los parches
+   y además cargar y guardar estos parámetros (ya se encuentra
+   en desarrollo).  Sin embargo, necesitará incorporar nuevas prestaciones
+   a la biblioteca como las notificaciones del sistema, las cuales sólo
+   estarán disponibles a partir de la próxima versión de la ésta.
+
+ - Implementar algún código especial que permita eliminar los parches
+   con una seguridad del 100% (al menos en teoría).
+
+ - Incrementar el número de programas que emplean 'patch.library'.
+
+ - Corrección de errores.
+@endnode
+
+@node "Author" "El autor"
+
+   Si  desea  contactar  con  el  autor  para  informar  sobre  errores,  dar
+consejos/ideas, enviar donaciones...) escriba a:
+
+        Stefan Fuchs                       EMail: snfuchs@sokrates.franken.de
+        Oskar-von-Miller-Str. 49
+        D - 90478 Nürnberg
+        ALEMANIA
+
+
+Y FINALMENTE:    Si  emplea  la  biblioteca  'patch.library' en alguno de sus
+                 proyectos,  por favor, envíeme una copia de su programa para
+                 asegurarme  de  que  funciona  correctamente  con  versiones
+                 futuras de mi biblioteca.
+@endnode
+
+@node Translation "Sobre este documento que lee..."
+
+@{b}Traducción al español 1.0 (5-SEPT-1996)@{ub}
+
+   Este  documento  es de copiado y distribución gratuíta.  Su utilización es
+siempre  bajo  la responsabilidad del propio usuario asumiendo éste todos los
+riesgos  (ni  siquiera  garantizo una correcta traducción, así que por favor,
+consulte la documentación original).
+
+	Dámaso Domínguez Estévez
+	Alonso Ojeda nº 7 - 1º
+	36.207 Vigo (Pontevedra)
+	SPAIN (EUROPE)
+
+   Amiga,  el super-ordenador:  PC (PCTask), Mac (ShapeShifter), C64 (Frodo y
+Magic  C64), ZXSpectrum (ZXAM), Amtrad CPC (EmuCPC), Oric (AmOric), C16, MSX,
+Vic20, GameBoy, Apple II...  8^)
+@endnode

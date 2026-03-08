@@ -1,0 +1,1608 @@
+@database DePack!
+@author "Laserdance / The Special Brothers"
+@(c) "Copyright 1993,94,95 Laserdance Productions/TSB"
+@font XEN.font 11
+
+
+DePack! Documentation in Amigaguide Hypertext format
+
+Copyright ฉ 1993-95 Laserdance Productions / T$B
+All Rights Reserved
+
+@node main "DePack! interactive hypertext documentation - Main-Menu"
+
+ป...a little blue-green planet whose ape-descended life forms
+are so amazingly primitive that they still think digital watches
+are pretty neat idea.ซ
+					Douglas Adams
+
+@{b}Introductory Information@{ub}
+
+@{"     Introduction    " link about} About the program
+@{"   Getting started   " link easystart} A quick introduction
+@{"      Installing     " link install} Installing the program
+@{"    StartUp-Errors   " link starterrors} Startup-errors
+
+
+@{b}Using DePack!@{ub}
+
+@{" Localising  DePack! " link localising} DePack! with other languages
+@{"      The Menus      " link menus} Menus a la carte
+@{"    Keyboard usage   " link keys} Aerobics for your han
+@{" The DePack! Process " link m_depack} Processing the files
+@{"     Preferences     " link aboutprefs} The preferences system
+
+
+@{b}Tech Talk@{ub}
+ 
+@{"  Dirfile Structure  " link dirfilestruct} How the dirfile is built
+@{"      Known bugs     " link bugs} Erm ...
+@{"    Technical info   " link tech} Some programmer's wizadry
+@{"       History       " link history} How it all began...
+@{"    Terminology      " link terminology} Explanation of some expressions
+
+
+@{b}Addendum@{ub}
+
+@{" Demo/Regst. Version " link big} Differences between the demo and registered version
+@{" System requirements " link requirements} The stuff you need to get it going
+@{"  PD and Shareware   " link shareware} Some words on the PD/SW-scene
+@{"Copyrights/Disclaimer" link copyright} Odds and ends
+@{" Credits and hellos  " link greetings} Some messages to the world outside
+@{"      Smalltalk      " link blah} Life, the universe and all the rest
+@{"    Contacting us    " link contact} Laserdance Productions
+@{"    Soon to come     " link tocome} Soon coming from Laserdance Productions
+@{"  Some advertising   " link addies} Some merchandise
+
+@endnode
+
+
+
+@node bugs "Known bugs"
+There are no real bugs known to the author.  Well, I use the program
+everyday,  and  thereby I became my best beta-tester.  You shouldn't
+come  across  severe  problems, like sudden meditations, even if you
+try  to.   There might be some inconvieniences left, but the program
+has been designed to be as riliable as possible.
+
+DePack!   was  written,  compiled  and  linked  on  a Amiga 4000/040
+platform  (Yeeeah...   that is speed).  It has been carefully tested
+on  many  systens  without  showing  up any problems.  Of course the
+author  can  give no guarantee for this program running on all Amiga
+platforms  and  configurations with ROM version 37 or higher and the
+required programs installed.
+
+If you notice any bugs, or have problems with the program please send
+a detailed bug report to the author.
+
+See also : @{" Contacting the author " link contact}
+@endnode
+
+
+
+@node big "What are the differences between the demo and final version ??"
+If  you  obtain the registerized version of the program, you'll will
+receive a version with no restrictions left in it !  The loading and
+saving  of  preferences  is enabled, and the program will try to get
+your favourite settings on startup.
+
+@endnode
+
+@node keys "The magic is below your hands ..."
+DePack!   is  controlled  by  keyboard  with  support  of  intuition
+elements  like menus or file-requesters.  Nevertheless, this program
+enables/requires you to use the keyboard in nearly every window.
+
+Here is how the keys are assigned :
+
+	Return/Enter	-	Mark Entry below cursor
+	Cursor Up	-	Move cursor one line up
+	Cursor Down	-	Move cursor one line down
+	Numeric CrsrUp	-	Move cursor one line up
+	Numeric CrsrDw	-	Move cursor one line down (u guessed it!)
+	Shift+CrsrUp	-	Move cursor one page up
+	Shift+CrsrDw	-	Move cursor one page down
+	Shift+NumCrsrUp	-	Move cursor one page up
+	Shift+NumCrsrDw	-	Move cursor one page down
+	Numeric Home	-	Move cursor to line #1
+	Numeric	End	-	Move cursor to last line
+	Numeric PgUp	-	Move cursor one page up
+	Numeric PgDw	-	Move cursor one page down
+@endnode
+
+
+@node tech "Technical information"
+DePack!   opens  a  public  screen (name :  'DePack!.n'), so you can
+open   any  other  program/window  with  public  screen  support  on
+DePack!'s  screen.  (n is the count number.  Starting with _0_ it is
+increased for every launched DePack!-program, e.g.  the 4th instance
+of the program has the public screenname 'DePack!.3')
+
+DePack!   in  todays form was developed in 18 months of more or less
+intensive  work (10 months of intensive work, 8 were lazy business).
+In the beginning a Amiga 500 with a 52MB harddisk and 4 MB of memory
+(well  unaccelerated  ...  This is why I got used to call this stage
+'the  stone age') was used and later I get hands on a Amiga 4000/40,
+210  MB SCSI-hd and 12 MB of RAM:  (wow...  unfortunatly this is not
+my  computer  ;-).   The  sourcecode  is split into 16 modules to be
+linked after compilation and is ca.  210 KBytes long.
+
+Below is information for all those freaks out there who want to know
+more  about  the  coder-side  of  DePack!.  It features explanations
+about the interesting stuff in the source-code and how some problems
+have been solved.
+
+@{b} Storing the dirfile @{ub}
+
+The  dirfile  is read in one piece via dos.library's Read() command.
+Then  the  carriage  returns  (ASCII  value  =  10) are converted to
+C-string-terminators  (0).   An 32000-item pointer array (fixed size
+[yet],  allocated  with AllocMem()) is used to store the pointers to
+the  beginning  of  the  text  lines.  The dirfile struct looks like
+this:
+
+	struct DirFileData		/* Data of loaded dir-file */
+		{
+		int	lines;		/* # of lines */
+		char **	linesbuffer;	/* Pointer to line-pointers */
+		char *	dirbuf;		/* Pointer to beginning of dir-mem */
+		int	dirsize;	/* Total size in bytes */
+		int	begrange;	/* Start line of range */
+		int	endrange;	/* End line of range */
+		};
+
+
+@{b} Searching @{ub}
+
+Although  the  search  routine  seems  to be very fast no special or
+complex   alogorithm   is   used.    Search   is  started  from  the
+cursor-lineฑ1.   The  loop value is increased until the start/end of
+the  dirfile  is  encountered or a line contained the search string.
+The  search-a-string-in-one-line  function  is very simple featuring
+the C-standard function strnicmp() :
+
+	BOOL SearchInLine (char * myline, char * str, int length)
+	{
+	int i,j
+	BOOL notfound=TRUE;
+	j = strlen (myline)-length;
+	for (i=0;(notfound)&&(i<=j);i++)
+		{
+		notfound = strnicmp (myline+i,str,length);
+			}
+	return (!notfound);
+	}
+
+
+@{b} Scrolling and the Textdisplay @{ub}
+
+The   text   of  the  current  dirfile  is  brought  on  screen  via
+gfx.library's Text()-function.  The scrolling of the visible part of
+a  window  is  done via ScrollRaster().  To my knowledge this is the
+fastest  system-conform  way of scrolling without investing too much
+time in writing custom blitter routines.  If you know better, please
+let me know.
+
+
+@{b} Windows and the Public Screen @{ub}
+
+As  mentioned above DePack!  opens a public screen called DePack!.n.
+The  console  windows  used for executing commands or the shells are
+started  via  dos.library's  Open().   The  public  screen  name  is
+embedded  in  the CON:...  specification via console.device's SCREEN
+option (Yeah ...  OS>2.0 rulez!).
+
+
+@{b} Determining the filetypes @{ub}
+
+To determine the file type the first 300 bytes of the file are read.
+Then  they  are  matched  against  patterns like 'DMS!' or 'ILBM' to
+determine their type.  Texts are recognised by checking if more than
+240  of  the  bytes are displayable ASCII-characters (The routine is
+quite  simple, see the TERM or RSYS source code for a better one.  I
+will  try to use the WhatIs or a similar library for the recognition
+parts as soon as I get my hands on their docs and includes) :
+
+	for (i=0;i<300;i++)
+		{
+		buffer [i] = fgetc (readfile);
+		if ((buffer [i]>=32) && (buffer [i]<=127)) charcount++;
+		}
+	if ((strncmp (buffer,"DMS!",4)) == 0)   return (1);	/* dms */
+		.
+		.
+		.
+	if ((strncmp (buffer+8,"ILBM",4)) == 0) return (6);	/* pic *.
+	if (charcount>240) return (4); 	/* possible Textfile recognised */
+
+@endnode
+
+@node dirfilestruct "The inner core"
+Depack!   uses  several layout conventions of the @{"Dirfile" link terminology} which must
+be obeyed when you load files for use as Depack!-directory-files.
+
+ท The maximum line length is currently 100 characters.
+ท The amount of total lines is limited to 32000
+
+The @{"Dirfile" link terminology} is a textfile with the following structure :
+
+	Entry 1
+	Entry 2
+	  ท
+	  ท
+	  ท
+	Entry n
+
+
+
+
+An entry is defined as :
+
+	Startline
+	Descriptionline 1
+	Descriptionline 2
+	  ท
+	  ท
+	  ท
+	Descriptionline n
+
+
+
+Startline :
+
+<filename><white space><comment><carriage return>
+
+filename	ท valid AmigaOS-filename (limited to 30 characters)
+<white space>	ท space or tab character
+<comment>	ท optional description
+carriage return ท ASCII # 10
+
+
+
+
+
+Descriptionline :
+<white space><comment><carriage return>
+
+white space	ท space or tab character
+comment 	ท optional description
+carriage return ท ASCII # 10
+
+
+
+
+Example of two valid entries :
+------------------------------
+
+PARTY93.DMS  P 110835  09-01-93  ท+ญญญญญญ!ญญญญญญญญญญญญญญญญญญญญญญญญญญญญญ+ท
+                                  |  _  _:____  ________________/\ [Hb]| 
+                                  |      ก\ __\/_/ / __/_  / __/  \    | 
+                                  |    _  _\ \/ / /___/ / / /\/ /\/    | 
+                                  |     _/___/ /\__/_/\_\_\/\  /       | 
+                                  |          \/              \/        | 
+                                 ท+ญญญญญญญญญญญญญญญญญญญญญญญญญญญญญญญญญญญญ+ท
+                                  `   INVITATION  FOR  THE PARTY III   '
+is a valid entry.
+
+
+its_sm.dms                645771 ----rwed 05-Oct-93 17:27:25
+jhh.lc!.txt                43613 ----rwed 05-Oct-93 17:55:48
+JSM-NBA1.DMS              710036 ----rwed 17-Oct-93 22:16:59
+JSM-NBA2.DMS              751952 ----rwed 17-Oct-93 22:10:33
+JSM-NBA3.DMS              688716 ----rwed 17-Oct-93 22:09:42
+JSM-NWBL.DMS              569952 ----rwed 17-Oct-93 22:32:21
+
+is also valid. This is the output of a 'list' command
+
+
+
+
+Example of invalid entry :
+--------------------------
+
+S_ST3.1.DMS  P 390871  09-01-93     __________ ______ ______ ________________
+                                  _/  _____ I \\__ _ \\____ \\__ _____  ____/
+                                  \___  \/     \/ _j  \/  |  \/  _>__\___  \ 
+                                  /  !   \  T   \ l_   \  !   \  !~ \~  !   \
+GREATPROGRAM                     /    ___/__l___/__l___/______/_____/___    /
+                                 \____j-----------------------------sctl___/
+                                      SHADESTRACKER 3.1 - LATEST UPDATE
+                                                                   [-SlAyER-]
+
+is  not  valid because the string "GREATPROGRAM" at the beginning of
+the  5th  is  no  filename and deserves a <Space> or <Tab> appearing
+before to belong to the description.
+
+A @{"Dirfile" link terminology}  can  contain  many subsequent entries.  If you select an
+item  by  pressing  <Return>  or  <Enter>  anywhere on the start- or
+descriptionline belonging to the entry, it will get marked !
+
+@endnode
+
+
+
+@node easystart "Easy start ..."
+Well,   I  included  a  textfile  on  the  disk  that  gives  you  a
+tutorial-like   step-by-step  introduction  on  the  most  important
+functions  of  DePack!  You'll find it in the Main drawer its called
+@{" EasyStart.txt " link DePack!:EasyStart.txt/main"}
+
+@endnode
+
+
+
+@node about "About DePack!"
+DePack! is an easy-to-use tool for /X sysops and traders who like to
+DePack! their software stored and cramped into packed files produced
+by archivers like 'lha', 'zoo', diskmashed with 'dms' or simply read
+the newest textfiles available in their software-directories.
+
+The  basic  idea  is  that  you  select a couple of files from an /X
+directory  simply  by  marking  them  with a cursor and then perform
+certain  operations  e.g.   copy  them to an other directory, delete
+them  or  (and  that is the main thing behind DePack!) call external
+commands  (in  form  of  AmigaDos executables) depending on the file
+type.   This  means that e.g.  if you select an DiskMasher-file, you
+are  asked to enter a disk and then the 'dms'-command will be called
+externally  and  the  data stored in the .dms-file will be written a
+disk  in  df0:.   If  the  file  is  a IFF-ILBM file you can call an
+external viewer and display the picture stored in the file.
+
+This  whole  idea was born by some member(s) of the group 'D-TECT' a
+long  time  ago.  They released 'D-Tect's Deluxe DePacker', but this
+programm was so badly written (assembler hardcode) with so many bugs
+and  a  bad GUI that I decided to reprogram the whole thing with the
+following goals in my mind :  a) Written in C (as I started coding C
+last  year)  b)  High-Quality  Graphical  User Interface c) Enhanced
+functions and features.
+@endnode
+
+@node install "Installing DePack!"
+To  install  DePack!   double click the Icon 'DePack!-Install'.  You
+must   have   the   commodore   installer  tool  installed  in  your
+c:-directory.  Once started, the installation procedure is completly
+self-explanatory.  Simply following the on-screen instructions.
+
+See Also : 
+
+@{" Requirements " link requirements}
+@endnode
+
+@node requirements "Requirements"
+DePack!   needs  some  additional  files to pop up, some of them are
+essential to start the program, some of them are optional :
+
+Required things :
+
+- Operating System 2.04 or higher (starting with V37.175)
+			- for the GadTools.library GUI
+			  and several other new features not
+			  available under V1.2 or V1.3
+
+- diskfont.library (V37 or higher)
+			- for the output routines.
+			  You can find this library in the
+			  libs directory of the Workbench disk
+			  that came with your computer.
+
+- reqtools.library (V38 or higher)
+			- for the various requesters.
+			  You can find this library in many
+			  PD-packages. It's not included here
+			  for copyright reasons.
+
+
+Optional things :
+
+- amigaguide.library (any version will do)
+			- for using the hypertext-help system
+			  You can find this library in the
+			  libs directory of the Workbench (V2.1+)
+			  disk that came with your computer. Note :
+
+- fonts:p0t-noodle.font - If this font is present DePack! will use it
+  fonts:p0t-noodle/8	  as the default 8bit-monospace-font
+
+@endnode
+
+@node starterrors "Error's while starting DePack!"
+When  trying  to  start DePack, it probably prints out several error
+codes  if  it  has  some  problems  while  finding free libraries or
+memories.   Look  into  the list below how to find and fix the error
+codes.
+
+	@{" Error  1 " link error1}  Error opening disk libraries
+	@{" Error  2 " link error2}  Error opening ROM libraries
+	@{" Error  3 " link error3}  Error opening screen
+	@{" Error  4 " link error4}  Error opening window
+@endnode
+
+@node error1 "Error 1 while starting DePack!"
+DePack!   had  problems opening the required libraries.  Perhaps you
+need a newer version of a library or the library is not installed in
+the libs:  drawer
+
+	Libraries Required		Versions Required/
+
+	diskfont.library		>=V37
+	reqtools.library		>=V38
+@endnode
+
+@node error2 "Error 2 while starting DePack!"
+DePack!   had  problems opening the required ROM libraries.  Perhaps
+you  have  a wrong kickstart (V1.3 or lower).  DePack!  only runs on
+V2.0 or a newer version of the operating system :
+
+	Libraries Required		Versions Required
+
+	gadtools.library		>=V37
+	intuition.library		>=V37
+	gfx.library			>=V37
+@endnode
+
+@node error3 "Error 3 opening screen"
+DePack!  had problems opening the screen.  Perhaps you have too less
+chip memory free. Close other applications and try again.
+@endnode
+
+@node error4 "Error 4 opening window"
+DePack!  had problems opening the window.  Perhaps you have too less
+chip memory free. Close other applications and try again.
+@endnode
+
+@node localising "Localising DePack!"
+The  newest  versions  of  DePack!  starting with V39 are localised,
+this  means  that  you  can  interact  with the program in different
+languages  of your preference.  Currently there are only 2 languages
+included  :   English  (default)  and German.  This poor variety has
+three  reasons  :   a)  I  included  the  language files in the main
+program, and they take up to 30kb per language b) I can neither read
+nor write in any other languages and c) I don't think the program is
+not  so  well-spread  to  justify such a big work as writing catalog
+files for Polish or Greek users.
+
+Localising the program is very simple.  If you haven't installed the
+program  yet,  use  the  supplied  installer  script  to install the
+program with the language of your preference.
+
+If  you  have  already  installed  the  program,  you  can  create a
+localised  version very simply.  You don't need locale.libary or any
+catalog  files.   The localised strings are all included in the main
+program.   You  just  have  to  tell DePack!  that you want to use a
+different  language.
+
+Do so by issuing the following command lines :
+
+1> echo >envarc:depack!/langauge "<Name of the language>"
+1> echo >env:depack!/langauge "<Name of the language>"
+
+If  you  get a message like "echo:  unable to open redirection file"
+you  propably haven't created the envarc:depack!  directory yet.  In
+this case create one with the following :
+
+1> makedir envarc:depack!
+1> makedir env:depack!
+
+and  retry the commands above.  If you have still problems, leave me
+a  note with a _detailled_ description of your steps and I'll try to
+help you.
+
+@endnode
+
+@node history "Depack! Version history"
+
+V0.00	(08.03.1993)	Started coding
+
+
+	Sweat. Pain. Agony. Headaches. Hangovers. Blood. Trips.
+	Will this ever come to an end ???
+
+V1.00฿	(22.07.1993)	First test version for the beta-testers
+
+
+	With regards to the response of the betatesters I could
+	find and manage a lot of bugs and add a lot of useful stuff
+
+V1.01฿	(27.07.1993)	ท Problem if too many files selected. Fixed
+			ท Line length checking
+			ท Requesters added
+			ท better Dir-memory-management
+			ท added option to process last file again
+
+
+	My harddisk crashed so I was interrupted 1 month. Life's
+	a bitch sometimes ...
+
+V1.02฿	(12.09.1993)	ท added option to select other filetype
+			ท fixed "bug" in File-Recognition-routine that
+			  recognised DMS-files as ASCII-files, if they
+			  had Ansi-logos added to them
+			ท "Deselect Files"-confirmation requester now
+			  appears only if files are selected
+			ท Added several asynchronous BusyRequesters
+			ท Added ResultWindow while DePack!ing, to make
+			  process more transparent to the user
+			ท Quit/PrefsEdit didn't worked when hotkey
+			  (Amiga-Q/E) was used. Fixed.
+			ท Partial deselection of processed files now
+			  possible
+			ท Improved Manual
+
+
+	Changed Version system to an autobumping system. So the next
+	version/revision # after V1.02฿ is 38.0
+
+38.29	(02.10.1993)	ท Version system changed to more intelligent thing.
+			  Thanx to John Preston for the program.
+			ท Results are displayed after DePack!ing
+			ท More intelligent window system
+			ท Added some menus and help stuff
+			ท PatternMatching function added. All lines
+			  that contain an entered string will be high-
+			  lighted in color #3 
+			ท Dirreading much faster (3x)
+
+
+	Two weeks peace ... a little break from coding
+
+38.66	(28.10.1993)	ท Added two new features : Jump to line/entry
+			ท Last line of @{"Dirfile" link terminology} wasn't read 100%. Fixed.
+			ท Added online Amigaguide-Hypertext (yell from
+			  the audience)-help via amigaguide.library
+			  (Can I get applause for that ?? If I go on
+			  I'll even code an Arexx-port <Gnarf!>)
+
+
+	Yeah ! V38.244 is the first sold/released version
+
+38.244	(17.11.1993)	ท Fixed displaybug while searching
+			ท Redesigned Preferences-Window, options are now
+			  100% working
+			ท Custom Commands can be assigned with a name
+			ท Statuswindow while copying, depacking, deleting
+			  added. This one finally presents a @{"Listview" link terminology}
+			  with all filenames to the user
+			ท Function added : The @{"Dirfile" link terminology} can now be filtered.
+			  That means you display only the files that
+			  are currently in the three source dirs. All other
+			  won't appear in the main dirdisplay
+			ท @{"Dirfiles" link terminology} can be saved. Useful after filtering
+			ท @{"Dirfiles" link terminology} can be loaded from the menu
+			ท Fixed another display bug
+			ท GUI improved. GasGauges-Progress-gadgets added.
+
+
+	First demo version released to the public
+
+38.410	(07.12.1993)	ท Redisigned Status and Output windows
+			ท Improved Copy mode & routines
+			ท Filtering @{"Dirfiles" link terminology} now much faster (10-20x)
+			ท Screen wouldn't close with visitor windows in
+			  it. Fixed.
+			ท System default font had to be 8 chars width,
+			  non-prop to work. Fixed
+			ท Filenames are no longer limited to 12 characters
+			  (/X-length). 30 chars are now possible
+			ท New function : Convert a directory into a @{"Dirfile" link terminology}
+			ท New function : Show files not noted in @{"Dirfile" link terminology}
+			  and create a new dirfrom them.
+			ท Some small improvements
+			ท External format added
+			ท Some jokes added and nasties removed
+			ท Duplicate start check
+			ท "Invisible" 4th source-directory for function
+			  'Read Directory" added
+			ท Now opens a autoscrolling screen in OSCAN_TEXT
+			  width in NTSC mode (hello American Users !)
+
+
+	Yeah, I used my holidays for some intensive work on the
+	program. Merry X-mas by the way !
+
+38.600	(27.12.1993)	ท Search functions and 'Jump to line' now 100% 
+			  fixed. (Finally, the bug was in a place where
+			  I didn't expect it)
+			ท Requesters store previous directory names
+			ท UnLock () missing in a scan-dir function, so that
+			  you couldn't delete files when you filtered
+			  a dirfile. Fixed.
+			ท Preferences system now far more intelligent
+			ท New functions 'Format a disk' and 'Open Shell'
+			  added
+			ท Now more than one copy of DePack! can be started
+			ท Empty source-directories will be automagically
+			  set to NIL: (after a conf. requester)
+			ท Redesigned progress window and removed some
+			  nerv-killing busy requesters and use ReqTools
+			  LockWindow() instead.
+			ท Iconify-like 'Sleep' function added
+			ท Smart Copy mode
+
+
+	Well the gap between 38.600 and 38.822 was caused by the high
+	amount of compilations used for creating the new GUI
+
+38.822 (15.01.1994)	ท Added Screenmode and Font requester (woooow!)
+			ท Improved Copy and Smart Copy modes
+			ท "Last File" button appears only if there is
+			  a last file
+			ท Removed Mungwall hits on dirfile memory
+			ท Sleep function can open a small window or
+			  move the program in WB's TOOLS menu
+			ท Menu Help added. Pressing the <HELP> key over
+			  a menu item brings up the Amigaguide node
+			  for the item !
+			ท Upgrader information embedded in program (for
+			  all those doc-haters)
+
+
+	Spent 2 whole month with other things than programming. Sorry,
+	guys, but I had no motivation to work on the program !
+
+38.886 (24.03.1994)	ท Found bug within Reqtools-library, which would
+			  cause requesters not to open on overscan-screens
+			ท Work-around for bug within V39-Kickstart, added,
+			  that caused number-gadgets not to be rendered.
+			ท Localised the docs and program (Deutsch)
+			ท Tagging of files is now much faster
+			ท Abort in copy-mode not always reacted as 
+			  planned - fixed.
+			ท Preference-files will be searched in the
+			  following directories on startup :
+			  'CurrentDirectory/DePack!.prefs'
+			  'ENV:DePack!/DePack!.prefs'
+			  'ENV:DePack!.prefs'
+
+
+	And  the  show  must  go  on  :   Why  do  I always find
+	something  to  improve?   The  program  has  been  fully
+	localised.   The  new  version  number  is V39, the last
+	version to bear the version V38 was V38.1001 !
+
+V39.116	(29.07.1994)	ท 'Abort'-buttons for all functions that
+			  use the gasgauge-gadgets
+			ท Programm fully localised
+			ท Titlepicture added
+			ท 'Save dirfile' added
+			ท Fixed bug that would leave some pixels in
+			  the uppermost line of the dirfiledisplay when
+			  deselecting entries
+			ท Scrolling of leftmost column didn't work. Fixed
+			ท Description-display bug fixed
+
+	No end in sight. Still I have a lot of ideas ...
+
+V39.180	(13.02.1995)	ท Fixed some more bugs
+			ท Copy-Progress window will be opened only
+			  once, so no more confusion
+			ท Menus use new look if OS 39+ present
+			ท 'Reload dirfile' added
+			ท Files that had been depacked couldn't be
+			  deleted. Fixed.
+			ท Added several new functions
+
+@endnode
+
+
+
+@node aboutprefs "About the preferences"
+DePack!   can be configured via several preferences.  They allow the
+user  to  change  the  program's broad variety of settings e.g.  the
+needed  paths  or if you want DePack!  to react on diskchange-events
+while depacking the files.
+
+The  preferences  can be changed by using the program's menus or the
+preferences window :
+
+Preferences window :
+
+	@{" Edit Preferences " link iprefs} pops up the main prefs window
+	@{" Mode             " link mprefs} controls mode of processing
+
+	@{" Reset to last saved ..." link rprefs} resets the settings
+	@{" Load             " link lprefs} loads new settings from disk
+	@{" Save             " link sprefs} saves current settings as defaults
+	@{" Save as          " link aprefs} saves current settings in file
+
+You  can  save  those  settings like normal AmigaDos-preferences and
+load them in an later session.  On startup DePack!  tries to use the
+preferences stored in a the file 'env:DePack:DePack!.prefs'.  If its
+not  there  the  program  switches  back  to  its  internal  default
+settings.
+
+@endnode
+
+@node iprefs "Global Preferences"
+A  window  with  many  string  gadgets  in it will pop up :  you can
+change  the  preferences  here.   To understand this you should have
+read  the introduction to the @{"'DePack!-process'" link m_depack} before.
+
+The  first  nine  boxes  on the left side build the interface to the
+external  commands.   They will be used as follows:  If you selected
+the  menu-item @{" Mode/DePack!  " link mprefs} .  DePack!  analyses
+the  files  in  the  source-directories and tries to determine their
+type.   In  95%  of all cases they can be recognised as 'DMS','LHa',
+...  (all the other files that can't be matched need to be specified
+by  you).   Here,  by  means  of  the interface preferences, you can
+determine  in which way, the recognised files file are treated.  For
+every file an external command according to your preferences will be
+called.   So  you  have  to  enter  the commandlines (the ones you'd
+normally  enter in the CLI/Shell) and replace the source name by %s,
+and  the  destination  name  by  %d.   For example if the CLI normal
+commandline you'd normally use from the Shell would look like this :
+
+	c:dms write bbs:conf1/upload/test.dms drive=df0:
+
+the corresponding line in the preferences would be :
+
+	c:dms write %s drive=%d
+
+The letters %s and %d will be replaced by the correct paths later on
+(see below).
+
+In  the  three  uppermost  boxes  on  the  right  side  you have the
+possibility  to  enter  one or more source-directories.  By entering
+valid  AmigaOS-paths you tell the program where to find the files to
+be processed.  DePack!  will scan them in the order 1, 2, 3.  NOTE :
+If  one  of  the gadgets contains no string it will be considered as
+the  current directory.  This can be a little bit confusing when you
+scan for files not denoted (See also :  @{" Files not denoted " link m_notden}.
+So  you better set unneeded source-directory strings to NIL:
+
+The  box  below  contains  the  destination  directory.  The %d (see
+above) is going to be replaced by this string or, if you are in copy
+mode,  the  files  will  be  copied  to  this destination-directory.
+Warning  :   If  you use the directory-requester for this gadget and
+select  e.g.   df0:   in the DirReq-window the reqtools.library will
+return the name of the disk instead of df0:  (example Empty:).  This
+can  be  fatal  if  you need to change the disks in DePack!  or copy
+mode.   So  if  you got to enter a DEVICE-name use the string gadget
+and NOT the 'Get' button.
+
+The next string gadget determines the /X-directory file to be worked
+on.   If  select  a  new  file,  it will be loaded after closing the
+window with the close-gadget. It is also possible to enter only the
+name of a valid AmigaOS directory.
+
+The  last  5  gadgets  discussed  above  can be easily operated by a
+file-requester  if  you  press  the  button labled 'Get' next to the
+boxes.
+
+If  the  first  on/off-gadget called 'Detect Diskchange' is selected
+DePack!        will       detect      diskchanges      when      the
+'Process|...|Skip|Abort'-requester    is    on   screen   and   will
+automagically  satisfy the requester if a disk is inserted in one of
+the  drives.   (Be  careful  !  This feature doesn't know about your
+destination ...  this can cause unwanted writes in certain cases but
+normally there should be no problem with this option.)
+
+The  one  labeled  'Skip  Unknown'  tells  DePack!   how to react on
+unknown  filetypes.   If  it  is selected the program will skip this
+ones  otherwise you will be asked to determine the file by yourself.
+
+The  third  gadget  labeled  'Fast  Reqs' increases the speed of the
+progress  displays  (causing a loss of precision on the other hand).
+Might be useful on slow machines.
+
+When the last one named 'Immediate Start' is selected the processing
+of the files will start immediatly after you selected the menu item,
+so  you  needn't  to  press the 'Start/Stop'-gadget.  You don't need
+this  option,  but  it  becomes  quit handy if you scan through some
+textfiles etc. by selecting only one file a time.
+
+@endnode
+
+@node mprefs "Modes of operation"
+DePack! can operate in four different modes :
+
+
+@{b}Mode		Function@{ub}
+
+DePack		Uses external commands like lha etc. for unpacking
+		the sourcefiles.
+
+Copy		Copies the selected files to the destination directory
+
+Smart Copy	Copies the selected files to the destination directory
+		and arranges the order so that multiple destination
+		disks are filled as best as possible (Use this on
+		devices that support diskchange like df0: or a
+		SyQuestฎ drive)
+
+Delete		Deletes the stuff from the source directories
+@endnode
+
+@node rprefs "Resetting the preferences"
+If  you  have  changed  the preferences this will undo your changes.
+The  preferences  will be set to the state they had at the last time
+you saved them, or, if you haven't saved them, to the preferences on
+program startup.
+
+@endnode
+
+@node lprefs "Load Preferences"
+A  file  requester  pops  up  and  you can choose a previously saved
+DePack!-preferences  file to load.  If you have selected entries you
+need  to  confirm  that  you  are  willing to load the new prefs and
+thereby a new AmiX-directory file
+
+@{b}!!! MENU ONLY PRESENT IN REGISTERED VERSION !!!@{ub}
+@endnode
+
+@node sprefs "Save Preferences as default"
+Save  the  preferences  from  the  preferences  window  to  the file
+'ENVARC:DePack!/DePack!.prefs'.   This is the file DePack!  tries to
+open  on startup - If it's found and valid, the program will use the
+settings stored in there.
+
+@{b}!!! MENU ONLY PRESENT IN REGISTERED VERSION !!!@{ub}
+@endnode
+
+@node aprefs "Save Preferences into file"
+A  file  requester  pops up and you are asked to enter the name of a
+file  in  which  the actual preferences will be saved.  You can load
+this  file  in  a  later  session with the Preferences/@{"Load" link lprefs}
+command.   WARNING  :   This  will  only  save  the  contents of the
+preferences window!  Any file selection of yours won't be saved!
+
+@{b}!!! MENU ONLY PRESENT IN REGISTERED VERSION !!!@{ub}
+@endnode
+
+@node menus "The DePack! menus - ๅ la carte"
+
+	@{b}Project@{ub}
+
+		@{" Load dirfile ... " link m_dirload} open @{"Dirfile" link terminology}
+		@{" Save dirfile " link m_dirsave} save @{"Dirfile" link terminology} over old file
+		@{" Save dirfile as... " link m_dirsaveas} save @{"Dirfile" link terminology} with new name
+		@{" Reload dirfile " link m_dirreload} restore @{"Dirfile" link terminology} from disk
+		@{" Read directory ..." link m_dirread} convert a directory into a @{"Dirfile" link terminology}
+		@{" About " link m_stupido} displays information on the program
+		@{" Version " link m_stupido} displays additional information
+		@{" Sleep ... " link m_sleep} in case you get tired ...
+		@{" Quit " link m_quit} quits out
+
+
+	@{b}Preferences@{ub}
+
+		@{" Edit Preferences " link iprefs} edit interface settings 
+		@{" Mode " link mprefs} determines mode of processing
+			DePack
+			Copy
+			Smart Copy
+			Delete
+		@{" Screenmode ..." link m_screenmode} select display mode for DePack!-screen
+		@{" Font ... " link m_font} select font for dirfile display
+		@{" Reset to last saved ..." link rprefs} resets the settings
+		@{" Load ... " link lprefs} loads new settings from disk
+		@{" Save " link sprefs} saves settings as default
+		@{" Save as... " link aprefs} saves new settings to file
+
+
+	@{b}DePack!@{ub}
+
+		@{" DePack! " link m_depack} start processing
+		@{" Untag items " link m_deletelist} unselects marked entries
+		Mark Range
+			@{" Beginning " link m_markstart} marks begin of Range
+			@{" End " link m_markend} marks end of Range
+		@{" Tag items in range " link m_tagrange} Select Files in range
+		@{" Clear range " link m_clearrange} Remove Range
+		@{" Load tags... " link m_loadtags} Restore tags from disk
+		@{" Save tags... " link m_savetags} Save tags to disk
+
+
+	@{b}Dirfile@{ub}
+
+		Search
+			@{" forwards " link m_search} search for a custom string from top of dir
+			@{" backwards " link m_search} search for a custom string from bottom of dir
+		Continue Search
+			@{" forwards " link m_csearch} search for a custom string from top of dir
+			@{" backwards " link m_csearch} search for a custom string from bottom of dir
+		@{" Enter highlight pattern " link m_highlon} highlight lines according to pattern
+		@{" Turn highlight off " link m_highloff} turn highlighting off
+		@{" Jump to entry " link m_jumpentry} move cursor to a selected item
+		@{" Jump to line " link m_jumpline} move cursor to a certain line
+		@{" Filter not existing files " link m_filter} modify @{"Dirfile" link terminology} to show only present files
+		@{" Filter existing files " link m_filterex} modify @{"Dirfile" link terminology} to show only NOT present files
+		@{" Show not denoted files " link m_notden} show files on HD but not in @{"Dirfile" link terminology}
+		@{" Strip empty lines " link m_removeempty} removes unused lines from Dirfile
+		@{" Strip equal lines " link m_removeequal} removes double lines from Dirfile
+
+
+	@{b}Information@{ub}
+
+		@{" About the Help system " link m_abouthelp} in case you get lost ...
+		@{" Key index " link m_keyindex}
+		Help
+			@{" General information " link m_generalhelp} General AmigaGuide help
+			@{" Help on menus " link m_menuhelp} Menu explanation (AmigaGuide)
+			@{" Program History " link m_historyhelp} What's new ? (AmigaGuide)
+			@{" Copyrights " link m_copyrhelp} Legal stuff (AmigaGuide)
+		@{" Display Info " link m_displayinfo} some technical/debugging infos
+
+
+	@{b}Extras@{ub}
+
+		@{" Register/Update ..." link m_regupdate} print out a registration/update document
+		@{" Format a disk ..." link m_formatadisk} call systems format command
+		@{" Open Shell window ... " link m_newshell} opens a shell on the DePack!-screen
+		@{" Install No Virus Bootblock " link m_vbb} installs a viruskiller-bootblock ;-]
+
+@endnode
+
+@node m_stupido "????????????????"
+You don't tell me you need help on an about requester, eh ???
+@endnode
+
+
+@node m_dirload "Load Dirfile"
+This  function  loads  a @{"Dirfile" link terminology}.  Eventually marked entries will be
+discarded  after  a confirmation requester.  This functions performs
+the  same  operations  as  if  you  would  change the dirname in the
+preferences requester.
+@endnode
+
+@node m_dirsave "Save Dirfile"
+This  function  saves current @{"Dirfile" link terminology} over the old dirfile.
+@endnode
+
+@node m_dirsaveas "Save Dirfile as..."
+This  function  saves current @{"Dirfile" link terminology} to a file you specify.
+@endnode
+
+@node m_dirreload "Reload Dirfile"
+This  function  restores  the dirfile from disk into memory.  May be useful
+after filter operations to undo changes.
+@endnode
+
+@node m_dirread "Create Dirfile"
+This  routine  scans  a  directory  of  your  choice  and  builds  a
+pseudo-@{"Dirfile" link terminology} from it.  Here is an example :
+
+Filename		 Size	Filecomment
+
+dir			 1233	Dir-Command
+list			 2933	List-Command
+test			38882	Text-file
+
+On  selecting  the  menu item you are asked to determine a directory
+via  the  dir-requester.   Afterward  you  can  enter  a pattern the
+filenames  must match.  Example (#?.dms or #?amix#?) The dir will be
+read  and  if  you  want  (and  you usually want to) you can add the
+directory  to  the  search-path  list afterwards (It won't overwrite
+your  path  settings.   An  invisible 4th source-directory-string is
+used).
+@endnode
+
+@node m_sleep "Sleep ... zzzzzz"
+Selecting  this  item  will  put the program to sleep i.e.  the main
+screen  is  closed  and  a  small  window will appear on the default
+public screen.  After selecting the menu item you have the choice of
+puttting  the  program  into  a  small  window on the default public
+screen  or  to  put the program into the tools menu of the Workbench
+(this  is  of  course  only possible if the WB is open).  Close this
+window   to  reopen  DePack!.   Don't  worry  :   The  dirfile,  all
+modifications,  the  tagged  items  and  the  preferences  won't  be
+changed.
+
+@endnode
+
+
+@node m_quit "Quitting DePack!"
+If  you  select  this  entry  you are about to leave the program (oh
+no!).   If  there are still files to tagged or preferences not saved
+you will be warned.
+
+@endnode
+
+@node m_depack "Processing the files"
+A  window  will  open  with  three @{"Listview" link terminology} gadgets and other useful
+infos  at  the top.  All files you marked will be listed in the left
+@{"Listview" link terminology}  gadget.  You can use the slider to scroll the list(s).  To
+start  processing  press  the 'Start/Stop'-Gadget' (left side at the
+bottom)  If  you  want  to  return  to the main window use the other
+button called 'Close Window'.
+
+
+@{b} Mode : DePack! @{ub}
+
+All the entries in the @{"Dirfile" link terminology} selected by the user will be searched
+in  the  three directories you specified in the @{"Preferences" link iprefs} section.
+If they are found they will be interrogated and the program tries to
+determine  their  type.  If DePack!  can't recognise the filetype of
+the file currently processed, you as the user will have to enter the
+type  manually  by satisfying the requester popping up with choosing
+Option  '1'  up to '9' and thereby selecting the file-type, pressing
+skip  to  process  the  next  file,  or  abort  to  cancel the whole
+operation.  If the filetype has been determined (see chart below for
+the  numbers  and  their  meaning  ...)  you have four options :  a)
+process  the  file and call the according command you entered in the
+@{"Preferences" link iprefs}  window  b) to skip the file and process the next one in
+the  list  c)  to  re-process  the  last  file (without dropping the
+current  file  of  course  !)  d) change the type of treatment (this
+might  be  of  some  use  in certain cases) or to e) Abort the whole
+operation.   If you selected a) Process an output window will pop up
+and  your  commandline  will  be  called with the output send to the
+mentioned window.  This whole process is looped until the whole list
+of files has been processed or you selected abort.  In either of the
+case  you  have  the  option  to untag your selections afterwards by
+reaction on another requester.
+
+The  current  file's  description  will be displayed in the @{"Listview" link terminology}
+gadget  called  'Current  File'.  After processing a file the result
+(e.g.   'File  X copied' or 'File X not found') will be added to the
+@{"Listview" link terminology} entitled 'Results'.
+
+
+@{b} Mode : Copy @{ub}
+
+This mode will copy all files to the selected destination directory.
+If  the destination-device is full you are asked to enter a new disk
+or  to  format  a disk.  This will bring up a string requester, that
+will ask you to enter a format commandline like you would use in the
+shell.   (e.g.  format device=rad:  name=stuff).  This line is saved
+with  the preferences and will not change until you modify it in the
+string  gadget. 
+You can abort copying by pressing the start/stop gadget.
+
+NOTE  :  Use this copy-mode for Harddisk to Harddisk copying (or any
+other  device  that  offers  enough  space to hold all files without
+disk-changing).   If you need multiple destination disks to hold all
+files use Smart copy (see below) instead.
+
+
+@{b} Mode : Smart Copy @{ub}
+
+This mode will copy all files to the selected destination directory.
+The  order  in  which the files are copied is arranged in a way that
+the  files  are  copied in a way that the multiple destination disks
+are  filled  best, so  that  you save disks.  Example :  Imagine you
+would  like  to  copy the following files to df0:  (which has a free
+size of approx.  850000 bytes if you use blank Old filesystem disks)
+
+FILE1		Size : 810000 bytes
+FILE2		Size : 830000 bytes
+FILE3		Size : 30000  bytes
+
+The 'normal' copy (intended for Harddisk to Harddisk copying) would
+do the following
+
+ท	Copy file1 to df0: (1st disk)
+ท	Ask for next disk
+ท	Copy file2 to df0: (2nd disk)
+ท	Ask for next disk
+ท	Copy file3 to df0: (3rd disk)
+
+Smart copy does the following :
+
+ท	Copy file2 to df0: (1st disk)
+ท	Ask for next disk
+ท	Copy file2 to df0: (2nd disk)
+ท	Copy file3 to df0: (2nd disk)
+
+Thereby you saved 1 disk.
+
+
+
+@{b} Mode : Delete @{ub}
+
+After  two  confirmation  requesters  this  function will delete all
+files  that  were  found.   You  can abort this mode by pressing the
+start/stop gadget.
+
+When  all files have been processed you can look at the results etc.
+or  press  the  'Close  Window' button to return to the main window.
+@endnode
+
+@node m_deletelist "Untag items"
+Deletes all the file-selections you made (not the files themselves).
+You  have  to  satisfy  to  'Are u sure ?'-requesters to confirm the
+actions.
+@endnode
+
+@node m_screenmode "Select screenmode"
+This  opens  a  screenmode  requester and you can select a different
+screenmode for the DePack!  screen.  The screen information is saved
+with the preferences file
+
+@endnode
+
+@node m_font "Select dirfile font"
+This  opens  a for requester and you can select a _non-proportional_
+font  for  the  dirfile display.  The font information is saved with
+the  preferences  file.   To  change  the font used in the menus and
+requesters  use  the  OS'  font  preferences  program and change the
+default Screen Text.
+
+@endnode
+
+@node m_markstart "Mark start of range"
+The current line will be considered as the start of a range.  If you
+have  previously  selected the end of the range, it will get visible
+by turning into a different colour.
+
+@endnode
+
+@node m_markend "Mark end of range"
+The  current  line will be considered as the end of a range.  If you
+have previously selected the start of the range, it will get visible
+by turning into a different colour.
+
+@endnode
+
+@node m_tagrange "Tag files in Range"
+This  function  will  tag  all  filenames  it  encounters within the
+previously  selected  range.   Those files can be processed with the
+DePack!  option.
+
+@endnode
+
+@node m_clearrange "Clear range"
+The  previously  selected range will be cleared, i.e.  the start and
+endlines will be reset, and the textdisplay turns normal again.  The
+dirfile won't get modified by this operation.
+
+@endnode
+
+
+@node m_loadtags "Restore tags from disk"
+With  the  help  of this function you are able to restore previously
+saved  tags from disk.  Select the file with the requester and there
+you are ...
+
+@endnode
+
+@node m_savetags "Markierungen laden"
+This function will save the tags to a file you specify.  Thereby you
+can  load  them  later  in  a different session, to reuse them (e.g.
+after a reset).
+
+@endnode
+
+@node m_removeempty "Remove empty lines"
+You'll often find a lot of empty lines in a dirfile.  This function
+strips them away.
+
+@endnode
+
+@node m_removeequal "Remove equal lines"
+Sometimes  one  lines  can  be  found many times in the same Dirfile
+(maybe  the  advertisment from a trader/group etc.).  This functions
+reads  the  line  under  the cursor, and scans the Dirfile for equal
+lines.  Those will get stripped.  This function deletes at least one
+line from the dirfile, i.e.  the line under the cursor.
+
+@endnode
+
+@node m_search "Search for string forwards/backwards"
+You are asked to enter a string to be searched for.  The search will
+be started from the current cursor position.
+
+@endnode
+
+@node m_csearch "Continue search for string forwards/backwards"
+Continues to search for the string @{"you entered before" link m_search} (from the current
+cursor position in the lower (forwards) or upper (backwards) direction.
+@endnode
+
+@node m_highlon "Turn highlight on"
+This  function  highlights  every  line  that  contains a string you
+entered   before.   This  is  very  useful  if  you  e.g.   want  to
+concentrate  on  .dms-files  :   You  enter  :  '.dms' at the string
+requester  and every line that contains '.dms' (which is used in the
+filename) gets highlighted.
+@endnode
+
+@node m_highloff "Turn highlight off"
+Well  ...   erm  ...  this turns highlighting off ...  Any questions
+left ?
+@endnode
+
+@node m_jumpline "Jump to line"
+This  function  asks  you  for  a  line number and then postions the
+cursor on that line.
+@endnode
+
+@node m_jumpentry "Jump to entry"
+This  function  asks  you  for an entry number and then postions the
+cursor on that line with the entry number.
+@endnode
+
+@node m_filter "Filter non existant files"
+This  function  will  scan  the three source directories for all the
+filenames  in  the  @{"Dirfile" link terminology} and then remove all the entries from the
+directory  that  are not present in the source-directories.  This is
+useful  if  you  got  many  files not present and don't want them to
+appear  in the directory-display.  You can save the @{"Dirfile" link terminology} with the
+@{"Save dirfile" link m_dirsave} menu item.
+@endnode
+
+@node m_filterex "Filter existant files"
+This  functions  does  nearly  the same as @{"Filter non existant files" link m_filter}
+exept   that   it   will   only  leave  files  NOT  present  in  the
+source-directories in the @{"Dirfile" link terminology}.
+@endnode
+
+@node m_notden "Show not denoted files"
+This  function  will  scan the three sourcedirectories for any files
+not  denoted  in  the  @{"Dirfile" link terminology}  and  will  display  a  list  of them
+afterwards.
+@endnode
+
+@node m_keyindex "Key index"
+This opens a requester displaying the key-controls of the program.
+
+See also :
+
+@{" Key index " link keys}
+@endnode
+
+@node m_abouthelp "About the help system"
+Displays  some requesters informing you about the help-system of the
+program.
+
+@endnode
+
+@node m_generalhelp "General help"
+This  item  provides  this hypertext-document on the DePack!-screen.
+This  functions  requires  amigaguide-library  present in your libs:
+directory.
+
+@endnode
+
+@node m_menuhelp "Help on menu system"
+This  item  provides  a  hypertext-document  on  the  DePack!-screen
+providing  information about the menus.  You can also move the mouse
+pointer  over  a  menu (sub-) item and press <HELP>.  @{b}This functions
+requires amigaguide-library present in your libs:  directory.@{ub}
+
+@endnode
+
+@node m_historyhelp "What's new ?"
+This  item  provides  a  hypertext-document  on  the  DePack!-screen
+telling  you  more about the history of the program.  @{b}This functions
+requires   amigaguide-library  present  in  your  libs:   directory.@{ub}
+
+@endnode
+
+@node m_copyrhelp "Legal stuff"
+This   item   provides   displays   a   hypertext-document   on  the
+DePack!-screen  giving information on the copyright situation.@{b}  This
+functions   requires   amigaguide-library   present  in  your  libs:
+directory.@{ub}
+@endnode
+
+@node m_displayinfo
+Displays  some  information about screen and window sizes etc.  Used
+mainly for debugging purposes, so you don't really need this item.
+
+@endnode
+
+@node m_regupdate "Registration/Update..."
+Opens a requester, that gives you the possibility to enter you name,
+address etc.  and then to print out a registration/update form.  You
+can  send  this  document  to  the  author  and will get the current
+version of the program in exchange.
+
+@endnode
+
+@node m_formatadisk "Formatting a disk"
+On  selecting  this item you will be asked to enter a command string
+that  calls  your format utility (e.g.  "format device=rad:  quick")
+exactly  as  you would do in the shell.  The string you entered here
+will be saved with the preferences for later use.
+
+@endnode
+
+@node m_newshell "Open a shell window on the DePack! screen"
+This  opens  a shell window on the screen.  The program will be in a
+waiting state until you close the shell with 'EndShell', 'EndCli' or
+by clicking the closebox of the window.
+
+@endnode
+
+@node m_vbb "Well discover yourself"
+A very @{b}useful@{ub} option (eerm) !
+
+@endnode
+
+
+@node shareware "A word on shareware and public-domain"
+I   spent   a   lot   of   time  wondring  whether  to  release  the
+DePack!-package as freeware/shareware a commercial product, or maybe
+something  between.   I  know many shareware-authors in germany, who
+got  very  little or even no response on their programs, even if the
+software  they  produced was high-quality stuff worth much more than
+they were demanding.
+
+I spent approximately ...  well many (too much ?) months on DePack!,
+a  time  in  which  I learned a lot about C-programming as well as a
+whole  lotta  more  about  the traps and back-doors of C-programming
+;-).   So I think the best way that matches my efforts is to release
+a  DePack!-evalution version, so that you can check out the facility
+the  program  offers  you  and give you the possibility to order the
+complete  DePack!-package  for  20  DM  (Germany)  or 20$ (all other
+countries).
+
+The complete DePack!-package consists of :
+
+         DePack! - full working version with no restraints
+       1 free update (will be mailed to you when you want to)
+
+So do not hesitate ... @{"register" link contact}@{b} NOW @{ub}!
+@endnode
+
+@node copyright "Copyrights & Everything"
+DePack!   and the sources of this program are copyright ฉ 1993-95 by
+Laserdance Productions.  The demo-version is freely distributable as
+long as all of its files are included in their original form without
+additions,  deletions  or  modifications  of  any  kind,  and only a
+nominal  fee  is  charged  for  their  distribution.   (You  have no
+permission  to  include  the  demo-version on compilation disks with
+other  programs  on  the  same  medium.   Exeception :  Fred Fish is
+allowed  to  include  the  program  and  its  related  files  on his
+so-called  'Amiga  Lib  Disks').   The  software is provided ปAS ISซ
+without  any warranty of any kind, either expressed or implied.  The
+registered   version  and  its  sources  are  ฉ  1993-95  Laserdance
+Productions  and  may  not  be  distributed.   Unauthorized copying,
+reproduction,  hiring,  lending, prohibited.  By using the 'DePack!'
+demo-version  or  the  final  release of the program, you accept the
+entire risk as to the quality and performance of the program.  There
+should  be  no  bugs  left, as the software supplied herein has been
+extemsivly  tested,  but  if  it  destroys your grandma's toaster or
+kills  your  cat  (etc.)  either due to programming bugs or improper
+usage, it's not my problem.
+
+You  are  encouraged  to copy the demo version freely as long as you
+include  all  the files that came with the distribution archive.  To
+order  the  real version or to send comments, complaints etc.  write
+to  @{"  Laserdance  Productions  "  link  contact}.   Thank  you in
+advance.
+
+- Amigaฎ,AmigaGuideฎ and AmigaOSฎ are trademarks of
+  Commodore-Amiga, Inc.
+
+- SyQuestฎ is a trademark of SyQuest Technologies, Fremont, USA
+
+- Reqtools.library Copyright ฉ Nico Fran็ios
+
+- Graphical user interface designed with GadToolsBox Copyright ฉ 1993
+  by Jaba Development.
+
+- DePack! makes use of the P0t-NoODLE.font (size 8,non proportional)
+  designed by P0t-NoODLE/Anthrox (if present)
+
+- The titlelogo was drawn by Tobias Newe ! Many thanx dude !
+
+- I  stole some  ASCII-logos from wildstyle/pgs^dsr. Hope he doesn't
+  mind ...
+
+The  following  files  belong  to the distribution diskette labelled
+DePack!:
+
+     ExampleFiles (dir)
+       DMS-test.dms                     ExampleDirfile
+       EXE-test.txt                     IFF-test.iff
+       LHA-test.lha                     TXT-test.txt
+     ExamplePreferences (dir)
+       Beispiel1_Liesmich               Beispiel1_Liesmich.info
+       Beispiel2_Liesmich               Beispiel2_Liesmich.info
+       Beispiele_Liesmich               Beispiele_Liesmich.info
+       DePack!.prefs                    Example1.prefs
+       Example1_ReadMe                  Example1_ReadMe.info
+       Example2.prefs                   Example2_ReadMe
+       Example2_ReadMe.info             Example3.prefs
+       Examples_ReadMe                  Examples_ReadMe.info
+     Extras (dir)
+          HiresIcon (dir)
+            DePack!.info                     
+          SplitIt! (dir)
+            SplitIt!                         SplitIt!.c
+            SplitIt!.c.info                  SplitIt!.doc
+            SplitIt!.doc.info                SplitIt!.dok
+            SplitIt!.dok.info                SplitIt!.info
+          OpenScreenPatch (dir)
+            OpenScreenPatch                  OpenScreenPatch.doc
+            OpenScreenPatch.doc.info         OpenScreenPatch.dok
+            OpenScreenPatch.dok.info         OpenScreenPatch.exe
+            OpenScreenPatch.info             OpenScreenPatch.s
+            OpenScreenPatch.s.info           
+          ClearRAM (dir)
+            ClearRAM                         ClearRAM.doc
+            ClearRAM.doc.info                ClearRAM.dok
+            ClearRAM.dok.info                ClearRAM.info
+       ClearRAM.info                    HiresIcon.info
+       OpenScreenPatch.info             SplitIt!.info
+     -> The Special Brothers <- (dir)
+       -* THE SPECIAL BROTHERS *        -* THE SPECIAL BROTHERS *.info
+     DePack!680x0 (dir)
+       Andere Version.txt               Andere Version.txt.info
+       DePack!020+                      DePack!020+.info
+       Other Version.txt                Other Version.txt.info
+     Documents (dir)
+          English (dir)
+            DePack!.doc                      DePack!.doc.info
+            DePack!.guide                    DePack!.guide.info
+            language                         What if ...
+            What if ....info                 
+          Deutsch (dir)
+            DePack!.dok                      DePack!.dok.info
+            DePack!.guide                    DePack!.guide.info
+            language                         Was wenn ...
+            Was wenn ....info                
+       Deutsch.info                     English.info
+  .backdrop                        DePack!
+  DePack!.info                     DePack!680x0.info
+  Disk.info                        Documents.info
+  EasyStart.txt                    EasyStart.txt.info
+  Einstieg.txt                     Einstieg.txt.info
+  ExamplePreferences.info          Extras.info
+  Install                          Install.info
+
+@endnode
+
+@node greetings "Greetings"
+The  author  would  like the following persons for their help during
+the creation of DePack!
+
+@{"  Carsten Bruehl   " link schorse}
+@{"   Markus Klinge   " link count}
+@{"   Markus Schmall  " link flake}
+@{"    Joerg Wabbel   " link alloc}
+@{"   Andreas Weyert  " link andy}
+@{"  Simon  Stelling  " link simon}
+@{"  Michael Schaake  " link michael}
+@{"  Alexander Kluth  " link alex}
+
+And of course to all the people out there who have registered yet.
+
+@endnode
+
+@node schorse "Schrecken aller Versicherer"
+Hey Carsten ...  Eisern bleiben !  Und denk dran :  Willy Brandt ist
+tot !!!  Thanx for Car-Hifi support, krist nen paar Libraries dafuer
+!!  hohohoh
+
+@endnode
+
+@node andy ""
+Der  Controller  ...  Du hast immer noch nicht den Go-Parc von innen
+gesehen, viel Spass als Zivi !
+@endnode
+
+@node alloc "Einmal Polo ... immer Polo"
+Na  altes  Toastbrot  !  Naja @{b}Turrican III@{ub} war ja nicht so der Hit !
+@{b}Karibik  '94@{ub} war auch nix ...  Gottogott ich glaube so langsam wirds
+Zeit sich vom Hochhaus zu schmeissen !
+@endnode
+
+@node count "Hast du noch mehr Modules ?"
+Ich  kauf sowieso nix von der Stange !-) Viel Glueck noch mit deinem
+Dieb und denk dran :  Morgen kommen die Neger und saebeln die Gurken
+ab. 
+
+@endnode
+
+@node flake "100% getestet & Virenfrei"
+Ich  hoffe  Du  hast  mir meinen Bugreport nicht uebelgenommen.  War
+nicht so gemeint.  Darft mir als Revanche auch einen schreiben (wenn
+Du es schaffst !).  Ansonsten viel Glueck im Studium und bei TRSI.
+
+@endnode
+
+@node michael "Cool !"
+Tach  Michael,  alter  Docsleser ...  Nochmal vielen Dank fuer deine
+Fotocollage.  Party on ...
+
+@endnode
+
+@node alex "Er putzt sich Zaehne"
+Na Dre, wird Zeit mal wieder die guten alten Zeiten aufzuwaermen und
+die Juergen von Manger-Platten aufzulegen !-) Keep on trekkin'
+
+@endnode
+
+@node simon "Nehmen wir doch ein konkretes Beispiel ... es sei die Zahl x"
+Viel Glueck im 4.  Semester.  Power to those who deserve it.
+
+@endnode
+
+@node blah "All the things you'd like to hear ..."
+And the coder's favourised noise (in no order) :
+
+Anne  Clark,  Dire  Straits,  Metallica,  Manowar,  Front  242, Kraftwerk,
+Depeche  Mode,  Klangwerk, Antonio Vivaldi, Erasure, The Prodigy, Midnight
+Oil,  Carlos  Peron, J.S.  Bach, Beethoven, Herbert Groenemeyer, The radio
+ffn  Frühstyxradio,  That old magic from the 50ties until the 80ties, Pink
+Floyd, Wolfsheim, Fortification 55, S.P.O.C.K., ...
+
+Recommended Books read by me while coding DePack!
+
+- Douglas Adams : The four books of the 'HGTTG'-Triology
+- Alan Dean Foster : Aliens & Alienณ
+- Stephen King : Different Seasons/Insommnia
+- Arthur C. Clarke : 2001 - A space odyssey
+- Umberto Eco : The name of the rose
+- Micheal Crichton : Jurassic Park
+- Micheal Crichton : Nippon Connection
+- 
+
+and many many more whose names I can't remember now ...
+@endnode
+
+@node contact "Oh Mr. Postman, bring me a letter ..."
+If  zou  want to order the complete DePack!  package, need an update
+or  want to contact the author for any other reason please send some
+mail to the following address.
+
+                          laserdance productions
+                              c/o kai haseloh
+                            dorotheenstr. 7/585
+                              30419 hannover
+                                  germany
+
+      email may be forwarded to : haseloh@informatik.uni-hannover.de
+
+                        phone # is +49-511/2717253
+
+The easiest way to order is to use the menu-item Registration/Update
+in  the  program  and  send  the  printed application to the address
+above.  Thanx in advance.
+
+@endnode
+
+@node tocome "My god... it's full of stars'
+Soon coming from Laserdance Productions :
+
+- DePack! Updates
+	DePack! will be continously updated.
+	Some ideas for future updates are :
+		- Screen/Menu font selectable
+		- More filetypes to be recognised
+		- many many more
+
+- LibraryShifter (worktitle)
+	A  program  to  search  new  disks/directories/archives  for
+	libraries etc. and updates your LIBS: accordingly. Hi Schorse.
+
+@endnode
+
+
+@node addies "This place offers space for your commercials - just contact us !"
+@endnode
+
+@node terminology
+Here are some explanation for the most frequently used terms in
+this docfile.
+
+@{b} DirFile @{ub}
+	A textfile that DePack!  uses as a map through your
+	directory.   See  Directory-File-Structure for more
+	information
+
+@{b} Diskmasher @{ub}
+	A  compressing  program that crunches a entire disk
+	into a single file.  Used to send the contents of a
+	disk over a modem connection. ฉ SDS Software
+
+@{b} Item @{ub}
+	A file marked in the DirFile  by pressing <Return>.
+	Also called : Tag, Selected file
+
+@{b} Listview @{ub}
+	A  box  with  some  items  listed  inside  it and a
+	scroller right to it.  Used to display longer lists
+	e.g.  of files.
+
+@{b} Lha/Lharc @{ub}
+	A  compressing  program  used  to crunch a bunch of
+	files  into  one  single  so-called 'Archive'-file.
+	Also used by modem-transfers.
+
+@{b} Tag @{ub}
+	A file marked in the DirFile  by pressing <Return>.
+	Also called : Item, Selected file
+
+@endnode

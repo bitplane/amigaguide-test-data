@@ -1,0 +1,408 @@
+@DATABASE "ifflib.guide"
+@REMARK created by ADtoHT © 1993 Christian Stieber
+@INDEX SAME_BUT_SORTED
+
+@NODE Main "iff.library"
+@{b}@{u}File handling@{uu}@{ub}:
+@{"IFFL_OpenIFF()" LINK "IFFL_OpenIFF"}
+@{"IFFL_PushChunk()" LINK "IFFL_PushChunk"}
+@{"IFFL_WriteChunkBytes()" LINK "IFFL_WriteChunkBytes"}
+@{"IFFL_GetBMHD()" LINK "IFFL_GetBMHD"}
+@{"IFFL_GetColorTab()" LINK "IFFL_GetColorTab"}
+@{"IFFL_GetViewModes()" LINK "IFFL_GetViewModes"}
+@{"IFFL_FindChunk()" LINK "IFFL_FindChunk"}
+@{"IFFL_PopChunk()" LINK "IFFL_PopChunk"}
+@{"IFFL_CloseIFF()" LINK "IFFL_CloseIFF"}
+@{b}@{u}Bitmaps@{uu}@{ub}:
+@{"IFFL_SaveBitMap()" LINK "IFFL_SaveBitMap"}
+@{"IFFL_SaveClip()" LINK "IFFL_SaveClip"}
+@{"IFFL_DecodePic()" LINK "IFFL_DecodePic"}
+@{"IFFL_ModifyFrame()" LINK "IFFL_ModifyFrame"}
+@{b}@{u}Compression@{uu}@{ub}:
+@{"IFFL_CompressBlock()" LINK "IFFL_CompressBlock"}
+@{"IFFL_DecompressBlock()" LINK "IFFL_DecompressBlock"}
+@{b}@{u}Errors@{uu}@{ub}:
+@{"IFFL_IFFError()" LINK "IFFL_IFFError"}
+@{b}@{u}Obsolete@{uu}@{ub}:              @{"Same, but sorted" link SAME_BUT_SORTED}
+@{"NewOpenIFF()" LINK "NewOpenIFF"}
+@{"OpenIFF()" LINK "OpenIFF"}
+@ENDNODE
+@node SAME_BUT_SORTED "Same_but_sorted"
+@{"IFFL_CloseIFF()" LINK "IFFL_CloseIFF"}
+@{"IFFL_CompressBlock()" LINK "IFFL_CompressBlock"}
+@{"IFFL_DecodePic()" LINK "IFFL_DecodePic"}
+@{"IFFL_DecompressBlock()" LINK "IFFL_DecompressBlock"}
+@{"IFFL_FindChunk()" LINK "IFFL_FindChunk"}
+@{"IFFL_GetBMHD()" LINK "IFFL_GetBMHD"}
+@{"IFFL_GetColorTab()" LINK "IFFL_GetColorTab"}
+@{"IFFL_GetViewModes()" LINK "IFFL_GetViewModes"}
+@{"IFFL_IFFError()" LINK "IFFL_IFFError"}
+@{"IFFL_ModifyFrame()" LINK "IFFL_ModifyFrame"}
+@{"IFFL_OpenIFF()" LINK "IFFL_OpenIFF"}
+@{"IFFL_PopChunk()" LINK "IFFL_PopChunk"}
+@{"IFFL_PushChunk()" LINK "IFFL_PushChunk"}
+@{"IFFL_SaveBitMap()" LINK "IFFL_SaveBitMap"}
+@{"IFFL_SaveClip()" LINK "IFFL_SaveClip"}
+@{"IFFL_WriteChunkBytes()" LINK "IFFL_WriteChunkBytes"}
+@{"NewOpenIFF()" LINK "NewOpenIFF"}
+@{"OpenIFF()" LINK "OpenIFF"}
+@endnode
+@NODE "IFFL_CloseIFF" "iff.library/IFFL_CloseIFF()"
+@{b}@{u}IFFL_CloseIFF@{uu}@{ub} -- Close an IFF file and deallocate buffers.
+  Returns the memory previously allocated by IFFL_OpenIFF().
+SYNOPSIS  @{FG shine}void@{FG text} IFFL_CloseIFF( @{"IFFL_HANDLE" LINK "include:libraries/iff.h/MAIN" 131} )
+  IFFL_CloseIFF( @{i}iff@{ui} )
+                 A1
+  @{i}iff@{ui} - IFF file handle, from IFFL_OpenIFF()
+  @{i}@{b}result@{ub}@{ui} - For now, always results TRUE (this may change in the future).
+SEE ALSO
+  @{"IFFL_OpenIFF()" LINK "IFFL_OpenIFF" 0}
+@ENDNODE
+@NODE "IFFL_CompressBlock" "iff.library/IFFL_CompressBlock()"
+@{b}@{u}IFFL_CompressBlock@{uu}@{ub} -- Compress a memory block.
+  Compress the memory block using the appropriate compression mode.
+  If the compressed data would become longer than the uncompressed,
+  an error is returned.
+SYNOPSIS  ULONG IFFL_CompressBlock( APTR, APTR, ULONG, ULONG )
+  @{i}@{b}result@{ub}@{ui} = IFFL_CompressBlock( @{i}source@{ui}, @{i}destination@{ui}, @{i}size@{ui}, @{i}mode@{ui} )
+                                 A0      A1           D0    D1
+  @{i}source@{ui} - Pointer to data to compress
+  @{i}destination@{ui} - Target address for compression
+  @{i}size@{ui} - Number of data bytes to compress
+  @{i}mode@{ui} - Compression mode.Currently, the following modes are supported:
+    IFFL_COMPR_NONE - Vanilla copy
+    IFFL_COMPR_BYTERUN1 - CmpByteRun1 (ILBM BODY data)
+    IFFL_COMPR_FIBDELTA - Fibonacci Delta (8SVX BODY data)
+  @{i}@{b}result@{ub}@{ui} - Length of compressed data or 0 if an error occurred.
+    @{"IFFL_IFFError()" LINK "IFFL_IFFError" 0} returns IFFL_ERROR_BADCOMPRESSION if you ask for
+    an unsupported compression mode.
+BUGS
+  In IFFL_COMPR_BYTERUN1, if the compressed data would become longer,
+  the buffer will be overwritten, and no error is returned.So be
+  sure to supply a destination buffer which is big enough!
+SEE ALSO
+  @{"IFFL_DecompressBlock()" LINK "IFFL_DecompressBlock" 0}
+@ENDNODE
+@NODE "IFFL_DecodePic" "iff.library/IFFL_DecodePic()"
+@{b}@{u}IFFL_DecodePic@{uu}@{ub} -- Decode the BODY of an ILBM file into a BitMap.
+  Decodes and decompresses a picture into the user supplied BitMap.
+  If the picture is higher than your BitMap, it will be truncated.
+  If your BitMap is larger than the picture, the picture will be
+  drawn into the top left corner of your BitMap.
+  If the picture has less planes than the BitMap, the unused planes
+  are NOT touched by this routine, so you may wish to clear them
+  before calling IFFL_DecodePic(). If the picture has more planes
+  than your BitMap, the surplus planes of the picture are ignored.
+SYNOPSIS  BOOL IFFL_DecodePic( @{"IFFL_HANDLE" LINK "include:libraries/iff.h/MAIN" 131}, @{FG shine}struct@{FG text} @{"BitMap" LINK "include:graphics/gfx.h/MAIN" 45} * )
+  @{i}@{b}success@{ub}@{ui} = IFFL_DecodePic( @{i}iff@{ui}, @{i}bitmap@{ui} )
+   D0                       A1   A0
+  @{i}iff@{ui} - IFF file handle, from @{"IFFL_OpenIFF()" LINK "IFFL_OpenIFF" 0}
+  @{i}bitmap@{ui} - Pointer to a properly initialized @{"BitMap" LINK "include:graphics/gfx.h/MAIN" 45} structure:
+    @{i}bm_Planes@{ui}[] must point to valid BitPlanes,
+    @{i}bm_Depth@{ui} contains the number of planes.
+    @{i}bm_Width@{ui} and @{i}bm_Height@{ui} must be set according to the size of your bit planes.
+  @{i}@{b}success@{ub}@{ui} - Non-zero if successful, zero if error.
+    Call @{"IFFL_IFFError()" LINK "IFFL_IFFError" 0} to find the reason for the failure.
+NOTE
+  This routine needs at least 650 bytes of stack space.
+BUGS
+  If the picture is wider than your BitMap, one line of innocent
+  memory will be overwritten at the end of each bitplane. You can
+  avoid this by allocating a few bytes more for each plane.
+  Normally, you allocate your BitMap after inspecting the BMHD
+  chunk, so this should not be a problem.
+@ENDNODE
+@NODE "IFFL_DecompressBlock" "iff.library/IFFL_DecompressBlock()"
+@{b}@{u}IFFL_DecompressBlock@{uu}@{ub} -- Decompress a memory block.
+  Decompress the memory block using the appropriate Decompression mode.
+  If the Decompressed data would become longer than the unDecompressed,
+  an error is returned.
+SYNOPSIS  ULONG IFFL_DecompressBlock( APTR, APTR, ULONG, ULONG )
+  @{i}@{b}result@{ub}@{ui} = IFFL_DecompressBlock( @{i}source@{ui}, @{i}destination@{ui}, @{i}size@{ui}, @{i}mode@{ui} )
+                                 A0      A1           D0    D1
+  @{i}source@{ui} - Pointer to data to decompress
+  @{i}destination@{ui} - Target address for decompression
+  @{i}size@{ui} - Number of _DECOMPRESSED_ data bytes
+  @{i}mode@{ui} - Compression mode.Currently, the following modes are supported:
+    IFFL_COMPR_NONE - Vanilla copy
+    IFFL_COMPR_BYTERUN1 - CmpByteRun1 (ILBM BODY data)
+    IFFL_COMPR_FIBDELTA - Fibonacci Delta (8SVX BODY data)
+  @{i}@{b}result@{ub}@{ui} - Length of uncompressed data or 0 if an error occurred.
+    @{"IFFL_IFFError()" LINK "IFFL_IFFError" 0} returns IFFL_ERROR_BADCOMPRESSION if you ask for
+    an unsupported compression mode.
+SEE ALSO
+  @{"IFFL_CompressBlock()" LINK "IFFL_CompressBlock" 0}
+@ENDNODE
+@NODE "IFFL_FindChunk" "iff.library/IFFL_FindChunk()"
+@{b}@{u}IFFL_FindChunk@{uu}@{ub} -- Find an IFF-chunk.
+  Find a specific chunk in an IFF file.
+SYNOPSIS  APTR IFFL_FindChunk( @{"IFFL_HANDLE" LINK "include:libraries/iff.h/MAIN" 131}, ULONG )
+  @{i}@{b}chunk@{ub}@{ui} = IFFL_FindChunk( @{i}iff@{ui}, @{i}chunkname@{ui} )
+  D0                      A1   D0
+  @{i}iff@{ui} - IFF file handle, from @{"IFFL_OpenIFF()" LINK "IFFL_OpenIFF" 0}
+  @{i}chunkname@{ui} - 4 characters packed ASCII ('BODY', 'VHDR' ...)
+    If chunkname is 0, FindChunk() returns a pointer to the
+    first byte after the end of the current FORM.This can
+    be used by ANIM readers for jumping from FORM to FORM.
+  @{i}@{b}chunk@{ub}@{ui} - Pointer to the beginning of the chunk (that means to the chunk
+    name itself, followed by the chunk size); zero if chunk not found.
+SEE ALSO
+  @{"IFFL_GetBMHD()" LINK "IFFL_GetBMHD" 0}, @{"IFFL_GetColorTab()" LINK "IFFL_GetColorTab" 0}
+@ENDNODE
+@NODE "IFFL_GetBMHD" "iff.library/IFFL_GetBMHD()"
+@{b}@{u}IFFL_GetBMHD@{uu}@{ub} -- find a BitMapHeader of an IFF-file.
+  Returns a pointer to a BMHD (BitMapHeader) structure as defined
+  in iff.h and iff.i
+SYNOPSIS  @{FG shine}struct@{FG text} @{"BitMapHeader" LINK "include:datatypes/pictureclass.h/MAIN" 94} *IFFL_GetBMHD( @{"IFFL_HANDLE" LINK "include:libraries/iff.h/MAIN" 131} )
+  @{i}@{b}header@{ub}@{ui} = IFFL_GetBMHD( @{i}iff@{ui} )
+  D0                     A1
+  @{i}iff@{ui} - IFF file handle, from @{"IFFL_OpenIFF()" LINK "IFFL_OpenIFF" 0}
+  @{i}@{b}header@{ub}@{ui} - Pointer to the BitMapHeader, or NULL if no BMHD chunk found
+SEE ALSO
+  @{"IFFL_FindChunk()" LINK "IFFL_FindChunk" 0}, @{"IFFL_GetColorTab()" LINK "IFFL_GetColorTab" 0}
+@ENDNODE
+@NODE "IFFL_GetColorTab" "iff.library/IFFL_GetColorTab()"
+@{b}@{u}IFFL_GetColorTab@{uu}@{ub} -- find a CMAP and convert it to a ColorTable.
+  Searches the CMAP chunk of an IFF file and converts it, if it's
+  there, to an Amiga color table structure. This colortable can
+  directly be used as a parameter for the LoadRGB4() function.
+SYNOPSIS  @{FG shine}long@{FG text} IFFFL_GetColorTab( @{"IFFL_HANDLE" LINK "include:libraries/iff.h/MAIN" 131}, UWORD * )
+  @{i}@{b}count@{ub}@{ui} = IFFL_GetColorTab( @{i}iff@{ui}, @{i}colortable@{ui} )
+  D0                        A1   A0
+  @{i}iff@{ui} - IFF file handle, from @{"IFFL_OpenIFF()" LINK "IFFL_OpenIFF" 0}
+  @{i}colortable@{ui} - Pointer to a block of memory which must be large enough
+    to hold the colortable (2 bytes per color).Must be WORD aligned.
+  @{i}@{b}count@{ub}@{ui} - Number of colors actually found,
+    or zero if the file has no CMAP chunk.
+SEE ALSO
+  @{"IFFL_FindChunk()" LINK "IFFL_FindChunk" 0}, @{"IFFL_GetBMHD()" LINK "IFFL_GetBMHD" 0}
+@ENDNODE
+@NODE "IFFL_GetViewModes" "iff.library/IFFL_GetViewModes()"
+@{b}@{u}IFFL_GetViewModes@{uu}@{ub}() -- Get Amiga-specific ViewModes.
+  Searches the IFF file for a 'CAMG' chunk which holds the view modes
+  information.If there is no CAMG chunk, the view modes are calculated
+  using the information in the @{"BitMapHeader" LINK "include:datatypes/pictureclass.h/MAIN" 94} structure.You can directly
+  put the low WORD of the result of a call to IFFL_GetViewModes() into
+  the @{i}ns_ViewModes@{ui} field of a @{"NewScreen" LINK "include:intuition/screens.h/MAIN" 476} structure, or you can use the
+  whole ULONG for the @{i}SA_DisplayID@{ui} tag under OS 2.x.
+SYNOPSIS  ULONG IFFL_GetViewModes( @{"IFFL_HANDLE" LINK "include:libraries/iff.h/MAIN" 131} )
+  @{i}@{b}viewmodes@{ub}@{ui} = IFFL_GetViewModes( @{i}iff@{ui} )
+  D0                             A1
+  @{i}iff@{ui} - IFF file handle, from @{"OpenIFF()" LINK "OpenIFF" 0}
+  @{i}@{b}viewmodes@{ub}@{ui} - ULONG containing the view modes (HAM, LACE, HIRES, ...)
+    All forbidden bits are masked out, as suggested by CBM.
+    Under Kickstart V1.3, only the lower WORD is used.
+BUGS
+  If the IFF file has no CAMG chunk and 6 bitplanes, the HAM bit will be
+  set.This is not always correct since the picture could be in the Extra
+  Halfbrite mode.You can load such Halfbrite pictures into DPaint III
+  and save them again, DPaint will generate the correct CAMG chunk.
+SEE ALSO
+  <@{"graphics/displayinfo.h" LINK "include:graphics/displayinfo.h/MAIN" 0}>
+@ENDNODE
+@NODE "IFFL_IFFError" "iff.library/IFFL_IFFError()"
+@{b}@{u}IFFL_IFFError@{uu}@{ub} -- Get detailed error descrpition after an error.
+  If one of the iff.library functions returns zero, you can call
+  IFFL_IFFError() to find the reason for the failure.An error
+  code is returned, please refer to the files 'iff.h' or 'iff.i'
+  for the complete list of errors.
+SYNOPSIS  @{FG shine}long@{FG text} IFFL_IFFError( @{FG shine}void@{FG text} )
+  @{i}@{b}error@{ub}@{ui} = IFFL_IFFError()
+  D0
+  @{i}@{b}error@{ub}@{ui} - Error-number generated by the latest function call,
+    or zero if no error.
+BUGS
+  If you don't close the IFF library at the end of your program
+  (using CloseLibrary()) the error node will not be freed.The
+  same task will then not be able to re-open the iff.library.
+  (This is not a bug, it's a feature ;-))
+SEE ALSO
+  <iff.h>
+@ENDNODE
+@NODE "IFFL_ModifyFrame" "iff.library/IFFL_ModifyFrame()"
+@{b}@{u}IFFL_ModifyFrame@{uu}@{ub} -- Modify an anim frame using a DLTA chunk.
+  Uses the DLTA chunk of the supplied FORM to modify the planes-data
+  of the bitmap. Usually, playback of ANIMs will require two buffers,
+  and double-buffering between them. So the data in the bitmap must
+  be two frames back, and the DLTA chunk is used to modify the hidden
+  frame to the next frame to be shown.
+SYNOPSIS  BOOL IFFL_ModifyFrame( @{FG shine}void@{FG text} *, @{FG shine}struct@{FG text} @{"BitMap" LINK "include:graphics/gfx.h/MAIN" 45} * )
+  @{i}@{b}success@{ub}@{ui} = IFFL_ModifyFrame( @{i}modifyform@{ui}, @{i}bitmap@{ui} )
+  D0                          A1          A0
+  @{i}modifyform@{ui} - pointer to the FORM containing the actual DLTA chunk
+  @{i}bitmap@{ui} - Pointer to a properly initialized BitMap structure,
+    the planes must contain the image which was displayed
+    to frames back (using double-buffering)
+  @{i}@{b}success@{ub}@{ui} - Non-zero if OK, 0 if error.
+    Call @{"IFFL_IFFError()" LINK "IFFL_IFFError" 0} to find the reason for the failure.
+RESTRICTIONS
+  Currently, only compression type 5 (Byte Vertical Delta Mode) is
+  implemented. If you have animations which use modes 1 to 4, try
+  loading them with DPaint III and saving them again.
+  Sculpt-Animate ('J' type ANIM, Movie format) support will be added soon.
+  I will implement some more compression types upon request.
+NOTE
+  This routine needs at least 820 bytes of stack.
+  The size of the bitmap is not checked by this routine, the planes
+  must have at least the size described in the BMHD of the anim file.
+SEE ALSO
+  @{"IFFL_IFFError()" LINK "IFFL_IFFError" 0}
+@ENDNODE
+@NODE "IFFL_OpenIFF" "iff.library/IFFL_OpenIFF()"
+@{b}@{u}IFFL_OpenIFF@{uu}@{ub} -- Open an IFF file for reading or writing.
+  @{u}If @{i}mode@{ui} == IFFL_MODE_READ@{uu}:This function opens a file on a disk and looks
+    whether it's an IFF file or not.If it is an IFF file, memory is allocated
+    and the file is read into memory.
+  @{u}New for V22@{uu}:If xpkmaster.library is installed in your system, IFFL_OpenIFF()
+    will be able to read and decompress compressed IFF files, if they
+    use one of the xpk standard compression schemes.
+  @{u}If @{i}mode@{ui} == IFFL_MODE_WRITE@{uu}:Initializes an IFF file handle for writing.
+    You may create chunks with IFFL_PushChunk() and IFFL_PopChunk(), and
+    you can write data using the IFFL_WriteChunkBytes() routine.
+SYNOPSIS  @{"IFFL_HANDLE" LINK "include:libraries/iff.h/MAIN" 131} IFFL_OpenIFF( @{FG shine}char@{FG text} *, ULONG )
+  @{i}@{b}iff@{ub}@{ui} = IFFL_OpenIFF( @{i}filename@{ui}, @{i}mode@{ui} )
+  D0                  A0        D0
+  @{i}filename@{ui} - Pointer to a null-terminated string
+  @{i}mode@{ui} - IFFL_MODE_READ: Open file for reading
+         IFFL_MODE_WRITE: Open file for writing
+  @{i}@{b}iff@{ub}@{ui} - IFF handle.
+    Making assumptions about the internal structure of this handle is unwise,
+    and may break in the future.If this function fails, NULL will be returned,
+    and you may call IFFL_IFFError() to find the reason for the failure.
+SEE ALSO
+  @{"IFFL_CloseIFF()" LINK "IFFL_CloseIFF" 0}, @{"IFFL_PushChunk()" LINK "IFFL_PushChunk" 0}, @{"IFFL_PopChunk()" LINK "IFFL_PopChunk" 0},
+  @{"IFFL_WriteChunkBytes()" LINK "IFFL_WriteChunkBytes" 0}, @{"IFFL_IFFError()" LINK "IFFL_IFFError" 0}
+@ENDNODE
+@NODE "IFFL_PopChunk" "iff.library/IFFL_PopChunk()"
+@{b}@{u}IFFL_PopChunk@{uu}@{ub} -- Pop top context node off context stack.
+  Pops top context chunk and updates the file accordingly.
+  The function is normally called only for writing files and signals
+  the end of a chunk.
+SYNOPSIS  BOOL IFFL_PopChunk( @{"IFFL_HANDLE" LINK "include:libraries/iff.h/MAIN" 131} )
+  @{i}@{b}success@{ub}@{ui} = IFFL_PopChunk( @{i}iff@{ui} )
+  D0                       A0
+  @{i}iff@{ui} - IFF handle
+  @{i}@{b}success@{ub}@{ui} - Non-zero if successful or 0 if not successful.
+    Call @{"IFFL_IFFError()" LINK "IFFL_IFFError" 0} to get an IFFL_ERROR_... error code.
+SEE ALSO
+  @{"IFFL_PushChunk()" LINK "IFFL_PushChunk" 0}, @{"IFFL_WriteChunkBytes()" LINK "IFFL_WriteChunkBytes" 0}
+@ENDNODE
+@NODE "IFFL_PushChunk" "iff.library/IFFL_PushChunk()"
+@{b}@{u}IFFL_PushChunk@{uu}@{ub} -- Push a new context node on the context stack..
+  Pushes a new context node on the context stack by reading it from the
+  stream if this is a read file, or by creating it from the passed
+  parameters if this is a write file.  Normally this function is only
+  called in write mode, where the type and id codes specify the new
+  chunk to create.  If this is a leaf chunk, i.e. a local chunk inside
+  a FORM or PROP chunk, then the type argument is ignored.
+SYNOPSIS  BOOL IFFL_PushChunk( @{"IFFL_HANDLE" LINK "include:libraries/iff.h/MAIN" 131}, ULONG, ULONG )
+  @{i}@{b}success@{ub}@{ui} = IFFL_PushChunk( @{i}iff@{ui}, @{i}type@{ui}, @{i}id@{ui} )
+  D0                        A0   D0    D1
+  @{i}iff@{ui} - IFF handle
+  @{i}type@{ui} - chunk type specifier (ex. ILBM) (ignored for read mode or leaf chunks).
+  @{i}id@{ui} - chunk id specifier (ex. CMAP) (ignored for read mode).
+  @{i}@{b}success@{ub}@{ui} - Non-zero if successful or 0 if not successful.
+    Call @{"IFFL_IFFError()" LINK "IFFL_IFFError" 0} to get an IFFL_ERROR_... error code.
+NOTE
+  Currently, the level of nested FORMs is restricted to 7.
+SEE ALSO
+  @{"IFFL_PopChunk()" LINK "IFFL_PopChunk" 0}, @{"IFFL_WriteChunkBytes()" LINK "IFFL_WriteChunkBytes" 0}
+@ENDNODE
+@NODE "IFFL_SaveBitMap" "iff.library/IFFL_SaveBitMap()"
+@{b}@{u}IFFL_SaveBitMap@{uu}@{ub} -- save the planes of a BitMap as an IFF-file.
+  Save the planes of a BitMap as an IFF-file, optionally with a colortable.
+  @{u}The IFF file will contain the following chunks@{uu}:
+    FORM - The IFF header, with the type ILBM.
+    BMHD - The BitMap Header structre.
+    CMAP - The color map, this chunk is omitted if colortable is zero.
+    CAMG - The Amiga ViewModes word, contains the special ViewModes information
+      (HAM, LACE, HIRES ...).
+    BODY - The (crunched or uncompressed) picture
+SYNOPSIS  BOOL IFFL_SaveBitMap(@{FG shine}char@{FG text} *, @{FG shine}struct@{FG text} @{"BitMap" LINK "include:graphics/gfx.h/MAIN" 45} *, UWORD *, ULONG )
+  @{i}@{b}result@{ub}@{ui} = IFFL_SaveBitMap( @{i}filename@{ui}, @{i}bitmap@{ui}, @{i}colortable@{ui}, @{i}flags@{ui} )
+  D0                        A0        A1      A2          D0
+  @{i}filename@{ui} - Name of the IFF file to create
+  @{i}bitmap@{ui} - Pointer to the BitMap holding your picture
+  @{i}colortable@{ui}  - Pointer to an Amiga ColorTable structure or zero
+    (if colortable = 0, no CMAP chunk will be generated).
+  @{i}flags@{ui} - Bit 0: 1 = Use the "CmpByteRun1" compression algorythm,
+                 0 = Save the file uncompressed.
+          Bit 7: 1 = This is a HAM (Hold and modify) picture.
+                 0 = This is a normal or Extra-Halfbrite picture.
+  @{i}@{b}result@{ub}@{ui} - Non-zero if successful, 0 if an error occurred.
+    You can then call @{"IFFL_IFFError()" LINK "IFFL_IFFError" 0} to find the reason for the failure.
+NOTE
+  Up to V19 this routine needs at least 650 bytes of stack space.
+SEE ALSO
+  @{"IFFL_SaveClip()" LINK "IFFL_SaveClip" 0}
+@ENDNODE
+@NODE "IFFL_SaveClip" "iff.library/IFFL_SaveClip()"
+@{b}@{u}IFFL_SaveClip@{uu}@{ub} -- save a part of a BitMap as an IFF-file.
+  Save a part of a BitMap as an IFF file
+SYNOPSIS
+  @{i}@{b}result@{ub}@{ui} = IFFL_SaveClip( @{i}filename@{ui},@{i}bitmap@{ui},@{i}coltab@{ui},@{i}flags@{ui},@{i}xoff@{ui},@{i}yoff@{ui},@{i}width@{ui},@{i}height@{ui} )
+  D0                      A0       A1     A2     D0    D1   D2   D3    D4
+  @{i}filename@{ui} - Name of the IFF file to create
+  @{i}bitmap@{ui} - Pointer to the @{"BitMap" LINK "include:graphics/gfx.h/MAIN" 45} holding your picture
+  @{i}colortable@{ui} - Pointer to an Amiga ColorTable structure or zero
+    (if colortable = 0, no CMAP chunk will be generated).
+  @{i}flags@{ui}  - Bit 0: 1 = Use the "CmpByteRun1" compression algorythm,
+                  0 = Save the file uncompressed.
+           Bit 7: 1 = This is a HAM (Hold and modify) picture.
+                  0 = This is a normal or Extra-Halfbrite picture.
+  @{i}xoff@{ui} - X offset of the clip to be saved (bytes from the left).
+  @{i}yoff@{ui} - Y offset of the clip to be saved (lines from the top).
+  @{i}width@{ui} - width in bytes of the rectangle.
+  @{i}height@{ui} - height in lines of the rectangle.
+  @{i}@{b}result@{ub}@{ui} - Non-zero if successful, 0 if an error occurred.
+    You can then call @{"IFFL_IFFError()" LINK "IFFL_IFFError" 0} to find the reason for the failure.
+NOTE
+  Up to V19 this routine needs at least 650 bytes of stack space.
+BUGS
+  The width of the rectangle will be truncated to WORD boundaries,
+  because DPAINT wants it!
+SEE ALSO
+  @{"IFFL_SaveBitMap()" LINK "IFFL_SaveBitMap" 0}
+@ENDNODE
+@NODE "IFFL_WriteChunkBytes" "iff.library/IFFL_WriteChunkBytes()"
+@{b}@{u}IFFL_WriteChunkBytes@{uu}@{ub} -- Write data into the current chunk.
+  Writes "size" bytes from the specified buffer into the current chunk.
+SYNOPSIS  @{FG shine}long@{FG text} IFFL_WriteChunkBytes( @{"IFFL_HANDLE" LINK "include:libraries/iff.h/MAIN" 131}, APTR, @{FG shine}long@{FG text} )
+  @{i}@{b}success@{ub}@{ui} = IFFL_WriteChunkBytes( @{i}iff@{ui}, @{i}buf@{ui}, @{i}size@{ui} )
+  D0                              A0   A1   D0
+  @{i}iff@{ui} - IFF file handle, from @{"IFFL_OpenIFF()" LINK "IFFL_OpenIFF" 0}.
+  @{i}buf@{ui} - pointer to buffer area with bytes to be written.
+  @{i}size@{ui} - number of bytes to write.
+  @{i}@{b}success@{ub}@{ui} - Non-NULL if the write was successful, or NULL if an error occurred.
+    Call @{"IFFL_IFFError()" LINK "IFFL_IFFError" 0} to find what's going on.
+SEE ALSO
+  @{"IFFL_PushChunk()" LINK "IFFL_PushChunk" 0}, @{"IFFL_PopChunk()" LINK "IFFL_PopChunk" 0}, @{"IFFL_IFFError()" LINK "IFFL_IFFError" 0}
+@ENDNODE
+@NODE "NewOpenIFF" "iff.library/NewOpenIFF()"
+@{b}@{u}NewOpenIFF@{uu}@{ub} -- allocate memory for an IFF-file and read it.
+  THIS FUNCTION IS OBSOLETE. USE @{"IFFL_OpenIFF()" LINK "IFFL_OpenIFF" 0} INSTEAD.
+SYNOPSIS  IFFFILE NewOpenIFF( @{FG shine}char@{FG text} * )
+  @{i}@{b}ifffile@{ub}@{ui} = NewOpenIFF( @{i}filename@{ui}, @{i}memattr@{ui} )
+  D0                    A0        D0
+  @{i}filename@{ui} - Pointer to a null-terminated string
+  @{i}memattr@{ui} - Memory requirements as used for Exec's AllocMem(),
+    such as MEMF_CHIP, MEMF_PUBLIC ...
+    (MEMF_CLEAR is not necessary).
+  @{i}@{b}ifffile@{ub}@{ui} - '@{"FileHandle" LINK "include:dos/dosextens.h/MAIN" 88}', points to the beginning of the IFF file ("FORM....").
+    Zero if unsuccessful.Call IFFError() to get the reason for the failure.
+SEE ALSO
+  @{"IFFL_OpenIFF()" LINK "IFFL_OpenIFF" 0}, @{"IFFL_CloseIFF()" LINK "IFFL_CloseIFF" 0}, @{"IFFL_IFFError()" LINK "IFFL_IFFError" 0}
+@ENDNODE
+@NODE "OpenIFF" "iff.library/OpenIFF()"
+@{b}@{u}OpenIFF@{uu}@{ub} -- allocate memory for an IFF-file and read it.
+  THIS FUNCTION IS OBSOLETE. USE @{"IFFL_OpenIFF()" LINK "IFFL_OpenIFF" 0} INSTEAD.
+SYNOPSIS  IFFFILE OpenIFF( @{FG shine}char@{FG text} * )
+  @{i}@{b}ifffile@{ub}@{ui} = OpenIFF( @{i}filename@{ui} )
+  D0                 A0
+  @{i}filename@{ui} - Pointer to a null-terminated string
+  @{i}@{b}ifffile@{ub}@{ui} - '@{"FileHandle" LINK "include:dos/dosextens.h/MAIN" 88}', points to the beginning of the IFF file ("FORM....").
+    0 if unsuccessful.Call IFFError() to get the reason for the failure.
+SEE ALSO
+  @{"IFFL_OpenIFF()" LINK "IFFL_OpenIFF" 0}, @{"IFFL_CloseIFF()" LINK "IFFL_CloseIFF" 0}, @{"IFFL_IFFError()" LINK "IFFL_IFFError" 0}
+@ENDNODE
+

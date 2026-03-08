@@ -1,0 +1,386 @@
+@database "digibooster3.library"
+@index "main"
+@author Grzegorz Kraszewski
+@$VER: digibooster3.library 1.0 (25.10.2014)
+
+@node main "digibooster3.library"
+
+
+    @{b}digibooster3.library@{ub}
+
+    @{" __background__ " Link "__background__"}
+    @{" DB3_DisposeEngine " Link "DB3_DisposeEngine"}
+    @{" DB3_Load " Link "DB3_Load"}
+    @{" DB3_Mix " Link "DB3_Mix"}
+    @{" DB3_NewEngine " Link "DB3_NewEngine"}
+    @{" DB3_SetCallback " Link "DB3_SetCallback"}
+    @{" DB3_SetPos " Link "DB3_SetPos"}
+    @{" DB3_SetVolume " Link "DB3_SetVolume"}
+    @{" DB3_Unload " Link "DB3_Unload"}
+
+
+@endnode
+
+@node "__background__" "digibooster3.library/__background__"
+
+
+ DESCRIPTION
+   The digibooster3.library is the official loader/replayer Amiga shared
+   library for DigiBooster 3 music modules (usually with *.dbm extension).
+   As it is mostly backward compatible with DigiBooster Pro 2, and uses the
+   same module format, it can also play its modules. The library is
+   a wrapper over libdigibooster3 static library.
+
+   The official module format specification can be found at
+
+   http://digibooster.eu/pl/format.php
+
+   The library source code as well as source code of example tools are
+   licensed on the BSD two-clause license (see "License.txt").
+
+   The library renders DigiBooster 3 modules as 16-bit signed integer stereo
+   interleaved (left first) audio stream.
+
+   Typical workflow of a player is shown as following pseudocode:
+
+   if (mod = @{"DB3_Load" Link "DB3_Load" }(...))
+   {
+     if (engine = @{"DB3_NewEngine" Link "DB3_NewEngine" }(mod, ...))
+     {
+       [DB3_SetCallback()] optional
+       [DB3_SetPos()]      optional
+       [DB3_SetVolume()]   optional
+
+       for (some loop)
+       {
+         @{"DB3_Mix" Link "DB3_Mix" }(to a buffer)
+         play_audio(from buffer)
+       }
+
+       @{"DB3_DisposeEngine" Link "DB3_DisposeEngine" }(engine)
+     }
+
+     @{"DB3_Unload" Link "DB3_Unload" }(mod)
+   }
+
+ HISTORY
+   v1.0 (23.10.2014)
+   - The first public release, based on libdigibooster3 1.3.0.
+
+
+@endnode
+
+@node "DB3_DisposeEngine" "digibooster3.library/DB3_DisposeEngine"
+
+
+ @{b}NAME@{ub}
+   DB3_DisposeEngine -- disposes a module synthesizer (V1)
+
+ @{b}SYNOPSIS@{ub}
+   DB3_DisposeEngine(engine)
+                     A0
+
+   VOID DB3_DisposeEngine(APTR engine);
+
+ @{b}FUNCTION@{ub}
+   Disposes a module synthesizer, frees all resources.
+
+ @{b}INPUTS@{ub}
+   engine - a blackbox pointer to the synthesizer engine. Passing NULL is
+      OK (function returns immediately).
+
+ @{b}RESULT@{ub}
+   None.
+
+ @{b}SEE ALSO@{ub}
+   @{"DB3_NewEngine" Link "DB3_NewEngine" }
+
+
+@endnode
+
+@node "DB3_Load" "digibooster3.library/DB3_Load"
+
+
+ @{b}NAME@{ub}
+   DB3_Load -- loads a DigiBooster3 module from a file (V1)
+
+ @{b}SYNOPSIS@{ub}
+   module = DB3_Load(filename, errptr)
+   D0                A0        A1
+
+   struct DB3Module* DB3_Load(STRPTR filename, LONG* errptr);
+
+ @{b}FUNCTION@{ub}
+   Loads and parses a DigiBooster 3 (DBM0 type) module stored as a file.
+
+ @{b}INPUTS@{ub}
+   filename - path to a file
+   errptr - optional pointer to a variable where error code will be stored.
+      Note that the variable is not cleared if the call succeeds.
+
+ @{b}RESULT@{ub}
+   Module structure as defined in "musicmodule.h" with complete set of
+   patterns, songs, samples and instruments. Samples are converted to 16
+   bits. In case of failure, function returns NULL. May be caused by
+   NULL filename, corrupted module data, out of memory.
+
+
+@endnode
+
+@node "DB3_Mix" "digibooster3.library/DB3_Mix"
+
+
+ @{b}NAME@{ub}
+   DB3_Mix -- mixes down a next chunk of module (V1)
+
+ @{b}SYNOPSIS@{ub}
+   frmcount = DB3_Mix(engine, frames, output)
+   D0                 A0      D0      A1
+
+   ULONG DB3_Mix(APTR engine, ULONG frames, WORD* output);
+
+ @{b}FUNCTION@{ub}
+   Synthetises and mixes frame chunk of module sound. Mixed frames are
+   stored in 'output'. If a position callback is defined, it is called for
+   every module position change within rendered audio frames range.
+   Following calls to this function need not to use the same number of
+   audio frames.
+
+ @{b}INPUTS@{ub}
+   engine - a blackbox pointer to the synthesizer engine.
+   frames - number of audio frames to render. Must not be higher than buffer
+      size declared in @{"DB3_NewEngine" Link "DB3_NewEngine" }(), will be clipped if higher. Passing 0
+      is OK (function returns immediately).
+   output - buffer for rendered frames. Note that frames are stereo, so the
+      buffer must have at least (4 * frames) bytes. It must point to a valid
+      buffer.
+
+ @{b}RESULT@{ub}
+   Number of valid frames in the buffer. It may be less than 'frames' in
+   case the sequencer has been stopped.
+
+ @{b}SEE ALSO@{ub}
+   @{"DB3_NewEngine" Link "DB3_NewEngine" }, @{"DB3_SetCallback" Link "DB3_SetCallback" }
+
+
+@endnode
+
+@node "DB3_NewEngine" "digibooster3.library/DB3_NewEngine"
+
+
+ @{b}NAME@{ub}
+   DB3_NewEngine -- creates and setups a new module synthesizer (V1)
+
+ @{b}SYNOPSIS@{ub}
+   engine = DB3_NewEngine(mod, mixfreq, maxbuf)
+   D0                     A0   D0       D1
+
+   APTR DB3_NewEngine(struct DB3Module* mod, ULONG mixfreq, ULONG maxbuf);
+
+ @{b}FUNCTION@{ub}
+   Creates and setups a new module synthesizer for passed module, mixing
+   frequency and declared maximum mixing buffer size. Allocates all buffers
+   needed.
+
+ @{b}INPUTS@{ub}
+   mod - complete music module as defined in "musicmodule.h". NULL is safe,
+      function just returns NULL.
+   mixfreq - downmix sampling frequency in Hz. Allowed frequencies are 8 kHz
+      to 192 kHz (including).
+   maxbuf - maximum number of frames that will be requested in @{"DB3_Mix" Link "DB3_Mix" }()
+      calls. Note that some internal buffers are allocated based on this
+      value, so setting it high may result in unexpected memory consumption.
+      Values up to mixing frequency (which yields one second buffer) are
+      reasonable. Very short buffers are allowed (yes, even one single
+      frame), but highly ineffective. Zero passed here causes the function to
+      quit immediately with NULL result.
+
+ @{b}RESULT@{ub}
+   An opaque pointer to the new module synthesizer, or NULL in case of wrong
+   arguments or memory shortage.
+
+ @{b}SEE ALSO@{ub}
+   @{"DB3_Mix" Link "DB3_Mix" }
+
+
+@endnode
+
+@node "DB3_SetCallback" "digibooster3.library/DB3_SetCallback"
+
+
+ @{b}NAME@{ub}
+   DB3_SetCallback -- sets a position update callback function for a
+   synthesizer (V1)
+
+ @{b}SYNOPSIS@{ub}
+   DB3_SetCallback(engine, callback, userdata)
+                   A0      A1        A2
+
+   VOID DB3_SetCallback(APTR engine, APTR callback, APTR userdata);
+
+ @{b}FUNCTION@{ub}
+   This function is provided for players that want to know exact time of
+   position changes in a module. Useful for example for displaying current
+   pattern/row number, scrolling pattern display or synchronizing something
+   to the music. Using this callback it is possible to get position change
+   timing with single downmix frame accuracy. The callback gets number of
+   row, pattern, song order and delay, measured in downmix frames relative
+   to the start of last module fragment rendered with ModSynth_Mix(). To get
+   realtime trigger, audio interrupts or timers may be used, depending on
+   features available on host. To convert the delay to seconds one just
+   divides delay in frames by mixing frequency.
+
+ @{b}INPUTS@{ub}
+   engine - an opaque pointer to the module synthesizer created with
+      @{"DB3_NewEngine" Link "DB3_NewEngine" }(). NULL is safe, the function does nothing in the case.
+
+   callback - a callback function defined as:
+
+      void callback(void *udata, struct UpdateEvent *uevent);
+
+      where:
+         udata - may be anything. This is just a pointer passed as userdata
+            to DB3_SetCallback(), untouched.
+         uevent - pointer to a read-only UpdateEvent structure:
+            From <libraries/digibooster3.h>:
+
+            struct UpdateEvent
+            {
+               LONG ue_Order;     // number of order in the playlist
+               LONG ue_Pattern;   // ordinal number of pattern
+               LONG ue_Row;       // number of row (position) in the pattern
+               LONG ue_Delay;     // event delay in sample frames
+               LONG ue_Tempo;     // current module tempo ("CIA tempo"), BPM
+               LONG ue_Speed;     // current module speed (ticks per row)
+               LONG ue_SeqHalted; // TRUE if sequencer is halted
+            };
+
+      NULL callback is safe and is considered as turning the callback feature
+      off. Callback may be turned on and off (or changed) as needed.
+
+   userdata - any value, just passed to the callback as described above.
+
+ @{b}RESULT@{ub}
+   None.
+
+ @{b}EXAMPLE@{ub}
+   A step by step instruction how to get realtime position change triggers
+   using Amiga timers:
+   - Be prepared that one call to @{"DB3_Mix" Link "DB3_Mix" }() will call your callback
+     more than once.
+   - In the callback convert delay from samples to timer units (usually
+     CPU clocks). Prepare a timer request for every callback.
+   - Get current system clock.
+   - Push the rendered buffer to audio hardware.
+   - Add current clock to requests and sent them all to timer (WAITECLOCK
+     unit).
+   - While buffer is playing, wait for timer requests to be replied and take
+     desired actions.
+   There may be some additional delay if an event occurs just a few frames
+   after buffer start (adding time and sending requests takes some CPU
+   cycles). It may be compensated by using triple buffering and sending time
+   requests one buffer earlier (a buffer length in frames should be added to
+   the delay before conversion to timer units).
+
+ @{b}SEE ALSO@{ub}
+   @{"DB3_Mix" Link "DB3_Mix" }
+
+
+@endnode
+
+@node "DB3_SetPos" "digibooster3.library/DB3_SetPos"
+
+
+ @{b}NAME@{ub}
+   DB3_SetPos -- sets the current sequencer position (V1)
+
+ @{b}SYNOPSIS@{ub}
+   DB3_SetPos(engine, song, order, row)
+              A0      D0    D1     D2
+
+   VOID DB3_SetPos(APTR engine, ULONG song, ULONG order, ULONG row);
+
+ @{b}FUNCTION@{ub}
+   Immediately moves the engine sequencer to a new position in a module.
+   Note that this function does not reset the engine, so doing it in the
+   middle of a module may result in some unexpected results.
+
+ @{b}INPUTS@{ub}
+   engine - an opaque pointer to the module synthesizer created with
+      @{"DB3_NewEngine" Link "DB3_NewEngine" }(). Must not be NULL.
+   song - number of song in the module. Starting from 0.
+   order - number of playlist order in the song. Starting from 0.
+   row - number of row in the pattern selected with order. Starting from 0.
+
+ @{b}RESULT@{ub}
+   None.
+
+ @{b}NOTES@{ub}
+   All three parameters *must* specify a valid position inside the module.
+   If not, the sequencer will read random data and probably crash.
+
+
+@endnode
+
+@node "DB3_SetVolume" "digibooster3.library/DB3_SetVolume"
+
+
+ @{b}NAME@{ub}
+   DB3_SetVolume -- sets the current master volume level (V1)
+
+ @{b}SYNOPSIS@{ub}
+   DB3_SetVolume(engine, volume)
+                 A0      D0
+
+   VOID DB3_SetVolume(APTR engine, WORD volume);
+
+ @{b}FUNCTION@{ub}
+   The function sets the master volume level in decibels. 0 dB level is
+   defined in the following way: if one assumes full amplitude on all the
+   tracks in the module, the final downmix will have full amplitude too.
+   Then 0 dB and below is overdrive-safe. Master volume above 0 dB may cause
+   overdrive, which is then saturated. The allowed range is from -84 dB to
+   +24 dB including.
+
+   The master volume level operates inside the internal 32-bit mixer. Then
+   adjusting volume with this function gives less quantization noise than
+   scaling the output 16-bit stream.
+
+ @{b}INPUTS@{ub}
+   engine - an opaque pointer to the module synthesizer created with
+      @{"DB3_NewEngine" Link "DB3_NewEngine" }(). Must not be NULL.
+   level - master volume level in decibels. Must be inside <-84, +24> range.
+
+ @{b}RESULT@{ub}
+   None.
+
+
+@endnode
+
+@node "DB3_Unload" "digibooster3.library/DB3_Unload"
+
+
+ @{b}NAME@{ub}
+   DB3_Unload -- unloads DigiBooster 3 module from memory (V1)
+
+ @{b}SYNOPSIS@{ub}
+   DB3_Unload(mod)
+              A0
+
+   VOID DB3_Unload(struct DB3Module* mod);
+
+ @{b}FUNCTION@{ub}
+   Properly unloads DigiBooster 3 module loaded with @{"DB3_Load" Link "DB3_Load" }().
+
+ @{b}INPUTS@{ub}
+   mod - pointer to the module returned by @{"DB3_Load" Link "DB3_Load" }(). NULL is valid input,
+     function is a no-op in this case.
+
+ @{b}RESULT@{ub}
+   None.
+
+ @{b}SEE ALSO@{ub}
+   @{"DB3_Load" Link "DB3_Load" }
+
+
+@endnode

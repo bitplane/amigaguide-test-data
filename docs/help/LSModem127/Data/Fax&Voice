@@ -1,0 +1,1509 @@
+@Database "FAX and DATA modems with voice Mail"
+
+@NODE Main "FAX and DATA modems with voice Mail"
+
+VoDaFax
+
+
+EXTENDED AT COMMANDS
+
+
+FAX & DATA MODEMS
+WITH VOICE MAIL AND BUSINESS AUDIO CAPABILITY
+
+
+
+
+
+
+
+
+
+
+REV 2.31 December  1993
+
+
+
+
+
+TABLE OF CONTENTS 1 - 3
+PURPOSE OF DOCUMENT     4
+REFERENCE DOCUMENTS     4
+FUNCTIONAL REQUIREMENTS 4
+SIERRA DEMO HARDWARE    4
+PC INTERFACE    5
+ON-BOARD BUFFERING      5
+EXTENDED AT COMMANDS SUMMARY    6
+RESPONSE CODE SUMMARY   7
+AT COMMANDS/RESPONSES SYNTAX    7
+SAMPLE  RATES AVAILABLE 13
+CURRENT SAMPLE RATE INQUIRY     13
+CODEC MODE SETUP        13
+AVAILABLE CODEC MODES   14
+CURRENT CODEC MODE INQUIRY      14
+COMPRESSION MODE SETUP  14
+COMPRESSION MODES AVAILABLE     15
+CURRENT COMPRESSION MODE INQUIRY        15
+RELAY CONTROL   15
+RINGBACK TIMERS 15
+DTMF QUALIFICATION TIMER        18
+DMA DATA TRANSFER       18
+HOOK BEHAVIOR CONTROL UNDER VOICE       21
+AUDIO MODE      21
+BUFFER CANCEL ENABLE    22
+CALLER ID       23
+PARALLEL MODE FLOW CONTROL -COM PORT MODE       25
+SERIAL MODE FLOW CONTROL        25
+DTMF TONE RECEIVED      28
+EMBEDED <DLE> COMMANDS  30
+END VOICE PLAYBACK      30
+<DLE> <ETX>     30
+CANCEL BUFFER   30
+<DLE> <CAN>     30
+EMBEDED <DLE> RESPONSE CODES    31
+REPORT END OF MESSAGE   31
+<DLE><ETX>      31
+REPORT DIAL TONE        31
+<DLE>#VDT       31
+REPORT LOCAL PHONE OFF HOOK     31
+<DLE>#VTO       31
+REPORT LOCAL PHONE ON HOOK      32
+<DLE>#VTH       32
+REPORT RUN LENGTH ENCODING      32
+<DLE>L  32
+REPORT SILENCE DELETION 33
+<DLE>S  33
+REPORT QUIET DETECTED   33
+<DLE>Q  33
+REPORT RING     33
+<DLE>RING       33
+REPORT <DLE>    34
+<DLE><DLE>      34
+REPORT DTMF DEFINITELY DETECTED + IDENTITY      34
+<DLE>#VD<"number">      34
+REPORT DTMF POSSIBLY DETECTED   35
+<DLE>D  35
+REPORT RELEASED DTMF DETECTION  35
+<DLE>R  35
+VOICE DRIVER    42
+1. Purpose      42
+2. Overview     42
+3. Application Interface        42
+3.1. Application to Driver interface    42
+3.2. Driver to Application interface    43
+4. Event Notification   43
+4.1. Callback Notification      43
+4.2.    Window Message Notification     43
+5. Integration With WaveFax Business Audio Driver       44
+6. Opening The WaveFax Voice Driver     44
+7. Closing the WaveFax Voice Driver     44
+8. Sending Messages to the Driver       44
+9. WaveFax Voice Driver Messages        45
+9.1. VDRV_SET_NOTIFICATION - Set Notification Mode      45
+9.2. VDRV_SET_MODE - Set Driver Mode    45
+9.3. VDRV_GET_MODE - Get The Current Driver Mode        45
+9.4. VDRV_SET_EVENT_MASK - Set The Driver Event Mask    46
+9.5. VDRV_GET_EVENT_MASK - Get The Current Event Mask   50
+9.6. VDRV_GET_EVENT_CAPABILITIES - Get The Driver's Event Capabilities  50
+9.7. VDRV_SET_SILENCE_PARAMS - Set Silence Threshold and Timeout        50
+9.8. VDRV_SET_VOICE_PARAMS - Set Voice Parameters       50
+9.9. VDRV_SET_MODEM_PARAMS - Set Modem Parameters       52
+9.10. VDRV_GET_DRIVER_VERSION - Get Version Number Of The Driver        53
+9.11. VDRV_PLAY_MESSAGE - Play A Message        54
+9.12. VDRV_RECORD_MESSAGE - Record A Message    54
+9.13. VDRV_STOP_VOICE - Stop The Current Voice Operation        54
+9.14. VDRV_PLAY_BEEP - Play A Beep Sound        54
+9.15. VDRV_SET_ABRITRATION_MODE - Set Comm Port Arbitation Mode 55
+9.16. VDRV_OBTAIN_COMM_PORT - Get Control Of The Comm Port      55
+9.17. VDRV_RELEASE_COMM_PORT - Release Control Of The Comm Port 55
+9.18. VDRV_SET_CALLER_ID_FORMAT - Set Caller ID Data Format     55
+9.19. VDRV_SEND_AT_COMMAND - Send an AT command to the modem    56
+9.20. VDRV_SET_DEBUG_MODE - Set Driver debug mode               56
+9.21. VDRV_TIMER_TICK - Driver Background Processing Tick       56
+10. Error Messages      56
+11. Include Files       57
+12. Example Applications        57
+
+
+Note that this is the final document describing the command set supported by
+ the 3.15(a-z) series firmware.  The final firmware in this series is 3.15V1
+1.
+
+This document is for use by developers of application software to support
+ Sierra Voice and fax modems. It represents the production released commands
+ implemented as of December 1993 and is intended for use with our  ST 4743
+ chipset which supports Class 2 9600 fax , 2400 data , MNP and V.42bis as
+ well as voice. Caller ID and Business Audio are also supported.
+
+Sierra's command set has been field proven and is used in production VoDaFax
+ devices.  Sierra modems that support this command set will include the
+ string "voice 2.3" in the response to ATI4.
+
+
+Revised December 1993
+
+PURPOSE OF DOCUMENT
+
+This document  specifies Sierras VoDaFax  product  firmware and software
+ interface for addition of voice processing functions to  Sierras Fax and
+ Data chip set ST4743.
+
+REFERENCE DOCUMENTS
+
+530001 2400bps modem commands & S-register guide.
+530002 EIA 2388 class 2 command summary.
+
+FUNCTIONAL REQUIREMENTS
+
+The VoDaFax product offers the features outlined in the following sections.
+ These include the ability to send and receive Voice and DTMF  signals from
+ the telephone line, to record and play back voice messages through the
+ local telephone set, and to  identify incoming calls as voice, fax or data.
+
+SIERRA DEMO HARDWARE
+
+A PC compatible, tested circuit card will be provided by Sierra for software
+ developers. This PC card uses the ST4743  chip set and  includes a hardware
+ RAM buffer of at least 32Kx8.  Demos  include facility for local telephone
+ power and so the 'phone  may be used for  record and playback.  Provision
+ for Caller ID is also built in and is supported by the firmware.
+
+Serial demo boards are also available in very limited number for 
+ developers. These are configured to include caller ID and voice relays for
+ local record and playback using the local telephone.  Headset support and
+ ability to detect local phone off hook and line reversal are also available
+.
+
+PC INTERFACE
+
+The product communicates with the host (PC) through the parallel PC bus or
+ serial COM port, or through DMA.  Products with DMA interfaces will also be
+ capable of communicating through a COM port.  This will allow the use of
+ existing fax and data software.  DMA is only required for voice transmit
+ and record modes.    The serial interface operates  using a  maximum serial
+ rate of 115Kbit/s.  With 2:1 compression and 4800 s/s  the data rate is a
+ maximum of 24000 bps. including start and stop bit overhead.  With our 
+ CVSD compression the data rate is only  18250 bps. including start and stop
+ bit overhead.  This allows a Microsoft Windows COM driver interface to
+ operate at a data rate of 19200 bps, (This is the maximum data rate
+ guaranteed to work with a 16C450 UART and Windows by Microsoft).  DMA
+ interfaces allow the higher sampling rates of 9600 samples / second and
+ 11025 samples / second to be used without compression, in the background,
+ from DOS or Windows.  DOS foreground only applications can use 4800 s/s w
+ithout compression, setting the data rate to at least 57600 bps or 9600 s/s
+ without compression, setting the data rate to 115200 bps.
+
+The COM port interface is used with a software FIFO option to reduce
+ interrupt overhead.  In the serial mode, the CTS signal will be used to
+ control data flow from host  (DTE) to DCE. Optionally <XON><XOFF> may be
+ used (with caution).  ACK will be used to coordinate data transmission 
+ from DCE to DTE..  See flow control section for further discussion on this 
+area.
+
+DMA INTERFACE
+
+All boards contain serial COM port interfaces, be they stand alone RS 232D
+ or internal parallel cards.  Additionally, higher-end boards will contain
+ DMA interfaces for handling the high data bandwidth requirements of
+ uncompressed voice.
+
+To use the DMA interface from within voice mode, the application must
+ specify a DMA block size with the #VBSn command and a DMA channel with the
+ #VCH=n command.  The voice stream initiated by a voice record or play
+ command will then be redirected by the DCE to the internal or host UART
+ scratch pad register.  DCE hardware will ensure that DMA acknowledges from
+ the DTE will be decoded to the scratch pad register.
+
+See Appendix E, DMA Handshaking, for more information.
+
+ON-BOARD BUFFERING
+
+RAM will be used for buffering of the voice data when in the transmit or
+ receive  mode . Normally the product will be used with 8-32K x8 RAM on the
+ card which is also used for data compression and error correction.  The
+ voice buffer is set to 16K, allowing for 1.5 seconds of buffered voice to
+ be held on the DCE, at 11K s/s.
+
+EXTENDED AT COMMANDS SUMMARY
+
+The product will respond to the following extended AT commands and will
+ configure the chip set accordingly.  Each command consists of an ASCII
+ string started by AT and terminated by a carriage return and line feed (<CR
+>,<LF>).
+
+In voice transmit modes as in fax  modes, the DTE shall signal the  DCE to
+ enter command mode by  dropping  DTR. The DCE will  respond to DTR
+ according to the AT&Dn instruction.
+
+Command mode may be entered from voice receive mode by the DLE sequence
+ <DLE> <ETX> as detailed in appendix B, or by dropping DTR.  The DCE will
+ respond to DTR according to the AT&Dn instruction.
+
+
+
+    AT# Cmd             Action
+
+        VSn             Activate voice mode (DTE rate n)
+        VSV             Transmit voice data, listen for DTMF
+        VD0             Transmit voice data
+        VD1             Receive voice data
+        VT1             DTMF receive enable
+        VT0             DTMF receive disable
+        VSI= n           Sets silence end of message timer. (100ms)
+        VSS=R           Set sample rate to R
+        VQS             Request available sample rates
+        VQS?            Request current sample rate
+        VSM=C           Set CODEC mode to C
+        VQM             Request CODEC modes
+        VQM?            Request current CODEC mode
+        VSC=X           Set compression mode to X
+        VQC             Request compression mode available
+        VQC?            Request current compression mode
+        VH=X            Activate relay X
+        VST=0/1 Set silence threshold -43dBm/-47dBm
+        VC=0,1          Disable, Enable <DLE><CAN>
+        VB=f1,t         Send tone beep of frequency f1  (x10 Hz)
+                        and duration t (x100ms)
+        VF=n            Set FIFO size ( default =64)
+        VRA=n           Ringback goes away timer (100ms)
+        VRN=n           Ringback never came timer (100ms)
+        VG=xxx  Gain setting in voice receiver - default = 119
+        VSD=0,1,2       Silence deletion control (disable, 1sec, 0.5sec)
+        VL=n            Set run-length encoding
+        VAA=n           Select Auto answer modes
+        VAA?            Query auto answer modes
+        VBS=n           Specify data transfer via DMA (n=block transfer size).
+        VQB             Request list of available DMA block transfer sizes.
+        VQB?            Request current setting for DMA block transfer size.
+        VCH=n           Set DMA channel.
+        VBO=M   Set binary offset mode.
+        VQO?            Query binary offset mode.
+        VM=M            Microphone command.
+        VSP=P           Snoop command.
+        VQP?            Query snoop mode.
+        VNH=n   Set hook behavior for fax and data calls within voice calls.
+        VQH?            Query hook behavior for fax and data calls within voice calls.
+        VZ=M            Set audio mode.
+        VQZ?            Query audio mode.
+
+RESPONSE CODE SUMMARY
+
+The product will return brief responses to all AT commands.  Each response
+ will consist of an ASCII string and will be preceeded by, and terminated by
+ a carriage return and line feed (<CR>,<LF>).  There are no terse responses
+ in voice mode.  The following are the responses that may be returned by the
+ product.
+
+        Response                                Reason
+
+        CONNECT         Entered Voice TX or RX mode
+        OK                      Command accepted and initiated
+        ERROR                   Error condition, illegal command
+        #VQS:(S1-Sx)            Available sample rates
+        #VQS=S          Current selected sample rate
+        #VQM:(C1-Cx)            Available CODEC modes
+        #VQM= C          Current selected CODEC mode
+        #VQC:(M1-Mx)            Available compression methods
+        #VQC= X          Current selected compression method
+        #VH= X                   Current selected relay(s)0
+        #VDn                    DTMF digit received
+        #VTO                    Telephone went off hook
+        #VTH                    Telephone went on-hook
+        #VCON           Connect modem in voice mode.
+        #VQB:(X1,X2,...Xn)      Available DMA block transfer sizes
+        #VQO= O          Current selected binary mode
+        #VQP= P          Current snoop mode
+        #VQZ= M          Current audio mode
+        #VC= n                   Current cancel control - DTMF abort control mode
+        #VDG                    Fax detected when #VAA= 129 or 130
+        #VDD                    Fax detected when #VAA= 4
+
+AT COMMANDS/RESPONSES SYNTAX
+
+The following section details the proposed AT commands and the responses
+ returned after a command is executed.  All AT commands should be followed
+ by carriage return and line feed. All responses will be followed by a
+ carriage return and line feed.
+
+If "ERROR" is received as a response to a command or a command string, you
+ must rexecute that command or command string to ensure that the modem will
+ behave as expected.
+
+Voice commands will begin with AT#V. (AT+ is reserved for EIA standards use)
+
+Commands are divided into two groups, CORE commands and CORE+ commands. 
+ CORE commands are VoDaFax commands which have been supported since the
+ advent of 2.01 V.22bis firmware.  CORE+ commands include the more advanced
+ voice features such as DMA, and microphone commands which were developed
+ under the 3.15(a-z) program.  WaveFax modems use the CORE+ command set in
+ addition to the CORE set.
+
+
+
+CORE COMMANDS
+CORE commands are available on V.22bis modems with 2.01 firmware, or above.
+CORE commands are available on V.32bis modems with 1.00 firmware, or above.
+
+VOICE MODE ACTIVATION
+
+        This command is used to put the DCE in the voice mode. Upon entering
+ this mode, the sampling rate is set to 9600s/s (or the rate last set by
+ AT#VSS=  <rate> command) and the Mu Law compression algorithm is set.  The
+ DTE should delay at least 250 miliseconds after #VSS, before executing
+ another command.
+
+Syntax:         #VSn
+        n       DTE Rate
+        0       Return to data mode
+        1       115.2bit/s
+        2       57.6kbit/s
+        3       38.4kbit/s
+        4       19.2 kbit/s
+
+Response:               OK  (Returned at the old rate)
+
+
+RECEIVE VOICE DATA
+
+        This command initiates voice data sampling and receiving. The
+ sampled data will be moved to a holding buffer. If an external RAM buffer
+ is present it will be used, otherwise 100bytes of  internal RAM will be
+ used. In parallel configuration, the controller will start feeding 
+ received bytes into the UART RXD register.
+
+Syntax:         #VD1
+Response:               CONNECT
+                        data received <DLE><ETX>
+
+
+TRANSMIT VOICE DATA & RECEIVE DTMF
+
+        This command initiates voice data sampling and transmission to the
+ D-A. The data is sampled at the set sample rate.  DTR will be high for the
+ data to be transmitted.  The DTE data will pass through a buffer in the DCE
+ to await transmission. If an external RAM buffer is present it will be
+ used, otherwise the internal RAM will be used.   DTR low indicates end of
+ data.  The DCE will transmit all remaining buffered data when DTR drops low
+ or <DLE><ETX> is received, and then goes to command mode.
+
+Syntax:         #VSV
+Response:               OK
+                        CONNECT
+                         transmission
+                        OK
+
+
+TRANSMIT VOICE DATA (Do not report DTMF )
+
+This command  is the same as VSV except no DTMF detection will be performed.
+
+Syntax:         #VD0
+Response:               OK
+                        CONNECT
+                        transmission
+                        OK
+
+
+FIFO COMMAND
+
+Syntax:         AT#VF?  Returns maximum FIFO size in bytes.
+Response:       X
+        Where X is a decimal number indicating the size of the FIFO in bytes
+.
+
+Syntax:         AT#VF= n Sets receive FIFO block transfer  size  to  n
+                bytes (32,64,128,256)
+Response:       OK
+
+Syntax:         AT#VF= 0 Disables FIFO
+Response:       OK
+The default flow control after "ATZ" is VF= 1 i.e. FIFO block transfer size
+ =  64 bytes.
+See appendix A for a description of how to use the FIFO command with  flow 
+control.
+
+
+RECEIVE GAIN SETTING
+
+Syntax:         #VG= x
+Response:       OK
+
+The gain can be set in the range  -6.2dB to 20.8dB in 256 steps.  This
+ command will set the initial gain level.  Default value is 119 (6.4dB).
+
+This command should be used with caution on DSP codes prior to CBD.  The
+ following information desribes the limitations of #VG under various modes.
+
+Mu-Law and CVSD modes
+Codes prior to CBD only support DTMF detection under Mu-Law or CVSD with the
+ receive gain setting set to 60 or below.  Receive gain settings of 61 or
+ above may not reliably detect DTMF.
+
+Linear mode
+Codes prior to CBD divide the receive gain setting into 4 possible gains,
+ 0-63, 64-127, 128-191, and 192-256.  DTMF will be detected using any gain
+ from 0 to 256, however the actual gain will vary as follows:
+
+        Setting         Gain
+
+        0-63            0dB
+        64-127          6dB
+        128-191         9dB
+        192-256         12dB
+
+
+RUN LENGTH ENCODING
+
+Syntax:         #VL= 0,1
+Response:       OK
+
+
+
+Run length encoding , if enabled, will compress equal valued samples
+ (typically silence)  and encode the data as follows: <DLE><L><Char>##H.
+ Where ## is the byte count in Hex.
+
+
+SILENCE DELETION CONTROL
+
+This command is available in UART mode only, i.e. when #VBS= 0.
+
+Syntax:         #VSD= 0,1,2
+Response:       OK
+
+0       Disabled
+1       One second of silence is not compressed.
+2       One half second of silence is not compressed.
+
+This command is not recomended for use.  It encodes silence periods with one
+ <DLE><S> for every 256 consecutive bytes of silence.  The codes are
+ re-expanded on playback.  Thus this command as actually implemented as a
+ silence encoder, useful for conserving disk space, but not for truncating
+ long periods of silence.
+
+
+END OF MESSAGE TIMER
+
+Syntax:         #VSI= n
+Response:       OK
+
+End of voice message will be detected  by silence for a period of time set
+ in a register  set by AT#VSI= n   (100ms).  At this time, the DCE will 
+ drop DCD and send <DLE><ETX> and go into command mode.
+
+
+
+DTMF RECEIVE ENABLE (In command mode)
+
+This command enables the reception of DTMF tones when the modem is in
+ command state.
+(See VSV command for  DTMF detection during voice transmission.)
+
+Syntax:         #VT1
+Response:       OK
+
+
+DTMF RECEIVE DISABLE
+
+This command disables the reception of DTMF tone during voice data 
+transmission.
+
+Syntax:         #VT0
+Response:       OK
+
+*** [This is the default condition in voice mode]
+
+
+SAMPLE RATE SETUP
+
+This command sets the sample rate. 8000Hz is the default value upon entering
+ the voice mode.
+
+Syntax:         #VSS= R
+Response:       OK
+        where R =        0       4800
+                        1       7300    .......(SC11094 + CBB OR BETTER DSP CODE)
+                        2       8000    .......(SC11092,4 ONLY) ***[default]
+                        3       9600
+                        4       11000   .......(SC11094 + ABH OR BETTER DSP CODE)
+                        5       22000   ........[Not yet available]
+                        6- 9 reserved
+
+
+SAMPLE  RATES AVAILABLE
+
+This command requests the sample rates available by the DCE.
+
+Syntax:                 #VQS
+Response:               #VQS:(4800, 9600, etc)
+                        More values may be added depending on chip set.
+
+
+CURRENT SAMPLE RATE INQUIRY
+
+        This command requests the current selected sample rate.
+
+Syntax:                 #VQS?
+Response:               #VQS= R
+        where R =        0               4800
+                        1               7300  (SC11094 only)
+                        2               8000  (SC11092,4 only)
+                        3               9600
+                        4               11000  (SC11094 only)
+
+
+CODEC MODE SETUP
+
+This command sets the CODEC mode.
+
+Syntax:         #VSM= C
+Response:       OK
+        Where C =        0       8 Mu Law        *** [default]
+                        1       8 A-Law         .......[Not yet available]
+                        2       8 LIN
+                        3       10LIN
+                        4       12LIN           .......[SC11094 only]
+                        5       14LIN           .......[Not yet available]
+                        6       16LIN           .......[Not yet available]
+                        7- 9    reserved
+
+
+AVAILABLE CODEC MODES
+
+This command requests the available CODEC modes.
+
+Syntax:         #VQM
+Response:       VQM:(8 Mu Law, 8LIN, etc)
+
+
+CURRENT CODEC MODE INQUIRY
+
+This command requests the current CODEC mode selected.
+
+Syntax:         #VQM?
+Response:       #VQM= C
+        Where C =        0       8 Mu Law
+                        1       8 A-Law
+                        2       8 LIN
+                        3       10 LIN
+                        4       12LIN
+                        5       14LIN
+                        6       16LIN
+                        etc
+
+
+COMPRESSION MODE SETUP
+
+This command sets up the compression algorithm.
+
+Syntax:         #VSC= X
+Response:       OK
+        Where X =        0       No compression          *** [default]
+                        1       CVSD14.4
+                        2       ADPCM 32 CCITT G.721    [Not yet available]
+                        3       GSM 13                  [Not yet available]
+                        4       SPC (Sierra proprietary compression)
+                        5       VSELP  (PN2398)         [Not yet available]
+                        6       MACE     3:1 (Apple CPU only) 
+                           [Requires special driver from Sierra]
+                        7- 9    reserved
+
+COMPRESSION MODES AVAILABLE
+
+        This command requests the available compression algorithms.
+
+Syntax:         #VQC
+Response:       #VQC:(No Compression, CVSD14.4, ADPCM 32,GSM 13, CELP 4, etc
+.)
+
+CURRENT COMPRESSION MODE INQUIRY
+
+This command requests the current selected compression algorithm.
+
+Syntax:         #VQC?
+Response:       #VQC= X
+        Where X =        0       No compression
+                        1       CVSD14.4
+                        2       ADPCM 32
+                        3       GSM 13
+                        4       SPC
+                        etc as above
+
+
+RELAY CONTROL
+
+The DTE uses an integer, the <X> subparameter, as a label to identify a set
+ of relays to energize.
+
+Syntax:         #VH= X
+Response:       OK
+
+Where   X =      0       DCE on-hook.  Relays unenergized.  
+                        Local phone connected to Telco.
+                1       DCE off-hook.  Hook relay energized.  
+                        DCE connected to Telco.
+                2       DCE on-hook.  Local relay energized.
+                        Local phone connected to DCE.
+                3       DCE off-hook.  Hook and Local energized.
+
+
+Hook status inquiry
+
+Syntax:         #VH?
+Response:       #VH= X
+        Where X = any number from 0-3.
+
+
+
+
+RINGBACK TIMERS
+RINGBACK GOES AWAY TIMER
+Syntax: #VRA= n
+Response:       OK
+        Where n is a value from 1 to 256 representing steps of 100 ms.
+        Default value =  60.
+
+RINGBACK GOES AWAY INQUIREY
+Syntax: #VRA?
+Response:       #VRA= n
+        Where n is a value from 1 to 256 representing steps of 100 ms.
+
+RINGBACK NEVER CAME TIMER
+Syntax: #VRN= n
+Response:       OK
+        Where n is a value from 1 to 256 representing steps of 100 ms.
+        Default value =  80.
+
+RINGBACK NEVER CAME INQUIREY
+Syntax: #VRN?
+Response:       #VRN= n
+        Where n is a value from 1 to 256 representing steps of 100 ms.
+
+These timers are used to generate the #VCON response to indicate that a
+ remote phone has answered.  The #VCON response will be issued when either
+ of these timers reaches 0.
+E.G.  If you expect the call setup to take 10 seconds, and you assume that
+ the ring period is 6 seconds, then you would set #VRN= 100 and #VRA= 60.
+ If the remote picks up before ringback is generated, #VRN will time out
+ first, giving the response #VCON.  If one or more ringbacks occur before
+ the remote picks up, #VRA will time out 6 seconds after the last ring, (in
+ this example), and report #VCON.  #VRA will only cause a #VCON response if
+ there has been at least one ringback.
+
+
+SET AUTO ANSWER MODE
+It is expected that the user will set S0 to the number of rings required
+ before going off hook.  When S0 is set to a value other than 0, then the
+ modem will automatically go off hook in response to the number of RING
+ events specified by S0.  It is not recomended to use #VAA with the ATA 
+ command.
+Syntax: #VAA= n
+
+VAA bit 7 determines fax answer (0) or  report only (1)
+
+n       +FAA=            Answer mode
+0       0               Software election
+0       1               Fax or Data
+1       0 or 1          Fax or Voice
+2       0 or 1          Fax, Data or Voice
+3       0               Data or Voice
+129     0 or 1          Fax/Voice : Report +FCNG (#VDG in voice mode)  
+                        if Fax, #VCON if voice
+130     0 or 1          Fax/Data/Voice: Report +FCNG if fax,
+4       0 or 1          Fax/Voice : Report #VDD if Fax, #VCON when the line
+                        is automatically taken off hook in response to
+                        the number of RING events specified by S0.
+
+Mode 4 (VAA) (Only available in the CORE+ command set)
+Mode 4 is valid in voice mode only.  Mode 4 is valid only at 11025 s/s.
+ #VCON is reported when the line is taken off-hook in response to the number
+ of RING     events specified by S0.
+The OGM is expected to be played out with a #VSV command at this point.  The
+ first #VSV executed after an automatic answer will behave as follows:
+ 1,2,3,4,5,6,7,8,9 and CNG are detectable during the first 4 seconds.  0,1,2
+,3,4,5,6,7,8,9,*,# are detectable from the end of the first 4 seconds of OGM
+ or from the end of the first detected DTMF or CNG tone, until play mode is
+ exited.  DTMF is reported as #VD{number} where {number} may be as specified
+ above.  CNG is reported as #VDD.
+
+All subsequent #VSV's will behave as described in this document until
+ another automatic answer occurs.
+
+
+
+CORE+ COMMANDS
+CORE+ commands are available on V.22bis modems with 3.15(a-z) series
+ firmware, or above.
+CORE+ commands are available on V.32bis modems with 2.0 series firmware, or 
+above.
+
+DTMF QUALIFICATION TIMER
+Syntax: S18= n
+Response:       OK
+Where n is a number representing the number of 10ms intervals the controller
+ will use to qualify DTMF.
+
+In Data mode, S18 is the modem test timer.  The factory default is 0.  When
+ the modem enters voice mode, it will save the setting of S18 and set S18 to
+ 3.  The S18 register then becomes the voice mode DTMF detect qualification 
+ timer.
+ DTMF detection is done by the DSP over a period of 15 ms.  If at the end of
+ this period, DTMF energy is still present, the DSP will report its presense
+ to the controller.  The controller will further qualify the DTMF for the
+ number of 10ms time intervals specified by the S18 register.  If S18 is set
+ to zero, no qualification of the DTMF will be done by the controller.
+
+
+DMA DATA TRANSFER
+This command instructs the DCE on whether to transfer data via the serial
+ port or via a DMA channel.  n= 1-3 specifies that data will be transferred
+ via DMA.  n= 0 specifies that data will be transferred via the serial
+ port.  Values of n= 1-3 specify specific DMA block transfer rates.  The
+ default value for n is 0.  See appendix D for more information on DMA data 
+transfers.
+SPECIFY DMA DATA TRANSFER RATE
+Syntax  #VBS= n
+                        n       DMA block transfer size (or mode)
+                        0       NO DMA  (pass data through serial port) 
+                                ***[default]
+                        1       1K block
+                        2       2K block
+                        4       4K block
+
+DMA DATA TRANSFER BLOCK SIZES AVAILABLE
+This command requests the DMA data block sizes supported by the DCE.
+Syntax  #VQB
+Response        #VQB:(0,1,2,...etc)
+        Where the numeric codes are:
+                                        0       No DMA
+                                        1       1K block
+                                        2       2K block
+                                        4       4K block
+N.B. Block sizes within the list are separated by commas.  Block size codes
+ are listed in ascending order, starting with 0.
+
+CURRENT DMA DATA TRANSFER BLOCK SIZE
+Syntax  #VQB?
+Response        n
+        Where n is 0,1,2 or 4.
+DMA CHANNEL SELECT
+Syntax  #VCH= n
+        Where n is 0,1,2, or 3
+        The codes for n correspond directly to DMA channels, i.e. code 1 is
+ DMA channel 1, etc.
+Response        OK
+
+
+BINARY OFFSET
+
+This command sets the type of binary the voice data will be composed of.  If
+ AT#VBO= 0, then the DCE shall pass only 2's compliment voice data to the
+ DTE;  AT#VBO= 0 also implies that the DCE only expects 2's compliment
+ voice data from the DTE.  Setting AT#VBO= 1 means that the DCE shall pass
+ only offset binary voice data to the DTE.  AT#VBO= 1 also implies that the
+ DCE only expects offset binary voice data from the DTE.
+
+Syntax:         #VBO= M
+Response:       OK
+
+Where M =        0       2's compliment  ***[default]
+                1       Offset binary
+
+CURRENT BINARY MODE INQUIRY
+
+This command requests the current selected binary mode.
+
+Syntax:         #VQO?
+Response:       #VQO= M
+        Where M =        0       2's compliment  ***[default]
+                        1       Offset binary
+
+
+MICROPHONE COMMAND
+This command is used on boards which contain hardware support for an
+ external microphone.  AT#VM= 0 is the default state and implies that the
+ voice stream will be recorded from either the local phone or from the line.
+  AT#VM= 1 causes the voice stream to be recorded from the microphone.
+
+Syntax: #VM= X
+Response:       OK
+        Where X =        0       Input is from local phone or line.  ***[default]
+                        1       Input is from microphone.
+
+INPUT SOURCE INQUIRY
+
+Syntax: #VQI?
+Response:       #VQI= X
+        Where X =        0       Input is from local phone or line.
+                        1       Input is from microphone.
+
+
+MICROPHONE AVAILABILITY STATUS
+This command verifies the presence of microphone firmware.  This command
+ does not verify presence of microphone hardware.
+Syntax: #VQI?
+Response:       #VQI:X
+        Where X =        0       Microphone is not available.
+                        1       Microphone is available.
+
+
+MONITOR MODE
+If supported by your hardware, the monitor command will allow the DCE to
+ monitor DTMF energy on the line while in the on-hook state.  AT#VSP= 0 is
+ the default state and will not report DTMF on the line in the on-hook
+ condition.  AT#VSP= 1 activates monitor mode and will allow the reporting
+ of DTMF on the line while on-hook.
+Syntax: #VSP= X
+Response:       OK
+        Where X =        0       No Monitoring   ***[default]
+                        1       Monitor mode
+
+MONITOR MODE INQUIRY
+
+Syntax: #VQP?
+Response:       #VQP= X
+        Where X =        0       No monitoring
+                        1       Monitor mode
+
+
+HOOK BEHAVIOR CONTROL UNDER VOICE
+Data and fax calls from within voice mode may be made without dropping the
+ line.  #VNH controls whether the DCE shall  hang up the Telco line if the
+ handshake fails or if the DCE performs some other operation that would have
+ normally resulted in a hangup of the phone line.  #VNH can be used to make
+ data or fax connections from within voice calls.
+
+SET HOOK MODE
+Syntax: #VNH= X
+        Where X =        0       Hook behaves normally.
+                        1       Line is not dropped after data or fax call.
+
+HOOK MODE INQUIRY
+Syntax: #VQH?
+Response:       #VQH= X
+        Where X=         0       Normal mode
+                        1       No line drop mode.
+
+
+AUDIO MODE
+Audio mode is used to perform "Business Audio" type functions.  Audio mode
+ is used by the Windows Wave input and output drivers in order to play and
+ record 11K uncompressed "Business Audio" type files.  Audio mode may also
+ be used by applications programs that wish to perform Wave input and output
+ operations.  Audio mode differs from voice mode in the following ways:
+
+(1) You must have both a DMA and a COM port interface to support Audio Mode.
+(2) There is no inband <DLE> signalling in audio mode.  The DCE does not
+ append <DLE> codes to the voice stream during record mode, and the DCE does
+ not interpret <DLE> codes within the voice stream on playback.  DTMF
+ detection is not supported through inband signalling.  All result codes are
+ passed through the COM port.  The voice stream passes through the DMA inter
+face.
+(3) Playback and record modes can only be aborted manually, i.e. by dropping
+ DTR.  Playback and record modes can not be aborted by inband signalling or
+ by timeouts.
+(4) After executing the Audio Mode command, the system defaults are:
+        a) #VBS= 4       ;DMA block size of 4K
+        b)#VSS= 4        ;Sampling rate of 11.025 K s/s
+        c)#VSM= 2        ;Linear mode
+        d)#VBO= 1        ;Binary offset mode
+(5) Upon executing the Audio Mode command, the current voice mode settings
+ are saved.  Upon leaving Audio mode, these voice mode settings are restored
+.
+
+Syntax: #VZ= 1   ;enter audio mode
+                #VZ= 0   ;re-enter voice mode, restoring original settings.
+Response:       OK
+
+AUDIO MODE INQUIRY
+Syntax: #VQZ?
+Response:       #VQZ= M
+        Where M=         1       Audio mode
+                        0       Voice mode
+
+
+BUFFER CANCEL ENABLE
+This command has two effects.
+This command controls the DCE behaviour after reception of a DTMF in
+ transmit mode.  If n= 0 then when a DTMF tone is received in the voice
+ transmit mode, the modem will report the digit, terminate the transmission
+ and go into command mode with an OK prompt.  When n= 1, then when a DTMF
+ tone is received in the voice transmit mode, the modem will report the
+ digit but will not terminate the transmission.  This first effect only
+ occurs when in UART mode, i.e. #VBS= 0.
+
+Effect 1, present in UART mode only:
+
+Syntax: #VC= n
+Response:       OK
+
+0       In voice transmit mode, after receiving a DTMF tone, the modem will
+ report the digit, terminate the transmission, XOFF the DTE, clear the
+ buffer and go to the command mode with an <OK> prompt.
+
+1       In voice transmit mode, after receiving a DTMF tone, the modem  will
+ report the digit, but will not terminate the transmission.  The DTE  may at
+ any time issue  <DLE><CAN> to pause the transmission,  clear the buffer and
+ resume transmission.  The DTE may issue <DLE><ETX> to terminate
+ transmission and return to command state.
+
+The DCE will send silence in the case of data underrun.
+
+
+Effect 2, present in both UART and DMA mode:
+
+#VC controls the buffer cancel enable flag in both UART and DMA mode.
+
+Syntax: #VC= n
+Response:       OK
+
+
+
+
+        Where n=         1       <DLE><CAN> will flush, (throw away), the
+                                 voice buffer.
+                        0       <DLE><CAN>will not flush the voice buffer.
+        Default=         1
+
+INQUIRE DLE CAN ENABLE
+Syntax: #VC= ?
+Response:       #VC= n
+        Where n=         1       <DLE><CAN>will flush the voice buffer.
+                        0       <DLE>.<CAN>will not flush the voice buffer.
+
+
+CALLER ID
+
+        AT#CCn
+                n= 0 CID disabled
+                n= 1 Formatted single message data will be decoded and sent
+                    to the DTE
+                n= 2 Unfomatted data will be streamed to the DTE.
+
+CID COMMAND OUTPUT STRING FORMATS
+
+Ref:    TA-NWT-000030
+        NIS S107-1
+
+Note that CID commands will work in both voice and data modes.
+
+AT#CC0  CID DISABLE
+
+AT#CC1  CID Enable with formatted output and checksum checking.
+                This command only supports single message format.
+                Output strings look like:
+                <CR><LF>RING<CR><LF>
+                DATE= <SP>05/26<CR><LF>
+                TIME= <SP>15:05<CR><LF>
+                CID= <SP><SP>2146999612<CR><LF>
+
+If the checksum received is not correct, no data will be displayed.  If the
+ caller is from an area that does not support caller ID, the display will
+ show CID= O.  If the caller has suppressed the dial number, you will see 
+ CID= P
+
+AT#CC2  CID enable with raw data output:
+                <CR><LF>RING<CR><LF>
+
+The raw data format is composed of a series of parameter codes and parameter
+ lengths, each of which is followed by some data bytes, the number of which
+ is described by the length parameter.  There are seven parameters described
+ in NIS S107-1 Issue 2.  E.G. time has a parameter code of 1.
+
+EXAMPLE PARAMETERS USING MULTIPLE MESSAGE FORMAT
+
+Note that the presence of each of these parameters is optional.  The lables
+ are suggested by NIS S107-1, and appear to be in general use, however
+ instance designation is at the discretion of the service provider.
+
+                1       =        Time
+                2       =        Calling number
+                3       =        Number which must be dialed to reach
+                                calling party
+                4       =        Reason for absence
+                5               Reason for redirection
+                6               Call qualifier
+                7               Name
+
+Appendix A
+FLOW  CONTROL
+
+PARALLEL MODE FLOW CONTROL -COM PORT MODE
+In the parallel application, flow control is achieved through the RXD
+ REGISTER EMPTY BIT. The DTE will also set  DCD. The routine looks at this
+ bit before writing a new byte into the receive register. The bit gets
+ cleared every time the CPU reads the RXD BYTE .
+
+CTS from DCE is used for data flow control When the DCE is ready to receive
+ the voice data it will set CTS true. When the buffer is at the high mark,
+ CTS will go false. When the buffer is at the low mark, CTS will go true.
+
+PARALLEL MODE FLOW CONTROL - DMA PORT MODE
+When DMA is used, there is no need for flow control in the DMA channel
+ because both the DTE and the DCE are aware of the block size being
+ transferred.  Individual bytes are not lost because handshaking is
+ performed between the DMA controller and the DCE firmware.
+
+SERIAL MODE FLOW CONTROL
+ In the serial mode, there is no feedback mechanism like the RXD bit so
+ another method of flow control is required. When the DTE accepts a byte,
+ the application sends an ACK character to the COM port UART. This is then
+ sent to the modem. The  modem will detect  the ACK and send the next group
+ of bytes.  (It does not have to wait for the entire character to be
+ received, The start bit would be sufficient as the DTE  will only send a
+ character if it has cleared the UART or if it is requesting a change to
+ command state. The latter will be done by <DLE><ETX> or by dropping DTR. 
+ The  DCE will examine the character and identify this after the complete
+ character is received.  )
+
+The suggested method for using serial mode flow control is as follows:  Upon
+ receiving an interrupt from the host UART, indicating that the first byte
+ from the FIFO is ready to be retrieved, the DTE should disable interrupts
+ from the host UART.  The DTE should then send an ACK character to the DCE,
+ remove the received byte from the host UART and poll the UART line status
+ register, watching for the next byte to come in.  The DCE will have a new
+ byte ready approximately every 30 microseconds.  The DTE should draw the
+ same number of bytes as set by the #VF FIFO command.  After removing the
+ last byte, the DTE should re-enable interrupts from the host UART.
+
+Some serial ports include a FIFO (eg.,16C550 or Hayes buffered interface )
+ and can store several bytes in the port. . The DCE will send 1 byte  to the
+ DTE and then wait for  <ACK>   (any character will do) Then it will send a
+ block of data  The number of bytes will be equal to the FIFO parameter set
+ by the AT#VF= xn command.
+
+APPENDIX B
+DECEMBER 1993
+RESPONSE CODES
+
+General rules in DMA mode for DLE responses:
+
+Responses are shielded and reported differently in different modes.
+
+1) Command mode.
+
+These responses are reported to the UART, without <DLE> shielding:
+
+#VDG,#VTO, #VTH, #VD<NUMBER>, RING, BUSY,#VCON,NO CARRIER, NO DIALTONE
+
+
+2) Record and playback mode.
+
+These responses are BOTH embedded in DMA data, and reported through the
+ UART.  The <DLE> shielding is included in both the UART, and the DMA data 
+ report.
+
+<DLE><ETX>, <DLE>VDT, <DLE>#VD<NUMBER>
+
+
+These responses are reported through the UART only, with <DLE> shielding.
+
+<DLE>#VTO,<DLE>#VTH, <DLE>RING
+
+
+These responses are embedded in DMA data only, with <DLE> shielding.
+<DLE>L, <DLE><DLE>, <DLE>D, <DLE>R
+
+
+These responses may be sent in the DMA data stream from the DTE to the DCE
+ during playback mode, with <DLE> shielding.
+
+<DLE><CAN> ,<DLE><ETX>
+
+
+3) Unsupported responses
+These responses are not supported in current firmware.
+
+ <DLE><S>, <DLE><Q>
+
+
+
+
+COMMAND MODE RESPONSE CODES
+
+FAX DETECTED
+This response is returned when fax calling tones are detected during an
+ auto-discriminate answer when using #VAA= 129 or #VAA= 130.
+Syntax: #VDG
+This response is returned when fax calling tones are detected during an
+ auto-discriminate answer when using #VAA= 4.
+Syntax: #VDD
+
+LOCAL HOOK CHANGE
+
+This response is returned only when the hook status changes (i.e. from
+ on-hook to off-hook or vice versa).
+
+Syntax: #VTO            ;Off-Hook
+        #VTH            ;On-Hook
+
+
+DTMF TONE RECEIVED
+
+This response is returned only when a DTMF  tone is  received.
+
+Syntax: #VDn
+        Where n =  0,1,2,3,4,5,6,7,8,9,* or # for DTMF
+
+
+RING RECEIVED
+UART mode behaviour.
+This response is returned when a ring has been received.  The response is
+ generated by the on-time or "mark" of the ring signal.
+DMA mode behaviour:
+This response is retuned when a ring has been received.  The ring is assumed
+ to be envelope detected, and is qualified by the presence of off time in
+ excess of 1 second.  This allows distinctive rings to be detected as single
+ ring events, and disallows discrimination between different distinctive
+ ring types.
+Syntax: RING
+
+
+BUSY RECEIVED
+This response is returned when busy tone has been detected on an outbound
+ call for 5 seconds.
+Syntax: BUSY
+
+
+VOICE CONNECTION MADE
+This response indicates that a voice connection has occured.  On incomming
+ calls, #VCON indicates, under #VAA rules 129 and 130, that a voice-fax or
+ voice-fax-data discrimination has occurred, and that voice has been
+ detected.    When #VAA = 4, #VCON indicates that the modem has gone off
+ hook in response the number of RING events set by S0.  It is expected that
+ the #VCON response will be used by DTE applications to know when to begin
+ to play the OGM.
+On outbound calls, #VCON indicates that the remote side has answered the
+ phone.  There is no outbound call discrimination between remote voice,
+ data, and fax devices.
+Syntax: #VCON
+
+
+REMOTE SIDE NEVER ANSWERED
+In voice mode, this response is generated when during an outbound call, the
+ period of time set by S7 expires before the remote phone is answered.
+Syntax: NO CARRIER
+
+
+DIALTONE NOT FOUND
+This response is generated when during an attempted outbound call, dialtone
+ is not detected.
+Syntax: NO DIALTONE
+
+
+EMBEDED <DLE> COMMANDS
+
+
+END VOICE PLAYBACK
+<DLE> <ETX>
+
+Syntax:
+<DLE><ETX>
+Valid in:
+Voice playback mode.
+Used for:
+Ending voice playback mode by command from DTE. Effect:
+Voice playback from the DCE is terminated.  The voice command state is
+ entered.  The data rate is that formerly specified by the #VSn command.
+
+
+CANCEL BUFFER
+<DLE> <CAN>
+
+Syntax:
+<DLE><CAN>
+Valid in:
+Voice playback mode.
+Used for:
+Clearing the buffer.
+Effect:
+Voice playback is paused, the buffer is cleared, and voice playback is then 
+resumed.
+
+
+
+EMBEDED <DLE> RESPONSE CODES
+
+REPORT END OF MESSAGE
+<DLE><ETX>
+
+Syntax:
+<DLE><ETX>
+Valid in:
+Voice record mode.
+Used for:
+The DCE uses this to mark the end of a message. <DLE><ETX> is appended to
+ the end of voice record files by the DCE.  The DCE will recognize the
+ <DLE><ETX> sequence on playback and return control from playback mode to
+ voice command state.
+
+Effect:
+Voice command state is entered.
+
+
+REPORT DIAL TONE
+<DLE>#VDT
+
+Syntax:
+<DLE>#VDT
+Valid in:
+Voice record mode.
+Used for:
+Reporting dial tone detection.
+Effect:
+None.  This is a report only.
+
+
+REPORT LOCAL PHONE OFF HOOK
+<DLE>#VTO
+
+Syntax:
+<DLE>#VTO
+Valid in:
+Voice record mode, Voice playback mode.
+Used for:
+Reporting local phone off hook.
+Effect:
+None.  This is a report only.
+
+
+REPORT LOCAL PHONE ON HOOK
+<DLE>#VTH
+
+Syntax:
+<DLE>#VTH
+Valid in:
+Voice record mode, Voice playback mode.
+Used for:
+Reporting local phone on hook.
+Effect:
+None.  This is a report only.
+
+
+REPORT RUN LENGTH ENCODING
+<DLE>L
+
+Syntax:
+<DLE>L<"byte"><"byte count">
+Valid in:
+Voice record mode, Voice playback mode.
+Used for:
+Reporting embedded run length encoding.
+Effect:
+This indicates that a number, (indicated by "byte count") (in hexadecimal),
+ of successive "byte"'s was detected in the voice record stream, and
+ replaced by this report.  This is embedded by the DCE during voice record
+ mode.  This report is reinterpreted by the DCE during voice playback mode.
+
+
+REPORT SILENCE DELETION
+<DLE>S
+
+Syntax:
+<DLE>S
+Valid in:
+Voice record mode, Voice playback mode
+Used for:
+Reporting 256 bytes of continuous silence.
+Effect:
+This indicates that 256 bytes of continuous silence has been replaced in the
+ voice record data stream with the report "<DLE>S".  The DCE embeds this
+ report in voice record mode.  The DCE reinterprets this report in voice
+ playback mode.
+
+REPORT QUIET DETECTED
+<DLE>Q
+
+Syntax:
+<DLE>Q
+Valid in:
+Voice record mode.
+Used for:
+Reporting that a message contains no voice energy, only quiet.  This is
+ distinguished from silence, which is the absence of voice energy after
+ voice energy is received.  Hence a valid message may end in silence, and a
+ message reporting quiet may be regarded as not valid.
+Effect:
+The DCE uses this to mark a recorded voice stream as containing no voice 
+energy.
+
+
+REPORT RING
+<DLE>RING
+
+Syntax:
+<DLE>RING
+Valid in:
+Voice record mode, Voice playback mode.
+Used for:
+Reporting an incoming "ring" on the line.
+
+None.  This is a report only.
+
+
+REPORT <DLE>
+<DLE><DLE>
+
+Syntax:
+<DLE><DLE>
+Valid in:
+Voice record mode, Voice playback mode.
+Used for:
+Reporting the occurrence of the character <DLE> within the voice record or
+ playback stream.
+Effect:
+The DCE embeds an extra <DLE> with every occurrence of <DLE> in the voice
+ record stream.  The DCE strips the embedded <DLE> out of the voice playback
+ stream as the voice is played back.
+
+
+REPORT DTMF DEFINITELY DETECTED + IDENTITY
+<DLE>#VD<"number">
+
+Syntax
+<DLE>#VD<"number">
+Valid in:
+Voice record mode, Voice playback mode.
+Used for:
+Reporting the presence and type of detected DTMF in the voice stream.  The
+ DTE can optionally use this report to help remove DTMF energy from the
+ voice stream.
+Effect:
+The DCE embeds this report at the end of a confirmed DTMF energy burst
+ within the voice record stream.  "number" can be any of the following: 0-9,
+ a-d, or # or *.
+
+
+REPORT DTMF POSSIBLY DETECTED
+<DLE>D
+
+Syntax
+<DLE>D
+Valid in:
+Voice record mode, Voice playback mode.
+Used for:
+Making a mark as near to the beginning of DTMF energy within the record data
+ stream as possible.  In playback mode, the DCE will not return any DTMF
+ result codes to the DTE during the period after it encounters a DTMF energy
+ start marker, (<DLE>D), and before it sees either a DTMF energy release
+ marker, (<DLE>R), or a DTMF result code, (<DLE>#VD<"number">).  The DTE can
+ optionally use this marker to help remove DTMF from the voice stream.
+Effect:
+This report is embedded in the voice record stream as near as possible to
+ the beginning of DTMF energy.
+
+
+REPORT RELEASED DTMF DETECTION
+<DLE>R
+
+Syntax
+<DLE>R
+Valid in:
+Voice record mode, Voice playback mode.
+Used for:
+Canceling the report of a detected DTMF.  This marker indicates that the DCE
+ did not detect DTMF for a valid length of time. In playback mode, the DCE
+ will not return any DTMF result codes to the DTE during the period after it
+ encounters a DTMF energy start marker, (<DLE>D), and before it sees either
+ a DTMF energy release marker, (<DLE>R), or a DTMF result code, 
+ (<DLE>#VD<"number">).  The DTE can optionally use this marker to help remove
+ DTMF from the voice stream.
+Effect:
+This report is embedded in the voice record stream if detected DTMF energy=
+ does not last for a valid length of time.
+
+
+
+
+APPENDIX C
+TEST SCRIPT
+One of the best ways to test out the hardware is through the use of test
+ scripts run through a terminal emulation program such as PROCOM.  Using
+ test scripts you can play and record with VoDaFax quite successfully. 
+ Because the scripts are interpreted through the terminal emulator, speed is
+ an issue.  Fast hardisks (15 milliseconds access time) or ram drives are
+ the best media to play and record from.  Using a 486DX-33 or better is also
+ helpful, though a 386DX-33 should be sufficient.
+
+SIMPLE VOICE RECORD AND PLAYBACK FROM THE LOCAL PHONE
+
+ATZ                             ;Reset the modem
+AT#VS2          ;Set the data rate to 57600 bps.
+Set the terminal emulator to a data rate of 57600 bps.
+AT#VF= 0         ;Turn off flow control for this simple example.
+AT#VSS= 0                ;Set the sampling rate at 4800 samples per second.
+AT#VSC= 0                ;Turn off compression.
+AT#VSM= 0                ;Set codec mode to mu-law.
+AT#VH= 2         ;Energize the local phone relay.
+AT#VD1          ;Record voice
+Set the terminal emulator to download a file in raw ascii to a filename.
+End the message by not speaking for several seconds.  The ascii characters
+ for <DLE><ETX> will be displayed followed by OK when the DCE detects silence.
+AT#VD0          ;Playback voice
+Set the terminal emulator to upload a file from the filename previously 
+specified.
+
+Try modifying this simple example by changing the sample rate to get a
+ better quality recording.  Always choose a data rate equal to or greater
+ than the sample rate in bytes /s X 10 in bps.  E.G. if you choose 9600
+ samples per second uncompressed, you need a data rate of 9600 X 10 bps  =
+ 96000 bps, so set the data rate at #VS1 for 115200 bps.  If you use
+ compression, account for the compression before you multiply by 10.  E.G.
+ 4800 samples per second with SPC 2:1 compression needs a data rate of
+ 4800/2 * 10 =  24000 bps, so choose #VS3 for 38400 bps.  You must always
+ allow for interrupt latency, so be sure to choose a data rate which is more
+ than sufficient for the sampling rate you choose.
+
+
+APPENDIX D
+DMA HANDSHAKING
+
+
+
+The following is a description of how to use the VoDaFax DMA interface.
+Overview
+
+The purpose of the VoDaFax DMA interface is to allow uncompressed voice data
+ to be transferred between the modem and the host computer without data loss
+ or degradation of system performance. The DMA interface currently only
+ supports voice data. All voice commands and result codes as well as fax and
+ data commands operate normally through the UART.
+
+Initializing The Modem For DMA Transfers
+
+This modem must be initialized properly to order to support DMA operation.
+ There are two commands which support the DMA operation, AT#VCH and AT#VBS.
+
+The AT#VCH selects the DMA channel to be used. The VoDaFax demo board
+ provides for a software programmable DMA channel, eliminating the need for
+ switch settings. AT#VCH= 1 selects DMA Channel 1 and AT#VCH= 3 selects
+ DMA Channel 3. These are both 8-bit DMA channels and are found on all PC 
+systems.
+
+The AT#VBS command sets the DMA block size and enables/disables DMA
+ operation. AT#VBS= 0 disables DMA operation and sets up the modem to
+ transfer voice data through the UART. AT#VBS= 1, AT#VBS= 2 and AT#VBS= 4
+ select DMA block sizes of 1K, 2K and 4K bytes respectively. On the VoDaFax
+ demo board the AT#VBS= 0 command will tri-state the DRQ signal on the PC
+ bus, enabling another board to use either DMA Channel 1 or DMA Channel 3.
+
+Initialization of the modem for voice mode is completed by sending the
+ appropriate VoDaFax voice commands to select the required voice operation
+ (i.e. sample rate, compression, etc.)
+
+DMA Handshaking
+
+Each block of voice data is transferred to and from the host system under
+ control of the host system. The CTS and RTS signals in the UART are used to
+ supervise the transfer. The host must initiate the transfer of each block
+ of data by setting the RTS signal to 1. The modem indicates a DMA transfer
+ is underway by setting its CTS signal to 1 during the transfer of the data,
+ and clearing the CTS signal when the selected number of bytes have been
+ transferred. The host signals the end of a multiblock DMA transfer by
+ setting the DTR signal to 0. The following example shows how the DMA
+ transfer works
+
+
+
+@ENDNODE
+

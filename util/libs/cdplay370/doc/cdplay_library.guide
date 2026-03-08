@@ -1,0 +1,509 @@
+@DATABASE "cdplay_library"
+@NODE MAIN "cdplay_library -- Inhalt"
+
+                               @{b}cdplay.library@{ub}
+
+@{"CDClose()" LINK "CDClose"}  @{"CDCloseDrive()" LINK "CDCloseDrive"}  @{"CDInquiry()" LINK "CDInquiry"}    @{"CDJump()" LINK "CDJump"}   @{"CDLockDrive()" LINK "CDLockDrive"}
+@{"CDNext()" LINK "CDNext"}   @{"CDOpen()" LINK "CDOpen"}        @{"CDOpenDrive()" LINK "CDOpenDrive"}  @{"CDPause()" LINK "CDPause"}  @{"CDPlay()" LINK "CDPlay"}
+@{"CDPrev()" LINK "CDPrev"}   @{"CDStop()" LINK "CDStop"}        @{"CDUpdate()" LINK "CDUpdate"}     
+
+@ENDNODE
+@NODE "CDClose" "cdplay.library/CDClose()"
+@{b}
+
+   NAME@{ub}
+        CDClose -- schließt die Schublade des CDRom Laufwerkes@{b}
+
+   SYNOPSIS@{ub}
+        result = CDClose (request)
+        D0                 A1
+
+        ULONG CDClose (struct CDRequest *);@{b}
+
+   FUNCTION@{ub}
+        Schließt die Schublade des CDRom Laufwerkes.@{b}
+
+   INPUTS@{ub}
+        request        --        "struct CDRequest *" des entsprechenden
+                        Drives@{b}
+
+   RESULT@{ub}
+        result        --        liefert im Fehlerfall einen von 0 verschiedenen
+                        Wert, der dem Errorcode entspricht.@{b}
+
+   NOTES@{ub}
+        Wird nicht von allen Laufwerken unterstützt@{b}
+
+   BUGS@{ub}
+        keine bekannt.@{b}
+
+   SEE ALSO@{ub}
+        @{"cdplay.library/CDOpen()" LINK "CDOpen"}
+
+@ENDNODE
+@NODE "CDCloseDrive" "cdplay.library/CDCloseDrive()"
+@{b}
+
+   NAME@{ub}
+        CDCloseDrive -- SCSI Device schließen und Speicher freigeben@{b}
+
+   SYNOPSIS@{ub}
+        result = CDCloseDrive (request)
+        D0                       A1
+
+        struct CDRequest *CDCloseDrive (struct CDRequest *);@{b}
+
+   FUNCTION@{ub}
+        Schließt ein mit @{"CDOpenDrive()" LINK "CDOpenDrive"} geöffnet Device und gibt den benutzten
+        Speicher wieder frei.@{b}
+
+   INPUTS@{ub}
+        request        --        CDRequest des zu schließenden Devices, diese
+                        Struktur wird von @{"CDOpenDrive()" LINK "CDOpenDrive"} geliefert.@{b}
+
+   RESULT@{ub}
+        result        --        Ergebniss des Kommandos, in der Regel muß alles
+                        klappen und es wird TRUE geliefert.@{b}
+
+   EXAMPLE@{ub}
+        siehe @{"cdplay.library/CDOpenDrive()" LINK "CDOpenDrive"}@{b}
+
+   BUGS@{ub}
+        keine bakannt@{b}
+
+   SEE ALSO@{ub}
+        @{"cdplay.library/CDOpenDrive()" LINK "CDOpenDrive"}, @{"cdplay.library/CDUpdate()" LINK "CDUpdate"},
+        @{"cdplay.library/CDInquiry()" LINK "CDInquiry"}
+
+@ENDNODE
+@NODE "CDInquiry" "cdplay.library/CDInquiry()"
+@{b}
+
+   NAME@{ub}
+        CDInquiry -- liest spezifische Informationen aus dem Device aus@{b}
+
+   SYNOPSIS@{ub}
+        result = CDInquiry (inquiry, request)
+        D0                    A0             A1
+
+        ULONG CDInquiry (struct CDInquiry *, struct CDRequest *);@{b}
+
+   FUNCTION@{ub}
+        Liest Informationen aus dem SCSI-Device aus. Dazu gehören unter
+        anderen Hersteller und Produkt, Features des Devices, Typ (CDRom,
+        Festplatte, ...). Normalerweise wird diese Funktion nur einmal
+        pro Device aufgerufen. @{"CDOpenDrive()" LINK "CDOpenDrive"} ruft die Funktion beim Öffnen
+        auf, so das der normale Programmierer keine Verwendung haben
+        dürfte.@{b}
+
+   INPUTS@{ub}
+        inquiry        --        "struct CDInquiry *", Struktur die mit den
+                        erhätlichen Informationen des Devices ge-
+                        füllt wird.
+        request        --        "struct CDRequest *", wird von @{"CDOpenDrive()" LINK "CDOpenDrive"}
+                        geliefert@{b}
+
+   RESULT@{ub}
+        result        --        Im Fehlerfall ein von 0 verschiedener Wert@{b}
+
+   EXAMPLE@{ub}
+
+        struct CDRequest *mycd;
+        struct CDInquiry *myinq;
+
+        if (mycd = @{"CDOpenDrive" LINK "CDOpenDrive"} ("scsi.device", 2))
+        {
+                if (!CDInquiry (myinq, mycd))
+                {
+                        /* erfolgreich */
+                }
+                else
+                {
+                        /* fehlgeschlagen ;(( */
+                }
+
+                @{"CDCloseDrive" LINK "CDCloseDrive"} (mycd);
+        }@{b}
+
+   NOTES@{ub}
+        Wird normalerweise nie gebraucht.@{b}
+
+   BUGS@{ub}
+        keine bekannt@{b}
+
+   SEE ALSO@{ub}
+        @{"cdplay.library/CDOpenDrive()" LINK "CDOpenDrive"}, @{"cdplay.library/CDUpdate()" LINK "CDUpdate"}
+
+@ENDNODE
+@NODE "CDJump" "cdplay.library/CDJump()"
+@{b}
+
+   NAME@{ub}
+        CDJump -- springt innerhalb eines Tracks vor/zurück@{b}
+
+   SYNOPSIS@{ub}
+        result = CDJump (offset, request)
+        D0                 D0         A1
+
+        ULONG CDJump (LONG, struct CDRequest *);@{b}
+
+   FUNCTION@{ub}
+        Springt innerhalb eines Tracks zu einer neuen Position. Dabei
+        sowohl vorwärts als auch rückwärts gesprungen werden. Der Offset
+        gibt dabei die Richtung an (Vorzeichen) und die Sprungweite.
+        Ein Wert von 75 entspricht dabei einer Sekunde.@{b}
+
+   INPUTS@{ub}
+        offset        --        Sprungweite von der aktuellen Position, das
+                        Vorzeichen bestimmt die Richtung
+        request        --        "struct CDRequest *" des entsprechenden Drives@{b}
+
+   RESULT@{ub}
+        result        --        liefert im Fehlerfall einen von 0 verschiedenen
+                        Wert, der dem Errorcode entspricht.@{b}
+
+   EXAMPLE@{ub}
+        /* .... */
+
+        CDJump (-(10 * 75), mycd);        /* 10 Sekunden zurück springen */
+
+        /* .... */@{b}
+
+   BUGS@{ub}
+        keine bekannt.
+
+@ENDNODE
+@NODE "CDLockDrive" "cdplay.library/CDLockDrive()"
+@{b}
+
+   NAME@{ub}
+        CDLockDrive -- ermöglicht das Öffnen des CD-Rom´s zu sperren@{b}
+
+   SYNOPSIS@{ub}
+        result = CDLockDrive (mode, request);
+        D0                      D0    A1
+
+        ULONG CDLockDrive (ULONG, struct CDRequest *);@{b}
+
+   FUNCTION@{ub}
+        Ermöglicht es, den Auswurf von CDRom´s zu vermeiden. Mit der
+        Funktion kann die Klappe des Laufwerks verriegelt werden
+        bzw. eine solche Verriegelung wieder aufgehoben werden.@{b}
+
+   INPUTS@{ub}
+        mode        --        Einen von 0 verschiedenen Wert zum Verriegeln
+                        oder 0, um das Laufwerk freizugeben.
+        request        --        "struct CDRequest *" des entsprechenden Drives@{b}
+
+   RESULT@{ub}
+        result        --        liefert im Fehlerfall einen von 0 verschiedenen
+                        Wert, der dem Errorcode entspricht.@{b}
+
+   EXAMPLE@{ub}
+        struct CDRequest *mycd;
+
+        if (mycd = @{"CDOpenDrive" LINK "CDOpenDrive"} ("scsi.device", 2))
+        {
+                /* Laufwerk verriegeln */
+                CDLockDrive (TRUE, mycd);
+
+                @{"CDCloseDrive" LINK "CDCloseDrive"} (mycd);
+        }@{b}
+
+   NOTES@{ub}
+        Nach einem Reset ist die Verrieglung bei einigen Laufwerken
+        aufgehoben, bei anderen nicht. Ausprobieren!@{b}
+
+   BUGS@{ub}
+        keine bekannt.
+
+@ENDNODE
+@NODE "CDNext" "cdplay.library/CDNext()"
+@{b}
+
+   NAME@{ub}
+        CDNext -- wählt den nächsten Track an@{b}
+
+   SYNOPSIS@{ub}
+        result = CDNext (request)
+        D0                 A1
+
+        ULONG CDNext (struct CDRequest *);@{b}
+
+   FUNCTION@{ub}
+        Springt zum nächsten Track. Wenn es keinen nächsten Track
+        gibt, hat der Aufruf keine Wirkung.@{b}
+
+   INPUTS@{ub}
+        request        --        "struct CDRequest *" des entsprechenden Drives@{b}
+
+   RESULT@{ub}
+        result        --        liefert im Fehlerfall einen von 0 verschiedenen
+                        Wert, der dem Errorcode entspricht.@{b}
+
+   BUGS@{ub}
+        keine bekannt.@{b}
+
+   SEE ALSO@{ub}
+        @{"cdplay.library/CDPrev()" LINK "CDPrev"}
+
+@ENDNODE
+@NODE "CDOpen" "cdplay.library/CDOpen()"
+@{b}
+
+   NAME@{ub}
+        CDOpen -- öffnet die Schublade des CDRom Laufwerkes@{b}
+
+   SYNOPSIS@{ub}
+        result = CDOpen (request)
+        D0                 A1
+
+        ULONG CDOpen (struct CDRequest *);@{b}
+
+   FUNCTION@{ub}
+        Öffnet die Schublade des CDRom Laufwerkes.@{b}
+
+   INPUTS@{ub}
+        request        --        "struct CDRequest *" des entsprechenden Drives@{b}
+
+   RESULT@{ub}
+        result        --        liefert im Fehlerfall einen von 0 verschiedenen
+                        Wert, der dem Errorcode entspricht.@{b}
+
+   NOTES@{ub}
+        Wird nicht von allen Laufwerken unterstützt@{b}
+
+   BUGS@{ub}
+        keine bekannt.@{b}
+
+   SEE ALSO@{ub}
+        @{"cdplay.library/CDClose()" LINK "CDClose"}
+
+@ENDNODE
+@NODE "CDOpenDrive" "cdplay.library/CDOpenDrive()"
+@{b}
+
+   NAME@{ub}
+        CDOpenDrive -- SCSI Device als Audio-Player initialisieren@{b}
+
+   SYNOPSIS@{ub}
+        request = CDOpenDrive (device, unit)
+        D0                       A0      D0
+
+        struct CDRequest *CDOpenDrive (STRPTR, ULONG);@{b}
+
+   FUNCTION@{ub}
+        Öffnet das SCSI-Device mit der angegebenen Unit und initialisiert
+        die CDRequest Struktur mit den nötigen Werten. Diese Funktion kann
+        erfolgreich auf alle SCSI-Devices angewendet werden, es muß selbst-
+        ständig gecheckt werden, ob das Device ein CD-ROM ist. Das dürfte
+        aber kein Problem darstellen, in jeder Programmiersprache sollte
+        dieser Test in einer Zeile durchführbar sein. Die Funktion liefert
+        im Fehlerfall NULL zurück.@{b}
+
+   INPUTS@{ub}
+        device        --        Name des SCSI-Devices, z.B. "scsi.device"
+        unit        --        Unit, an der das CD-Rom ansprechbar ist, z.B. 2@{b}
+
+   RESULT@{ub}
+        request        --        "struct CDRequest *", ein Zeiger auf eine
+                        CDRequest-Struktur oder NULL im Fehlerfall.@{b}
+
+   EXAMPLE@{ub}
+
+        struct CDRequest *mycd;
+
+        if (mycd = CDOpenDrive ("scsi.device", 2))
+        {
+                /* etwas mit dem Laufwerk anstellen */
+
+                @{"CDCloseDrive" LINK "CDCloseDrive"} (mycd);
+        }@{b}
+
+   NOTES@{ub}
+        Diese Funktion kann natürlich von beliebigen Programmen
+        benutzt werden und hat nicht unmittelbar mit Audio-CD`s
+        zu tun. CDOpenDrive() und @{"CDCloseDrive()" LINK "CDCloseDrive"} können dazu ver-
+        wendet werden, Informationen über SCSI-Devices zu bekommen.@{b}
+
+   BUGS@{ub}
+        keine bekannt, allerdings sollte die Funktion wenn möglich
+        MemoryPools nutzen statt mehrere kleine Blöcke zu allokieren,
+        das wird in einer der nächsten Versionen geändert.@{b}
+
+   SEE ALSO@{ub}
+        @{"cdplay.library/CDCloseDrive()" LINK "CDCloseDrive"}, @{"cdplay.library/CDUpdate()" LINK "CDUpdate"},
+        @{"cdplay.library/CDInquiry()" LINK "CDInquiry"}
+
+@ENDNODE
+@NODE "CDPause" "cdplay.library/CDPause()"
+@{b}
+
+   NAME@{ub}
+        CDPause -- stoppt/startet die Wiedergabe@{b}
+
+   SYNOPSIS@{ub}
+        result = CDPause (pause, request)
+        D0                  D0         A1
+
+        ULONG CDPause (ULONG, struct CDRequest *);@{b}
+
+   FUNCTION@{ub}
+        Mit dieser Funktion kann die Wiedergabe für eine gewünschte
+        Zeit angehalten werden, um dann an der selben Stelle wieder
+        fortzufahren.@{b}
+
+   INPUTS@{ub}
+        pause        --        Ein von 0 verschiedener Wert stoppt die Wieder-
+                        gabe, 0 selber startet sie, sofern das Lauf-
+                        werk vorher aktiv war
+        request        --        "struct CDRequest *" des entsprechenden Drives@{b}
+
+   RESULT@{ub}
+        result        --        liefert im Fehlerfall einen von 0 verschiedenen
+                        Wert, der dem Errorcode entspricht.@{b}
+
+   BUGS@{ub}
+        keine bekannt.@{b}
+
+   SEE ALSO@{ub}
+        @{"cdplay.library/CDStop()" LINK "CDStop"}, @{"cdplay.library/CDPlay()" LINK "CDPlay"}
+
+@ENDNODE
+@NODE "CDPlay" "cdplay.library/CDPlay()"
+@{b}
+
+   NAME@{ub}
+        CDPlay -- beginnt die Audiowiedergabe eines Tracks@{b}
+
+   SYNOPSIS@{ub}
+        result = CDPlay (start, request)
+        D0                 D0        A1
+
+        ULONG CDPlay (ULONG, struct CDRequest *);@{b}
+
+   FUNCTION@{ub}
+        Beginnt die Wiedergabe eines Audiotracks. Der Starttrack selber
+        wird als Parameter übergeben. Die Ausgabe wird erst beendet, wenn
+        die ganze CD abgespielt worden ist, eine Funktion wie Pause oder
+        Stop gewählt wurde oder die Funktion mit einem neuen Starttrack
+        aufgerufen wird.@{b}
+
+   INPUTS@{ub}
+        start        --        Nummer des Starttracks
+        request        --        "struct CDRequest *" des entsprechenden Drives@{b}
+
+   RESULT@{ub}
+        result        --        liefert im Fehlerfall einen von 0 verschiedenen
+                        Wert, der dem Errorcode entspricht.@{b}
+
+   BUGS@{ub}
+        keine bekannt.@{b}
+
+   SEE ALSO@{ub}
+        @{"cdplay.library/CDStop()" LINK "CDStop"}, @{"cdplay.library/CDPause()" LINK "CDPause"}
+
+@ENDNODE
+@NODE "CDPrev" "cdplay.library/CDPrev()"
+@{b}
+
+   NAME@{ub}
+        CDPrev -- wählt den vorherigen Track an@{b}
+
+   SYNOPSIS@{ub}
+        result = CDPrev (request)
+        D0                 A1
+
+        ULONG CDPrev (struct CDRequest *);@{b}
+
+   FUNCTION@{ub}
+        Springt zum vorherigen Track. Wenn es keinen vorhergehenden
+        Track gibt, hat der Aufruf keine Wirkung.@{b}
+
+   INPUTS@{ub}
+        request        --        "struct CDRequest *" des entsprechenden Drives@{b}
+
+   RESULT@{ub}
+        result        --        liefert im Fehlerfall einen von 0 verschiedenen
+                        Wert, der dem Errorcode entspricht.@{b}
+
+   BUGS@{ub}
+        keine bekannt.@{b}
+
+   SEE ALSO@{ub}
+        @{"cdplay.library/CDNext()" LINK "CDNext"}
+
+@ENDNODE
+@NODE "CDStop" "cdplay.library/CDStop()"
+@{b}
+
+   NAME@{ub}
+        CDStop -- stoppt die Wiedergabe einer Audio-CD@{b}
+
+   SYNOPSIS@{ub}
+        result = CDStop (request)
+        D0                 A1
+
+        ULONG CDStop (struct CDRequest *);@{b}
+
+   FUNCTION@{ub}
+        Stoppt die Wiedergabe einer Audio-CD, die zuvor mit @{"CDPlay()" LINK "CDPlay"}
+        gestartet wurde.@{b}
+
+   INPUTS@{ub}
+        request        --        "struct CDRequest *" des entsprechenden Drives@{b}
+
+   RESULT@{ub}
+        result        --        liefert im Fehlerfall einen von 0 verschiedenen
+                        Wert, der dem Errorcode entspricht.@{b}
+
+   BUGS@{ub}
+        keine bekannt.@{b}
+
+   SEE ALSO@{ub}
+        @{"cdplay.library/CDPause()" LINK "CDPause"}, @{"cdplay.library/CDPlay()" LINK "CDPlay"}
+
+@ENDNODE
+@NODE "CDUpdate" "cdplay.library/CDUpdate()"
+@{b}
+
+   NAME@{ub}
+        CDUpdate -- aktualisiert alle Daten des CDRom´s die im laufenden
+                    Betrieb veränderlich sind (z.B. CD-Wechsel)@{b}
+
+   SYNOPSIS@{ub}
+        result = CDUpdate (request)
+        D0                   A1
+
+        ULONG CDUpdate (struct CDRequest *);@{b}
+
+   FUNCTION@{ub}
+        Alle Daten über das SCSI-Device, die sich im laufenden Betrieb
+        ändern können (also NICHT Herstellername etc.) werden mit dieser
+        Funktion neu ermittelt und im CDRequest abgelegt. Dazu zählen
+        Informationen über die CD, aber auch die Position (Zeit) auf der
+        CD während des Audioplays.@{b}
+
+   INPUTS@{ub}
+        request        --        "struct CDRequest *", wird von @{"CDOpenDrive()" LINK "CDOpenDrive"}
+                        geliefert@{b}
+
+   RESULT@{ub}
+        result        --        Fehlercode, der dem Rückgabewert der DoIO()
+                        Funktion entspricht. Im Fehlerfall ist dies
+                        ein von 0 verschiedener Wert.@{b}
+
+   NOTES@{ub}
+        Einige Funktionen rufen CDUpdate() von selber auf, ein Aufruf
+        ist dann i.d.R. nicht mehr nötig. Zu diesen Funktionen gehören
+        @{"cdplay.library/CDJump()" LINK "CDJump"}, @{"cdplay.library/CDNext()" LINK "CDNext"} und
+        @{"cdplay.library/CDPrev()" LINK "CDPrev"}@{b}
+
+   BUGS@{ub}
+        keine bekannt@{b}
+
+   SEE ALSO@{ub}
+        @{"cdplay.library/CDJump()" LINK "CDJump"}, @{"cdplay.library/CDNext()" LINK "CDNext"},
+        @{"cdplay.library/CDPrev()" LINK "CDPrev"}
+
+@ENDNODE

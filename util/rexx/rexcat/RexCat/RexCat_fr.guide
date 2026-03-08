@@ -1,0 +1,1048 @@
+@DATABASE RexCat_fr.guide
+@$VER: RexCat_fr.guide 2.2 (14.02.2010)
+@AUTHOR AmigaPhil
+
+@NODE "MAIN" "Bienvenue dans RexCat"
+
+     @{b}RexCat 2.2@{ub}
+
+
+@{b}Ce que c'est:@{ub}
+RexCat est une méthode qui permet d'ajouter la faculté de
+(auto-) localisation pour les scripts ARexx.
+Elle consiste en 2 nouvelles @{" fonctions " LINK "TECH" 8}, prêtent à
+être insérées dans vos propres scripts, et un outil
+(@{" MakeRexCat.rexx " LINK "TMRC" 0}) pour créer/mettre à jour un fichier
+de traduction pour ceux-ci.
+
+@{b}Ce que ce n'est pas:@{ub}
+RexCat n'est PAS un compilateur de catalogue pour les
+applications binaires.
+Les fichiers @{" catalogue " LINK "CATA" 0} utilisés par RexCat finissent
+aussi avec un suffix ".catalog", mais ce sont des fichiers
+texte spécifique qui sont interpreté par ARexx.
+A partir de la version 2.1, RexCat supporte aussi les
+@{" catalogues IFF " LINK "IFFC" 0}.
+
+
+
+     @{" Introduction  " LINK "INTR" 0} - A propos de RexCat
+     @{" Requis        " LINK "REQS" 0} - Système requis et logiciels nécessaires
+     @{" Distribution  " LINK "COPY" 0} - Legal stuff
+
+     @{" Installation  " LINK "INST" 0} - Installer RexCat sur votre système
+     @{" Quickstart    " LINK "FIRS" 0} - Votre premier catalogue en quelques étapes
+
+     @{" Localiser     " LINK "LOCA" 0} - Préparez vos scripts pour la localisation
+     @{" Traduire      " LINK "TRAN" 0} - Créer/mettre à jour les fichiers catalogue
+
+     @{" Outils        " LINK "TOOL" 0} - Outils supplémentaires
+     @{" Référence     " LINK "TECH" 0} - Description des fichiers et des fonctions
+     @{" FAQ           " LINK "TIPS" 0} - Lisez ceci!
+
+     @{" Auteurs       " LINK "INFO" 0} - Comment contacter les auteurs
+     @{" Remerciements " LINK "CRED" 0} - Ceux qui ont aidé
+     @{" Historique    " LINK "HIST" 0} - Journal des modifications
+
+@ENDNODE
+@NODE "INTR" "Introduction"
+
+INTRODUCTION
+
+Bienvenue dans RexCat, une méthode alternative pour implémenter
+la localisation dans les scripts ARexx.
+Les @{" fonctions " LINK "TECH" 8} qui font la "magie" utilisent
+un format propriétaire pour le fichier @{" catalogue " LINK "CATA" 0}, qui
+est en fait un simple fichier texte qui peut être édité avec
+n'importe quel éditeur de texte.
+Cette méthode convient bien pour les scripts parce que ARexx peut
+trouver les chaînes de caractères traduites ) afficher directement
+à partir des chaînes originales (la chaîne originale étant utilisée
+comme ID); ce qui la rend probablement plus rapide aussi.
+
+
+Avantages de RexCat:
+
+- Très simple à implémenter, essentiellement du copier/coller.
+
+- Pas de connaissance en C nécessaire; une connaissance basique
+  du Rexx est suffisante.
+
+- Pas de librairie externe à charger.
+
+- Pas besoin de préparer un catalogue description (.cd), et un
+  catalogue de traduction (.ct) pour compliler un fichier catalogue,
+  @{" MakeRexCat.rexx " LINK "TMRC" 0} peut scanner un script source et construire un
+  fichier @{"catalogue" LINK "CATA" 0} prêt à la traduction et à l'utilisation.
+
+  Cependant, depuis la version 2.1, RexCat peut créer les fichiers
+  .cd et .ct si vous souhaitez utiliser un réel catalogue IFF
+  Dans ce cas, MakeRexxCat.rexx créera aussi un code de remplacement
+  contenant les fonctions adaptées.
+
+
+Faiblesses:
+
+La fonction @{" tls() " LINK "FTLS" 0} ne peut manipuler que des chaînes de caractères
+simples.
+
+- Aucune séquence d'échappement backslash n'est interprêtée.  Une
+  chaîne telle que "première partie.\\nseconde \\"partie\\"" produira
+  une erreur à cause d'un clash avec les quotations doubles.
+  (Ceci dit, en créant un catalogue IFF, les séquences d'échappements
+   supportées par la locale.library seront honorées.  Mais n'utilisez
+   jamais la quotation qui enrobe la chaîne à l'intérieur de la chaîne.)
+
+- Echapper une double ou simple quotation avec un astérisque tel que
+  permis dans ARexx ne fonctionnera pas pour la même raison.
+
+- Pas de substitution de chaine ou de variable (ex.: %s sera affiché
+  tel quel).  L'auteur doit gérer lui-même ces substitutions (voir
+  le script sprintf.rexx pour un exemple).
+
+@ENDNODE
+@NODE "REQS" "Requis"
+
+REQUIS
+
+ - AmigaOS 2.1+ si vous souhaitez utiliser un catalogue IFF plutôt
+   que le format propriétaire du @{" catalogue RexCat " LINK "CATA" 0}
+
+ - RexxMaster doit être lancé, et Rx doit être disponible dans le
+   chemin de recherche su système
+
+ - Une variable d'environnement Language (optionel, mais recommandé)
+
+   Pour vérifier si Language est déjà défini, tapez dans un shell:
+   Echo $Language
+
+   Si $Language est retourné, alors tapez (ex. pour le français):
+   SetEnv Language "français"
+   Copy ENV:Language ENVARC:
+
+ - LOCALE: (recommandé)
+
+   Pour vérifier si une assignation LOCALE: existe, tapez:
+   Assign "LOCALE:" Exists
+
+   Si elle n'existe pas encore, vous pouvez la créer avec:
+   Assign >NIL: LOCALE: SYS:Locale
+
+     (vous devrez d'abord créer un répertoire "SYS:Locale", ou
+      choisir un autre répertoire.)
+
+   Assurez-vous que la même ligne de commande se trouve dans le
+   fichier SYS:S/Startup-Sequence .
+
+ - Un compilateur de catalogue (comme: CatComp, SimpleCat, FlexCat,
+   ...) si vous souhaitez créer un catalogue IFF.
+
+@ENDNODE
+@NODE "COPY" "Distribution"
+
+Freeware.
+
+Vous pouvez utiliser les @{" fonctions " LINK "TECH" 8} @{b}tls()@{ub} et @{b}gettlstext()@{ub}
+comme vous le voulez dans vos propres scripts.
+
+Utilisez et distribuez les fichiers catalogue créés pour vos projets
+avec @{" MakeRexCat.rexx " LINK "TMRC" 0} comme vous l'entendez.
+(Si vous pouvez contribuer un @{" catalogue RexCat " LINK "CATA" 0} pour ce paquetage,
+ il est le bienvenu.  ;-) )
+
+MakeRexCat.rexx is Copyright © 2010 by AmigaPhil.
+
+@ENDNODE
+@NODE "INST" "Installation"
+
+INSTALLATION
+
+Vous pouvez déjà commencer à utiliser l'outil @{" MakeRexCat.rexx " LINK "TMRC" 0} depuis
+l'endroit où vous avez désarchivé ce paquetage RexCat.
+Cependant, il est recommandé d'installer quelques fichiers pour qu'ils
+soient accessibles dans tout le système.
+
+- @{b}Installation automatique@{ub} en utilisant le script d'installation:
+
+  Double-cliquez simplement sur l'icône Install et suivez les instructions.
+
+
+- @{b}Installation manuelle@{ub}:
+
+  - Ouvez un shell et CD vers le répertoire où vous avez désarchivé
+    RexCat.lha
+
+  - Copiez le fichier 'MakeRexCat.rexx' quelque part dans le chemin de
+    recherche du système, le répertoire recommandé est REXX:
+
+    COPY MakeRexCat.rexx TO REXX:
+
+  - Assurez-vous que le bit de protection Script est activé:
+
+    PROTECT "REXX:MakeRexCat.rexx" +s
+
+  - Copiez le fichier 'MakeRexCat' (et son icône) quelque part dans
+    le chemin de recherche du système également, le répertoire
+    recommandé est SYS:Utilities/
+
+    COPY MakeRexCat MakeRexCat.info TO SYS:Utilities
+
+  - Assurez-vous que le bit de protection Script est activé:
+
+    PROTECT "SYS:Utilities/MakeRexCat" +s
+
+  - Créez un répertoire RexxCatalogs/<langue> dans LOCALE:
+    (où <langue> est votre langue favorite, telle qu'habituellement
+     définie dans la variable d'environnement Language)
+
+    MAKEDIR LOCALE:RexxCatalogs
+    MAKEDIR LOCALE:RexxCatalogs/<langue>
+
+  - Copiez les fichiers catalogues pour votre langue dans ce
+    répertoire:
+
+    COPY RexxCatalogs/<Langue>/#? TO LOCALE:RexxCatalogs/<langue>
+
+@ENDNODE
+@NODE "FIRS" "Quickstart"
+
+Survol rapide du système de localisation RexCat pour ARexx:
+créez / mettez à jour votre premier fichier de traduction.
+
+- Double-cliquez sur l'icône MakeRexCat.  (C'est un script AmigaDOS
+  pour manipuler @{" MakeRexCat.rexx " LINK "TMRC" 0} en quelques clics de souris.)
+
+- Si la commande DOS 'RequestFile' existe, elle vous demamdera de
+  sélectionner un script ARexx à scanner.  Pour un tout premier
+  usage, le fichier 'MakeRexCat.rexx' sera pré-sélectionné.
+  Cliquez sur 'Ok".
+  (Si 'RequestFile' n'existe pas, vous devrez entrer le nom de
+   fichier du script ARExx - avec le chemin complet - depuis
+   un Shell.)
+
+- Ensuite, il vous sera demandé de choisir une langue pour la
+  traduction.  Par défaut, c'est la valeur de la variable d'env.
+  Language, ou 'english' si la variable n'existe pas.
+  Pressez juste Enter.  Le script ARexx est scanné pour collecter
+  les chaînes de caractères à traduire...
+
+- Si un @{" catalogue RexCat " LINK "CATA" 0} (fichier de traduction) existe déjà pour
+  la langue choisie, il sera mis à jour sur place à l'endroit où
+  il a été trouvé.
+  Si il n'existait pas, il sera créé dans:
+  LOCALE:RexxCatalogs/<langue>/<nom du script>.catalog
+  En présumant que vous avez sélectionné le fichier 'MakeRexCat.rexx'
+  pour une traduction, ouvrez le fichier 'MakeRexCat.rexx.catalog'
+  avec votre éditeur de texte préféré et commencez la traduction.
+
+  Voir: @{" Editer un fichier catalogue RexCat " LINK "CATA" 0}
+
+@ENDNODE
+@NODE "LOCA" "Localiser vos scripts"
+
+Voici les étapes pour préparer vos scripts à la localisation.
+
+-> D'abord, assurez-vous que vos scripts n'utilisent pas un de
+   ces noms réservés/
+
+   - fonction: @{b}tls@{ub}
+   - fonction: @{b}gettlstext@{ub}
+   - stem: @{b}tlstext@{ub}
+
+   Le stem @{b}tlstext.@{ub} contient la table de traduction
+   initialisée par @{b}gettlstext()@{ub} et questionnée par @{b}tls()@{ub}.
+
+-> Préparez toutes les chaînes à traduire, en les passant comme
+   argument à la fonction @{" tls() " LINK "FTLS" 0}.
+
+   Exemple:
+   Si vous voulez qu'une instruction affiche un résultat dans
+   la langue de l'utilisateur, comme SAY "Bonjour le monde!",
+   remplacez-la par: SAY tls("Bonjour le monde!")
+
+-> Ajoutez les @{" fonctions " LINK "TECH" 8} @{b}tls()@{ub} et @{b}gettlstext()@{ub} à votre script.
+
+   Vous pouvez copier le code depuis le fichier MakeRexCat.rexx
+   avec un éditeur de texte (descendez vers la fin du fichier),
+   et le coller dans votre script (après toute commande EXIT
+   dans le code principal).
+
+-> Faites en sorte que votre script charge le fichier de traduction,
+   à un endroit approprié au début du script, en utilisant la
+   fonction @{" gettlstext() " LINK "FGTT" 0}.
+
+   Exemple:
+   CALL gettlstext("italian")
+
+   Exemple (en utilisant la var. env. Language):
+   scriptLang = ''
+   IF EXISTS('ENV:Language') THEN DO
+      IF OPEN('el', 'ENV:Language', 'R') THEN DO
+         scriptLang = READLN('el')
+         CALL CLOSE('el')
+      END
+   END
+   CALL gettlstext(scriptLang)
+
+
+Vous pouvez vérifier quelles chaînes sont disponibles pour la
+traduction avec @{" MakeRexCat.rexx " LINK "TMRC" 0}.
+Dans un Shell, tapez:
+
+ Rx MakeRexCat.rexx CHECK "Chemin:Vers/MonScript.rexx"
+
+
+Quand vous avez terminé les finitions de votre script (optimisation
+de l'utilisation des chaînes), le script est prêt pour une
+première @{" traduction " LINK "TRAN" 0}.
+
+@ENDNODE
+@NODE "TRAN" "Créer/mettre à jour un fichier catalogue"
+
+A ce stade, vous pouvez décider de travailler avec le catalogue
+RexCat prêt-à-l'emploi, ou de préparer plutôt un @{" catalogue IFF " LINK "IFFC" 0}.
+
+
+
+Voici comment créer un @{" catalogue RexCat " LINK "CATA" 0} pour votre script.
+
+-> Dans un Shell, tapez:
+   Rx MakeRexCat.rexx "Chemin:Vers/MonScript.rexx" "<langue>"
+
+   Où <langue> est la langue de traduction.
+   (telle que "français", ou "french" sous OS4.x)
+   Replacez "Chemin:Vers/MonScript.rexx" par le chemin réel et
+   @{b}absolu@{ub} vers VOTRE script. ;-)
+
+-> Quand le script a été scanné, un nouveau fichier est créé
+   dans LOCALE:RexxCatalogs/<langue>/MonScript.rexx.catalog
+
+-> Editez ce fichier et commencez à ajouté les chaînes traduites.
+   (Voir le @{" format de fichier du catalogue RexCat " LINK "CATA" 0} pour des conseils.)
+
+
+Si plus tard vous souhaitez mettre à jour le fichier catalogue,
+utilisez simplement la même ligne de commande que dans la
+première étape.  @{" MakeRexCat.rexx " LINK "TMRC" 0} cherchera le catalogue dans
+<PROGDIR>RexxCatalogs/<langue>/ (où <PROGDIR> est le répertoire dans
+lequel se trouce le script source), ou dans LOCALE:RexxCatalogs/<langue>/
+(Voir aussi: @{" Priorités des chemins de recherche " LINK "PATH" 0})
+
+Les chaînes qui n'ont plus besoin de traduction seront enlevées.
+Les nouvelles chaînes à traduire seront suivies d'un marqueur
+@{b}/*** NEW ***/@{ub} .
+
+
+
+Si vous souhaitez distribuer votre script avec les fichiers de
+traduction, vous pouvez copier les fichiers de
+"RexxCatalogs/<???>/<MonScript>.catalog" dans LOCALE: vers le
+répertoire dans lequel votre script se trouve.
+
+ (@{b}Note@{ub}: Il n'est pas nécessaire d'ajouter un répertoire
+  RexxCatalogs/ dans votre paquetage si votre script est
+  préparé pour utiliser des catalogues IFF.
+  Les fichiers catalogue dans RexxCatalogs/ seront ignorés de
+  toute façon.)
+
+Exemple, depuis un Shell:
+
+  - Créez un répertoire "RexxCatalogs/<langue>" pour chaque langue
+    dans le répertoire dans lequel se trouve le script.
+    Exemple:
+
+    MAKEDIR "Path:To/RexxCatalogs"
+    MAKEDIR "Path:To/RexxCatalogs/french"
+    MAKEDIR "Path:To/RexxCatalogs/italian"
+    ...
+
+  - Copiez les fichiers depuis LOCALE: vers le répertoire du script.
+    Exemple:
+
+    COPY "LOCALE:RexxCatalogs/french/MonScript.catalog" "Path:To/RexxCatalogs/french/"
+    ...
+
+Eventuellement, ajoutez une version adaptée de l'@{" outil MakeRexCat " LINK "TOOL" 0}.
+
+@ENDNODE
+@NODE "IFFC" "Créer un catalogue IFF"
+
+Si vous souhaitez que votre script utilise un catalogue IFF plutôt
+que le fichier @{" catalogue RexCat " LINK "CATA" 0} interne, voici les étapes à suivre:
+("Chemin:Vers/MonScript.rexx" utilisé ici comme exemple de script source.)
+
+
+-> Créez un fichier Catalogue Description (.cd)
+
+   Dans un Shell, tapez:
+   Rx MakeRexCat.rexx MAKECD "Chemin:Vers/MonScript.rexx" "<langue>"
+
+   Où <langue> est la langue @{b}intégrée par défaut@{ub} de MonScript.rexx.
+
+   Le Catalogue Description sera créé ou mis à jour dans
+   Chemin:Vers/Catalogs/MonScript.rexx.cd
+
+   Un fichier contenant les fonctions de remplacement sera
+   créé dans Chemin:Vers/MonScript.rexx.code
+
+-> Editez votre script, enlevez kes anciennes fonctions @{b}tls()@{ub} et
+   @{b}gettlstext()@{ub} et remplacez-les par les nouvelles fonctions
+   que vous trouverez dans Chemin:Vers/MonScript.rexx.code
+
+-> Créez un Catalogue de Traduction (.ct)
+
+   Dans un Shell, tapez:
+   Rx MakeRexCat.rexx MAKECT "Chemin:Vers/MonScript.rexx" "<langue>"
+
+   Où <langue> est la langue de traduction.
+
+   Le catalogue de Traduction sera créé dans
+   Chemin:Vers/Catalogs/<langue>.ct
+
+   Notez que si le fichier existe déjà, il est remplacé !
+   Si des traductions existent dans le fichier .catalog propriétaire,
+   elles seront transmises dans le Catalogue de Traduction; sinon,
+   le nouveau (remplacé) fichier .ct ne contiendra aucune chaîne
+   traduite.
+
+-> Compilez le fichier catalogue avec votre éditeur favoris.
+
+   Exemple:
+   CatComp "MonScript.rexx.cd" "français.ct" CATALOG "Ram:MonScript.rexx.catalog"
+
+@ENDNODE
+@NODE "TOOL" "Autres outils"
+
+Autres outils fournis:
+
+ @{b}MakeRexCat@{ub}
+
+    MakeRexCat est un script AmigaDos (lancé par IconX) qui simplifie
+    l'utilisation de @{" MakeRexCat.rexx " LINK "TMRC" 0} en permettant
+    de créer ou de mettre à jour un @{" catalogue RexCat " LINK "CATA" 0} en quelques
+    clics de souris.
+
+    Vous pouvez copier ce script (et son icône) dans votre propre
+    paquetage distribué, mais pensez à l'éditer pour au moins changer
+    le nom du script source à VOTRE script.
+
+    L'option de configuration principale est la variable @{b}srcfile@{ub}.
+    C'est le nom du script ARexx source à scanner.  Le chemin
+    peut être absolut ou relatif; dans le deuxième cas, le chemin
+    est relatif à l'endroit où MakeRexCat a été exécuté.
+    La variable @{b}srcfile@{ub} peut rester vide.  Dans ce cas,
+    il sera demandé à l'utilisateur de sélectionner le script à
+    utiliser.
+
+    Si la langue interne par défaut de votre script n'est pas l'anglais,
+    vous pouvez aussi modifier la variable @{b}srclang@{ub}.
+
+ @{b}MakeCD@{ub}
+
+    MakeCD est un script AmigaDos (lancé par IconX) pour exécuter
+    facilement la commande "MakeRexCat.rexx MAKECD" et créer un
+    fichier Catalogue Description.
+
+ @{b}MakeCT@{ub}
+
+    MakeCT est un script AmigaDos (lancé par IconX) pour exécuter
+    facilement la commande "MakeRexCat.rexx MAKECT" et créer un
+    fichier Catalogue de Traduction.
+
+@ENDNODE
+@NODE "TECH" "Détails techniques"
+
+@{b}Descriptions plus détaillées@{ub}:
+
+ @{" MakeRexCat.rexx " LINK "TMRC" 0} - Crée/met à jour des fichiers catalogues.
+
+    C'est le programme ARexx principal qui scanne un script ARexx
+    pour collecter les chaînes à traduire, et construit un fichier
+    catalogue / Description/Traduction pour celui-ci.
+
+    Les scripts ARexx n'ont pas besoin de MakeRexCat.rexx pour
+    être multi-langue, sauf pour 2 fonctions qui peuvent être
+    copiées/collées depuis son code source.
+
+    @{" gettlstext() " LINK "FGTT" 0} - Charge un fichier catalogue.
+
+       Cette fonction ARexx charge un fichier catalogue et
+       initialise la table @{b}tlstext.@{ub} avec les chaînes
+       traduites disponibles.
+
+    @{" tls() " LINK "FTLS" 0} - Traduit les chaînes
+
+       Cette fonction ARexx retourne la chaîne traduite indexée
+       par la chaîne originale.  Si aucune traduction n'est
+       disponible, alors la chaîne originale est retournée.
+
+
+
+ <script source>.catalog  (@{" catalogue RexCat " LINK "CATA" 0})
+
+    est le fichier texte produit par MakeRexCat.rexx qui
+    contient toutes les chaînes disponibles pour la traduction
+    dans <script source>, et qui peut être édité pour lui
+    ajouter les traductions correspondantes.
+
+
+ <script source>.cd
+
+    est le fichier catalogue Description produit par
+    "MakeRexCat.rexx MAKECD" dans l'intention d'être utilisé
+    avec un compilateur de catalogue pour construire un
+    @{" catalogue IFF " LINK "IFFC" 0}.
+    (Veuillez vous référer à la doc de CatComp pour une
+     description du format de fichier catalogue Description.)
+
+ <script source>.ct
+
+    est un catalogue de Traduction produit par
+    "MakeRexCat.rexx MAKECT" dans l'intention d'être utilisé
+    avec un compilateur de catalogue pour construire un
+    @{" catalogue IFF " LINK "IFFC" 0}.
+    (Veuillez vous référer à la doc de CatComp pour une
+     description du format de fichier catalogue de Traduction.)
+
+ <script source>.code
+
+    est un fichier produit par "MakeRexCat.rexx MAKECD" qui
+    contient le code de remplacement pour tls() et gettlstext()
+    de sorte que le script source puisse utiliser un @{" catalogue IFF " LINK "IFFC" 0}.
+
+
+
+ @{b}Priorités des chemins de recherche@{ub}:
+
+    Les chemins par défaut qui seront utilisés:
+
+    - @{" Lors de la création ou MAJ d'un .catalog " LINK "PATH" 0} avec MakeRexCat.rexx
+    - @{" Lors de l'examen d'un script source " LINK "PATH" 20} avec MakeRexCat.rexx CHECK
+    - @{" Lors du chargement d'un .catalog " LINK "PATH" 26} avec gettlstext()
+
+    - @{" Lors de la création d'un catalogue Description " LINK "PATH" 65} avec MakeRexCat.rexx MAKECD
+    - @{" Lors de la création d'un catalogue de Traduction " LINK "PATH" 69} avec MakeRexCat.rexx MAKECT
+
+@ENDNODE
+@NODE "TMRC" "MakeRexCat.rexx"
+
+The ARexx program at the heart of RexCat: MakeRexCat.rexx
+---------------------------------------------------------
+
+@{b}NAME@{ub}
+     MakeRexCat.rexx -- Scan an ARexx script and create (or update)
+                        the needed files to implement locale support
+                        in ARexx scripts.
+
+@{b}USAGE@{ub}
+     Rx MakeRexCat.rexx [<command>] <arguments>
+
+     <command> is optional.  If given, it MUST be the first argument
+               in the command line, and be one of the following
+               keywords: CHECK, MAKECD, MAKECT
+
+     <arguments> is required, but depends of the <command> used.
+                 With the CHECK command, the default template is:
+                   SRCFILE/A,DSTDIR
+                 otherwise the template is:
+                   SRCFILE/A,LANGUAGE/A,DSTDIR
+
+@{b}FUNCTION@{ub}
+     - By default (no command given), it scans an ARexx script
+       specified by SRCFILE and collects all the strings that are used
+       as argument for a @{" tls() " LINK "FTLS" 0} function.  It then creates
+       or updates a @{" translation file " LINK "CATA" 0} for the LANGUAGE
+       with those strings in the directory specified by DSTDIR.
+       If no strings are available for translation, no translation
+       file is created.
+       If DSTDIR is omitted, a @{" default path " LINK "PATH" 0} is used.
+     - With the @{b}CHECK@{ub} command, the ARexx script specified by SRCFILE
+       is scanned, and all the strings that are used as argument for
+       a @{" tls() " LINK "FTLS" 0} function are collected.  A ".check" file is created
+       in the directory specified by DSTDIR (or a @{" default path " LINK "PATH" 0}) with
+       all the strings sorted in reverted alphabetical order, prepended
+       by the line number in the source script from where the strings were
+       found.
+     - With the @{b}MAKECD@{ub} command, the ARexx script specified by SRCFILE
+       is scanned, and all the strings that are used as argument for
+       a @{" tls() " LINK "FTLS" 0} function are collected.  A Catalog Description
+       file (.cd) is created or updated in the directory specified by
+       DSTDIR (or a @{" default path " LINK "PATH" 0}) with those strings.
+       An already existing .cd file is updated.
+       LANGUAGE here is the built-in default language of the script.
+     - With the @{b}MAKECT@{ub} command, the ARexx script specified by SRCFILE
+       is scanned, and all the strings that are used as argument for
+       a @{" tls() " LINK "FTLS" 0} function are collected.  A Catalog Translation
+       file (.ct) is created or replaced in the directory specified by
+       DSTDIR (or a @{" default path " LINK "PATH" 0}) with those strings.
+       Available translated string in the proprietary translation file
+       are added in this file.
+
+@{b}INPUTS@{ub}
+     SRCFILE - @{b}Absolute path@{ub} and name of the ARexx script to scan.
+     LANGUAGE - With the @{b}MAKECD@{ub} command, it's the default built-in
+                language of SRCFILE.  Otherwise, it's the language for which
+                the translation file is targeted.
+                @{b}Forbidden@{ub} together with the CHECK command.
+     DSTDIR - is the optional directory (@{b}absolute path@{ub}) into where to
+              create the output file
+
+@{b}RETURNS@{ub}
+     One (or two) file(s) whose type depends of the command used.
+     (See @{" Technical details " LINK "TECH" 0})
+
+@{b}NOTES@{ub}
+     The name "tlstext" is @{b}reserved@{ub} and used as a stem (array) which
+     is @{b}global@{ub} in the source script.
+
+     MakeRexCat.rexx will fail to find a @{" tls() " LINK "FTLS" 0} function to
+     check if it has not this exact syntax:
+     - The name of the function, case insensitive : @{b}TLS@{ub},
+     - immediately followed by an opening parenthesis : @{b}(@{ub},
+     - either a single or a double quote : @{b}'@{ub} or @{b}"@{ub},
+     - the string to translate, without @{b}any@{ub} occurence of the quote
+       chosen previously,
+     - the same quote as before the string to translate,
+     - immediately followed by a closing parenthesis : @{b})@{ub}.
+     "@{i} immediately followed by @{ui}" means that no other extra character
+     or blank space is allowed before.
+
+@{b}EXAMPLES@{ub} From a Shell command line:
+
+     > Rx MakeRexCat.rexx "Work:scripts/MyScript.rexx" "french"
+
+     > Rx MakeRexCat.rexx CHECK "Work:scripts/MyScript.rexx" "RAM:"
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+     @{" tls() " LINK "FTLS" 0} @{" gettlstext() " LINK "FGTT" 0}
+     @{" .catalog file format " LINK "CATA" 0}
+     @{" MakeRexCat MakeCD MakeCT Tools " LINK "TOOL" 0}
+
+@ENDNODE
+@NODE "FGTT" "gettlstext()"
+
+ARexx function: gettlstext()
+----------------------------
+
+@{b}NAME@{ub}
+     gettlstext -- Load a catalog file
+
+@{b}TEMPLATE@{ub}
+     LANGUAGE/A
+
+@{b}FUNCTION@{ub}
+     Loads a catalog file for the specified LANGUAGE (or the user's
+     prefered language) and initialize the @{b}tlstext@{ub} stem with the
+     translations.
+
+@{b}INPUTS@{ub}
+     LANGUAGE - a literal or a variable with the language's name
+                of the translation file to load
+
+@{b}RETURNS@{ub}
+     1 (TRUE) if the translation file was successfully loaded, or
+     0 (FALSE) otherwise.
+
+@{b}NOTES@{ub}
+     If the original gettlstext() function has been replaced by the
+     one produced by "MakeRexCat.rexx MAKECD", the LANGUAGE input
+     is ignored; the @{" RexCat catalogs " LINK "CATA" 0} will be ignored as well.
+
+@{b}EXAMPLE@{ub}
+
+     CALL gettlstext("french")
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+     @{" tls() " LINK "FTLS" 0}
+
+@ENDNODE
+@NODE "FTLS" "tls()"
+
+ARexx function: tls()
+---------------------
+
+@{b}NAME@{ub}
+     tls -- Return the translation of a given string
+
+@{b}TEMPLATE@{ub}
+     TLSSRC/A
+
+@{b}FUNCTION@{ub}
+     Gets the TLSSRC compound from the @{b}tlstext@{ub} stem.
+     (TLSSRC is used as "ID" to find its translated equivalent.)
+
+@{b}INPUTS@{ub}
+     TLSSRC - Literal, the original string to translate.
+              The max. length size allowed is 250 chars; a longer
+              string will be cut down.
+
+@{b}RETURNS@{ub}
+     TLSDST, the translated TLSSRC string, or TLSSRC itself if no
+     translation is available or the TLSDST string is empty.
+
+@{b}NOTES@{ub}
+     The original string (TLSSRC) @{b}must@{ub} be enclosed within
+     the same quote (either single-quote or double-quote);
+     that quote is then @{b}forbidden@{ub} anywhere else in the
+     string.  Any attempt to escape that quote will just fail.
+     The following string will never be translated:
+
+       SAY tls('Hello '' world!')
+
+     tls() can only take @{b}one@{ub} single string, without any
+     non-printable character.  The following construction will
+     fail and always return "I'm <age> years old.":
+
+       SAY tls("I'm " || age || " years old.")
+
+     There @{b}must@{ub} have @{b}no@{ub} extra characters or blank spaces
+     between the function name and the opening parenthesis.
+     There @{b}must@{ub} have @{b}no@{ub} blank spaces between the last quote
+     and the closing parenthesis of the function.
+
+     Supported ARexx escape sequences @{b}should@{ub} be kept outside
+     the strings to translate.  The following construction is safe:
+
+       SAY tls("Hello world!") || "*n" || tls("I'm here!")
+
+@{b}EXAMPLE@{ub}
+
+     SAY tls("Hello world! I'm here!")
+
+@{b}BUGS@{ub}
+
+@{b}SEE ALSO@{ub}
+     @{" gettlstext() " LINK "FGTT" 0}
+
+@ENDNODE
+@NODE "CATA" "The RexCat catalog file"
+
+The RexCat catalog file is a plain text file created by @{" MakeRexCat.rexx " LINK "TMRC" 0}
+and loaded in a @{" prepared ARexx script " LINK "LOCA" 0} by the @{" gettlstext() " LINK "FGTT" 0} function.
+
+The filename of this file is based on the name of the source ARexx script
+for which it has been created, appended with a ".catalog" extension.
+Eg.: "MyScript.rexx.catalog"
+
+It is stored in a "RexxCatalogs/<language>/" directory, where <language>
+is the language for which the ".catalog" has been created.
+
+Both @{" MakeRexCat.rexx " LINK "TMRC" 0} and the @{" gettlstext() " LINK "FGTT" 0} function scan the catalog
+file line by line.  Because of this, each instruction @{b}have@{ub} to fit
+on a single line !
+
+ - Empty lines are ignored.
+ - Lines starting with "//" or "/*" are seen as comments and ignored as well
+   (with the exception of a $VER string in it).
+ - Valid lines starting with either "tlssrc =" or "tlsdst =" are interpreted
+   by ARexx; adding the pairs of original strings and translated strings to
+   the @{b}tlstext@{ub} array.
+ - All other lines are seen as invalid and ignored.
+
+When translating (editing the tlsdst lines), either the single-quote or the
+double-quote can be used to enclose the string.  That quote @{b}must not@{ub} appear
+anywhere else in the string.  The translated string, as well as the
+original string, should have a size limited to 250 chars.
+
+You can add any comment to the file, but as soon as MakeRexCat.rexx update it,
+the file is rewritten and thus the "extra" lines are lost.
+Comments opened with /* can be closed several lines later with a */,
+but EACH new lines inside those comments @{b}must@{ub} start with a //.
+
+The first occurence of a valid $VER string inside a comment is interpreted.
+Version number is preserved (default is the version of the source script,
+or "1.0"); with the revision part auto-incremented by 1 if something has
+changed in the catalog (newer strings added or unused strings removed).
+The AUTHor comment (after the (date)) will be preserved as well.
+
+
+@{b}Tip@{ub} to validate a RexCat catalog file:
+Run it as an ARexx script.  If nothing happen, that's a good sign nothing
+is wrong with it; otherwise you will see ARexx error messages.
+Note: For this trick to work, each comment line started with a // must
+be enclosed in a proper Arexx comment, inside /* and */.
+Example:
+
+ /* First line of comment
+ // Second line of comment
+ // Last line of comment */
+
+@ENDNODE
+@NODE "PATH" "Path priorities"
+
+@{b}Search paths and priorities@{ub}:
+
+-> Without the optional DSTDIR argument, @{" MakeRexCat.rexx " LINK "TMRC" 0} tries to
+   update any existing .catalog file (its own custom - plain text -
+   @{" catalog file format " LINK "CATA" 0}, not the regular IFF catalogs) found in
+   the following default paths:
+
+   1) <PROGDIR>Locale/Catalogs/<language>/<script name>.catalog
+      @{b}Deprecated@{ub} path, but kept for backward compatibility.
+      (<PROGDIR> is the directory where <script name> is in.)
+   2) <PROGDIR>RexxCatalogs/<language>/<script name>.catalog
+   3) LOCALE:RexxCatalogs/<language>/<script name>.catalog
+
+   If no .catalog file is found, a new one will be created by default
+   (unless the DSTDIR is given) in:
+
+   1) LOCALE:RexxCatalogs/<language>/<script name>.catalog
+   OR (if the previous path fail):
+   2) <PROGDIR>RexxCatalogs/<language>/<script name>.catalog
+
+
+-> In CHECK mode, and without the optional DSTDIR argument,
+   @{" MakeRexCat.rexx " LINK "TMRC" 0} will create a <script name>.check file
+   in <PROGDIR>.
+
+
+
+-> When loading a .catalog file, @{" gettlstext() " LINK "FGTT" 0} search for it in:
+
+   A) Using the proprietary @{" catalog file format " LINK "CATA" 0} :
+
+      1) LOCALE:RexxCatalogs/<language>/<script name>.catalog
+      2) <CURDIR>RexxCatalogs/<language>/<script name>.catalog
+         (<CURDIR> is the directory that is current when
+          gettlstext() is called.)
+      3) <CURDIR>Locale/Catalogs/<language>/<script name>.catalog
+         @{b}Deprecated@{ub} path, but kept for backward compatibility.
+      4) <PROGDIR>RexxCatalogs/<language>/<script name>.catalog
+         (<PROGDIR> is the directory where <script name> is in.)
+      5) <PROGDIR>Locale/Catalogs/<language>/<script name>.catalog
+         @{b}Deprecated@{ub} path, but kept for backward compatibility.
+
+      @{b}Note@{ub}: Starting with v2.1, the gettlstext() function
+      will no more search for a custom .catalog in LOCALE:Catalogs/
+      This location should be reserved for real IFF catalogs (compiled
+      with tools like CatComp, FlexCat, ...).
+
+   B) Using an @{" IFF catalog " LINK "IFFC" 0} (with an adapted gettlstext() function) :
+
+      1) LOCALE:Catalogs/<language>/<script name>.catalog
+
+      @{b}Note1@{ub}: Catalogs in <PROGDIR>Catalogs/ will not be found
+      because when a ARexx script is started, <PROGDIR> is the path of
+      the Rx command.
+
+      @{b}Note2@{ub}: The language argument given to gettlstext() in
+      this case is @{b}ignored@{ub} !
+
+   If no .catalog file is found, nothing bad happen (the function
+   returns FALSE), and <script name> falls back to the built-in
+   language.
+
+
+
+-> Without the optional DSTDIR argument, "MakeRexCat.rexx MAKECD" will
+   update a Catalog Description in <PROGDIR>Catalogs/<script name>.cd
+   and a replacement source code in <PROGDIR><script name>.code
+
+
+-> Without the optional DSTDIR argument, "MakeRexCat.rexx MAKECT" will
+   replace a Catalog Translation in <PROGDIR>Catalogs/<script name>.ct
+
+@ENDNODE
+@NODE "TIPS" "FAQ"
+
+@{b}- FAQ -@{ub}
+
+@{b}I wish to contribute a catalog for someone else application.
+What do I need ?@{ub}
+
+  It depends if the author of the application is expecting a
+  @{" RexCat catalog " LINK "CATA" 0} or a @{" IFF catalog " LINK "IFFC" 0}.
+
+  - In case of a RexCat catalog and one catalog (for any language)
+    already is available in the package, you do not need anything
+    else than a text editor.  Open the existing catalog, change
+    the header (the $VER: string and language), and replace the
+    strings in the tlsdst lines with strings in your language.
+    Send the new file to the author.
+    If there is no catalog file provided but you have RexCat
+    installed, open a Shell and type MakeRexCat (or double-click
+    on SYS:Utilities/MakeRexCat), select the source script, and
+    enter the translation language.  A new catalog file will be
+    created.
+
+  - In case of a IFF catalog, the author should have provided a
+    Catalog Description file (.cd).  Just use a catalog compiler
+    like CatComp, FlexCat, SimpleCat, ... to build that catalog.
+
+@{b}I wish to distribute my ARexx script with locale support.
+What do I have to include in the package ?@{ub}
+
+  If your script is prepared for the built-in @{" RexCat catalogs " LINK "CATA" 0},
+  you can include the available catalogs in a RexxCatalogs/
+  subdirectory.  If you plan to have an Install script (installer),
+  make it to copy RexxCatalogs/<language>/<YourScript.rexx>.catalog
+  to LOCALE:RexxCatalogs/<language>/<YourScript.rexx>.catalog
+  (Have a look at the Install script for RexCat.)
+
+  If your script is prepared for using @{" IFF catalogs " LINK "IFFC" 0}, then
+  ensure to include a Catalog Description file in the package.
+  You can create one with the MakeCD tool.
+  You don't need to create any RexxCatalogs/ subdir in your
+  distribution package.
+  Note that when you update your source code and the catalog
+  is to be different then the previous version, you have to
+  rebuild a new Catalog Description file AND replace again the
+  RexCat @{" functions " LINK "TECH" 8} in the source code.
+
+@{b}Will adding localization support in my ARexx script slow it down ?@{ub}
+
+  Yes and no.
+  The initial load of the @{" RexCat catalog " LINK "CATA" 0} file by the @{" gettlstext() " LINK "FGTT" 0}
+  function can take some times, depending of the size of the file.
+  (All the translated strings are loaded in memory.)
+  You may find that your script is a bit slower to start, but
+  as ARexx scripts are usually a lot smaller than modern binary
+  applications, that delay should be acceptable.
+  Then, all translations are made almost on-the-fly.
+  (Just as if the content of a variable was printed instead of a
+   string; you won't notice any difference.)
+
+@{b}Why use a proprietary catalog ?@{ub}
+
+  ARexx allows a compound symbol to have any printable characters,
+  including spaces.  That makes a translation very easy in a script:
+  TranslatedString = tlstext.OriginalString
+  An instruction like SAY tls('Hello world!') does in fact output
+  the value of "tlstext.Hello world!"
+
+  The @{" RexCat catalog " LINK "CATA" 0} file created is a plain text file
+  containing all the original strings and where you can fill in the
+  translated strings with a text editor.  The file is ready to use
+  as is, without any additional manipulation.
+
+  However, starting with v2.1, RexCat also support the use of an
+  @{" IFF catalog " LINK "IFFC" 0} instead of its own catalog.
+
+@{b}Why a .catalog suffix for a file that is not really a catalog ?@{ub}
+
+  The "proprietary" catalog does indeed not have the same format
+  as an IFF catalog; but the ".catalog" suffix tells they both
+  have the same purpose.
+  To avoid confusion, RexCat's own catalogs are stored in a new
+  separate RexxCatalogs/ directory.
+
+@{b}Will RexCat support variable substitution in future ?@{ub}
+
+  Unlikely.
+  As it stand now, the RexCat method is simple but fast (see
+  previous questions).  Adding algorithm to parse extra arguments
+  in the @{" tls() " LINK "FTLS" 0} function will slow the translation process
+  significantly; making a localized ARexx script less performant.
+
+  However, if you need to format a string, have a look at the
+  included sprintf.rexx script.  ;-)
+
+@{b}Why does MakeRexCat.rexx create its .catalog in LOCALE: by default
+instead of PROGDIR ?@{ub}
+
+  ARexx scripts are often tools for other applications.  When a
+  developer accept to bundle third parties scripts with his own
+  product, he should not have to take the hassle to write an
+  appropriate installation program that will handle all the
+  @{" .catalog " LINK "CATA" 0} for all the ARexx scripts.
+  Without an installation routine, the end user will have many
+  .catalog file all over his hard disk, most of them not being
+  of any use for him.
+
+  On the other hand, if a contributor wish to distribute himself
+  his ARexx script intended for another application, he would have
+  to find that application's PROGDIR where to install the
+  appropriate catalogs.
+
+  Using LOCALE: as default for RexxCatalogs/ simplify the catalogs
+  installation; the path being standard for all installer scripts.
+
+  Cf.: @{" Search paths and priorities " LINK "PATH" 0}
+
+  Anyway, you can change the destination path for the created
+  .catalog by using the DSTDIR argument with MakeRexCat.rexx
+
+@{b}Why is the LANGUAGE argument in gettlstext() ignored when
+using an IFF catalog ?@{ub}
+
+  It's a limitation of the ARexx host of locale.library :
+  the OpenCatalog() function does not allow to be passed a
+  specific language for the catalog to load.
+
+@ENDNODE
+@NODE "INFO" "Authors"
+
+@{b}Authors@{ub}:
+
+Philippe "AmigaPhil" Duchenne - AmigaPhil scarlet be
+     (You know where to put the \@ and the dot  ;-) )
+
+@ENDNODE
+@NODE "CRED" "Credits"
+
+@{b}Translators@{ub}:
+
+Johan Banis - ATO Nederland : dutch catalog
+Simone "Tuxedo" Monsignori : italian catalog
+Dirk Neubauer - ATO Germany : german catalog
+Horst Schumann - ATO Germany : german catalog (proof-reading)
+Javier de las Rivas - ATO Spain : spanish catalog
+
+
+@{b}Authors of the tools used@{ub}:
+
+Commodore/Amiga Int., for CatComp
+Marcin Orlowski, for FlexCat
+Guido Mersmann, for SimpleCat
+
+
+@{b}Others@{ub}:
+
+Simon N Goodwin, for his long patience with development of SpamFryer,
+                 and for implementing the first incarnation of RexCat
+                 (then called maketls)
+Niels "nbache" Bache, for the PRAGMA('W','N') tip :-) and other
+                      helping hands given in forum
+itix, thomas, MichaelMerkel, Petah, RodTerl, broadblues (AmigaWorld.net)
+                 for their suggestions
+Philippe "mrodfr" Bovier, for coordinating the ATO translations
+
+@ENDNODE
+@NODE "HIST" "History"
+
+@{b}Changes@{ub}:
+
+v2.2: When updating a Catalog Description (.cd), the strMin
+      and strMax values were not preserved. - Fixed.
+
+      When scanning a source script for strings to translate,
+      any function name ending by 'tls' was misinterpreted
+      as the tls() function to check. - Fixed.
+
+      When using either MakeRexCat, MakeCD or MakeCT
+      (AmigaDos scripts), the last selected source file is
+      now remembered for a time (-> ENV:RexCatLastSrc).
+
+      RexCat catalogs now have a $VER string.
+
+v2.1: Added support for IFF catalogs (using locale.library).
+      MakeRexCat.rexx has 2 new commands (MAKECD and MAKECT)
+      which create a Catalog Description file and a Catalog
+      Translation file.  (You still need a catalog compiler
+      to build the IFF catalog.)
+
+      When reading the .catalog file, a test to validate
+      entries was wrong and caused some specially formatted
+      strings to be ignored. - Fixed.
+
+v2.0: First Aminet release.
+      RexCat is a replacement for the maketls tool which
+      was not released as standalone but included with
+      some other ARexx applications.
+
+@ENDNODE
+

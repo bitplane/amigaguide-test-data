@@ -1,0 +1,326 @@
+@DATABASE PrimzahlV70
+@WORDWRAP
+@WIDTH 80
+
+@NODE MAIN "Primzahl V7.0"
+
+
+
+
+                @{b}Prime V7.0
+
+                Inhaltsverzeichnis@{ub}
+                ------------------
+
+                @{"Einleitung"            LINK Einleitung}
+                @{"Benutzung"             LINK Benutzung}
+
+                @{"Geschwindigkeit Sieb"  LINK SpeedSieve}
+                @{"Geschwindigkeit Test"  LINK SpeedTest}
+                @{"Vergleich"             LINK Vergleich}
+
+                @{"Geschichte"            LINK Geschichte}
+                @{"Danksagungen"          LINK Thanks}
+                @{"Zu Tun"                LINK ToDo}
+
+                @{"Autor"                 LINK Autor}
+                @{"Disclaimer"            LINK Disclaimer}
+
+@ENDNODE
+
+@NODE "Einleitung"
+
+  Prime
+  -----
+
+  Dieses kleine Programm berechnet alle Primzahlen bis zu einer angegebenen
+Grenze und bietet die Möglichkeit, sie in einer Datei abzuspeichern.
+Es wird das Verfahren nach Eratosthenes ( Sieb des ~ ) verwendet. Das
+Programm benötigt einen Prozessor >= 68020 und bietet Optimierungen
+für 68040- und 68060-Prozessoren.
+
+  Weiterhin besteht die Möglichkeit, beim Primzahltest 64-bit-Integer
+Zahlen zu überprüfen. Dies ergibt einen möglichen Testbereich von bis
+zu 1e19 (10.000.000.000.000.000.000 !). Das Programm ermittelt dabei
+rekursiv alle Teiler.
+
+        @{"Weiter" LINK Benutzung}
+@ENDNODE
+
+@NODE "Benutzung"
+
+@{b}Benutzung@{ub}
+---------
+
+  Prime kann nur in der Shell aufgerufen werden.
+Befehlsschablone:  Prime MAX/A,FILE/K,BIGBUFFER=BB/S,
+                         RANGESTART=RS/N,RANGEEND=RE/N,
+                         TEST/S,RECURSIVE=R/S,PROCESSOR=P/N
+
+Bedeutung der Optionen
+ MAX        - Obergrenze für die Suche nach Primzahlen
+ FILE       - Datei, in die die Primzahlen geschrieben werden
+ BIGBUFFER  - Es wird ein größerer interner Buffer für die Ausgabe
+              verwendet, ohne BB: 8 KByte, mit BB: 256 KByte
+ RANGESTART - Startzahl für die Ausgabe
+ RANGEEND   - Endwert für die Ausgabe
+ TEST       - MAX-Wert auf Primzahl testen
+ RECURSIVE  - Es werden alle Faktoren von MAX ermittelt
+ PROCESSOR  - verwendete Prozessor-Optimierung auswählen
+
+  Der Befehl kann während der Ausgabe mit CTRL-C unterbrochen werden. Wird
+kein Dateiname angegeben, werden auch keine Primzahlen ausgegeben. Werden
+keine oder ungültige Werte für die RANGE-Parameter angegeben, werden die
+Standardwerte benutzt, d.h. 0 für RANGESTART und MAX für RANGEEND. Der
+minimale Wert für MAX ist aufgrund des Rechenverfahrens 2000.
+
+  Wird die TEST-Option eingegeben, wird nur der MAX-Wert verwendet. Die Zahl
+wird getestet, ob sie prim ist, und das Ergebnis ausgegeben.
+
+  Die Parameter werden über die DOS-Funktion ReadArgs ermittelt. Dies hat
+Konsequenzen bei den Integer-Argumenten (RS, RE). Diese werden vom
+Betriebssystem als vorzeichenbehaftete 32-bit Integer behandelt. ReadArgs
+setzt dabei Zahlen im Bereich von -2.147.483.649 bis +2.147.483.649 um
+(Kickstart 3.1). Dabei ist intern +2.147.483.649 = -2.147.483.647 = $8000.0001.
+
+  Bei der Primzahlberechnung werden Argumente bis 2.147.483.647 (= $7fff.ffff)
+akzeptiert, wobei die Berechnung dann einen Speicherblock von 128 MB benötigt.
+
+  Beim Primzahltest ist der Maximalwert von der Prozessoroptimierung abhängig.
+Die 68020-Optimierung erlaubt einen Wert von 10^19-1 (9.999.999.999.999.999.999).
+Aufgrund eines anderen Algorithmus bei der 68060-Optimierung gilt dann ein
+Maximalwert von 2^62-1 (= 4.611.686.018.427.387.903).
+
+  Beim PROCESSOR-Argument werden 3 Werte zugelassen: 68020, 68040 und 68060.
+Die 68020-Option ermöglicht die kürzesten Laufzeiten auf 68020/68030-Prozessoren.
+Die 68060-Option erreicht das gleiche für die 68060-CPU. Der 68040 liegt nicht
+nur zahlenmäßig genau dazwischen. Bei der Primzahlberechnung benutzt er die
+68060-Optimierung, beim Primzahltest dagegen die 68020-Routine. Wird kein
+PROCESSOR-Argument angegeben, wird die verwendete Optimierung über die
+Prozessorflags des Betriebssystems festgelegt.
+
+        @{"Weiter" LINK SpeedSieve}
+@ENDNODE
+
+@NODE "SpeedSieve"
+
+@{b}Geschwindigkeit (Sieb)@{ub}
+----------------------
+
+  In Version 7 ist die Berechnung von Primzahlen etwas verändert worden. Dadurch
+haben sich die Berechnungszeiten geringfügig geändert. Außerdem wurde das Forbid/
+Permit-Paar entfernt, um Prime auch im Multitasking laufen zu lassen. Will man
+genauere Zeiten bestimmen, muß man die Priorität der Shell, in der Prime läuft,
+auf Werte über 20 hochsetzen.
+
+  Auf meinem Rechner (A500, 68030/50MHz, 68882/50MHz, 16+1 MB) benötigt
+der Aufruf "Prime MAX .. FILE DH3:Test BB" folgende Zeiten:
+
+      MAX      Sieve  Count   Output  Anzahl der
+                 [s]    [s]      [s]  Primzahlen
+   1.000.000    0.28   0.04     3.58       78498
+   2.000.000    0.58   0.08     6.56      148933
+   5.000.000    1.60   0.14    15.90      348513
+  10.000.000    3.36   0.28    30.60      664579
+  20.000.000    7.20   0.58    59.44     1270607
+  50.000.000   19.34   1.46   141.38     3001134
+ 100.000.000   40.92   2.90              5761455
+ 200.000.000   86.58   5.82             11078937
+
+  Die Anzahl der Primzahlen bis zur Obergrenze MAX läßt sich mit MAX/ln(MAX)
+abschätzen. Die Länge der erzeugten Textdatei beträgt ca. 10 * Anzahl der
+Primzahlen.
+
+  Prime arbeitet mit VMM zusammen und nutzt eventuell vorhandenen virtuellen
+Speicher. Benötigt werden ca. MAX/16 Byte plus den eingestellten Ausgabe-
+buffer. Aufgrund der vielen Speicherzugriffe verlangsamt virtueller Speicher
+das Programm enorm. (Dies galt für meine alte Turbokarte. Aufgrund fehlender
+Unterstützung von VMM für meine jetzige Turbokarte ist dies aber ungetestet.)
+
+        @{"Weiter" LINK SpeedTest}
+@ENDNODE
+
+@NODE "SpeedTest"
+
+@{b}Geschwindigkeit (Test)@{ub}
+----------------------
+
+  Die Testroutine testet 64-bit-Integerzahlen. Allerdings wird eine
+einfache Testschleife mit Divisions-Befehlen verwendet. Dies führt bei
+großen Zahlen zu recht langen Berechnungszeiten. Bei meiner Rechner-
+konfiguration gab es folgende Ergebnisse:
+
+        MAX                Calculation
+                              [s]
+       99.999.999.999.973     5,7
+      100.000.000.000.031     5,7
+      999.999.999.999.989    18,2
+    1.000.000.000.000.037    18,2
+    9.999.999.999.999.937    59,8
+   10.000.000.000.000.061    59,8
+   99.999.999.999.999.997   213,0
+  100.000.000.000.000.003   213,0
+  999.999.999.999.999.989   904,4
+1.000.000.000.000.000.003   904,4
+
+  Damit ist Version 7 nun ca. 10% schneller als Version 6. Zusätzlich
+werden nun auch rekursiv alle Teiler der Zahl berechnet und angezeigt,
+wenn die entsprechende Option gewählt wurde.
+
+  Bei kleinen Zahlen nimmt die Rechenzeit je Zehnerpotenz um den
+Faktor 3.2 zu. Bei größeren Zahlen muß das Programm jedoch die
+64/32-bit-Division des Prozessors durch eine eigene Routine ersetzen,
+sodaß der Faktor auf ca. 4 steigt.
+
+  Der 68060-Prozessor hat mit diesem Test Probleme, da er die verwendeten
+Divisionsbefehle emulieren muß. Dies führt zu Problemen mit dem Multitasking
+(ständige Exception-Abarbeitung). Deshalb habe ich eine spezielle Routine
+geschrieben, die diese Befehle nicht verwendet. Dadurch wird das Multitasking
+nicht mehr gestört. Allerdings ist der 68060 damit immer noch langsamer als
+ein 68030 (bei gleicher Taktfrequenz).
+
+        @{"Weiter" LINK Vergleich}
+@ENDNODE
+
+@NODE "Vergleich"
+
+@{b}Vergleich verschiedener Rechner/Prozessoren@{ub}
+-------------------------------------------
+
+  Prime enthält nun Routinen, die für verschiedene Prozessoren
+optimiert sind. Dadurch sind die Laufzeiten stark von der jeweils
+verwendeten Routine abhängig.
+
+  Nun einige Ergebnisse verschiedener "Prozessoren", (im Vergleich
+mit meinem Rechner):
+
+Prozessor       RAM     Sieve   Count   Test    Kommentar
+68030/50         16      1.00    1.00   1.00    mein Amiga
+68060/50                 1.45    3.50   0.36    Simon N. Goodwin
+WinUAE           16      0.43    0.32   0.90    PII 350 
+WinUAE           16      0.22    0.18   0.50    Pentium 166MMX
+
+        @{"Weiter" LINK Geschichte}
+@ENDNODE
+
+@NODE "Geschichte"
+
+@{b}Geschichte@{ub}
+----------
+
+ Version  Datum
+   1.0    21.10.93  erste einfache Version
+   1.1    23.10.93  Zahlen bis 720.000
+   1.2    25.10.93  Requester für Anzahl der Primzahlen
+
+   2.0    30.10.93  Zahlen bis MAXINT (2^32-1)
+                    SQRT-Fkt vollständig definiert
+
+   3.0    10.12.93  neues Verfahren: Sieb des Eratosthenes mit
+                      entsprechender Beschleunigung
+
+   4.0    15.01.95  nur 68030 + 68882; verbessertes Speicherhandling; wenn
+                      vorhanden, wird virtual memory benutzt; ReadArgs
+   4.1    18.12.95  Anpassung an VMM
+   4.2    25.02.96  Ausgabe nach stdout, Ctrl-C Abfrage
+   4.3    01.03.96  neue Ausgaberoutine, neue Optionen
+
+   5.0    02.03.96  neue Konvertier-Routine, nicht mehr Exec/RawDoFmt
+   5.1    03.03.96  Konvertierroutine optimiert (3x schneller als Version 4.3)
+   5.2    23.10.96  Zähler für ermittelte Primzahlen, Zeit für Berechnung
+                      und Ausgabe
+   5.3    11.07.97  Sieb-Routine verbessert
+          31.08.97  Überprüfung des MAX-Arguments
+
+   6.0    04.10.97  Testroutine für einzelne Zahlen
+   6.1    01.11.97  Testroutine nun für 64bit-Zahlen
+                    Ausgabe bei kleinen Zahlen (<2000) korrigiert
+   6.2    12.12.97  Neue Dokumentation (AmigaGuide)
+   6.3    11.04.99  Fehlerkorrektur in Primzahl-Testroutine
+                    (Potenzen von 5 wurden als Primzahlen bezeichnet)
+                    kleine Optimierungen
+   6.4    22.07.99  Fehlerkorrektur in Ausgaberoutine (komplett falsche Ausgaben!)
+   7.0ß   01.10.99  interne Testversion: zwei getrennte Versionen für 68020
+                    und 68060, Berechnungen optimiert, Ausgabe des Teilers
+                    beim Primzahltest
+   7.0    29.12.99  Prozessoroptimierung in einem Programm integriert,
+                    neues Argument zur Auswahl der Prozessoroptimierung,
+                    rekursive Berechnung aller Teiler einer Zahl
+
+        @{"Weiter" LINK Thanks}
+@ENDNODE
+
+@NODE "Thanks"
+
+@{b}Danksagungen:@{ub}
+-------------
+
+  Bedanken möchte ich mich bei Simon N. Goodwin, der mir mit Rat und Tat
+bei der 68060-Optimierung geholfen hat. Ohne ihn hätte ich kaum noch so
+viel Zeit in dieses Programm gesteckt.
+
+  Außerdem danke ich allen anderen, die mir ihre Testergebnisse oder auch
+Fehlermeldungen geschickt haben.
+
+        @{"Weiter" LINK ToDo}
+
+@ENDNODE
+
+
+@NODE "ToDo"
+
+@{b}Noch zu tun:@{ub}
+------------
+
+- Ausgabe variabler gestalten, Formatierungsmöglichkeit einbauen
+
+- weitere Vorschläge: ???
+
+  Ob die hier erwähnten Punkte realisiert werden, hängt stark von meinen
+zeitlichen Möglichkeiten und meiner Motivation ab.
+
+        @{"Weiter" LINK Autor}
+@ENDNODE
+
+@NODE "Autor"
+
+@{b}Über mich@{ub}
+---------
+
+  Ich freue mich über jede Anmerkung, jeden Vorschlag oder auch jede
+Bugmeldung. Wer keine Vorschläge hat, sollte mir eine kleine E-Mail mit
+Geschwindigkeitsangaben ähnlich meiner eigenen schicken, natürlich
+unter Angabe der Rechnerkonfiguration. Für diesen Zweck habe ich ein
+Skript geschrieben, das die Ergebnisse gleich in eine Datei schreibt.
+
+Viel Vergnügen beim Ermitteln von Primzahlen wünscht
+
+ Gerd Wieczorek
+
+SMail:   Berliner Str.1
+         14959 Trebbin
+         BRD
+
+EMail:   wieczor@mat.ee.tu-berlin.de
+
+        @{"Weiter" LINK Disclaimer}
+@ENDNODE
+
+@NODE "Disclaimer"
+
+@{b}Disclaimer@{ub}
+----------
+
+  Dieses Programm ist Freeware. Über Geschenke (fast) jeder Art freut sich
+der @{"Autor" LINK Autor} trotzdem.
+
+  Es gelten die allgemein üblichen Hinweise:
+
+  Die Benutzung von Prime erfolgt auf eigene Gefahr. Für Schäden, die sich
+aus der Benutzung von Prime ergeben, bin ich nicht haftbar zu machen. Wenn
+jemand Prime in einer anderen Art und Weise als per Aminet (-CD) verbreiten
+will, muß er mich vorher per e-mail kontakten.
+
+        @{"Zurück" LINK MAIN}
+@ENDNODE
+

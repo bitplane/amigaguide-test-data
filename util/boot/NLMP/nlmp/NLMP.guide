@@ -1,0 +1,245 @@
+@database "NewLookMenuPatch"
+
+@Node Main "NewLookMenuPatch.guide"
+
+                     NewLookMenuPatch V1.0
+                          (15.09.1997)
+
+                         by Cliff Earl
+                      (cee@voyager.co.nz)
+
+                     © 1997 Antix Software
+
+                      @{" --README FIRST-- " Link "readme"}
+
+                        @{" Introduction " Link "introduction"}
+
+                 @{" How To Use NewLookMenuPatch " Link "howto"}
+
+                      @{" About The Source " Link "source"}
+
+                       @{" Contacting Me " Link "contact"}
+
+@EndNode
+
+	***************************************
+
+@Node "introduction" "NewLookMenuPatch/Introduction"
+
+  When  I  had  an A1200 (sold it coz AGA is such a pig) I loved
+the  black  on  white  NewLook  menus of Workbench 3.  I decided
+recently  to  begin  programming a gui that would have NLM's but
+soon  ran  into  bother  when  the AmigaKey and CheckMark images
+refused  to  appear  in  the  correct  colours.  They would only
+appear  in  the  old  black/grey  colours, Grr.  I was angry and
+frustrated  (which  makes  a  change  from  my normal  moody and
+depressed  state),  so  I  started  tracking  down the offending
+images...   Once  I had found them (and intuitions references to
+them) I was able to begin programming NewLookMenuPatch (NLMP).
+
+
+This is how NewLookMenuPatch works..
+
+  First   NLMP   attempts   to  find  the  AmigaKey  graphic  in
+chipmemory.   If found, NLMP will get a pointer to the intuition
+library  and  look  for  a reference to the chip address.  If it
+finds  one  it  checks to see if it's part of an intuition image
+structure  and  if so it patches the structure to point to a new
+NewLook)   AmigaKey)  graphic.   NLMP  does  the  same  for  the
+checkmark graphic.  If either search/replace fails (or any other
+operation fails) then NLMP will exit, undoing all changes it has
+made.
+
+  Both  Searches take place in the first $10000 (130kb) bytes of
+chipmem.  Some Amiga owners with no fast memory might experience
+quite  a  delay and NLMP may not be able to find the graphics at
+all.   If  you  can't live with the delay then that's either too
+tough  for  you  or  you  should  consider  purchasing some fast
+memory.
+
+  Once  the  image  patches  are in place the program sets about
+patching  some  library vectors.  The patched libraries, vectors
+and their new/extended functions are...
+
+gadtools.library - _LVOCreateMenusA
+
+  When   this   function  gets  called,  NLMP  will  strip  (ala
+_LVOFilterTagItems)  any  GTMN_FrontPen  (which tells gtlib what
+colour  to print menutext in) tag from the supplied taglist.  It
+will  then  append  the  original  taglist  to  it's own taglist
+containing  the  new GTMN_FrontPen value and then return control
+to the normal _LVOCreateMenusA function.
+
+*
+
+intuition.library - _LVOOpenScreenTagList
+
+  This  patch works more or less the same as the gadtools patch.
+The differences are that it will strip'n'append SA_DetailPen and
+SA_BlockPen tags.
+
+*
+
+intuition.library - _LVOOpenScreen
+
+  This  patch will overwrite the ns_DetailPen and ns_BlockPen in
+the  newscreen  structure.  If ns_Type contains NS_EXTENDED then
+the  extension  taglist will get the strip'n'append action as in
+_LVOOpenScreenTagList.
+
+*
+
+intuition.library - _LVOOpenWindowTagList
+intuition.library - _LVOOpenWindow
+
+  Both  these  tags  work  the same as their screen counterparts
+except they work with windows instead of screens :^)
+
+*
+
+intuition.library - _LVOOpenWorkBench
+
+  This function calls the original.  If the WBScreen is returned
+then  it's  sc_DetailPen  and sc_BlockPen get overwritten.  It's
+some  strange  behaviour  that  the  WBScreen never get's opened
+legally.   Then  _LVOSetWindowTitles  will  get  called  so  the
+menubar get's redrawn in the correct colours.
+
+*
+
+intuition.library - _LVOSetMenuStrip
+
+  When  this  function  gets  called  NLMP will walk through all
+menu's,  items, and subitems and fix (for lack of a better word)
+the  pens  for the item text or image in the case of a barlabel.
+This  function  does  this because some bad programs like v34.11
+AmigaGuide  library  has  some strange way of making it's menus.
+After  the  pens have been corrected the modified menu is passed
+onto the original _LVOSetMenuStrip function.
+
+
+  Phew,  that  was  a lot to absorb but let's continue with some
+things that you should note before you try NLMP.
+
+0. NLMP is not for OS3+!! You already have NewLookMenus!!
+
+1. NLMP  will  only  work   correctly  on a  4 colour workbench.
+   Screens that have more colours make the complement drawing of
+   menus and their items different.  Blame it on gfx library :^)
+
+2. NLMP will affect ALL screens and ALL windows that get opened.
+
+3. NLMP will force (or attempt to) ALL  screens and ALL  windows
+   to use DetailPen of 1 (black) and BlockPen of 2 (white).
+
+4. Because  of  3,  ALL  window  gadgets  that are  disabled get
+   frosted  in  white.  I am currently looking into this strange
+   behaviour.. but IMHO it looks quite nice.. :^)
+
+5. Currently  NLMP  cannot  simulate  the   black  line  that is
+   present  at  the  bottom  of  WB3 NewLook menus.  If I try to
+   render  it onto a screens titlebar and a window is there it's
+   the  window  that  gets  drawn  on.  Mabye I should try using
+   layers  instead  of  just  drawing into the screens rastport.
+   Any help would be appreciated here..
+
+6. ALL  the  intuition  structures  that  NLMP  changes are  not
+   copied.   That  means  the  original structures passed in are
+   modified.   If  you can't handle my program doing nasty stuff
+   to your own then tough luck buddy :^)
+
+
+  Wow!   I  didn't think there would be so much doc to write for
+such  a  small  program.   Hmm..  Well that's about all for now.
+Time  to install it and see if it works or kills you beloved Ami
+:^)
+
+Enjoy,
+      Cliff Earl.
+
+@EndNode
+
+	***************************************
+
+@Node "readme" "NewLookMenuPatch/Read Me First!!"
+
+THIS PROGRAM IS A HACK!! BEWARE!! :^)
+
+  Before  you  go  off  running NewLookMenuPatch you should read
+this  document  right through (especially the installation part)
+and  understand what consequences there are of being ignorant of
+what  NewLookMenuPatch  will  do  to  your  system!!   I take no
+responsability  for  any damage caused to your system by the use
+of this program!!
+
+  This  program is Copyright © 1996-1997 by Antix Software.  You
+are  not allowed to make a profit by selling this program and/or
+it's associated files.  It may be distributed for free only.
+
+  People  wishing  to  include this program on a CoverDisk or CD
+then they should send @{"me" LINK contact} a free copy of the CD or Magazine which
+contains this program.
+
+@EndNode
+
+	***************************************
+
+@Node "howto" "NewLookMenuPatch/How To Use NewLookMenuPatch"
+
+  Sorry,  but  there's no installation script right now.  If you
+can't  handle  manual  installations then you might as well stop
+reading and delete NLMP now :^)
+
+The steps to enlightnment...
+
+1. Copy  the NewLookMenuPatch and  KickWBTitle programs  to your
+   C:  directory.
+
+2. Edit  your     S:Startup-Sequence.   call  C:NewLookMenuPatch
+   directly  after setpatch.  call C:KickWBTitle directly before
+   LoadWB.   KickWBTitle  just  calls  _LVOOpenWorkBench  to get
+   things going :^)
+
+3. Reboot :^)
+
+@EndNode
+
+	***************************************
+
+@Node "contact" "NewLookMenuPatch/Contacting The Author"
+
+  If  you  have  suggestions,  comments,  flames, gifts, or just
+wanna chat about ASM programming then contact me..
+
+EMail:	cee@voyager.co.nz
+
+FIDO:	
+
+Snail:	Cliff Earl,
+	P.O Box 159,
+	Otaki,
+	New Zealand.
+
+Phone:	+64 6 364 5667
+
+@EndNode
+
+	***************************************
+
+@Node "source" "NewLookMenuPatch/About The Source"
+
+  The  full  source  to  NewLookMenuPatch  is  included  in  the
+archive.   For  it  to work you will need to copy the files from
+the  include  drawer  into  your own include drawer.  Inside the
+source  you  might  have to change the includefile names, or get
+AStripI.lha  from  Aminet dev/asm.  It's a cool program to strip
+and optimize your ASM include files (plug, plug).
+
+  The  source  will  assemble  in  ASM-One  and is not tested in
+DevPac or any other assembler.
+
+  The  source  is  NOT  commented  and  is  a  bit messy but any
+programmer worth his salt should easily be able to get a hold of
+what's  going on and be able to modify the program with relative
+ease.
+@EndNode

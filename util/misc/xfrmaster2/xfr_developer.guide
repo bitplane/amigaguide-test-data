@@ -1,0 +1,1294 @@
+@database xfr_developer_en.guide
+VERSION
+$VER: XFR v2 BETA developer autodocs
+
+  xfr.library   eXternal Format Rippers
+
+  -------------------------------------
+  m68k assembler developer informations
+  -------------------------------------
+
+    2002 by PseudoDOS/silva@psi5.com
+    2003 by PseudoDOS/silva@psi5.com
+
+ (C) Andreas G. Szabo all rights reserved
+
+
+
+
+@node "Main" "xfr developer"
+
+  xfr.library   eXternal Format Rippers
+  V2 (1/2003)
+  -------------------------------------
+  m68k assembler developer informations
+  -------------------------------------
+
+	@{" 1. general programming info " Link "howto_common"} @{i}- the fabrique@{ui}
+
+	 2. library routines for both programs and clients
+
+		@{" xfrMAlloc() " Link "malloc"} @{i}- memory allocation@{ui}
+		@{" xfrMFree() " Link "mfree"}
+		@{" xfrStringFormat() " Link "stringformat"}
+
+		@{" xfrCreateObject() " Link "create"}
+		@{" xfrIdentify() " Link "identify"}
+
+	 3. program-side library routines
+
+		@{" xfrScan() " Link "scan"}
+		@{" xfrExtract() " Link "extract"} @{i}- retrieve samples out of a module@{ui}
+		@{" xfrConvert() " Link "convert"}
+		@{" xfrPatch() " Link "patch"}
+		@{" xfrExtScan() " Link "extscan"} @{i}- find the samples@{ui}
+
+		@{" xfrSaveObject(), -TagList()" Link "save"} @{i}- write module to disk@{ui}
+		@{" xfrFreeObjects() " Link "freeobjects"}
+
+		@{" xfrFixName() " Link "fixname"}
+		@{" xfrGetErrorText() " Link "errortext"}
+
+	@{" 4. some notes on accessing XFR from programs " Link "howto_programs"}
+
+	@{" 5. some notes on writing XFR-clients " Link "howto_clients"}
+
+	@{" 6. in-client routines " Link "clients"} @{i}- the machines@{ui}
+	@{" 6a client side library routines " Link "lib_clients"}
+
+this document file has a chance of also working with some autodoc readers
+
+@endnode
+
+TABLE OF CONTENTS
+
+xfr/-- 1. general programming info --
+xfr/-- 2. library routines for both programs and clients --
+xfr/-- 3. program-side library routines --
+xfr/-- 4. in-client routines --
+xfr/-- 4a client side library routines --
+xfr/-- 5. some notes on accessing XFR from programs --
+xfr/-- 6. some notes on writing XFR-clients --
+
+xfr/-- 1. general programming info --
+
+@node "howto_common"
+
+  First of all a brief introduction of the implementation that is
+  used for XFR.
+
+  XFR data processing is structured in trees of objects. Each of
+  these in a tree is structurally equal. xfr functions generate
+  or modify object(s). there is one routine to kill a tree.
+
+  The XFR system consists of functions of three categories.
+
+   function             happening               purpose (example)
+
+   --- managing --------------------------------------------------
+
+    create    make a structure that is called   communicate info, 
+	      "object" to handle a data         link related data
+	      (this alltogether is an object)   together
+
+	      the data is aquired on demand of a filename, a disk
+	      drive number, a ram type or the rom
+	      or may be supplied as a memory buffer
+
+    frees     dismake structures, free memory   free all linked
+					        data at once
+
+    save      write data to file                save found module
+
+   --- primary ---------------------------------------------------
+
+    identify  set informational object fields   detect filetype;
+              by recognizing format of a data   find errors
+
+    scan      test every offset in a data,	rip module/data
+	      find areas that have a format
+	      and mark them by a branch(es)
+	      of child object(s)
+
+   --- special ---------------------------------------------------
+
+    extract   mark areas in a module/data by    retrieve samples
+	      a branch(es) of child object(s)   from a module
+
+    patch     modify module/data of an object   reprogram replay
+
+    convert   make independent object/tree      decrunch module;
+	      with its own module/data buffer   change format
+
+  Please consult the xfr.i besides this developer manual and do
+  also view some program-side informations, especially the some
+  notes on how to access XFR from programs, for a picture also
+  when you "just" are about to make a client.
+@endnode
+xfr/-- 2. library routines for both programs and clients --
+@node "malloc"
+
+xfrMAlloc()
+
+	DOES	Allocate a buffer of specified type and remember
+		its size in order to free it with xfrMFree().
+
+	GETS		d0	size	(advanced: xfrMemoryFlags|size)
+
+	RETURNS		d0	*memory or NULL = failed
+
+	USAGE		xfrMAlloc() buffers can only be freed with XFR
+			funcs.
+
+	SEE ALSO	xfrMFree(), xfrFreeObjects()
+
+@endnode
+@node "mfree"
+
+xfrMFree()
+
+	DOES	Free a buffer that had been allocated with
+		xfrMAlloc() or xfrStringFormat().
+
+	GETS		a1	*buffer
+
+	RELATED		xfrMAlloc(), xfrStringFormat()
+
+@endnode
+@node "stringformat"
+
+xfrStringFormat()
+
+	DOES	Allocate and make a strign from a template and a
+		value array as knowm from exec RawDoFmt()
+
+	GETS		a0	*templatestring
+			a1	*datastream
+
+	USAGE		See exec.doc/RawDoFmt() for the formats of the
+			input to this routine. You get a newly allocated
+			and formated string which you may use, print or
+			(for clients) store in xfrCom or an object. It's
+			recommended to use this routine to make the
+			information text for an object, which is usually
+			then stored in xfrCom_text and the xfrFx_TEXTALLOC
+			flag is set in xfrCom_flags. In an object the
+			string will be freed automatically, if you needed
+			it just for printing, free it with xfrMFree().
+			
+
+	RETURNS		d0	*newstring or NULL = no memory
+
+	RELATED TO	xfrMFree(), exec/RawDoFmt()
+
+@endnode
+xfr/-- 3. program-side library routines --
+@node "fixname"
+xfrmaster.library/xfrFixName                   xfrmaster.library/xfrFixname
+
+   NAME
+	xfrFixName -- prefix + name + postfix into new or existing buffer
+
+   SYNOPSIS
+	string = xfrFixName(name, pcstyle, number, buffer, xfrFormat)
+	d0                  d1    d2       d3      a1      a2
+
+	STRPTR xfrFixName(STRPTR, BOOL, ULONG, APTR, struct xfrFormat *)
+
+   FUNCTION
+	You have got a pointer to an xfrFormat and a pointer to a module
+	name (or else sort of data name). Pass the Format and name to
+	xfrFixName and get a string built of that name with the prefix
+	and postfix from the format. Optionally the destination buffer
+	may be an existing one that you can pass in, too. This is optimal
+	for to be used in conjunction with a filerequester. If not, pass
+	buffer as NULL and get a newly allocated string that has just the
+	size that it has plus a zero. This string must be freed with
+	xfrMFree (while its equal what you do whit your own buffer).
+
+  INPUTS
+	name	  - pointer to a zero terminated ascii string, can be found
+		    in xfrO_name or made custom e.g. when there is none
+	pcstyle   - BOOL option to make fe. "name.mod" istead of "mod.name"
+	number	  - normaly NULL or number (ULONG) for "mod.name (1)" etc
+	buffer	  - pointer to a buffer that is long enough for at least
+		    the resulting string plus a zero. except you want to
+		    get a newly allocated string, then pass buffer as NULL.
+	xfrFormat - pointer to an xfrFormat (can be found in xfrO_format),
+		    you may pass NULL to add only a number but see notes
+
+   RESULT
+	string	  - this is either a pointer to your buffer same as passed
+		    in, or its a pointer to a newly allocated string when
+		    your passed in buffer has been NULL. The auto allocted
+		    string can only be freed with xfrMFree(). In case of a
+		    memory error NULL is returned.
+
+   NOTES
+	In the case where your object has got no name set and you need to
+	use a default name, you may use the xfrB_defaultname from xfrBase.
+
+	When your goal is to make saveable a just ripped module f.e. and
+	you do not need to have the fixed name available for other purpo-
+	ses, all default name handling and fixing can be completely done
+	by xfrSaveObject().
+
+	If you do only need to add a number and this is the only thing
+	allways to do in that part of your code, rather use
+	xfrStringFormat() with a template string like "%s (%ld)",0.
+
+   SEE ALSO
+	xfr/xfrMFree(), xfrSaveObject()
+
+@endnode
+@node "errortext"
+
+xfrGetErrorText()
+
+	DOES	Convert an XFR returncode into a human readable string.
+
+	GETS		d0.w	returncode
+
+	RETURNS		d0	*string
+
+	USAGE		Errorcodes are all negative returncodes. A return
+			value of NULL means simply no, not done, etc.
+			A value of 1 means yes, success and similar.
+			 See xfr.i for possible errors. After your program
+			compared the returncode to needs, it may call
+			this rotuine directly to get an explanation that
+			can be shown to the user.
+			 After every routine that creates new objects and/
+			or after a scan or identification the xfrO_state
+			field of the xfrObject structure may contain an
+			error code (negative).
+
+	RELATED TO	xfrO_state field in the xfrObject structure,
+			all XFR rotuines that return codes/errors
+
+@endnode
+@node "create"
+
+xfrCreateObject()
+
+	DOES	Create an xfrObject structure for you, optionally with
+		holding a buffer that is also created with a chooseable
+		type of memory.
+
+		Further it can load a file into that buffer for you and
+		for a special, you may also get the chipmem, the fastmem
+		or the rom as an xfrObject.
+
+	GETS		d1	xfrOBJECT_... modes, see xfr.i
+
+		optionally for mode xfrOBJECT_BUFFER
+
+			d0	size	(advanced: xfrMemoryFlags|size)
+
+		optionally for mode xfrOBJECT_FILE and xfrOBJECT_MINFILE
+
+			d0	null	(advanced: xfrMemoryFlags)
+			a0	*filename
+
+		optionally for mode xfrOBJECT_DISK
+
+			d0	drive number 0 to 3
+				(advanced: drivenumber|xfrMemoryFlags)
+
+	RETURNS		d0	*xfrObject
+
+				or
+
+				xfrERROR_MEMORY	    out of memory or
+						    no fast memory for
+						    xfrOBJECT_FASTMEM
+				xfrERROR_DOS	    file read error
+				xfrERROR_DISK	    disk/drive read error
+				xfrERROR_NODISK	    not inserted
+
+	USAGE		If you want to supply a buffer yourself, use
+			xfrOBJECT_EMPTY and put the address of your
+			buffer into xfrO_start.
+
+			If you want XFR to free your buffer later
+			when freeing the object,
+
+				either have been using xfrMAlloc()
+				for the buffer
+				
+				or exec AllocMem() and put the
+				alloc-size in xfrO_buffersize
+				(this is different from xfrO_size!)
+
+			Custom buffers that were allocated in some other
+			ways can NOT be freed by xfr and must be freed
+			by the program. If these are the case, you also
+			must set xfrO?_SHARED in xfrO_flags of the object
+			where you attach a custom buffer to. To free your
+			own buffer i recommend you not to rely on
+			xfrO_start and xfrO_size. Better keep track of
+			the correct address by yourself and may have the
+			size stored in xfrO_buffersize (or elsewhere).
+			The field xfrO_custom may allways be freely used
+			by the program (its your own decision how you do
+			use it or not).
+
+			Do only use xfrFreeObjects() to free an xfrObject.
+
+	SEE ALSO	xfrFreeObjects()
+
+@endnode
+@node "save"
+
+xfrSaveObject()		-- NO tags here (XFRVERSION < 2 compatibility)
+xfrSaveObjectTagList()	-- with a taglist
+xfrSaveObjectTags()	-- varargs stub for xfrSaveObjectTagList()
+
+	DOES	Write the data buffer of an object to a file.
+                Files of same name are overwritten
+
+	GETS		a1	*xfrObject
+
+			a0	*filename or NULL to use the name of
+				the object or a default name
+
+				(may be left unitialised if the tag
+				 XFR_FILENAME is passed)
+
+		the tag using variant additionally gets
+
+			a2	pointer to taglist
+
+	RETURNS		d0	for xfrSaveObjectTags():
+
+				xfrRETURN_NO = NULL -> file exists 
+
+				(the tagless function does allways
+				overwrite existing files)
+
+				for both:
+
+				xfrRETURN_YES = 1 -> succesfully saved
+
+				(errors are negative values)
+
+				xfrERROR_DOS
+				xfrERROR_OBJECT if xfrO_size is missing
+
+	NOTES	With the tags defined for this func in xfr.i you can do
+		some things like adding proper postfix to the name or a
+		number if the named file exists. The XFR_FILENAME tag if
+		passed does override anything sent in a0, thus then you
+		may leave a0 uninitialised. the name in a0 is left out-
+		side the tags for compatibility and convenience, beeing
+		the only parameter that would typically change in a stan-
+		dard multiple usage of this routine from a same prog. so
+		the taglist may be made global or constant.
+
+		You can do a separate name fixing with xfrFixName() if
+		you need to have the fixed name available.
+
+   SEE ALSO
+	xfr/xfr.i, xfrFixName()
+
+@endnode
+@node "freeobjects"
+
+xfrFreeObjects()
+
+	GETS		a1	*xfrObject
+
+	USAGE		This does free the object with all linked next
+			and child objects and all related infos.
+
+			May NOT be use on objects that are nexts or
+			childs to annother object. Does only work
+			for objects that are first/root. Trying else
+			can cause a crash with a not obvious reason.
+
+			Per default it will also free the data buffers
+			within (the loaded file, the module, etc), except
+			xfrOB_SHARED in xfrO_flags is set. This f.e. is
+			the case if YOU did set it because YOU allocated
+			the buffer in some way custom to xfr.
+
+			If you want to keep a buffer that was allocate by
+			XFR, but the object node to be freed, do set the
+			xfrOB_SHARED bit in xfrO_flags before calling
+			xfrFreeObjects() and free the buffer later either
+			with xfrMFree() (if xfrO_buffersize was null) or
+			with exec FreeMem() (if there was the alloc size
+			in xfrO_buffesize). Do only set the bit just
+			before calling xfrFreeObjects().
+
+		    !!! Do not free or detach a buffer from an object
+			before freeing the object.
+
+	SEE ALSO	xfrCreateObject()
+
+@endnode
+@node "identify"
+
+xfrIdentify()
+
+	DOES	Test an object buffer to be a supported type of data.
+		If so, the object structure will be filled with
+		available informations to that data.
+
+	GETS		a1	*xfrObject
+			d1	xfrMODE_..., see xfr.i
+
+	RETURNS		d0	xfrRETURN_YES	its a supported format
+				xfrRETURN_NO	unknown to XFR
+				xfrERROR_... (negative), see xfr.i
+
+	USAGE		I recommend to allways use with xfrMODE_DEEP here.
+
+			See xfr.i/xfrObject for what information you
+			may read out of an identified object.
+
+			If this routine was successful on an object,
+			you may use other routines on that object to
+			do something with it. See section 5 belowst.
+
+			The object must have been created before
+			by xfrCreateObject() or by other xfr features
+			or functions.
+
+			The returnvalue is also stored in the field
+			xfrO_state if it relates to the object.
+
+@endnode
+@node "scan"
+
+xfrScan()
+
+	DOES	Scan an object buffer to contain supported types
+		of data. If so, these found datas will be marked
+		by childobjects that are created for the scanned
+		object. These child objects will contain available
+		information on the data ranges they mark.
+
+	GETS		a1	*xfrObject
+			d1	xfrMODE_..., see xfr.i
+
+			optional for xfrMODEF_HOOK
+
+			a2	*hookcode
+			d2	*hookdata
+
+	RETURNS		d0	NULL -> scan ready
+				xfrRETURN_SCANSTOP
+				xfrERROR_... (negative), see xfr.i
+
+	USAGE		The object must have been created before
+			by xfrCreateObject() or by other xfr features
+			or functions.
+
+			After a scan or stopped scan:
+
+			Get child objects from xfrO_firstchild, then
+			in the child continue with xfrO_next.
+
+			The field xfrO_firstchild of the main object
+			is empty if the scan did not find anything.
+
+			The child objects will contain information
+			allways, even if the field xfrO_state of a
+			child object is negative = errorcode. So in
+			some cases you can see what exactly went
+			wrong, where in memory and in which client.
+			Though, the informations now may be incomplete
+			or corrupt and this object is more like just
+			an error notification than a found module.
+			For debugging and improving more tricky
+			riproutines, this feature comes in handy.
+
+			If, as supposed to be, the routine was
+			successful, the xfrO_state field of a child
+			contains xfrRETRUN_YES = 1.
+			Then you may use other routines on that object
+			to do something with it. See section 5 belowst.
+
+			If you use one of these routines on an non-
+			successful child, you will get xfrERROR_OBJECT.
+
+			The main object, the one you scanned,
+			is not touched itself (yet).
+
+			You may NOT free a child object or any other
+			subsequent object by yourself. This is done
+			automatically when you free the main object
+			that you did create. This is the reason why
+			xfrFreeObjects() is called ...s() plural.
+
+			The xfrRETURN_SCANSTOP was sent by the hook,
+			if any. The hook is a simple routine that
+			has access to xfrCom.
+
+			The hook can perform some things, f.e. check
+			for break by user.
+
+		Hook gets:
+
+				d0	xfrRETURN_NO
+
+				d1	state of last created child object,
+					usually xfrRETURN_NO = NULL means
+					no object at this position,
+					xfrRETURN_YES or xfrERROR_... means
+					there was something at this adress
+
+				a0	*current_pos
+
+					(an object that has just been found
+					may and can have a different start)
+
+				a4	*xfrCom
+				a5	*xfrFormat current format
+				a6	*xfrBase
+
+		hook returns:	d0	xfrRETURN_NO -> continue
+					xfrRETURN_SCANSTOP
+					xfrERROR_...
+
+		hook may kill:	d1-d5 / a0-a2
+
+
+			'continue':
+
+			When xfrScan() returns xfrRETURN_SCANSTOP, the
+			position where we are now in memory is stored
+			in xfrO_position of the scanned object. You may
+			change that adress before calling xfrScan()
+			again to continue where you want. You may set
+			xfrO_position even before the first time you
+			call xfrScan().
+
+			The hook can test the last state which it gets
+			in d1 and if its not xfrRETURN_NO (=NULL), the
+			scan has just found something. The hook now can
+			abort the scan and the program may report the
+			findings. then the user may select continue
+			in the program f.e.
+
+			Of course reporting my also be done from the hook
+			itself or as i do, after the complete scan, and
+			then for all found things, one after annother.
+
+@endnode
+@node "extract"
+
+xfrExtract()
+
+	DOES	Extract contents (usually samples) from data and makes
+		for them child objects to the object on which this func
+		is used.
+
+		Not to misunderstand, this extraction has nothing to do
+		with unpacking or decrunching here. xfrExtract() is but
+		for "marking the places" where the samples or other sub
+		datas are in a file.
+
+		Its more like a "getInfo" than an active function.
+
+		Packed tracker modules may be converted with xfrConvert().
+
+	GETS		a1	*xfrObject
+
+	RETURNS		d0	xfrRETURN_NO (=NULL)	nothing to extract
+				xfrRETURN_YES (=1)	extracted content(s)
+				xfrERROR_... (negative) see xfr.i
+
+	USAGE		The object must have been fully successfully
+			associated with a format by XFR somehow before
+			in order to use this function on it. If not,
+			you get an xfrERROR_OBJECT returned and no
+			extraction happened.
+
+			You will get an xfrERROR_FORMAT if the associated
+			format does not support extraction.
+
+	SEE ALSO	xfrConvert()
+
+@endnode
+@node "patch"
+
+xfrPatch()
+
+	DOES	Patches the data that is hold by the object on which
+		this func is used.
+
+	GETS		a1	*xfrObject
+
+	RETURNS		d0	xfrRETURN_NO (=NULL)	nothing to patch
+				xfrRETURN_YES (=1)	patched
+				xfrERROR_... (negative) see xfr.i
+
+	USAGE		The object must have been fully successfully
+			associated with a format by XFR somehow before
+			in order to use this function on it. If not,
+			you get an xfrERROR_OBJECT returned and no
+			patching done to it.
+
+			You will get an xfrERROR_FORMAT if the associated
+			format does not support patching.
+
+			After a patch the flag xfrO?_MODIFIED is set!
+
+@endnode
+@node "convert"
+
+The convert in difference to patch does not modify the original datas,
+but generates at least one annother object with its own buffer.
+
+xfrConvert()
+
+	DOES	Convert the module or something that is in the buffer
+		of an xfrObject to a more common format. To annother
+		format which usually is of a more common usual type.
+		For example this is decrunching packed tracker mods.
+		xfrConvert() does allways genearte at least one
+		annother object with its own buffer containing the
+		new made module/datas. xfrConvert() does never modify
+		the original data.
+
+	GETS		a1	*xfrObject
+
+	RETURNS		d0	*new_xfrObject (YOU need to free it)
+
+				or xfrRETURN_NO	(=NULL) nothing to convert
+				   xfrERROR_... (negative), see xfr.i
+
+	USAGE		The object must have been fully successfully
+			associated with a format by XFR somehow before
+			in order to use this function on it. If not,
+			you get an xfrERROR_OBJECT returned and no
+			patching done to it.
+
+			After a successful conversion you get the results
+			as a pointer to a newly created annother xfrObject
+			that holds a new buffer with the converted data.
+
+			You (your program) must free that object with
+			an extra call to xfrFreeObjects().
+
+			The new object is supposed to allready contain
+			via XFR available information when you get it
+			given to you. You do not need to xfrIdentify()
+			it. Though, in some cases maybe you might want
+			to use the other XFR-functions on it.
+
+	SEE ALSO	xfrFreeObjects()
+
+@endnode
+@node "extscan"
+
+xfrExtScan()
+
+	NOT YET IMPLEMENTED
+
+	USAGE		For the hook see xfrScan().
+
+@endnode
+xfr/-- 4. in-client routines --
+@node "clients" "the machines: in-client routines"
+
+If you make a client, these are the routines for
+the functions that can be supported. There is no
+need for a function to be supported.
+
+	primary functions
+
+	XFR_CHECK     , @{" recognition routines " Link "checkers"}
+	XFR_SCAN      , ..
+	XFR_DEEPSCAN  , ..
+	XFR_DEEPCHECK , ..
+
+	secondary functions
+
+	XFR_EXTRACT   , @{" extractor " Link "extractor"}
+	XFR_CONVERT   , @{" converter " Link "converter"}
+	XFR_PATCH     , @{" patcher " Link "patcher"}
+	XFR_EXTSCAN   , @{" extra scanner " Link "extrascanner"}
+
+To the left is the tag with which you may build the
+function into a format from the format tags.
+@endnode
+@node "checkers"
+
+XFR can differentiate 4 recognition routines. There is no need to
+support any of them (if no one is present, the format is suspended
+as long no other format does share or import it in some way).
+
+XFR_CHECK		<- primary
+XFR_DEEPCHECK
+XFR_SCAN		<- primary
+XFR_DEEPSCAN
+
+The checkers are used by xfrIdentify() simply on the start of a file,
+the scanners are used by xfrScan() on each even address of a file.
+(except with xfrMODE?_ODD on nowadays processors the scan does every addi) 
+
+In the xfrMODE?_DEEP only the deep routines are engaged.
+
+But in the normal mode (default) and the xfrMODE?_HYBRID the following
+steps are what happens:
+
+	1. it is checked wether XFR_MAGIC#? matches or not
+	   (at xfrIdentifiy() start+XFR_OFFSET is checked,
+	   while in xfrScan() the offset is substracted
+	   from the current position after a succesful return
+	   from a recognition routine to get the start)
+	2. when it matched or when it is not defined, the
+	   primary routine is called
+
+In the xfrMODE?_HYBRID a third step is done in addition, when nothing
+has been recognized until now:
+
+	3. when the primary routines of _all_ active formats
+	   of _all_ clients have not proven a module or data to
+	   be there until now, in the xfrMODE?_HYBRID the deep
+	   routines are engaged, too
+
+	   Here you may code tests that either take much more
+	   time or just test for very rare occurences, which
+	   is also rather handled in this internal deep pass.
+
+Though, by all means, the XFR_DEEPCHECK is for convenience. It is
+simply not needed in allmost any case, except there is a way to
+recognize f.e. a raw sample, what would take relatively very much time.
+
+In any other and far more common case please consider the following two
+tips, before you go on to the routine details:
+
+- I highly recommend to use the same routine by the primary checker and
+the primary scanner if this is possible. It does make programming efforts
+few and is the main case why I invented the XFR_OFFSET tag. The reason
+then for having separate routine tags is still to make a program to
+understand which methods a format does support.
+
+- If there is a deep scanner, too (may take some more time), I recommend
+to use that routine also for the _primary_ _checker_ (some more time at
+xfrIdentify() is ok and switching between deep and flat mode there has
+rarely a relieving effect). See my note on XFR_DEEPCHECK above.
+
+Think through and decide what is the best combi for your format.
+
+All XFR format recognition routines share the same interface:
+
+
+	you get:	d0	NULL (=xfrREUTRN_NO)
+
+				may use d0 for whatever you want. if left
+				as is, this indicates nothing found.
+
+			a0	*start of data to test
+
+				in details this is aka
+
+				check,deepcheck: start of file
+				           scan: current_pos - XFR_OFFSET
+						 (routine is only called
+						 when it comes in range;
+						 combined with the offset
+						 and magic implementation
+						 this is fuck more faster
+						 than any other solutions,
+						 especially when part of
+						 your client written in c)
+				       deepscan: current pos
+
+			a4	*xfrCom
+			a5	*xfrFormat current format
+			a6	*xfrBase
+
+	you may kill:	d1-d5 / a0-a2
+
+	you return:  d0		xfrRETURN_NO	nothing found
+				xfrRETURN_YES	(=1) found
+				xfrERROR_...	see xfr.i
+
+
+	what you do in an XFR recognition routine:
+
+Prove the presence of a format and if it is there, do retrieve and
+calculate informations on the data and write these into xfrCom. Then
+set a return value or error code into d0 and return.
+
+		in details:
+
+		In most cases the start address is just must neither
+		calculated, nor set nowhere. Its done automated by XFR.
+
+		In the XFR_?SCAN routines it may be that a true start
+		is found. Only then write that to xfrCom_start.
+
+		Write a size to xfrCom_size when you can calculate it.
+		(have been put xfrFF_SIZE into XFR_FLAGS tag at the
+		format tags)
+
+		The xfrCom_end field for convenience is optional
+		instead of xfrCom_size.
+
+		If you are very sure, that your calcualted size _is_ de-
+		finitely a size and is correct (format mus must have been
+		very securely recognized), then you may compare it against
+		xfrCom_MemEnd-your_start and return anxfrERROR_MISSINGEND
+		to signal there are really bytes missing at the end of
+		the file. Any other sizes that you return are checked by
+		XFR and eventually one of the codes xfrERROR_SIZELARGER
+		or xfrERROR_SIZENEGATIVE is set. Do not set these two by
+		yourself. They are amibigous in meaning and only for
+		emergency cases and debugging. XFR itself cannot
+		distinguish an incorrectly calculated size from a really
+		truncated file.
+
+		You may put a pointer to a name and one to a info text
+		in xfrCom_name and xfrCom_text. If you allocated one
+		of these strings (whenever, do with xfrMAlloc() or
+		xfrStringFormat()), you need to set the corresponding
+		xfrO?_????ALLOC bits in xfrO_flags. Leave bits clear if
+		the strings are part of your client or the generated
+		module/data. (have been put the corresponding xfrFF_#?
+		flag into the XFR_FLAGS tag at the format tags)
+
+		In allmost any case the recognized format is logically
+		just the same than the one where your recognition
+		routine is called from. XFR does know this and then you
+		must _not_ write xfrCom_format. In other cases,
+
+		to get the pointer to a format that is private to your
+		client you have been using the XFR_FORMATPTR tag with
+		that format. To import the pointer to annother format
+		that is supported by the lib or by annother client you
+		have been using the XFRCLIENT_IMPORTLIST feature of your
+		xfr client (to import one or more formats).
+
+		You need to write a start into xfrCom_start only when it
+		is different from the one you have got in a0. You may
+		search for a real start only between xfrCom_MemStart and
+		xfrCom_MemEnd, but you must not in any case prove the
+		final value to be inside the range when you just calcu-
+		lated it. XFR does this anyway and eventually sets an
+		xfrERROR_START. Do just compare the calculated start
+		against xfrCom_MemStart when you know it _is_ correct and
+		maybe before the a0 that you have got. Then return
+		xfrERROR_MISSINGSTART.
+
+		After writing into xfrCom is ready for a single content
+		(e.g. a single sample), call xfrResult(). From there XFR
+		makes a child object with your values to the processed
+		object and then reinitialises the xfrCom structure.
+
+		When extractor routine returns, put one return value in
+		d0, xfrRETURN_YES when extracted, xfrRETURN_NO when there
+		was nothing to extract (comes by default in d0 to your
+		extractor also) or xfrERROR_#? when something went wrong.
+
+You do not need to set d0 to xfrRETURN_NO if you don't touch d0 at all.
+
+
+assmebler programmers footnote:
+
+The fastest method for a testroutine in 68k asm is (simplified) to do
+the short branch only if a _rarely_ expected situation _did_ match:
+
+				cmp.w	#$xxxx,yy(a0)
+				beq.b	.yes
+				rts
+			.yes	moveq	#xfrRETURN_YES,d0
+				rts
+@endnode
+@node "extractor"
+
+xfrF_extract
+
+	you get:     d0		xfrRETURN_NO (=NULL)
+
+			a0	*xfrO_start
+		     d1		xfrO_size
+			a2	*xfrObject
+			a4	*xfrCom
+			a5	*xfrFormat current format
+			a6	*xfrBase
+
+	you may kill:	d1-d7 / a0-a3
+
+	you return:  d0		xfrRETURN_NO	nothing to extract
+				xfrRETURN_YES	extracted
+				xfrERROR_...	see xfr.i
+
+	what you do in xfrF_extract:
+
+		For each content (usually a sample) you fill the
+		certain fields of xfrCom which you get with a4 and
+		then call xfrResult().
+
+		in details:
+
+		Fill in a start address to xfrCom_start and a size to
+		xfrCom_size. The xfrCom_end field for convenience is
+		optional instead of xfrCom_size.
+
+		You may put a pointer to a name and one to a info text
+		in xfrCom_name and xfrCom_text. If you allocated one
+		of these strings (whenever, do with xfrMAlloc() or
+		xfrStringFormat()), you need to set the corresponding
+		xfrO?_????ALLOC bits in xfrO_flags. Leave bits clear if
+		the strings are part of your client or the generated
+		module/data.
+
+		To get the pointer to a format that is private to your
+		client you have been using the XFR_FORMATPTR tag with
+		that format. To import the pointer to annother format
+		that is supported by the lib or by annother client you
+		have been using the XFRCLIENT_IMPORTLIST feature of your
+		xfr client (to import one or more formats).
+
+		After writing into xfrCom is ready for a single content
+		(e.g. a single sample), call xfrResult(). From there XFR
+		makes a child object with your values to the processed
+		object and then reinitialises the xfrCom structure.
+
+		When extractor routine returns, put one return value in
+		d0, xfrRETURN_YES when extracted, xfrRETURN_NO when there
+		was nothing to extract (comes by default in d0 to your
+		extractor also) or xfrERROR_#? when something went wrong.
+
+	SEE ALSO	xfr.i, xfrResult(),
+			xfrMAlloc(), xfrStringFormat()
+
+@endnode
+@node "converter"
+
+This is for converting data into annother, usually more common format.
+The converter engines may be typically used to generate a generic
+tracker module from a packed one. The other lesser typical case is to
+generate a special custom playerheader format. Further conversions are
+also welcome. For now every format can have one possible conversion,
+except you pop up a choice requester... (i am interested in a solution
+how xfr could support alternate conversions)
+
+The convert in difference to patch does not modify the original datas,
+but generates at least one annother object with its own buffer.
+
+
+xfrF_convert
+
+	you get:     d0		xfrRETURN_NO (=NULL)
+
+			a0	*xfrO_start
+		     d1		xfrO_size
+			a2	*xfrObject
+			a4	*xfrCom
+			a5	*xfrFormat current format info
+			a6	*xfrBase
+
+		The xfrCom structure you get here is allmost empty
+		except of xfrCom_MemStart and xfCom_MemEnd marking the
+		boundarys of the buffer in which the object is. The
+		object may be somewhere in that buffer and has not
+		neccessarily the same start address nor size.
+
+		Also xfrCom_Object contains *xfrObject. The rest of the
+		xfrCom structure here is empty and must NOT be used.
+
+	you may kill:	d1-d7 / a0-a3
+
+	you return:  d0		*new_xfrObject
+
+				or xfrRETURN_NO		nothing to convert
+				   xfrERROR_...		see xfr.i
+
+	what you do in xfrF_convert:
+
+		Usually you allocate a buffer, convert the data from
+		the buffer of the xfrObject you have got into your
+		buffer and then if successfull create a NEW xfrObject
+		and put your new buffer into it. Surely you may choose
+		annother order of steps. Then, as your new object
+		should contain available information also, make an
+		xfrIdentify() on it or (if the new format is not
+		identified by xfr or its really something special) do
+		set up the object fields by yourself like this:
+
+		Fill in a start address to xfrO_Start and a size to
+		xfrO_size. You may put a pointer to a name and one
+		to a info text in xfrO_name and xfrO_text. If you
+		allocated one of these strings (whenever, do with
+		xfrMAlloc() or xfrStringFormat()), you need to set
+		the corresponding xfrO?_????ALLOC bits in xfrO_flags.
+		Leave them clear if the strings are part of your
+		client or the generated module/data. To get the
+		pointer to a format that is private to your client
+		you have been using the XFR_FORMATPTR tag with that
+		format. To import the pointer to annother format that
+		is supported by the lib or by annother client you
+		have been using the XFRCLIENT_IMPORTLIST feature of
+		your xfr client (to import one or more formats).
+
+		When in the converted state there are two or more
+		buffers to maintain (e.g. some files after conversion
+		may consist of two files), you create two or more
+		objects and link them either via xfrO_next when their
+		contents are independent, or via the xfrO_firstchild
+		(and then xfrO_next for even more parts) to signifiy
+		they need to be saved together (when saved) and one is
+		prior to the other(s). In that child-case you need to
+		set xfrO?_EXTERN in the xfrO_flags of the child(s) to
+		signal there is a buffer outside of the parent buffer.
+
+		Return the pointer to the first/prior object that you
+		generated in d0. If an object failed, set its state to
+		an error code (see xfr.i). Only if any conversion
+		failed, return an error code in d0.
+
+	SEE ALSO	xfrMAlloc(), xfrStringFormat(), xfrIdentify()
+
+@endnode
+@node "extrascanner"
+				n/i = not implemented
+
+The xfrExtScan() ("ExtRipp()" in Eagleplayer) is not implemented yet.
+It will be in future and variables then will be communicated through a
+custom client specific structure of which each rip in progress will get
+its own (by attatching to xfrObject). Sorry, maybe no tfmx sample now.
+@endnode
+@node "patcher"
+
+	a client can provide a function to modify a module or anyhting
+	else waht you ripped or have loaded from disk
+
+	sometimes this is necessary, f.e. Ben Daglish, SidMon 1
+
+	though, patching is optional as some people do want to rip
+	untouched stuff
+
+
+xfrF_patch
+
+	you get:     d0		xfrRETURN_NO (=NULL)
+
+			a0	*xfrO_start
+		     d1		xfrO_size
+			a2	*xfrObject
+			a4	*xfrCom
+			a5	*xfrFormat current format info
+			a6	*xfrBase
+
+		The xfrCom structure you get here is allmost empty
+		except of xfrCom_MemStart and xfCom_MemEnd marking the
+		boundarys of the buffer in which the object is. The
+		object may be somewhere in that buffer and has not
+		neccessarily the same start address nor size.
+
+		Also xfrCom_Object contains *xfrObject. The rest of the
+		xfrCom structure here is empty and must NOT be used.
+
+	you may kill:	d1-d7 / a0-a3
+
+	you return:  d0		xfrRETURN_YES		a patch was done
+
+				or xfrRETURN_NO		nothing to extract
+				   xfrERROR_...		see xfr.i
+
+	what you do in xfrF_patch:
+
+		If you have questions write to silva at psi5.com.
+
+@endnode
+xfr/-- 4a client side library routines --
+@node "lib_clients" "the special routine xfrResult()"
+
+		the special routine
+		-------------------
+
+		that is only used from/by the clients
+
+
+xfrResult()
+
+	you pass	a4-a6	as you've got them from the lib,
+				so you just forward them
+
+	returns		d0	if this is NEGATIVE, you have to
+				abort your loop/routine and return
+				this d0 to the lib
+
+	This routine creates a new object from the data supplied in
+	the certain fields of xfrCom (a4) and then attaches that object
+	as a child to the main object (in xfrCom_object).
+	Afterwards ALL certain fields of xfrCom are auto-cleared (!),
+	so you will have to set them again even if they should have the
+	same content as before.
+
+@endnode
+xfr/-- 5. some notes on accessing XFR from programs --
+@node "howto_programs"
+
+Please do let XFR allocate the memory for you. You may do it yourself if
+you feel like you understand the specifications showed in this file and
+in xfr.i .
+
+The main consept is, that a so called >> xfrObject << holds a buffer of
+memory with data to identify or to scan in it. Such an object is both
+a list header AND a node. XFR does build trees ob xfrObjects in proceed
+of a ripping process.
+
+Look at the chart below to understand. We worked on a loaded file that
+contains some modules. The second module has three samples and a
+secondary part of data that should be saved to a separate file.
+
+The downward ... represent the fields of an xfrObject structure, the
+arrows show how they are linked or which object is what kind of thing.
+
+
+After xfrScan():
+
+
+	xfrObject                          <- the object that was scanned
+	   ...
+	   xfrO_firstchild -> xfrObject                   <- found Module
+	   ...                   ...
+				 ...
+				 xfrO_next -> xfrObject   <- second
+	                         ...             ...         found Module
+	                                         ...
+	                                         xfrO_next -> xfrObject
+After xfrExtract():                               ...             ...
+	                                         ...
+	First sample ->             xfrObject <- xfrO_firstchild
+	of the second                  ...       ...
+	found Module                   ...
+	                               ...
+	Next sample ->    xfrObject <- xfrO_next
+	                     ...       ...
+	                     ...
+	                     ...
+	                     xfrO_next -> xfrObject       <- third sample
+	                     ...             ...
+	                                     ...
+After xfrExtScan():                          ...
+	                                     ...
+	Separate replay-routine, ->          xfrO_next -> xfrObject
+	Object has xfrOB_EXTERN bit                       ...
+	set in xfrO_flags                                 ...
+
+
+What we did to get the above was, call xfrScan() on an object. Then for
+each of its found childs called xfrExtract() to get the samples. Then
+also on each child called xfrExtScan() to get the separate replay
+routines. After all work and saving of each subject with xfrSaveObject()
+the whole tree can be free by a single call to xfrFreeObjects.
+Wow, this is power. :)))))
+
+
+The standard order of calling XFR-routines is:
+
+	1.	make an xfrObject with xfrCreateObject(...),
+		see function above and xfr.i for object types
+	 2.	call xfrIdentifiy(mode, *xfrObject)
+		see the results in the object xfrO_format, etc,
+		call other functions on the object,
+		see xfr.i for modes
+	 2.a	call xfrScan(mode, *xfrObject)
+	  2.a1	visit each child object if any and test its
+		flags, eventually call xfrExtScan() or other
+		functions on them
+	3.	call xfrFreeObjects() frees all objects, except
+		the output of conversion
+
+	The Functions xfrSaveObject(), xfrExtract(), xfrExtScan(),
+	xfrPatch(), xfrConvert() do only work for succeeded objects
+	that passed xfrIdentify() or were created as childobjects to
+	the input object by xfrScan(). Though, I guess xfrSaveObject()
+	does allways work.
+
+You may use and change the assembler sources examples to your needs.
+
+
+Every time when you use an XFR routine on an xfrObject that has a
+parent object (thus, usually on found data), xfr will look back in
+the tree to the outermost parent object to know the possible memory
+range. This is done especially by xfrExtScan(), because you use
+xfrExtScan() on a found child object but it needs to scan the whole
+buffer from which that child resulted. That buffer again is marked
+by the parent object that had been scanned first by xfrScan() when
+the child came from.
+
+Further you must know that in some cases you may call such like
+an xfrIdentify() or xfrScan(), which are the two big doors of XFR
+also on a newly found child itself in recursion. If you do so, XFR
+will look higher in the tree to the parent objects to find the
+allowed memory range also.
+
+For those who never used flagbits before, that were defined with BITDEF
+in an assembler includefile, please look below. I'll show you an example
+with the flagbit that marks an object as beeing external replay routine
+or secondary data with own buffer.
+
+	xfrO?_EXTERN
+
+The ? may either be F or B. If it is F, the flag is meant. B means the
+bit number of that flag.
+
+
+  A NOTE TO HIGH LANGUAGE PROGRAMMER
+  (excerpt from xfrmaster_lib.fd)
+
+* attention: the two functions xfrSaveObject() and xfrSaveObjectTagList()
+*            are physically DIFFERENT. the first takes NO tags nor lists
+*            at all. To use the second func in varargs style, do make an
+*            xfrSaveObjectTags() stub for it and take care on the tagless
+*            older function entry to be unique whenever you create or use
+*            tools to create pragmas from this fd. some progs dont do it.
+@endnode
+xfr/-- 6. some notes on writing XFR-clients --
+@node "howto_clients"
+
+If you are not suffered with the results a certain format ripper gives,
+you may rewrite it on a basis of obtaining the source by asking the
+author or obtaining informations from one of the various resources. May
+check the links on the homepage. I will release some of my sources from
+now and then. Yet some of my supplied clients make very flat checks and
+may produce lots of unpleasant results when tested with ambigous data.
+
+Within an XFR client can be a little variety of human readable infor-
+mations. Please check out the colored examples on the homepage before
+you do anything else. This is also good for all in all understanding.
+
+You must NOT write a point "." before or after a suffix or prefix in
+your formats definitions. The XFR library does add the points where
+they are requestet wether the user wants an amiga or pc naming scheme.
+
+Every allocation and linkage of objects from the clients view is done
+by the library and programs. The clients do only communicate with the
+library through the xfrCom structure. Details (and exceptions if any)
+are explained at this guidefiles sections for the in-client routines.
+
+If something can go wrong in a client routine that makes the rip or 
+action improper, look up the xfrERROR_#? codes in the includes and set
+them. When there is no XFR error code that fits, the xfrERROR_FAIL must
+be used. Then also a pointer to a brief null terminated error text may
+be put into xfrCom_info (can be xfrO_info in some cases).
+
+If you are not suffered with the errorcode the master library sets on
+your ripped object due to some values your client has set were illegal
+or out of a range, do set a specific errorcode from the client after
+checking vor legal vaules and ranges yourself. Normally this is done
+by XFR automatedly but there are logic cases where you can know better. 
+
+Your xfr client routines must all be re-entrant, useable from two or
+more programs at the same time. So, self-modify code and task/module
+specific temporary variables (e.g. samplesize) besides the code or in
+annother hunk are strictly prohibited and may be not working either on
+some amiga. When such temporary variables are needed, they must be put
+on stack. But, real globals, e.g. pointers to shared xfrFormats (no
+other globals I can think of are supported at this time) may be made
+from the format tags (similar to "RPT_EagleBase",the_global) and used.
+Put them into a bss hunk when more than a few. Is it needed to do that
+anyway to guarantee working on a cached cpu?
+@endnode
+--
+XFR eXternal Format Rippers

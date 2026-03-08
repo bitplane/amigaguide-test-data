@@ -1,0 +1,175 @@
+@database MemPatch.guide
+@author Kyzer/CSG
+@$VER: MemPatch.guide 1.1b (29.05.98)
+@remark you can read this in a text viewer, if you need to.
+
+@node main "MemPatch v1.1b documentation"
+
+@{u}MemPatch v1.1b@{uu}
+
+ @{"  " link intro} Introduction
+ @{"  " link usage} Using MemPatch
+ @{"  " link options} MemPatch options
+ @{"  " link history} MemPatch history
+ @{"  " link credits} Credits
+
+MemPatch is a program to log memory allocations.
+Copyright (C) 1997  Kyzer/CSG
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software Foundation,
+Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+
+@{"Contacting the author" link credits}
+@endnode
+
+@node intro "Introduction"
+Programs  require  memory.  To  get  it,  they  have  allocate it. MemPatch
+intercepts  this  process  and  prints out the facts about each allocation,
+like so:
+
+[AM] | Workbench                      | 1046        | P------- | $36AF50
+[AM] | MultiUser.server               | 4040        | P------- | $3DA750
+[AV] | MultiUser.server               | 4036        | P------- | $3DA754
+[AV] | Workbench                      | 260         | P------- | $36B184
+[AM] | DH0                            | 300         | P-----X- | $3875C0
+[AM] | Workbench                      | 278         | P-----X- | $3CFE70
+[AM] | CON                            | 4476        | P-----X- | $3E1158
+[AM] | input.device                   | 264         | PC------ | $D590
+[AM] | VNCClip.supervisor             | 530         | ------X- | $359DE8
+[AM] | VNCClip.supervisor             | 530         | ------X- | $3E6898
+[AM] | CygnusEd ver. 3.5+             | 838         | ------X- | $3E6AB0
+
+
+@{b}Limitations@{ub}
+- MemPatch  only  lists  to its own CLI window. No fancy GUI. No scrollback
+  option or review buffer system.
+
+- No filter capabilities.
+
+- Does  not list 'pool'-based allocations. There is already another program
+  which can do this, called PoolWatch.
+
+However, it should be virtually impossible to crash your computer while the
+memory is being monitored, and all information about the memory is printed.
+
+@{"How to use MemPatch." link usage}
+@endnode
+
+@node usage "Using MemPatch"
+To  install  MemPatch, just run it from a CLI window. MemPatch will print a
+header   showing  the  defaults  set  up,  and  the  column  headings,  and
+immediately go into a 'wait for allocations, print them' loop.
+
+You  can  disable  monitoring by pressing CTRL-D, re-enable monitoring with
+CTRL-E,  and  quit the monitor with CTRL-C. These can be pressed at the CLI
+window  where  MemPatch  is  running,  or  sent  to MemPatch with the break
+command.
+
+You can of course redirect output from MemPatch to a file.
+
+@{"MemPatch options" link options}
+
+@{"How to read the cryptic output (!)" link output}
+@endnode
+
+@node output "Reading the output"
+Func | Task/Process name               | Size wanted | Flags    | Result
+-----|---------------------------------|-------------|----------|----------
+[AM] | input.device                    | 278         | PC----X- | $00102A8
+
+Func  tells you which routine in the Amiga is allocating the memory - it is
+either [AM] or [AV] : AllocMem() and AllocVec(), respectively.
+
+Task/Process  name is the name of the program that wanted the memory, or at
+least the name of it's 'task' that is allocating it.
+
+Size wanted is the size (in bytes) of the memory allocation wantest.
+
+Flags are any or none of PCFLDXR, see below for more about this.
+
+Result  is  where  the allocated space is located in memory, or '$0' if the
+allocation could NOT BE MADE.
+
+Those flags in full:
+
+P: PUBLIC   : The memory is publicly available, ie NOT virtual memory
+C: CHIP     : The memory allocated MUST be chip memory
+F: FAST     : The memory allocated MUST be fast memory.
+L: LOCAL    : Memory is local to the motherboard, not on expansion boards.
+D: 24BITDMA : Memory must be 68000 address compatible (only 24 bits)
+K: KICK     : Memory that is available at early boot time.
+X: CLEAR    : [option] Clear the memory out as well as allocating it
+R: REVERSE  : [option] Allocate memory from the top down
+
+Note that use of the F, L and D flags are RARE, and may often be the proof
+of a stupid piece of coding in a program.
+@endnode
+
+@node options "MemPatch options"
+You may set how MemPatch operates using the following options.
+
+THRESHOLD/N  -  it  is  generally  true that there are thousands of 'small'
+memory  allocations that you don't care to see. You can set this threshold,
+so  MemPatch  will  only  report  allocations  that  are  bigger  than this
+threshold  (in  bytes).  It can range from zero to any size, the default is
+256 bytes threshold.
+
+LISTSIZE/N  -  MemPatch  uses  a  fixed  size  'list'  which  it fills with
+information  about  memory  allocations.  The job of MemPatch is to let the
+patches  fill  the  list  up with information, and to let the main printing
+loop empty the list as it prints it out. If a patch takes an allocation and
+there  is  no  space  left  in  the  list  for it, it gives up and 'misses'
+recording  that  allocation. This option allows you to increase the size of
+the  list, and make sure this doesn't happen. You specify the size in 'list
+entries', from 1 to any size, the default size is 256 entries.
+
+PRI/N  - You can specify the priority of MemPatch's printing loop. This can
+range from -128 to 5, the default is -40.
+@endnode
+
+@node history "MemPatch history"
+1.0:	First public release
+
+1.1:	Second release (13.04.98)
+	Now uses cleaner patches, semaphore-protected list,
+	has user options instead of hardcoded values, etc...
+
+1.1b:	Update to 1.1 (29.05.98)
+	Safer patching
+
+@{" Future development " link future}
+@endnode
+
+@node future "Future prospects for MemPatch"
+- SnoopDOS alike GUI.
+- failing that, 'wide-screen' mode, being able to print out the extra
+  information possible to record (see the source - the code is already
+  there for the patch)
+
+Any further suggestions from you are very welcome. @{"Contact me." link credits}
+@endnode
+
+@node credits "Credits"
+MemPatch was created by Kyzer/CSG using E v3.3a by Wouter van Oortmerssen.
+
+Contact:
+
+Kyzer/CSG,
+49 Fairview Road,
+AB22 8ZG, Scotland.
+
+or email: kyzer@4u.net
+
+Incitement Works plc, http://www.abdn.ac.uk/~u13sac/
+@endnode

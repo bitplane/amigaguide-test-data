@@ -1,0 +1,421 @@
+@database "Jumpgate"
+@node main "Jumpgate V3.0"
+
+      Jumpgate V3.0 is freeware and thus anyone asking
+      a price for it is really asking a bit too much!
+
+      @{" What issit?   " link "what"}
+      @{" Usage         " link "use"}
+      @{" Techie stuff  " link "tech"}
+      @{" WARNING!      " link "warn"}
+      @{" Emails so far " link "mail"}
+      @{" History       " link "hist"}
+      @{" Future        " link "future"}
+@endnode
+@node what "Now what have I done..?"
+
+Jumpgate V3.0 searches for and patches unoptimised JSR, BSR and some other
+slow instructions in any executable to faster equivalents - even a
+Kickstart ROM image.
+
+It's coded in 100% assembler, very fast in execution and won't leave you
+waiting around.
+
+@endnode
+@node use "Now what do I do..?"
+
+You'll need any Amiga (A500 KS1.2+), some files to patch, and the need
+for speed :)
+
+Arguments:
+
+Jumpgate xxxxxxxxxxxxxxxx Path/File
+
+The "xxxxxxxxxxxxxxxx" is a switchbank that allows individual optims to be
+switched on and off.
+
+Note that there are 16 of these, and must always be present in the
+commandline or problems will occur.
+
+0 = Off
+1 = On
+                         xxxxxxxxxxxxxxxx
+                         ||||||||||||||||
+JSR (An)   -» JMP (An) --·|||||||||||||||
+JSR $x(An) -» JMP $x(An) -·||||||||||||||
+JSR $xx.w  -» BRA $xx.w ---·|||||||||||||
+JSR $xx.l  -» JMP $xx.l ----·||||||||||||
+BSR $xx.w  -» BRA $xx.w -----·|||||||||||
+BSR $xx.b  -» BRA $xx.b ------·||||||||||
+BSR $02.b  -» NOP/LEA ---------·|||||||||
+SW+CLR+SW  -» ANDI.L -----------·||||||||
+BSET #?,Dn -» ORI.W Dn ----------·|||||||
+BCLR #?,Dn -» ANDI.W Dn ----------·||||||
+BCHG #?,Dn -» EORI.W Dn -----------·|||||
+LSL #1,Dn  -» ADD Dn,Dn ------------·||||
+ASL #1,Dn  -» ADD Dn,Dn -------------·|||
+NOP        -» LEA (An) ---------------·||
+                                       ||
+040+ mode - use LEA (A6),A6 -----------·|
+instead of NOP to avoid pipeline        |
+stalls on BSR $02.b -» NOP/LEA.         |
+                                        |
+HunkLab mode for data/executable files -·
+
+Beware of patching the Bxxx instructions, as they set processor flags
+during execution, and the equivalents are not perfect in this manner.
+
+The LSL/ASL instructions can cause similar problems.
+
+The NOP instruction on 020/030 takes only 2 clock cycles. This takes 8
+on 040 and 9 on 060. On 040, this instruction also interlocks the effective
+address calculate/execute stages and synchronizes some portions of the
+processor before execution. It may have the same side effect on 060.
+
+Note that NOP is much faster or 68000 -> 68030 than LEA (A6),A6.
+
+NOP -» LEA (An) is only of use to 040+ processors.  Some executables have
+been "fixed" by unscrupulous hackers, and this "fix" is normally patching
+certain instructions with NOP's to change the way a program behaves,
+removing "Please Register.." requesters etc.  Note that this patch is
+independent of the 040+ mode, and must be activated if required whether
+040+ mode is set or not.
+
+Many compilers insert NOP's between routines to align them to certain
+addresses, and even though these aren't executed by the program, they will
+still be patched.  Therefore, the number of NOP's patched doesn't
+necessarily equate to the number that were inline to be executed.
+
+The HunkLab although simplistic, removes the chances of corrupting
+relocation tables in executables.  Small instructions have values that can
+also be found in relocation tables, and therefore the executable would
+often no longer be loadable or in rare cases become unstable if these
+tables were patched.  I was thinking of making the HunkLab fully automatic
+but decided that this way would increase functionality.
+
+Note that these values can also be found in data accompanying executable
+code in programs, such as in graphics data.  There's nothing that Jumpgate
+can do to avoid this though, since the data is combined in the code hunk of
+the executable, where no distinction for correct patching can be made
+except with the human eye.
+
+If you experience a problem with the program after optimising with all
+patches on, then you can experiment by patching each type in succession:
+
+Copy original executable to RAM:
+Jumpgate 1000000000000000 RAM:Filename
+Test executable - is JSR (An) the problem patch?
+Jumpgate 1100000000000000 RAM:Filename
+Test again - is JSR $x(An) the problem patch?
+...
+... etc.
+
+EG: If you notice that after patching JSR $xx.l the problem shows up:
+
+Jumpgate 1110111111111001 RAM:Filename
+
+And, if you have an 040+, then
+
+Jumpgate 1110111111111111 RAM:Filename
+
+You can use it with DirectoryOpus on a button like this:
+
+AmigaDOS Command
+C:Jumpgate 1111111111111111 {f}  <- no space after the {f}
+
+Flags:
+Do all files
+No filename quote
+Output window
+
+Jumpgate is CLI only, so give it a path/filename and it'll do its work.
+If a file can't be loaded (incorrect path or not enough mem to load entire
+file) then it'll just quit without complaint.  If all went well so far, you
+should see: (E.G.)
+
+Scanning: RAM:DPaint5
+
+If Jumpgate found some instructions to optimize, then you should see some
+output like this:
+
+0002 JSR (An)   -» JMP (An)  
+0000 JSR $x(An) -» JMP $x(An)
+0000 JSR $xx.w  -» BRA $xx.w 
+0000 JSR $xx.l  -» JMP $xx.l 
+0157 BSR $xx.w  -» BRA $xx.w 
+0038 BSR $xx.b  -» BRA $xx.b 
+0000 BSR $02.b  -» NOP/LEA   
+0147 SW+CLR+SW  -» ANDI.L    
+0054 BSET #?,Dn -» ORI.W Dn  
+0006 BCLR #?,Dn -» ANDI.W Dn 
+0000 BCHG #?,Dn -» EORI.W Dn 
+0011 LSL #1,Dn  -» ADD Dn,Dn 
+0011 ASL #1,Dn  -» ADD Dn,Dn 
+0098 NOP        -» LEA (An) 
+
+This output will be explained more in @{"Techie stuff" link "tech"}.
+
+If you didn't see any output like this, then there weren't any jump codes
+in the executable for Jumpgate to find.  Which more than likely means that
+the programmer wasn't as sloppy as the rest of us :)
+
+Let's face it, I hacked together a program a while ago that looked for
+MUL, DIV and CLR intructions to speed up, and they weren't anywhere near
+as common as the jump codes that Jumpgate seeks.  It seems that using
+faster instructions is becoming more the norm, but I tested some of my own
+programming with Jumpgate and gee whizz, guess what I found.. :þ
+
+The original file will be overwritten, so ENSURE you do this only on a
+COPY of the file, as this kind of patching is always dangerous since
+anti-hack protection code in some programs don't like being pushed around,
+and also some programmers use wierd stack operations and the program
+mightn't work as it once did.  Always test a patched program fully before
+deleting the original permanently.
+
+@endnode
+@node tech "What does this button do..?"
+
+This is a typical example of what Jumpgate looks for and repatches for
+faster execution:
+
+	...			;some program code
+	bsr.b label		;gosub label
+	...			;return address here
+	...			;more code
+	...
+
+label:	
+	lea routine(pc),a0	;setup a0 with routine
+	jsr (a0)		;gosub subroutine in a0
+	rts			;go back to return address above
+
+routine:
+	...
+	...			;routine does what it does best..
+	...
+	rts			;return
+
+
+Not the most eloquent of examples.  Jumpgate will find the JSR (a0) and RTS
+pair, then change the JSR to JMP.  Once the routine has been executed, the
+RTS after the JMP (a0) is no longer needed, and the program counter goes
+back to the return address.
+
+The JMP instruction requires only half of the clock cycles of the JSR due
+to it not having to plant a return address on the stack.  And now that the
+RTS is no longer executed we have a further saving.
+
+This one patch equates to a saving of approximately 30 clock cycles on the
+68000.  The 020+ processors differ only slightly regarding the caches and
+prefetching etc, but the result is the same.
+
+So now this one patching would make Jumpgate report:
+
+0001 JSR (An)   -» JMP (An)
+
+Not that complicated I hope, but this is just one of 7 different types of
+jump codes that Jumpgate patches.
+
+One of the jump types patched is especially dangerous:
+
+	...
+	bsr.s label
+	rts
+
+label:
+	...
+	...
+
+Jumpgate patches the BSR.s and RTS as two consecutive NOP's, saving a full
+32 clock cycles.  The danger is when there's a label between the BSR.s and
+the RTS.  Jumpgate can't tell if there is, but I patched out 5 of these in
+my 3.1 KickROM and so far it's still running beautifully :)
+
+Please note in advance that if a JSR is found within interrupt code, then
+RTE would follow instead of RTS, which is a different code and therefore
+no patching will result.
+
+ANDI.L #$0000FFFF,Dn is twice as fast as the SWAP/CLR/SWAP combination, and
+many GFX programs are full of these.  Imagine4 has over 300 of them, and
+DPaint5 has 147.  DPaint4, strangely - doesn't have any!  You'll notice
+that many of the programs on your HD have a few or more of these.
+
+The "TestRun" program included will show you the difference between patched
+and unpatched code.  The displayed number in the window is the number of
+times the routine was executed in one half second.  From the CLI, call
+TestRun and note the number.  Hold the right mouse button until it quits,
+then patch it with Jumpgate and run it again.  Testrun contains one BSR
+$xx.b, BSR $02.b, SW+CLR+SW combination, BSET, LSL and ASL instruction.
+        
+@endnode
+@node warn "I told you not to press that button!"
+
+Beware of patching libraries.  These contain jumptables and all manner of
+strange things.  I patched ixemul.library (I think..) and when I cranked up
+YAM, icon.library (in ROM) cracked the shits.  This may extend to devices
+and handlers too but you're free to experiment.  I've had no problems
+with the ANDI.L patch anywhere.
+
+ALWAYS have a copy of the original software (original disk might help) if
+you plan to upgrade it to a later version some time in the future.  The
+patching Jumpgate does will change the checksum of the program code and
+therefore may render it non-upgradeable!
+
+Also - do NOT let Jumpgate patch itself!  Or it won't work properly
+anymore due to the codes contained within.
+
+Of course, the usual disclaimer applies.  I can't control your grubby
+fingers from here in Australia, so I'll leave the damage control up to you.
+
+It's not guaranteed to speed up anything much, as most of these jumpcodes
+don't exist within important program loops.  If they do, then all the
+better.  But saving 8000 clock cycles is STILL saving 8000 clock cycles,
+which can only translate to better efficiency due to reduced program
+overhead - especially when in heavy multitask.
+
+@endnode
+@node mail "TYPOGRAPHY is another word for Keymap.."
+
+Below are some emails I received - and some suggestions.
+
+>How do I know Jumpgate isn't a virus..?
+
+Sheesh!  C'mon people.  The only viruses anyone would bother writing are
+for the PeeCee.  I think the Amiga community at large is somewhat more
+mature by now.
+
+>..should also include the source so people don't believe it's a hack..
+
+Actually - it IS a hack.  Patching instructions in programs that aren't
+your own is never safe, and for many reasons shouldn't be distributed.
+
+>Maybe add a filerequester for multi file selection..
+
+Umm.. No.  Most (if not all) people have a directory util that can be set
+up with a button or hotkey for Jumpgate to use.  Having mostly redundant
+code is, well.. redundant :)
+
+One of my emails concerned an "ask" mode where Jumpgate asks for
+confirmation on EVERY instruction to be patched.  The switchbank is not
+what he requested but is easier to use for everyone concerned.  With
+DPaint5 containing 524 optims, Imagine4 containing 504, and even KickROM
+40.68 with a mere 268 - you would be there for weeks patching, testing,
+patching..!
+
+>..so far I haven't noticed much speedup..
+
+That would be due to the speed of your processor.  On 68000, you should
+see some improvement (not many around now I think), on 060 you mightn't
+notice anything.  But there's only one thing that can happen when you
+replace instructions with faster equivalents.
+
+And the encouragement award goes to..
+
+>This program is effectively useless. How are you to know when your
+>software will crash as the junk you've patched might be used in a check
+>somewhere etc? And what kind of speed benefits are you gaining by changing
+>a few jsr's to jmps etc? SFA I would imagine, it'd be un-noticeable.
+
+For someone who wrote this email on Microsoft Outlook Express, I doubt
+whether you care about the Amiga at all.  Maybe you didn't read the docs -
+If the program crashes, then don't patch it!
+
+>I only hope lamers do not d/l and use this and then distribute their
+>"modified" software...
+
+If their "modified" software don't work, then you won't be using it.  Maybe
+you've been using some modified software for years now, but just don't know
+it yet :)
+
+>Heaven help the person that runs a few games thru it and then spreads
+>them.
+
+Caveat Emptor.  Maybe you should buy the originals..
+
+>If you have time on your hands to make up useless utilities like that, why
+>don't you do something useful instead like AGA fixing games or something?
+
+Games bore me.
+
+>Your code is lame, and can't tell the difference between an executable or
+>data file.
+
+That's so it can patch KickROM's and absolute binaries as well :)
+
+[Yawn!]..  No matter what kind of warnings you have in your documentation,
+there's always someone who simply REFUSES to comprehend any of it and can't
+help but complain as if there wasn't any..
+
+Use it or don't - it's up to you.
+
+>I love Jumpgate. Excellent program!
+
+Why thank you :)
+
+@endnode
+@node hist "Procrastination is the art of keeping up with yesterday.."
+
+CHANGES FOR V1.1
+----------------
+
+No further optimisations, just much tighter (and even faster) code.
+
+
+CHANGES FOR V2.0
+----------------
+
+Added switchbank in commandline allowing individual optims to be switched
+on/off, for when a certain optim causes the executable to be less than
+fully functional.
+
+Added 040+ mode so that LEA (A6),A6 is used instead of NOP which avoids
+pipeline stalls.
+
+Added another patch:
+
+ANDI.L #$0000FFFF,Dn to replace:
+
+SWAP Dn
+CLR.W Dn
+SWAP Dn
+
+Included a handy-dandy little executable "TestRun" that you can patch in
+numerous ways to find the fastest run for your processor type.
+
+
+CHANGES FOR V3.0
+----------------
+
+Included a simplistic but effective HunkLab function to avoid corruption of
+relocation tables in executables, which is switchable to allow patching of
+absolute binaries as well :)
+
+More patches added: (thanks to Jess Sosnoski)
+
+BSET #0>15,Dn -> ORI.W #EQUIV,Dn
+BCLR #0>15,Dn -> ANDI.W #EQUIV,Dn
+BCHG #0>15,Dn -> EORI.W #EQUIV,Dn
+LSL/ASL #1,Dn -> ADD Dn,Dn
+NOP           -> LEA (An),An      (for 040+)
+
+@endnode
+@node future "Will there ever be a rainbow.."
+
+Some optimisations aren't easy to implement, mainly due to their complexity
+and also their uncommon nature lends programmers to use other methods.  If
+and when I come across some more I'll naturally update the archive on
+Aminet.
+
+Jumpgate is freeware and may be copied anywhere.  Remember to include these
+docs when in piracy mode as there's no documentation or online help in the
+program whatsoever.  If anyone wants to contact me for greets or
+suggestions, then why the hell not eh?
+
+
+Enjoy - Olly.
+
+ollyk@one.net.au
+
+28/JAN/00 - Brought to you by Amiga :)
+
+@endnode

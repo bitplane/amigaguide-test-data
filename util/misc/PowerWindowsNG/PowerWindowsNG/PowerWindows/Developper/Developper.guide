@@ -1,0 +1,466 @@
+@DATABASE PowerWindows
+@WIDTH 76
+@AUTHOR Georg Steger
+@TOC "Main"
+
+@NODE "Main" "PowerWindows V 1.2 Developper-Docs  (C) 1997 by Georg Steger"
+@{B}
+ ##################
+  ###################
+                  ####  ##    #  #  ##  #  #####   ###  ##    #   ####
+                   ###  ##    ## ## ### ## ##  ## ## ## ##    ## ##
+                  ####  ## ## ## ## ###### ##  ## ## ## ## ## ##  ###
+          ###########   ## ## ## ## ## ### ##  ## ## ## ## ## ##    ##
+        ###########      ######  ## ##  ## #####   ###   ######  ####
+       ####
+       ###   ####### ##      ##   ####### ####
+       ###  ######## ###     ### ###  ###  #######
+       ### ###   ### ###     ### #######  #######
+       ### ###   ### ### ##  ### ###      ###
+       ### ########  ### ### ### ###  ### ###
+       ### #######    #########   ######  ###         V 1.2
+@{UB}
+
+                  @{" Introduction     " LINK "Introduction"}  @{" Screen-Checker   " LINK "ScreenChecker"}
+                  @{" Important Things " LINK "Important"}  @{" Window-Checker   " LINK "WindowChecker"}
+                  @{" History          " LINK "History"}  @{" Icon-Renderer    " LINK "IconRenderer"}
+
+		  @{" Examples         " LINK "Examples"}
+@ENDNODE
+
+
+
+
+
+@NODE "Introduction" "Introduction"
+@TOC "Main"
+PowerWindows starting with V 0.9.5 allows you to use external Routines for
+doing the following things:
+
+	o Check whether a Window shall get an Iconify-Gadget or not, specify
+	  the Position of the Gadget (if you want) and render the Gadget
+	  (if you want).
+
+	o Check whether a Screen shall be patched (to allow Out-Of-Screen
+	  Movings and Iconify-Operations) or not.
+
+	o Render the Icons (Mini-Windows) created by PowerWindows when
+	  iconifying a Window.
+
+The first two are useful if it's impossible to specify with the Options
+provided by PowerWindows which Screens/Programs you want to be patched
+and which not.
+
+An external Icon-Renderer allows you to change the look of the Icons, if
+you don't like the one "designed" by me.
+@ENDNODE
+
+@NODE "Important" "Important things you have to know!"
+@TOC "Main"
+To write an external Routine for PowerWindows you should use a C-Compiler.
+If you know the way C-Compilers pass the Parameters to the Functions it
+should not be very difficult writing a Routine using an Assembler or even
+other Languages ("E","Pascal").
+
+Non C-Programmers should take a look at the Source of the Startup-Codes.
+
+@{B}Notes:@{UB}	o Create your Program with "NO STARTUP-CODE"
+
+	o Don't use SMALL-DATA (A4/A5 relative addressing of Data)!
+
+	o If necessary tell your Compiler to access ExecBase directly
+	  on Address 0x00000004, because you can't use it's standard
+	  Startup-Code and so a Variable ExecBase might not exist
+	  (depends on the Compiler) or might not be initialized.
+
+	o Your Routine should not eat too much Stack!
+
+	o Depending on what you are going to write, one of the Startup-Codes
+	  in the "Startup"-Directory must be linked together with your
+	  Program. This Startup-Code must have the highest Link-Priority.
+
+	o Assembler-Programmers should use the Startup-Codes too, so if in
+	  a future Release something changes, you are prepaired!
+
+	o The Prototypes of the Functions are in @{" PWDevelopper.h " LINK "include/PWDevelopper.h/main"}.
+
+	o Assembler-Guys: Don't trash Registers D2-D7/A2-A6!
+@ENDNODE
+
+
+@NODE "History" "History"
+@TOC "main"
+
+@{B}V 0.9.5 :@{UB} - First release
+
+
+@{B}V 1.0   :@{UB} - The Routines can now get Parameters
+
+	  - New Method for IconRenderers: RI_REFRESHIFRAME
+
+@{B}V 1.1   :@{UB} - New Method for IconRenderers: RI_REFRESHITITLE
+
+@{B}V 1.2   :@{UB} - Very important change for IconRenderers. Because of the Depth
+	    Gadget patch of PW scanning for a Depth Gadget now has to be a
+	    little bit different. Check out the RI_RENDERICON method in
+	    @{" External Icon-Renderer " LINK "IconRenderer"}
+
+	    There are also two new methods:
+
+	    RI_RENDERFRAME and RI_RENDERFRAMESEL
+
+@ENDNODE
+
+
+@NODE "ScreenChecker" "External Screen-Checkers"
+@TOC "main"
+Read the @{" Important Things " LINK "Important"} if you haven't done it yet!!
+Take a look at @{" PWDevelopper.h " LINK "include/PWDevelopper.h/main"}!
+
+@{FG SHINE}___________________________________________________________________________@{FG TEXT}
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+First PowerWindows checks whether the new Screen is O.K. to be patched by
+doing all the Checks described in the Config-File. If it is O.K. then it
+calls your Routine to do a further Check. The Routine has the following
+Prototype (taken from @{" PWDevelopper.h " LINK "include/PWDevelopper.h/main"}!):
+
+
+		@{FG SHINE}WORD@{FG TEXT} @{B}CheckScreen@{UB}(@{FG SHINE}Msg@{FG TEXT} @{B}msg@{UB}@{FG TEXT});
+
+
+Everything is very similiar to the BOOPSI-Dispatcher Concept. First you have
+to check @{FG SHINE}msg->MethodID@{FG TEXT}. Depending on what you find there @{FG SHINE}msg@{FG TEXT} will be one
+of the Structures defined in the Includes. A Screen-Checker will get the
+following MethodIDs:
+
+	@{B}CS_INIT  :@{UB} @{FG SHINE}msg@{FG TEXT} will be @{FG SHINE}struct csInit@{FG TEXT}
+	@{B}CS_EXIT  :@{UB} @{FG SHINE}msg@{FG TEXT} will be @{FG SHINE}struct csExit@{FG TEXT}
+@{FG SHINE}(*)@{FG TEXT}	@{B}CS_CHECK :@{UB} @{FG SHINE}msg@{FG TEXT} will be @{FG SHINE}struct csCheck@{FG TEXT}
+
+To access @{FG SHINE}msg@{FG TEXT} you must cast it to the right Structure. There are some nice
+Macros in "PWDevelopper.h" doing this for you. Assembler-Guys will get @{FG SHINE}msg@{FG TEXT}
+at 4(sp).
+
+
+@{FG SHINE}___________________________________________________________________________@{FG TEXT}
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+Depending on what MethodID you get the following must be done:
+
+@{B}CS_INIT@{UB}		  : Do your Initialisation (Open libs etc.). Return @{FG SHINE}CSR_OK@{FG TEXT}
+		    if everything went fine, otherwise return @{FG SHINE}CSR_FAIL@{FG TEXT}.
+		    @{I}Parameters@{UI} points to a 0-terminated string and contains
+		    what was specified in PowerWindows' Config-File after a
+		    ','. It can also be NULL, meaning that no Parameter was
+		    specified. This string is READ ONLY!! Further it remains
+		    valid only during @{B}CS_INIT@{UB}.
+
+		    @{U}Note:@{UU} You should also check the Version-Fields!
+		          Return CSR_FAIL if your Routine requires a newer
+		          Version!
+
+
+@{B}CS_EXIT@{UB}		  : Do your Cleanup (Close libs etc.). You can return
+		    anything.
+
+
+@{B}CS_CHECK@{UB} @{FG SHINE}(*)@{FG TEXT}	  : Return @{FG SHINE}CSR_OK@{FG TEXT} if you want the Screen @{B}Scr@{UB} to be
+		    patched, otherwise return @{FG SHINE}CSR_FAIL@{FG TEXT}!
+
+
+
+@{FG SHINE}___________________________________________________________________________@{FG TEXT}
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+@{B}Notes:@{UB}	o You get CS_INIT only ONCE (when PowerWindows is starting)!
+
+	o You get CS_EXIT only ONCE (when PowerWindows quits)!
+
+	o @{FG SHINE}(*)@{FG TEXT} This Methods are multi-threaded. Watch out and don't use
+	  any DOS Functions here.
+@ENDNODE
+
+
+
+
+
+@NODE "WindowChecker" "External Window-Checkers"
+@TOC "main"
+Read the @{" Important Things " LINK "Important"} if you haven't done it yet!!
+Take a look at @{" PWDevelopper.h " LINK "include/PWDevelopper.h/main"}!
+
+@{FG SHINE}___________________________________________________________________________@{FG TEXT}
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+First PowerWindows checks whether the new Window is O.K. to get an Iconify-
+Gadget by doing all the Checks described in the Config-File. If it is O.K.
+then it calls your Routine to do a further Check. The Routine has the
+following Prototype (taken from @{" PWDevelopper.h " LINK "include/PWDevelopper.h/main"}!):
+
+
+		@{FG SHINE}WORD@{FG TEXT} @{B}CheckWindow@{UB}(@{FG SHINE}Msg@{FG TEXT} @{B}msg@{UB}@{FG TEXT});
+
+
+Everything is very similiar to the BOOPSI-Dispatcher Concept. First you have
+to check @{FG SHINE}msg->MethodID@{FG TEXT}. Depending on what you find there @{FG SHINE}msg@{FG TEXT} will be one
+of the Structures defined in the Includes. A Window-Checker will get the
+following MethodIDs:
+
+	@{B}CW_INIT	   :@{UB} @{FG SHINE}msg@{FG TEXT} will be @{FG SHINE}struct cwInit@{FG TEXT}
+	@{B}CW_EXIT	   :@{UB} @{FG SHINE}msg@{FG TEXT} will be @{FG SHINE}struct cwExit@{FG TEXT}
+@{FG SHINE}(*)@{FG TEXT}	@{B}CW_CHECK   :@{UB} @{FG SHINE}msg@{FG TEXT} will be @{FG SHINE}struct cwCheck@{FG TEXT}
+@{FG SHINE}(*)@{FG TEXT}	@{B}CW_RENDERIG:@{UB} @{FG SHINE}msg@{FG TEXT} will be @{FG SHINE}struct cwRenderIG@{FG TEXT}
+
+To access @{FG SHINE}msg@{FG TEXT} you must cast it to the right Structure. There are some nice
+Macros in "PWDevelopper.h" doing this for you. Assembler-Guys will get @{FG SHINE}msg@{FG TEXT}
+at 4(sp).
+
+
+@{FG SHINE}___________________________________________________________________________@{FG TEXT}
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+Depending on what MethodID you get the following must be done:
+
+@{B}CW_INIT@{UB}		  : Do your Initialisation (Open libs etc.). Return @{FG SHINE}CWR_OK@{FG TEXT}
+		    if everything went fine, otherwise return @{FG SHINE}CWR_FAIL@{FG TEXT}.
+		    @{I}Parameters@{UI} points to a 0-terminated string and contains
+		    what was specified in PowerWindows' Config-File after a
+		    ','. It can also be NULL, meaning that no Parameter was
+		    specified. This string is READ ONLY!! Further it remains
+		    valid only during @{B}CW_INIT@{UB}.
+
+		    @{U}Note:@{UU} You should also check the Version-Fields!
+		          Return CWR_FAIL if your Routine requires a newer
+		          Version!
+
+
+@{FG TEXT}@{B}CW_EXIT@{UB}		  : Do your Cleanup (Close libs etc.). You can return
+		    anything.
+
+
+@{B}CW_CHECK@{UB} @{FG SHINE}(*)@{FG TEXT}	  : Return @{FG SHINE}CWR_OK|CWR_ICONIFYGAD@{FG TEXT} if you want the Window @{B}Win@{UB}
+		    to get an Iconify-Gadget, otherwise return @{FG SHINE}CWR_FAIL@{FG TEXT}!
+		    You can also set the Coordinates of the Gadget by fill-
+		    ing in the @{I}Gad_LeftEdge@{UI}, @{I}Gad_TopEdge@{UI}, @{I}Gad_Width@{UI},
+		    @{I}Gad_Height@{UI} Entries of the Message you get. @{I}Gad_Flags@{UI}
+		    must contain the Flags for the Gadget. Actually only
+		    @{B}GFLG_RELRIGHT@{UB} and @{B}GFLG_RELBOTTOM@{UB} are supported. Don't
+		    look at the @{I}Gad_??@{UI} values when you get the Message,
+		    because they are not initialized. PowerWindows will use
+		    the Coordinates only if you OR @{FG SHINE}CWR_ICONIFYPOS@{FG TEXT} to the
+		    Return-Code. Simply return:
+		    	
+		    	@{FG SHINE}CWR_OK|CWR_ICONIFYGAD|CWR_ICONIFYPOS@{FG TEXT}.
+
+
+@{B}CW_RENDERIG@{UB} @{FG SHINE}(*)@{FG TEXT}   : If you don't want to do the Rendering of the Iconify-
+		    Gadget simply return @{FG SHINE}CWR_FAIL@{FG TEXT} and PowerWindows will do
+		    it for you. If you want to do it: @{I}GadImage@{UI} points to
+		    the Image of the Gadget (which is an IMAGECLASS Boopsi
+		    Object). @{I}DrawImageMsg@{UI} points to an IM_DRAW Message
+		    (struct impDraw). It's best you take a look at the
+		    @{" Example " LINK "Examples/WindowChecker.c/Main"}! Don't forget to return @{FG SHINE}CWR_OK@{FG TEXT}!
+
+
+@{FG SHINE}___________________________________________________________________________@{FG TEXT}
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+@{B}Notes:@{UB}	o You get CW_INIT only ONCE (when PowerWindows is starting)!
+
+	o You get CW_EXIT only ONCE (when PowerWindows quits)!
+
+	o @{FG SHINE}(*)@{FG TEXT} This Methods are multi-threaded. Watch out and don't use
+	  any DOS Functions here.
+@ENDNODE
+
+
+
+
+
+@NODE "IconRenderer" "External Icon-Renderers"
+@TOC "main"
+Read the @{" Important Things " LINK "Important"} if you haven't done it yet!!
+Take a look at @{" PWDevelopper.h " LINK "include/PWDevelopper.h/main"}!
+
+@{FG SHINE}___________________________________________________________________________@{FG TEXT}
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+You can create a Routine that does the Icon-Rendering for PowerWindows.
+You should at least print the Window-Title somewhere, otherwise it's hard
+to say which Window a certain Icon belongs to. This is the Prototype:
+
+
+		@{FG SHINE}WORD@{FG TEXT} @{B}CheckScreen@{UB}(@{FG SHINE}Msg@{FG TEXT} @{B}msg@{UB}@{FG TEXT});
+
+
+Everything is very similiar to the BOOPSI-Dispatcher Concept. First you have
+to check @{FG SHINE}msg->MethodID@{FG TEXT}. Depending on what you find there @{FG SHINE}msg@{FG TEXT} will be one
+of the Structures defined in the Includes. An Icon-Renderer will get the
+following MethodIDs:
+
+	@{B}RI_INIT          :@{UB} @{FG SHINE}msg@{FG TEXT} will be @{FG SHINE}struct riInit@{FG TEXT}
+	@{B}RI_EXIT          :@{UB} @{FG SHINE}msg@{FG TEXT} will be @{FG SHINE}struct riExit@{FG TEXT}
+	@{B}RI_INITICON      :@{UB} @{FG SHINE}msg@{FG TEXT} will be @{FG SHINE}struct riInitIcon@{FG TEXT}
+	@{B}RI_RENDERICON    :@{UB} @{FG SHINE}msg@{FG TEXT} will be @{FG SHINE}struct riRenderIcon@{FG TEXT}
+	@{B}RI_REFRESHIFRAME :@{UB} @{FG SHINE}msg@{FG TEXT} will be @{FG SHINE}struct riRefreshIFrame@{FG TEXT}
+@{FG SHINE}(*)@{FG TEXT}	@{B}RI_REFRESHITITLE :@{UB} @{FG SHINE}msg@{FG TEXT} will be @{FG SHINE}struct riRefreshITitle@{FG TEXT}
+@{FG SHINE}(*)@{FG TEXT}	@{B}RI_RENDERFRAME   :@{UB} @{FG SHINE}msg@{FG TEXT} will be @{FG SHINE}struct riRenderFrame@{FG TEXT}
+@{FG SHINE}(*)@{FG TEXT}	@{B}RI_RENDERFRAMESEL:@{UB} @{FG SHINE}msg@{FG TEXT} will be @{FG SHINE}struct riRenderFrameSel@{FG TEXT}
+@{FG SHINE}(*)@{FG TEXT}	@{B}RI_EXITICON      :@{UB} @{FG SHINE}msg@{FG TEXT} will be @{FG SHINE}struct riExitIcon@{FG TEXT}
+
+To access @{FG SHINE}msg@{FG TEXT} you must cast it to the right Structure. There are some nice
+Macros in "PWDevelopper.h" doing this for you. Assembler-Guys will get @{FG SHINE}msg@{FG TEXT}
+at 4(sp).
+
+
+@{FG SHINE}___________________________________________________________________________@{FG TEXT}
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+Depending on what MethodID you get the following must be done:
+
+@{B}RI_INIT@{UB}		  : Do your Initialisation (Open libs etc.). Return @{FG SHINE}RIR_OK@{FG TEXT}
+		    if everything went fine, otherwise return @{FG SHINE}RIR_FAIL@{FG TEXT}.
+		    @{I}Parameters@{UI} points to a 0-terminated string and contains
+		    what was specified in PowerWindows' Config-File after a
+		    ','. It can also be NULL, meaning that no Parameter was
+		    specified. This string is READ ONLY!! Further it remains
+		    valid only during @{B}RI_INIT@{UB}.
+
+		    @{U}Note:@{UU} You should also check the Version-Fields!
+		          Return RIR_FAIL if your Routine requires a newer
+		          Version!
+
+
+@{B}RI_EXIT@{UB}		  : Do your Cleanup (Close libs etc.). You can return
+		    anything.
+
+
+@{B}RI_INITICON@{UB}	  : You get this Message when PowerWindows creates an
+		    Icon. @{I}ParentWin@{UI} points to the Window that is being
+		    iconified. @{I}IconWidth@{UI} and @{I}IconHeight@{UI} contains the
+		    Dimensions of the Icon-Window that is going to be
+		    opened. You can change @{I}IconHeigh@{UI}t. Don't touch
+		    @{I}IconWidth@{UI}. In @{I}UserData@{UI} you can store something
+		    (for example a Pointer to something you alloced).
+		    @{I}UserData@{UI} is not something global, but "local" to
+		    the Icon that will be created. The Message-Structures
+		    @{FG SHINE}riRenderIcon@{FG TEXT} and @{FG SHINE}riExitIcon@{FG TEXT} will contain the Value
+		    you have stored here. You can return anything. The
+		    Icon will be created regardless what you return!
+
+		    
+@{B}RI_RENDERICON@{UB}	  : Render the Icon. You must render into @{I}Icon@{UI}->RPort!
+		    @{I}ParentWin@{UI} points to the iconified Window. Icon points
+		    to the Icon-Window. @{I}UserData@{UI} will contain what you have
+		    inserted there during @{FG SHINE}RI_INITICON@{FG TEXT}. You should at least
+		    do some minimal Rendering even if you were not able to
+		    alloc/load something during @{FG SHINE}RI_INITICON@{FG TEXT}. You get this
+		    message only once for each Icon. In some cases Power-
+		    Windows adds some invisible System-Gadgets to the Icon.
+		    For example when you have set ICONDEPTH to NORMAL, PW
+		    will add an invisible Depth-Gadget in upper right Edge
+		    of the Icon. To check this, you have to scan through
+		    the GadgetList of the Icon.
+
+		    @{B}Very important:@{UB} If you are looking for the depth gadget
+		                    then you have found it if it's GadgetID
+		                    is GID_WDEPTH. Don't look at GadgetType
+		                    when trying to find the depth gadget!!
+
+@{I}		    iwin=((struct riRenderIcon *)msg)->Icon;
+		    gad=iwin->FirstGadget;
+		    while (gad)
+		    {
+		        if (gad->GadgetID==GID_WDEPTH)
+		        {
+		             /* we have found a Depth-Gadget */
+		             /* Now let's get the coordinates of it */
+		             /* and ... */
+
+		             x1=gad->LeftEdge;
+		             if (gad->Flags&GFLG_RELRIGHT)
+		             	x1+=(iwin->Width-1);
+		             y1=gad->TopEdge;
+		             if (gad->Flags&GFLG_RELBOTTOM)
+		             	y1+=(iwin->Height-1);
+		             x2=x1+gad->Width-1;
+		             if (gad->Flags&GFLG_RELWIDTH)
+		             	x2+=(iwin->Width);
+		             y2=y1+gad->Height-1;
+		             if (gad->Flags&GFLG_RELHEIGHT)
+		             	y2+=(iwin->Height);
+
+		             /* ... render something special there */
+
+		             RectFill(iwin->RPort,x1,y1,x2,y2);
+		        }
+		        gad=gad->NextGadget;
+		    }
+@{UI}
+		    You can also change the Position of the Gadgets if you
+		    like. To do this use SetGadgetAttrs().
+		    
+		    You can return anything.
+
+
+@{B}RI_REFRESHIFRAME@{UB}  : You have to refresh the Frame of the Icon (only
+		    1 Pixel). This is necessary because of PowerWindows'
+		    MULTI ACTION Mode destroying the Frame. You can return
+		    anything.
+
+
+@{B}RI_REFRESHITITLE@{UB}  : Refresh the title of the Icon. You will have to save
+@{FG SHINE}(*)@{FG TEXT}		    the Icon's Parent-Window during @{FG SHINE}RI_INITICON@{FG TEXT} otherwise
+		    you will not know what the new title is. You can return
+		    anything.
+
+
+@{B}RI_RENDERFRAME@{UB}    : Starting with PowerWindows 1.2 it is possible to deiconi-
+@{FG SHINE}(*)@{FG TEXT}		    fy icons with a single mouse-click. By activating the op-
+		    tion @{FG SHINE}NOICONDRAG@{FG TEXT} the icons will behave like a gadget. An
+		    Icon Renderer must (or should) provide some visual feed-
+		    back by supporting the @{FG SHINE}RI_RENDERFRAME@{FG TEXT} and @{FG SHINE}RI_RENDERFRAME-
+		    SEL@{FG TEXT} methods. @{FG SHINE}RI_RENDERFRAME@{FG TEXT} will be called when the
+		    mouse is outside the icon area, @{FG SHINE}RI_RENDERFRAMESEL@{FG TEXT} when
+		    it is inside. These methods have "FRAME" in their name
+		    because it is usually enough changing only the look of
+		    the frame. You should return RIR_OK.
+
+		    @{B}Note:@{UB} You must use the RastPort from the msg and not
+		    	  win->RPort!!
+
+
+@{B}R_RENDERFRAMESEL@{UB}  : Render the selected status of the gadget. You will
+@{FG SHINE}(*)@{FG TEXT}		    get this method when the mouse is over the icon.
+		    You should return RIR_OK.
+
+		    @{B}Note:@{UB} You must use the RastPort from the msg and not
+		    	  win->RPort!!
+
+
+@{B}RI_EXITICON@{UB} 	  : You get this Message before PowerWindows kills
+@{FG SHINE}(*)@{FG TEXT}		    an Icon (when deiconifying a Window or quitting the
+		    Program). Free the Resources you have alloced during
+		    @{FG SHINE}RI_INITICON@{FG TEXT} and stored in @{I}UserData@{UI}.
+
+
+@{FG SHINE}___________________________________________________________________________@{FG TEXT}
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+@{B}Notes:@{UB}	o You get RI_INIT only ONCE (when PowerWindows is starting)!
+
+	o You get RI_EXIT only ONCE (when PowerWindows quits)!
+
+	o @{FG SHINE}(*)@{FG TEXT} This Methods are multi-threaded. Watch out and don't use
+	  any DOS Functions here.
+@ENDNODE
+
+
+@NODE "Examples" "Example Source Codes"
+@TOC "Main"
+
+ @{" WindowChecker.c " LINK "Examples/WindowChecker.c/main"} Very similiar to the internal Routine of PowerWindows
+ @{" IconRenderer.c  " LINK "Examples/IconRenderer.c/main"} Simple Rendering. Icons of WB Windows look different
+
+The Source-Code of my other IconRenderers (actually Mac_IconRenderer and
+Mac2_IconRenderer) is available upon request. Registered users get it for
+free, others have to send me some money, let's say 2 - 5 US$.
+@ENDNODE

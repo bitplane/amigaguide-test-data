@@ -1,0 +1,201 @@
+@database AmiCDFileSystem.guide
+@author "Nicola Salmoria"
+@wordwrap
+----------------------------------------------------------------------------
+@node MAIN "AmiCDFileSystem"
+----------------------------------------------------------------------------
+
+                        @{b}AmiCDFileSystem@{ub} versión 37.5
+                            de Nicola Salmoria
+
+            Sistema de ficheros de gestión de CC.DD. para Amiga
+
+              Basado en el programa AmiCDROM de Frank Munkert
+               Traducción al castellano de @{"Dámaso D. Estévez" Link Trad}
+
+----------------------------------------------------------------------------
+
+    @{" Introducción " Link Introduction}
+
+    Instalación para:
+    @{" Unidades de CD-ROM " Link CDInst}
+    @{" Discos flexibles " Link FloppyInst}
+    @{" Discos Duros " Link HDInst}
+
+    @{" Discos en formato dual " Link Dual}
+    @{" CC.DD. musicales " Link Audio}
+
+    @{" Autor " Link Author}
+    @{" Distribución " Link Distribution}
+    @{" Agradecimientos " Link Aknowledgements}
+@endnode
+----------------------------------------------------------------------------
+@node Introduction "Introducción"
+
+    AmiCDFileSystem es un sistema de ficheros que soporta:
+
+      - ISO-9660 (y extensiones RockRidge) y Macintosh HFS para CD-ROM
+      - Macintosh HFS para discos flexibles y discos duros
+
+    La capacidad para leer discos flexibles y duros de Macintosh es "colateral", gracias a que es el mismo formato empleado en los CC.DD. de Mac.
+
+    Este programa está basado originalmente en AmiCDROM 1.9 de Frank Munkert: así mientras las funciones de ficheros son en su mayor parte las originales, yo he re-escrito las rutinas de manejo de paquetes.
+
+    Este sistema de ficheros puede ser instalado en el RDB (Bloque del Disco Rígido: equivale en Amiga a la Tabla de Particiones de los clónicos PC) del disco duro para montar de forma automática particiones de Mac.
+
+    El código es reentrante y es reejecutable: así, si emplea AmiCDFileSystem con una unidad de CD-ROM, una unidad magneto-óptica, dos unidades de discos flexibles y dos particiones de disco duro, sólo se cargará una copia en memoria en lugar de seis, ahorrando 100 Kbs de memoria.
+@endnode
+----------------------------------------------------------------------------
+@node CDInst "Instalación para gestión de CC.DD."
+
+    1.- Copie L/AmiCDFileSystem en el cajón L:
+
+    2.- Arrastre el icono llamado "CD0" al cajón DEVS:DOSDrivers.
+
+    3.- Modifique los siguientes Tipos de Herramientas según
+        la configuración de su sistema:
+
+        DEVICE     Nombre del gestor de dispositivos
+                   empleado para la unidad de CD-ROM.
+
+        UNIT       Nº de unidad del dispositivo.
+
+        CONTROL    Las opciones disponibles son:
+
+          L=LOWERCASE/S   Los nombres en ISO-9660 vienen normalmente
+                          sólo en mayúsculas.  Use esta opción
+                          para convertirlos a minúsculas.
+
+          T=TRACKDISK/S   Si la unidad no funciona, pruebe esta opción.
+                          Informa al sistema de ficheros que debe evitar
+                          usar comandos SCSI con el dispositivo.
+                          Normalmente, el sistema de ficheros detecta
+                          automáticamente cuando el dispositivo
+                          es SCSI o no.  Debe especificarlo cuando
+                          emplee tandemcd V37.
+
+          P=POLL/S        Actívelo cuando los cambios de disco no sean
+                          detectados: obliga al sistema de ficheros a
+                          comprobar la unidad cada tres segundos en lugar
+                          de esperar a las interrupciones de cambio de disco
+                          ('diskchange').  Necesario por ejemplo con la
+                          controladora A2091.
+
+        @{b}NOTA IMPORTANTE@{ub}:
+            La opción CONTROL no es reconocida por el comando Mount que se
+        proporciona con el Workbench 2.x: necesitará WorkBench 3.0 o
+        versión superior.
+
+    Si su controlador es DMS, debe definir Mask=0xfffffe en el fichero mountlist del sistema.
+@endnode
+----------------------------------------------------------------------------
+@node FloppyInst "Instalación para gestión de discos flexibles"
+
+    1.- Copie L/AmiCDFileSystem en el cajón L:
+
+    2.- Arratre el icono llamado "MAC0" al cajón DEVS:DOSDrivers (o dentro
+        de DEVS:DOSDrivers/DF0 si es un afortunado usuario que disponde de
+        @{i}MultiFileSystem@{ui}).
+
+    3.- Compruebe que @{i}mfm.device @{ui}se encuentra en DEVS: (es necesario
+        para que el dispositivo funcione):  @{i}mfm.device@{ui} forma parte del
+        Workbench 2.1 (y versiones superiores).
+
+    4.- MAC0: está definido para usar la unidad de discos flexibles interna
+        (DF0:). Si desea usar otra unidad, debe modificar el Tipo de
+        Herramienta UNIT (nº de unidad) en su icono.
+@endnode
+----------------------------------------------------------------------------
+@node HDInst  "Instalación para gestión de discos duros"
+
+    1.- Copie L/AmiCDFileSystem en el cajón L:
+
+    @{b}Las siguientes operaciones son extremadamente peligrosas para la integridad de su disco duro, por lo que sugiero firmemente que sólo las realicen usuarios experimentados.@{ub}
+
+    2.- Cargue HDToolBox (este programa forma parte del WorkBench 2.1
+        y versiones siguientes).  Por defecto, este programa utiliza el
+        gestor de dispostivos "scsi.device": si quisiera utilizar otro,
+        deberá añadir el siguiente Tipo de Herramienta en el icono del
+        programa: "SCSI_DEVICE_NAME=su_gestor.device".
+
+    3.- Cargado con éxito el programa, haga lo siguiente
+        (puede variar dependiendo de la versión de su SO):
+
+          - Elija 'Partición' (Partition Drive),
+          - 'Opciones Avanzadas' (Advanced Options),
+          - 'Añadir/Actualizar...' (Add/Update...), y
+          - 'Añadir Nuevo Sistema de Ficheros' (Add New File System...).
+          - Escriba 'L:AmiCDFileSystem' en el campo de texto.
+          - Elija 'Ok'.
+          - Escriba '0x41434400' en el campo de texto 'DosType'.
+          - Elija 'Ok'.
+          - Elija 'Ok'.
+          - Elija 'Cambiar...' (Change...).
+          - Si aparece ACD\\00 en el botón cíclico de 'Sistema de Ficheros:'
+            (File System:), selecciónelo.  Si no, seleccione 'Sistema de
+            Ficheros a Medida' (Custom File System) y escriba 0x41434400 en
+            el campo de texto llamado 'Identificador' (Identifier).
+          - Elija 'Ok'.
+          - Elija 'Ok'.
+          - Elija 'Guardar Cambios en la Unidad' (Save Changes to Drive):
+            se le pedirá confirmación, informándole de que se destruirán
+            los datos en la partición de Mac; si esto no fuese cierto,
+            siga adelante, pero asegúrese de que lo ha hecho todo
+            correctamente o podría destruir realmente la partición.
+
+    Recuerde que cuando actualice AmiCDFileSystem con una nueva versión no bastará con copiar el nuevo gestor en L:,... deberá repetir los pasos anteriores o su sistema seguirá empleando la versión antigua.
+@endnode
+----------------------------------------------------------------------------
+@node Dual "Discos con formato dual"
+
+    Los CC.DD. de Macintosh son de formato dual: hay una parte ISO-9660 y una partición HFS (no necesariamente diferente).  Por defecto, se accede a la partición ISO-9660, así que para acceder a la partición HFS, mantenga pulsada la tecla Shift (Mayúsculas) mientras se inserta el CD (manténgala pulsada hasta que aparezca el icono correspondiente).
+@endnode
+----------------------------------------------------------------------------
+@node Audio "CC.DD. musicales"
+
+    Cuando un CD musical (formato CDDA) se introduce en la unidad, un AppIcon (icono de aplicación) aparecerá en la pantalla de WorkBench.  Se empleará como tal icono "ENV:SYS/DEF_CDDAdisk.info": si por cualquier causa no pudiese ser empleado, se usará un icono estándar del sistema.
+
+    Si se ha definido una "Herramienta por Defecto" en el icono, será ejecutada al pinchar sobre éste dos veces rápidamente.  Si no se ha definido (el campo de texto correspondiente está vacío) la reproducción del CD comenzará por la pista 1.  Volver a pinchar dos veces rápidamente sobre el icono lo detiene.
+
+    Esta prestación no está disponible si la opción TRACKDISK está seleccionada o la unidad no soporta los comandos necesarios.
+@endnode
+----------------------------------------------------------------------------
+@node Author "Autor"
+
+    Nicola Salmoria
+    Via Piemonte 11
+    53100 Siena
+    ITALY              <- @{b}ITALIA@{ub}
+
+    Por Internet : MC6489@mclink.it
+
+    Intentaré responder a todo los mensajes de correo electrónico que reciba.  Si me ha escrito y no ha recibido respuesta, seguramente será debido a que su mensaje original o mi respuesta se ha perdido, o que la cabecera del mensaje no contenía su dirección de correo electrónico (E-mail) correcta:  inténtelo de nuevo y no olvide añadir su dirección completa en el cuerpo del mensaje.
+
+    La mayor parte del código de este programa es propiedad de Frank Munkert (© 1993,1994 Frank Munkert).  Puede contactar con él por Internet en: ln_fmu@pki-nbg.philips.de
+@endnode
+----------------------------------------------------------------------------
+@node Distribution "Condiciones de distribución"
+
+    Este software es del tipo @{i}FreeWare@{ui}, o sea, es de distribución libre y gratuíta, teniendo en cuenta que este paquete debe permanecer intacto y que sólo se puede cobrar @{u}un pequeño recargo@{uu} por dicho trabajo de distribución.
+
+    Este software se proporciona "TAL CUAL" sin ningún tipo de garantía, tanto implícita como explícita.  Si decide emplearlo, tenga en cuenta que es usted quien asume todos los riesgos de su uso.
+@endnode
+----------------------------------------------------------------------------
+@node Aknowledgements "Agradecimientos"
+
+    Toda la comunidad de usuarios de Amiga debe agradecer a Frank Munkert el escribir un sistema de ficheros para CD-ROM de distribución libre y gratuíta, además de poner a disposición de todo el mundo los ficheros fuente que integran este programa, algo bastante raro hoy en día.  Sin el trabajo de Frank, AmiCDFileSystem no existiría.
+@endnode
+----------------------------------------------------------------------------
+@node Trad "Traducción al castellano"
+
+@{fg highlight}@{b}Traducción al español versión 1.01 (14.6.97)@{ub}@{fg text}
+
+  Este documento es de copiado y distribución gratuita.  Su utilización es siempre bajo la responsabilidad del propio usuario asumiendo éste todos los riesgos (consulte la documentación original, por favor).
+
+	Dámaso Domínguez Estévez
+	Email: amidde@arrakis.es
+
+  @{b}Que lo disfrute y recuerde que...
+  ¡¡Sólo Amiga y nosotros lo hacemos posible!!@{ub}
+@endnode
+----------------------------------------------------------------------------

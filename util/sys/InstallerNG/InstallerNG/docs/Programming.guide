@@ -1,0 +1,5689 @@
+@database InstallerNG Programming Guide
+@author Jens Tröger
+@(C) 1999/2000 by Jens Tröger
+@index INDEX
+
+@node MAIN "The Installer Language Programming Guide"
+
+  @{b}The Installer Language Programming Guide@{ub}
+
+  © 1999/2000 by Jens Tröger
+  for copyright information and licence rules, please read the InstallerNG
+  guide and the .LICENCE file (both included in this distribution)
+
+  @{b}Preliminaries@{ub}
+    @{" Introduction                   " link INTRODUCTION}  What's this thing about
+    @{" Author                         " link AUTHOR}  The author of this guide and the InstallerNG
+    @{" C= Installer vs. InstallerNG   " link VERSUS}  Old contra new
+    @{" Versions of Installer          " link VERSIONS}  Keep this in mind!
+    @{" Installation                   " link INSTALLATION}  Installing the Installer
+    @{" What is new                    " link WHATSNEW}  What has been added/changed
+
+  @{b}First Steps@{ub}
+    @{" Hello World                    " link HELLOWORLD}  Our first working programm
+    @{" The language                   " link LANGUAGE}  Introduction to the language
+    @{" Starting the Installer         " link STARTING}  How to start this tool
+
+  @{b}Programming secrets@{ub}
+    @{" Introduction                   " link LANGUAGEINTRODUCTION}  Further steps into the language
+    @{" Symbols                        " link SYMBOLS}  The bricks of a script
+    @{" Syntax                         " link SYNTAX}  Rules for programming
+    @{" Builtin variables              " link BUILTINVARIABLES}  The predefined variables
+    @{" Builtin constants              " link BUILTINCONSTANTS}  The predefined constants
+    @{" Function reference             " link FUNCTIONS}  All the functions of the Installer
+    @{" Custom functions               " link ADVANCED}  How to use custom functions
+    @{" Enhanced string formatting     " link ADVANCED}  Builting strings from arguments
+    @{" Grouping of functions          " link ADVANCED}  Joining several functions to a block
+    @{" Types                          " link TYPES}  The different types
+    @{" Errors                         " link ERRORS}  Compilation errors
+
+  @{b}Advanced features@{ub}
+    @{" External Resources             " link EXTERNALRESOURCES}  InstallerNG's different externals
+
+  @{b}References@{ub}
+    @{" Formal information             " link FORMAL}  Some theoretical stuff
+    @{" You should read this           " link IMPORTANT}  This has to be respected
+    @{" All functions                  " link INDEX}  All functions in alphabetical order
+
+@endnode
+
+@node INTRODUCTION "Introduction"
+
+  Today, the installation of software products can be a very complex
+  procedure. This is caused by the sometimes large set of different files
+  or a very lowlevel intervention into the systems resources. Especially
+  for novice users this process can be difficult and the system may be
+  destroyed (worst case...).
+
+  This was the motivation for Commodore to build a tool, which covers
+  the installation process and offers an easy to use and graphical
+  interface. This thing was called the @{i}Installer@{ui}. The user just tells where
+  and what to install and the Installer cares for the installation process
+  itself, i.e. the Installer checks for the versions, copies the files to
+  the correct destinations, sets up a correct environment for the installed
+  tool and so on. The user can choose, whether he wants an easy installation
+  (means, as less as possible queries) or if he wants to get notified for
+  every action.
+
+  If you are a programmer and you want to provide your user such an easy
+  installation, you must write an @{i}Installer-Script@{ui}. This script is
+  simply a textfile and contains a programm, written in a special language.
+  This language is simple and offers very much functions for querying the user,
+  for setting and getting system properties, for file handling, string manipulation
+  and, last but not least, a lot of mathematical functions. Furthermore, put
+  an icon into your archive, which contains special tooltypes (for tooltypes
+  please refer to your workbench guide) for the Installer. When the user
+  double-clicks this icon, the Installer will get started and then looks for
+  your script to execute it.
+
+  This guide will introduce you the Installer usage itself and the script
+  language. You should have programmed and, additionally, should have some
+  knowledge about the AmigaDOS. If not, use this course for starting your
+  programming career....
+
+@endnode
+@node AUTHOR "That`s me ;)"
+
+  @{b}Snail Mail@{ub}
+    Jens Tröger
+    i4/182 Dornoch Tce
+    Highgate Hill, QLD, 4101
+    Australia
+
+  @{b}E-Mail@{ub}
+    savage@light-speed.de
+
+  @{b}WWW@{ub}
+    http://savage.light-speed.de
+    http://installerng.amiga-center.de (InstallerNG support page)
+
+  @{b}IRC@{ub}
+    Nick:     _savage
+    Channel:  #amigager
+
+@endnode
+@node VERSUS "C= Installer vs. InstallerNG"
+
+  If you know the C= Installer, you should have noticed its ugly interface,
+  the amount of failures and the bad useability. If you have already programmed
+  the C= Installer, you know that the language isn't up to date anymore. Thats why
+  I started to implement a new Installer: the @{i}InstallerNG@{ui}. This new Installer
+  looks really nice, has nearly no bugs and runs very stable. For the programmer,
+  it offers new and also enhanced functions. For a list of all the new things
+  look @{"here" link WHATSNEW}.
+
+  Since the InstallerNG is fully compatible to the C= Installer (at least to the
+  new Installer of the AmigaOS 3.5) this guide remains valid for both Installers!
+  The language of the C= Installer can be seen as a subset of the InstallerNG's
+  language and I will note, whether the C= Installer understands a specific function
+  or not by a @{fg fill}{NG}@{fg text}. So it does not matter, if I talk about the InstallerNG or the
+  C= Installer - both are meant, when I say Installer.
+
+  Some may be upset about the fact, that scripts run into errors, even if these
+  scripts did work fine with the C= Installer. This is not the fault of the InstallerNG.
+  The C= Installer is very lazy - it does no checks, accepts very much errors and
+  did never notify the programmer/user about errors. The InstallerNG is definitely
+  not lazy and reports errors!
+
+@endnode
+@node VERSIONS "Versions if the Installer"
+
+  I think, there are three important version of the Installer
+
+  @{b}older than 42.9/42.12@{ub}
+    You can be sure, that every Installer has at least version 42.9/42.12.
+    These versions extended the old language by some new features and functions.
+    I guess, when you programm a script, you can be sure that this script runs
+    at least version 42.12, since this was the last official release. But a
+    version check would be safe.
+
+  @{b}44.10 (AmigaOS 3.5)@{ub}
+    This version comes with the new AmigaOS 3.5 and was done by Jochen Becher
+    (Haage & Partner). He just added some new functions to the Installer language
+    which support multimedia files and a simple backtrace mechanism.
+
+  @{b}44.10 (InstallerNG 1.4+)@{ub}
+    My InstallerNG is compatible the the latest version of the original Installer.
+    The scripts run without problems, but the programmer can make use of the
+    new functions of the InstallerNG.
+
+@endnode
+@node INSTALLATION "The installation of the Installer"
+
+  The Installer is a system tool and, thus, can be found in your C:
+  drawer. For those who want to use my InstallerNG (recommended!) - just
+  double-click at the Install icon and follow the steps.
+
+  In fact, it does not matter where the Installer can be found as long as
+  it resides in the systems path.
+
+@endnode
+@node WHATSNEW "What's new for the InstallerNG"
+
+  Here you find all the things I added to the InstallerNG and, thus, which features
+  are not supported by the old Installer. So if you want to use these new features
+  and run the script on the original Installer you may run into errors. Thats why
+  a version check is very important!
+
+  @{b}No restrictions@{ub}
+    The original Installer cannot handle larger strings (currently, I don't know what
+    is meant by "larger" strings...). With the InstallerNG a string (and the value of
+    a string variable too) can be as long as it fits into your memory.
+
+  @{b}Nice GUI@{ub}
+    The builtin-gui is based on a BOOPSI class-collection, which was also written
+    by me; these classes allow easy font-adaption, resizing and support the MagicWB
+    pens. Additionally, you may "plug-in" other gui-systems (like MUI, BGui, ...)
+    via a shared library named "installergui.library". This archive also contains the
+    interface definition, such that anyone could program a custom gui for my InstallerNG.
+
+    Furthermore, the help window can stay open, while you install your packages;
+    this is a builtin feature and should be provided by every GUI.
+
+  @{b}Comfortable WB-Start@{ub}
+    If you run the InstallerNG from WB and give it no script via tooltypes
+    a requester pops up which asks you whether you want to load a script by a
+    file-requester or if you want to app-iconify the installer. If you drop a
+    script-file on the application icon the InstallerNG gets started.
+
+  @{b}Returncode@{ub}
+    The InstallerNG returns RETURN_OK (0) if everything of the installation
+    went fine, or, in case of an error, it returns RETURN_FAIL (20). This could
+    be useful, if you call the InstallerNG from a script and the script wants
+    to check whether the InstallerNG was successfull or not.
+
+  @{b}Flexible interpretation@{ub}
+    If an error raises while the interpretation process, the InstallerNG provides
+    to continue at the very next function. Please be careful with this option,
+    because going on may lead to some other errors, but often it's really useful to
+    finish the (uncomplete) installation.
+
+  @{b}New builtin variables@{ub}
+    @installer-ng-version -- the version of the InstallerNG
+    @proceed-button -- holds the text for the "Proceed with install"-button
+
+  @{b}Constants@{ub}
+    - TRUE/DOSTRUE and FALSE/DOSFALSE are now constants and cannot be modified
+    - NOVICE, AVERAGE and EXPERT are builtin constants, so you can use them instead
+      of 0, 1 and 2 (usefull for @{"CONFIRM" link CONFIRM} and @{"USER" link USER} functions)
+
+  @{b}New @{"Tooltypes/CLI-Arguments" link RUNIT}@{ub}
+    LAZYCOMPILE: if set, then the InstallerNG is as lazy as the C= installer
+                 is. that means, InstallerNG skips its semantic check procedures
+                 to be more compatible
+    DEBUGMODE: if set, then InstallerNG will switch on it`s debugmode
+    CREATEUNINSTALL=CUI: if set, then InstallerNG creates an uninstall skript
+    COPYFILECOMMENT=CFC: if set, every copied file will be commented with the package name
+    ALWAYSCONFIRM: if set, every action has to be confirmed in every user-level!
+    NOSYSDELETE: if set, calls to DELETE from system drawers will be ignored
+
+  @{b}Interuptable Interpretation@{ub}
+    The InstallerNG can be interupted everytime by sending the CTRL-F signal to its
+    process. This option allows to break out of infinite loops.
+
+  @{b}Local environments@{ub}
+    Everytime you want to, you are allowed to create a new environment (i.e. to declare
+    several new variables). Inside this environment you can run some code, which uses
+    the local variables prior the global ones. See the function @{"LET" link LET} for more details.
+
+  @{b}SOOP - Simple Object Oriented Programing@{ub}
+    With help of the new functions @{"PUT-PROPERTY" link PUT-PROPERTY}, @{"GET-PROPERTY" link GET-PROPERTY} and @{"REMOVE-PROPERTY" link REMOVE-PROPERTY} the
+    InstallerNG implements LISP-like property-lists for symbols. Imagine of a symbol
+    as an object and the properties as the objects attributes. Furthermore, if you write
+    @{"PROCEDURE" link PROCEDURE}'s, which are able to operate on an object`s attributes, you just can produce
+    simple OO code :)    ...without a class hierarchy, but object oriented!
+
+  @{b}UNDO-REDO environments@{ub}
+    Using the function @{"SWING" link SWING} you are able to build an environment, in which you can
+    "swing" from one (topmost) function to the next. When reaching the last one, the
+    installation may proceed. This looks/works much like the MS-Setup program :)
+
+    With v44 of the C= installer, you are able to simulate such an environment by
+    special @{"TRACE" link TRACE} and @{"RETRACE" link RETRACE} functions and the @{"BACK" link BACK} parameter
+
+  @{b}Full installation control@{ub}
+    If you want to, the InstallerNG asks for confirmation of every action, no mattter
+    what the script-programmer codes in his installer script
+
+  @{b}AppWindow@{ub}
+    InstallerNG can now act as an socalled "AppWindow", i.e. you may drop files into
+    the window and InstallerNG uses them. This only works, when the InstallerNG asks
+    for a file or directory (see @{"ASKFILE" link ASKFILE}, @{"ASKDIR" link ASKDIR})
+
+  @{b}Enhanced Functions@{ub}
+
+    @{" DATABASE               " link DATABASE}
+    @{" EXISTS                 " link EXISTS}
+
+  @{b}New Functions@{ub}
+
+    @{" BEEP                   " link BEEP}
+    @{" COMPARE                " link COMPARE}
+    @{" CURRENTDIR             " link CURRENTDIR}
+    @{" DELAY                  " link DELAY}
+    @{" FINDBOARD              " link FINDBOARD}
+    @{" FLUSHLIBS              " link FLUSHLIBS}
+    @{" LET                    " link LET}
+    @{" NOP                    " link NOP}
+    @{" RANDOM                 " link RANDOM}
+    @{" REBOOT                 " link REBOOT}
+    @{" SETENV                 " link SETENV}
+    @{" SIMULATE-ERROR         " link SIMULATE-ERROR}
+    @{" SWING                  " link SWING}
+
+    @{" GET-PROPERTY           " link GET-PROPERTY}
+    @{" PUT-PROPERTY           " link PUT-PROPERTY}
+    @{" READ-PROPERTY-OBJECT   " link READ-PROPERTY-OBJECT} 
+    @{" REMOVE-PROPERTY        " link REMOVE-PROPERTY} 
+    @{" SAVE-PROPERTY-OBJECT   " link SAVE-PROPERTY-OBJECT} 
+
+@endnode
+@node EXTERNALRESOURCES "External Resources"
+
+  All of the InstallerNG's resources can be found in the LIBS:installerng
+  directory. There you find several subdirectories, each of them containing
+  the externals, sorted by its type.
+  For implementational details please refere to the API guide.
+
+  @{b}GUI@{ub}
+    Location:    gui/gui.library
+    Description: This holds the implementation of the GUI-API. If InstallerNG
+                 cannot open this library at startup, it will fall back to the
+                 buildin gui. By writing different gui.library files, the
+                 InstallerNG is able to use different GUIs like MUI, BGUI, ...
+
+  @{b}Function Plugins@{ub}
+    Location:    functionplugins/#?
+    Description: Each time the InstallerNG is advised to use a local external
+                 function (i.e. by calling the CALL-PLUGIN function), it will
+                 scan this directory for the plugin.
+
+  @{b}Compiler Modules@{ub}
+    Location:    compilermodules/#?
+    Description: After the internal compilation process, InstallerNG utilizes
+                 compiler modules (by respecting a priority). These must reside
+                 in this directory.
+
+@endnode
+
+@node HELLOWORLD "'Hello World' - the first working program"
+
+  Now let's write our first program for the Installer. Run an editor (something
+  like GoldED, even the ED command of your shell is good enough) and just write
+  the following line:
+
+    @{fg shine}
+    (message "Hello world")
+    @{fg text}
+
+  Save this as "t:helloworld" and open a shell window (see your Workbench manual
+  for help). Type "installer t:helloworld" and press enter. The Installer should
+  open a window, which asks you, if you are "Novice", "Average" or "Expert".
+  Select "Expert" and press the "Proceed" button. Currently, just ignore the next
+  panel and press the "Proceed" again. Now you should see our "Hello world" text.
+  Quit the Installer by pressing the "Proceed" button again.
+
+  Thats all... you did it!
+
+@endnode
+@node LANGUAGE "The language - an overview"
+
+  Have a look at the @{"Hello World" link HELLOWORLD} program to see a very small but legal
+  script. The language has a very simple structure. Some may say, it is LISP but
+  they are wrong (LISP is an old dirty-functional language). It may look so, but has
+  nothing in common.
+
+  A script consists of a collection of functions. A function just starts with an
+  opening bracket, followed by the functions name and several (or maybe zero)
+  arguments for this function and ends with a closing bracket. Examples for
+  such functions are
+
+    @{fg shine}
+    (+ 5 2)  ; just add 5 and 2
+    (message "really simple, isn't it?!")  ; show a message
+    @{fg text}
+
+  You see, comments start with a semi-colon and end with the end of the line. The
+  InstallerNG also supports multi-lined comments, which are enclosed in "/*" and
+  "*/" (like comments in C). Furthermore, the Installer does not care for upper
+  or lower letters!
+
+  It may look strange to you, that we write the function symbol at first, followed
+  by its arguments. In mathematics this style is called "prefix notation". Everyone
+  knows "infix notation" - the school-like addition is infix, because we write
+  the functional symbol between its arguments. Of course there is also an
+  "postfix notation", guess, how this looks like!
+
+  Every function deliveres a result and this result has a type. This makes the
+  it possible to use every function as argument to another function, if the types
+  are valid. This means, you cannot use a function, which evaluates to a string
+  result, as argument to a function which expects a number argument. A runtime
+  error will be produced in such cases. Try to calculate the result of this
+  expression:
+
+    @{fg shine}
+    (+ 1
+       (+ 2 3)
+       4
+       (- 5
+          (* 2 3)
+          (/ 9 3)
+       )
+    )
+    @{fg text}
+
+  Of course we need variables! A veriable can be declared by using the SET
+  function:
+
+    @{fg shine}
+    (set #number 5)
+    (set #string "hello")
+    @{fg text}
+
+  The first SET defines a variable "number" of type NUMBER and gives it the value
+  5. The second function defines a variable "string" of type STRING and the value
+  of this variable will be the string "hello". You see, the Installer distinguishes
+  exactly two types: the numbers and the strings. Later, we will add a new type, but
+  for now, this is quiet enough. Additionaly, the Installer offers several builtin
+  variables, which hold information about the current Installer environment. The
+  script can use these variables as they were defined by the user. It is a convention,
+  that builtin variables start with "@" and the user defined variables with "#", but
+  this is definitely no must!
+
+  A script can become very large. In such cases it would be useful to have custom
+  functions for maybe version checks, copying end so on. You can define your own
+  functions by using the PROCEDURE function. A user defined function should start
+  with a "P_" to avoid collisions with later extension to the builtin function set.
+
+    @{fg shine}
+    (procedure P_Error #errobject #errcode
+      (
+        (beep) @{fg fill}{NG}@{fg shine}
+        (message "Error #" #errcode " with " #errobject)
+        (exit (quiet))
+      )
+    )
+
+    ..
+
+    (P_Error "my_file" 5)
+    @{fg text}
+
+  This defines a function "P_Error" which expects two arguments: #errobject and
+  #errcode. You can invoke such functions, just as they were builtin - simply call
+  them.
+
+@endnode
+@node STARTING "How can I start the Installer"
+
+  Just like nearly every other Amiga tool, you can start the Installer either
+  through a @{"shell" link STARTCLI} or from @{"Workbench" link STARTWB}.
+
+@endnode
+@node STARTCLI "Running from Shell/CLI"
+
+  The Installer can be started by simply typing its name and the script file. The
+  script file argument is the only one argument, which you must specify! Every
+  other argument is optional. This is the argument template of the InstallerNG:
+
+    SCRIPT/A,APPNAME/K,MINUSER/K,DEFUSER/K,LOGFILE/K,LANGUAGE/K,
+    NOPRETEND/S,NOLOG/S,NOPRINT/S,LAZYCOMPILE/S,DEBUGMODE/S,
+    CREATEUNINSTALL=CUI/S,COPYFILECOMMENT=CFC/S,ALWAYSCONFIRM/S,
+    NOSYSDELETE=NSD/S
+
+  APPNAME specifies the name of the application you want to install. Usually
+  this is the name of your tool. MINUSER sets the minimal operation mode for
+  the Installer and DEFUSER presets the operation mode. The user may change
+  the operation mode by selecting a mode in the first welcome panel (refer to
+  the @{"WELCOME" link WELCOME} function). Use LOGFILE to set the file, which
+  will be handled as an installation protocol or set NOLOG, if you want to
+  forbid any logging actions. NOPRINT disables the logging to the standard
+  printer. If you set NOPRETEND then the user cannot turn on the pretend mode.
+  In pretend mode, the Installer just simulates an installation process. The
+  LANGUAGE specifies the language, which should be used in the script.
+
+  The rest of the arguments is valid only for the InstallerNG and they set
+  the "Advanced options". LAZYCOMPILE turns off any check procedure at startup
+  and the InstallerNG does not look for errors during compilation. DEBUGMODE
+  turns on the debug console and prints useful warnings. Use CREATEUNINSTALL
+  to produce an uninstall script from the current installation session. If you
+  run this produced script again with the Installer, it will de-install the
+  package. COPYFILESCOMMENT just comments every copied file with the name
+  of the current application name (see APPNAME argument) by appending the old
+  file comment to the application name. For full installation control, you should
+  set the ALWAYSCONFIRM argument, which forces the Installer to ask for
+  confirmation everytime. NOSYSDELETE avoids the deletion from system drawers
+  like C: or LIBS: or whatever...
+
+@endnode
+@node STARTWB "Running from WB"
+
+  If you run the Installer from Workbench, you can set up a working environment for
+  it by specifying tooltypes. 
+
+    SCRIPT=<scriptfile>
+    APPNAME=<name>
+    MINUSER=<novice|average|expert>
+    DEFUSER=<novice|average|expert>
+    LOGFILE=<logfile>
+    LANGUAGE=<language>
+    PRETEND
+    LOG
+    NOPRINT
+    ICONIFY @{fg fill}{NG}@{fg text}
+    LAZYCOMPILE @{fg fill}{NG}@{fg text}
+    DEBUGMODE @{fg fill}{NG}@{fg text}
+    CREATEUNINSTALL @{fg fill}{NG}@{fg text}
+    COPYFILECOMMENT @{fg fill}{NG}@{fg text}
+    ALWAYSCONFIRM @{fg fill}{NG}@{fg text}
+    NOSYSDELETE @{fg fill}{NG}@{fg text}
+
+  Except the ICONIFY tooltype, these tooltypes are equal to the @{"shell" link STARTCLI} arguments and,
+  thus, I do not write the meaning here again.
+
+  ICONIFY holds, if you give no SCRIPT argument. Usually, the Installer would ask,
+  whether the user wants to load a script or just iconify the Installer. Using this
+  tooltype forces the Installer to immediately iconify.
+
+@endnode
+@node TYPES "The types of the Installer"
+
+  The Installer distinguishes betweem two main types: STRING
+  and NUMBER. Additionally, the parameter functions do not return
+  any of these main types, but a PARAM type just to notify, that
+  such a parameter function was executed.
+
+  Now forget about the PARAM type, it is internally. Only work
+  with the STRING and NUMBER types!
+
+@endnode
+@node ERRORS "The Errors"
+
+  To understand these errors think of the syntactical structure of any program:
+
+  A program consists of one or more functions or function lists. An expression can
+  be either a number, a string, a variable or a new function. Functions are enclosed
+  in paranthesis, the first symbol can be anything but a number and a function-
+  specific number of arguments. An argument can be again any expression.
+
+  @{b}Syntax Errors@{ub}
+
+    @{u}( expected@{uu}
+      The Installer needs a new function
+
+    @{u}( or function expected@{uu}
+      The Installer needs the beginning of a new function or the name of
+      a function. (you may have wrote a number)
+
+    @{u}Function not allowed here@{uu}
+      A function-name (like ASKFILE...) is used as a parameter to any other
+      function. Remove this or enclose it with parenthesis.
+
+    @{u}Unexpected EOS@{uu}
+      The end of the source was reached to early. Maybe a missing close-parenthesis
+      leads this error.
+
+    @{u}Expression expected@{uu}
+      Any expression is needed here.
+
+    @{u}Functional expression needed@{uu}
+      The first expression behind opening parenthesis must be an identifier or a
+      string. What you wrote is maybe a number.
+
+    @{u}) expected@{uu}
+      You forgot a ")" ???
+
+@endnode
+
+@node LANGUAGEINTRODUCTION "The Installer Language"
+
+  The language used by the Installer is a simple, imperative language. Since I
+  like functional languages, I tried to give this language a "functional"
+  touch, i.e. every expression can be evaluated and returns a typed result.
+  Furthermore I started to make the language a bit type stronger, because types
+  are very needful for preventing errors. But don`t panic, this language is
+  definitly not functional (it has side-effects!) and very easy to use.
+
+  Imagine of the Installer as the Interpreter of a given script. Interpreter means,
+  the Installer first looks at the whole program (i.e. the script) and then fetches
+  the first function, evaluates it and maybe uses the result as an argument for the
+  next function, then it gets the next function, evaluates it... and so on. For more
+  detailed information see section @{"Technical" link TECHNICAL} You may have noticed the syntax:
+  it may look strange to some, but it is a simple prefix notation. "Prefix" means,
+  that the functional symbol is at first position, followed by its parameters. Every
+  function must be enclosed by parenthesis. For example to simply add two numbers,
+  you must write: @{fg shine}(+ 2 3)@{fg text}
+
+  A complete list of all functions you will find @{"here" link BUILTINFUNCTIONS}. Of course you find everything
+  of a good imperative language: conditionals, variables, a big set of built-in
+  functions, the ability to define custom functions and much more.
+
+  Since  the original Installer does not offer all the things I wanted to use, I
+  added some more functions and features. See the @{"What`s New" link NEW} section for more
+  information.
+
+  NOTE: everytime I talk about a string or a number value, you are allowed to use
+        an identifier of type string or number or an expression (function,
+        function list) which deliveres a result of type string or number.
+
+  @{" Symbols               " link SYMBOLS}
+  @{" Syntax                " link SYNTAX}
+  @{" Builtin functions     " link BUILTINFUNCTIONS}
+  @{" Builtin variables     " link BUILTINVARIABLES}
+  @{" Advanced features     " link ADVANCEDFEATURES}
+
+  For future compatibility it is most important to read this section:
+
+  @{" Conventions           " link CONVENTIONS}
+
+@endnode
+@node CONVENTIONS "Important language conventions"
+
+  The old C= Installer defined some conventions for preserving future
+  compatibility. As long as the writer of a script takes care for
+  these conventions, the scripts will run on every new release of
+  either the Installer or the InstallerNG!
+
+  - the name of a user defined procedure (refer to the @{"PROCEDURE" link PROCEDURE} function)
+    should start with @{fg shine}P_@{fg text}. This will prevent the colision with
+    later introduced new functions
+
+    example: @{fg shine}(procedure P_reboot (run "c:reboot"))@{fg text} is fine
+             @{fg shine}(procedure reboot (run "c:reboor"))@{fg text} is wrong, since it did
+             collide with InstallerNG's @{"REBOOT" link REBOOT} function
+
+  - variable names should start with @{fg shine}#@{fg text} for the same reason as procedure
+    names should start with @{fg shine}P_@{fg text}
+
+  - @{"builtin variables" link BUILTINVARIABLES} and always start with a @{fg shine}@@{fg text}
+
+@endnode
+@node SYMBOLS "The symbols of the language"
+
+  Symbols are the bricks of every programming language. A variable, a number
+  or even the keywords are the symbols (also called: tokens) of a language. By
+  writing a meaningful sequence of symbols, you just write your program. Here
+  you will find the symbols for the Installer programming langage. This is not
+  a formal definition, but I think it is useful.
+
+  @{b}Spaces@{ub}
+    Spaces are the characters between other symbols and are skipped, when the
+    InstallerNG scanns the script-file. Every character with an ASCII less or
+    equal 32 gets handled as a space.
+
+  @{b}Parenthesis@{ub}
+    Parenthesis are used to enclose functions and function lists. Only "(" and ")"
+    are legal for that.
+
+  @{b}Strings@{ub}
+    A string is enclosed in either "..." or '...' and must not contain
+    linefeeds. Special characters start with a backslash, followed by
+    the character, which should appear in the string itself:
+
+       \\0     for a NULL character (ASCII-0)
+       \\b     beep (ASCII-8)
+       \\t \\h  tabulator (ASCII-9)
+       \\n     linefeed (ASCII-10)
+       \\v     ? (ASCII-11)
+       \\f     ? (ASCII-12)
+       \\r     carriage return (ASCII-13)
+
+       \\\\     for a backslash itself
+
+       \\o     octal encoded number
+       \\x     hex encoded number
+
+       \\"     to use a " inside of a "..." string
+       \\'     to use a ' inside of a '...' string
+
+     Example: @{fg shine}"string"
+              "first line\\nsecond line"
+              "numbers are: 123 \\o70 \\xffff"
+              "string 'cite'"
+              "string \\"cite\\""
+              'string "cite"'
+              'string \\'cite\\''
+              @{fg text}
+
+  @{b}Numbers@{ub}
+    There are three types of numbers:
+      @{i}binary@{ui}: starting with "%" and followed by a sequence of "0" and "1"
+      @{i}decimal@{ui}: starting with a number or a "+" or a "-" and followed
+        by a sequence of "0"..."9"
+      @{i}hex@{ui}: starting with "$" and followed by a sequence of "0"..."9"
+        and "a"..."f" (lower or upper case allowed)
+
+      Example: @{fg shine}-4 +53 23 %101011 $A35B@{fg text}
+
+  @{b}Identifiers@{ub}
+    @{u}Functions@{uu}
+      Functions are character sequences (like variables), but the Installer identifies
+      them as function sybols. See the @{"builtin functions" link FUNCTIONS} section for which symbols
+      are reserved. Case insensitive.
+
+      Example:@{fg shine} < >= / AND ASKFILE@{fg text}
+
+    @{u}Variables@{uu}
+      ...are character sequences, which are not builtin functions. Note, that only the
+      first 32 characters count! Case insensitive.
+
+      @{b}Note@{ub}: You must not use reserved names for your identifiers! Reserved names
+      are e.g. the builtin function names or the builtin variable names.
+
+      @{b}Note@{ub}: Variable names must not start with reserved symbols! A wrong variable
+      name in this context would be @{fg shine}<var>@{fg text}, since @{fg shine}<@{fg text} and @{fg shine}>@{fg text} are reserved function names!
+
+      @{b}Note@{ub}: it is a @{"convention" link CONVENTIONS} that variables start with a @{fg shine}#@{fg text} letter. Please make
+      use of this!
+
+      Example: @{fg shine}#bla ___*A^ popopop@{fg text}
+
+  @{b}Comments@{ub}
+    Single line comments start with a semicolon ";" and end with a return (ASCII-10)
+    Multi lined comments can be enclosed in "/*" and "*/" and may contain anything
+    but a EOF (ASCII-0). Note, that multi lined comments are new with the InstallerNG
+    and NOT supported by the C= Installer!
+
+    Example: @{fg shine}; single lined comment@{fg text}
+             @{fg shine}
+             /*
+                 multi lined comment
+             */
+             @{fg text}
+
+@endnode
+@node SYNTAX "The layout of the language"
+
+  Defining the syntax for a programming language means to say, which sequences
+  of symbols build a correct source code. It does not make sense to write some
+  numbers and variables -- the Installer has specific rules for which symbol must
+  follow another symbol. You know, that a function must be enclosed in brackets
+  and can have some arguments. This is a syntactical rule for the Installer
+  programming language. This syntax definition does whether define the types of the
+  arguments nor the legal count of arguments for the functions! This so called
+  "context sensitive" check can be done after the syntax check, or can be skipped
+  by specifying the LAZYCOMPILE option at @{"startup" link STARTING}.
+
+  Below you find both, an informal and a formal syntax definition.
+
+  @{b}Informal@{ub}
+    A legal script contains at least one function. A function opens with
+    a "(" followed by the functional symbol (this is called "prefix notation")
+    followed by zero or more argument expressions; a function ends with a ")".
+    A valid expression can be either a number, a string, an identifier or a
+    function again. In addition, you can group a collection of functions by enclosing
+    them again with brackets.
+
+  @{b}Formal@{ub}
+    Below you find the EBNF description:
+
+       <prog>         ::=   [ <func> ]+
+
+       <func>         ::=   "("  "IDENT"  [ <expr> ]* ")"
+                          | "("  "STRING"  [ <expr> ]* ")"
+                          | "("  [ <func> ]+ ")"
+
+       <expr>         ::=   "NUMBER"
+                          | "STRING"
+                          | "IDENT"
+                          | <func>
+
+
+    For a definition of the symbols NUMBER, STRING and IDENT see the
+    @{"Symbols" link SYMBOLS} section.
+
+@endnode
+@node BUILTINVARIABLES "Builtin variables"
+
+  The builtin variables are declared an initialized by the Installer itself at
+  startup. They hold useful information about the environment, in which the script
+  will execute or you can modify the environment by setting these variables. A
+  script can use these variables just like custom ones an may, for instance, localize
+  the texts. If you set a new value for some variable, you must care for its type,
+  otherwise the script may run into runtime errors.
+
+  @{b}@abort-button@{ub}
+    The text, which should be used for the "Abort installation" button
+
+    Default: "Abort installation"
+    Type: STRING
+
+  @{b}@app-name@{ub}
+    Name of the application to install. This will be used for the "Comment every File
+    with Packagename" option too.
+
+    Default: "user-application"
+    Type: STRING
+
+  @{b}@icon@{ub}
+    The path and name of the script, i.e. the icon, where the Installer was started
+    from (WB start) or the full path to the script when started from shell.
+
+    Default: the script, even
+    Type: STRING
+
+  @{b}@execute-dir@{ub}
+    The working directory for the commands started with @{"RUN" link RUN} or @{"EXECUTE" link EXECUTE}
+
+    Default: "" (should be the scripts dir)
+    Type: STRING
+
+  @{b}@default-dest@{ub}
+    The Installer's suggested location for installing an application. If you installed
+    the application somewhere else (as the result of asking the user) then you should
+    modify this value -- this will allow the "final" statement to work properly.
+
+    Default: "Work:"
+    Type: STRING
+
+  @{b}@language@{ub}
+    The language, which is currently used by the Installer. This depends on the preferred
+    system language and the available catalog file
+
+    Default: "english"
+    Type: STRING
+
+  @{b}@pretend@{ub}
+    The state of the "pretend" flag (1 for pretend)
+
+    Default: 0 or set by startup-args
+    Type: NUMBER
+
+  @{b}@proceed-button@{ub} @{fg fill}{NG}@{fg text}
+    This holds the text for the "Proceed with Install"-button. Use this to customize
+    the button text. Useful if you run uninstall-scripts
+
+    Default: "Proceed with Install"
+    Type: STRING
+
+  @{b}@user-level@{ub}
+    The user level, which is the Installer running on. (0 for "Novice", 1 for "Average",
+    2 for "Expert"). Note: this can be set by the @{"USER" link USER} function, do not use @{"SET" link SET}
+    for this case!
+    Note: the InstallerNG affers the builtin constants NOVICE, AVERAGE and
+    EXPERT for a easier usage.
+
+    Default: 0 or set by startup-args
+    Type: NUMBER
+
+  @{b}@installer-version@{ub}
+    Current version of the Installer. Note: this does not equal the version of the
+    InstallerNG!
+
+    Default: 0x002c000a (which is a 44 in the upper word and a 6 in the lower one)
+    Type: NUMBER
+
+  @{b}@installer-ng-version@{ub} @{fg fill}{NG}@{fg text}
+    This holds the current InstallerNG version. By testing this value against zero,
+    you can determine whether you run on the old Installer (zero) or the InstallerNG
+    (not zero)
+
+    Default: 0x00010004 (which is 1 in the upper 16 bits and 4 in the lower)
+    Type: NUMBER
+
+  @{b}@error-msg@{ub}
+    The text that would have been printed for a fatal error, but was overridden by a
+    trap statement.
+
+    Default: ""
+    Type: STRING
+
+  @{b}@special-msg@{ub}
+    If a script wants to supply its own text for any fatal error at various points in
+    the script, this variable should be set to that text. The original error text will
+    be appended to the special-msg within parenthesis. Set this variable to "" to clear
+    the special-msg handling.
+
+    Default: ""
+    Type: STRING
+
+  @{b}@ioerr@{ub}
+    In case of a DOS-error, this variable holds the error-code.
+
+    Default: 0, set by every DOS error
+    Type: NUMBER
+
+  @{b}@each-name@{ub}
+  @{b}@each-type@{ub}
+    Name and type (file or directory) of the currently examined file of the @{"FOREACH" link FOREACH} function
+
+    Default: depends
+    Type: STRING/NUMBER
+
+  @{b}@askoptions-help@{ub}
+  @{b}@askchoice-help@{ub}
+  @{b}@asknumber-help@{ub}
+  @{b}@askstring-help@{ub}
+  @{b}@askdisk-help@{ub}
+  @{b}@askfile-help@{ub}
+  @{b}@askdir-help@{ub}
+  @{b}@copylib-help@{ub}
+  @{b}@copyfiles-help@{ub}
+  @{b}@makedir-help@{ub}
+  @{b}@startup-help@{ub}
+    The bultin help texts.
+
+    Default: depends
+    Type: STRING
+
+@endnode
+@node BUILTINCONSTANTS "Builtin constants"
+
+  This is a feature only the InstallerNG provides - builtin constants. You may
+  use constants names in the same way as you deal with variable names, but you
+  cannot assign values to constants (refer the @{"SET" link SET} function).
+  The following constants are predefined by the InstallerNG and have a preset
+  type and value.
+
+    Name                    Type     Value
+  +-----------------------+--------+----------------------------
+    TRUE                    Number   1
+    FALSE                   Number   0
+    DOSTRUE                 Number   ~0 (-1)
+    DOSFALSE                Number   0
+
+    FAIL                    String   "FAIL"
+    NOFAIL                  String   "NOFAIL"
+    OKNODELETE              String   "OKNODELETE"
+    FORCE                   String   "FORCE"
+    ASKUSER                 String   "ASKUSER"
+
+    NOVICE                  String   "NOVICE"
+    AVERAGE                 String   "AVERAGE"
+    EXPERT                  String   "EXPERT"
+
+    NIL                     String   "" (empty string)
+    NULL                    String   "" (empty string)
+
+    @ICON                   String   the full path of the script icon
+    @INSTALLER-VERSION      Number   current version/revision of supported C= Installer
+    @INSTALLER-NG-VERSION   Number   current version/revision
+
+@endnode
+@node FUNCTIONS "Builtin functions"
+
+  The Installer provides a large amount of functions for nearly everything
+  you want. You can query the user, examine the system, manipulate files,
+  run scripts and programs, you can show effects (needs the datatypes) and
+  last but not least you have many functions for calculating stuff.
+
+  The InstallerNG offers some more functions which (I guess) are hardly
+  needed today. These functions are marked with @{fg fill}{NG}@{fg text}. Furthermore, the InstallerNG
+  enhanced some functions without losing compatibility. These enhancements are
+  noted by @{fg fill}{+}@{fg text}.
+
+  With the new AmigaOS 3.5 the Installer offers some more functions. These
+  functions are also supported by the InstallerNG and are marked with a @{fg fill}{44.6}@{fg text}
+  (which is the minimum version of the new Installer of the AmigaOS 3.5).
+
+  Note: the specification of the arguments (if any) uses a special notation --
+  i.e. [arg]+ means several arguments, but at least one has to be given; [arg]*
+  means that this function can have zero or more arguments and [arg]{n-m} (or
+  even [arg]{n}) means n 'til m (even only n) arguments. For simplification,
+  I write just [arg] to denote only one argument.
+
+  @{b}Conditional@{ub}
+    These functions control the working flow of your script. Using conditions
+    you can decide where to continue the script execution. Note, that for conditions,
+    an empty string will be interpreted like the number zero: as FALSE
+
+    @{" IF                     " link IF}
+    @{" SELECT                 " link SELECT}
+    @{" UNTIL                  " link UNTIL}
+    @{" WHILE                  " link WHILE}
+
+  @{b}Multimedia and visual support@{ub}
+    For an entertaining installation, the new Installer provides functions for
+    handling pictures, sounds, animations and so on via datatypes. In addition,
+    you can run the Installer on a custom screen with simple background features
+    by using the EFFECT function.
+    NOTE: the InstallerNG implements asynchronous viewers!
+
+    @{" CLOSEMEDIA             " link CLOSEMEDIA} @{fg fill}{44.6}@{fg text}
+    @{" SETMEDIA               " link SETMEDIA} @{fg fill}{44.6}@{fg text}
+    @{" SHOWMEDIA              " link SHOWMEDIA} @{fg fill}{44.6}@{fg text}
+
+    @{" EFFECT                 " link EFFECT} @{fg fill}{44.6}@{fg text}
+
+  @{b}Mathematical stuff@{ub}
+
+    Comparison
+    @{" =                      " link EQU}
+    @{" <>                     " link NE}
+    @{" >                      " link GT}
+    @{" >=                     " link GE}
+    @{" <                      " link LT}
+    @{" <=                     " link LE}
+    @{" COMPARE                " link COMPARE} @{fg fill}{NG}@{fg text}
+
+    Traditional math
+    @{" +                      " link ADD}
+    @{" -                      " link SUB}
+    @{" *                      " link MUL}
+    @{" /                      " link DIV}
+
+    Logical operations
+    @{" AND                    " link AND}
+    @{" OR                     " link OR}
+    @{" XOR                    " link XOR}
+    @{" NOT                    " link NOT}
+
+    Bit testing & manipulation
+    @{" BITAND                 " link BITAND}
+    @{" BITOR                  " link BITOR}
+    @{" BITXOR                 " link BITXOR}
+    @{" BITNOT                 " link BITNOT}
+    @{" IN                     " link IN}
+    @{" SHIFTLEFT              " link SHIFTLEFT}
+    @{" SHIFTRIGHT             " link SHIFTRIGHT}
+
+  @{b}Querying the user@{ub}
+    In most cases the script needs information from the user, e.g. where to
+    install the package or by asking what to install. This can be realized by
+    these following functions.
+
+    @{" ASKDIR                 " link ASKDIR}
+    @{" ASKFILE                " link ASKFILE}
+    @{" ASKSTRING              " link ASKSTRING}
+    @{" ASKNUMBER              " link ASKNUMBER}
+    @{" ASKCHOICE              " link ASKCHOICE}
+    @{" ASKOPTIONS             " link ASKOPTIONS}
+    @{" ASKBOOL                " link ASKBOOL}
+    @{" ASKDISK                " link ASKDISK}
+
+  @{b}Notifying the user@{ub}
+
+    @{" BEEP                   " link BEEP} @{fg fill}{NG}@{fg text}
+    @{" COMPLETE               " link COMPLETE}
+    @{" MESSAGE                " link MESSAGE}
+    @{" WELCOME                " link WELCOME}
+    @{" WORKING                " link WORKING}
+
+  @{b}Examining the system@{ub}
+    In most cases the script needs to know about the system environment.
+    Several functions can be used to find out different system's properties
+    and you should use these functions rather than runing external commands.
+
+    @{" DATABASE               " link DATABASE} @{fg fill}{+}@{fg text}
+    @{" FINDBOARD              " link FINDBOARD} @{fg fill}{NG}@{fg text}
+    @{" GETASSIGN              " link GETASSIGN}
+    @{" GETDEVICE              " link GETDEVICE}
+    @{" GETDISKSPACE           " link GETDISKSPACE}
+    @{" GETENV                 " link GETENV}
+    @{" GETSIZE                " link GETSIZE}
+    @{" GETSUM                 " link GETSUM}
+    @{" GETVERSION             " link GETVERSION}
+    @{" QUERYDISPLAY           " link QUERYDISPLAY} @{fg fill}{44.6}@{fg text}
+
+  @{b}String manipulation@{ub}
+    It is often needed to modify, append or extract strings.
+
+    @{" CAT                    " link CAT}
+    @{" PATMATCH               " link PATMATCH}
+    @{" STRLEN                 " link STRLEN}
+    @{" SUBSTR                 " link SUBSTR}
+
+  @{b}File handling and DOS@{ub}
+    Everything you can think of for file manipulation, copying and
+    handling icons and related stuff.
+
+    @{" COPYFILES              " link COPYFILES}
+    @{" COPYLIB                " link COPYLIB}
+    @{" CURRENTDIR             " link CURRENTDIR}  @{fg fill}{NG}@{fg text}
+    @{" DELETE                 " link DELETE}
+    @{" EARLIER                " link EARLIER}
+    @{" EXECUTE                " link EXECUTE}
+    @{" EXISTS                 " link EXISTS} @{fg fill}{+}@{fg text}
+    @{" EXPANDPATH             " link EXPANDPATH}
+    @{" FILEONLY               " link FILEONLY}
+    @{" FOREACH                " link FOREACH}
+    @{" ICONINFO               " link ICONINFO}
+    @{" MAKEASSIGN             " link MAKEASSIGN}
+    @{" MAKEDIR                " link MAKEDIR}
+    @{" PATHONLY               " link PATHONLY}
+    @{" PROTECT                " link PROTECT}
+    @{" RENAME                 " link RENAME}
+    @{" REXX                   " link REXX}
+    @{" RUN                    " link RUN}
+    @{" STARTUP                " link STARTUP}
+    @{" TACKON                 " link TACKON}
+    @{" TEXTFILE               " link TEXTFILE}
+    @{" TOOLTYPE               " link TOOLTYPE}
+
+  @{b}Debugging and additional execution control@{ub}
+    In case of an error, a script could clean up its environment or
+    undo some steps and so on by using some of these functions. Furthermore,
+    this is important and very helpfulf when programming scripts.
+
+    For being more userfriendly, you should use the new functions
+    SWING or TRACE/RETRACE just to give the user a chance to undo/redo
+    his initial settings or something like that.
+
+    @{" ABORT                  " link ABORT}
+    @{" DEBUG                  " link DEBUG}
+    @{" NOP                    " link NOP} @{fg fill}{NG}@{fg text}
+    @{" ONERROR                " link ONERROR}
+    @{" EXIT                   " link EXIT}
+    @{" REBOOT                 " link REBOOT} @{fg fill}{NG}@{fg text}
+    @{" RETRACE                " link RETRACE} @{fg fill}{44.6}@{fg text}
+    @{" SIMULATE-ERROR         " link SIMULATE-ERROR} @{fg fill}{NG}@{fg text}
+    @{" SWING                  " link SWING} @{fg fill}{NG}@{fg text}
+    @{" TRACE                  " link TRACE} @{fg fill}{44.6}@{fg text}
+    @{" TRANSCRIPT             " link TRANSCRIPT}
+    @{" TRAP                   " link TRAP}
+    @{" USER                   " link USER}
+
+  @{b}Workbench support@{ub}
+    Starting with the new AmigaOS 3.5, there is an interface for tools to
+    handle disks, drawers etc as so called "Workbench Objects". For the user these
+    functions work, as the user itself had clicked on a drawer or tool and the
+    AmigaOS will perform the related action automatically. The Installer also
+    supports this interface with these functions:
+
+    @{" CLOSEWBOBJECT          " link CLOSEWBOBJECT} @{fg fill}{44.7}@{fg text}
+    @{" OPENWBOBJECT           " link OPENWBOBJECT} @{fg fill}{44.7}@{fg text}
+    @{" SHOWWBOBJECT           " link SHOWWBOBJECT} @{fg fill}{44.7}@{fg text}
+
+  @{b}SOOP support@{ub}
+    Only for the InstallerNG. I did this for fun and maybe someone makes use
+    of these features?
+
+    @{" GET-PROPERTY           " link GET-PROPERTY} @{fg fill}{NG}@{fg text}
+    @{" PUT-PROPERTY           " link PUT-PROPERTY} @{fg fill}{NG}@{fg text}
+    @{" READ-PROPERTY-OBJECT   " link READ-PROPERTY-OBJECT} @{fg fill}{NG}@{fg text}
+    @{" REMOVE-PROPERTY        " link REMOVE-PROPERTY} @{fg fill}{NG}@{fg text}
+    @{" SAVE-PROPERTY-OBJECT   " link SAVE-PROPERTY-OBJECT} @{fg fill}{NG}@{fg text}
+
+  @{b}Others@{ub}
+    This is the rest of the functions
+
+    @{" CALL-PLUGIN            " link CALL-PLUGIN} @{fg fill}{NG}@{fg text}
+    @{" DELAY                  " link DELAY} @{fg fill}{NG}@{fg text}
+    @{" FLUSHLIBS              " link FLUSHLIBS} @{fg fill}{NG}@{fg text}
+    @{" LET                    " link LET} @{fg fill}{NG}@{fg text}
+    @{" PROCEDURE              " link PROCEDURE}
+    @{" RANDOM                 " link RANDOM} @{fg fill}{NG}@{fg text}
+    @{" SET                    " link SET}
+    @{" SETENV                 " link SETENV} @{fg fill}{NG}@{fg text}
+
+  @{b}Parameter Functions@{ub}
+    This set of functions is very special. It does not make sense to use
+    them like the ones above, but you must use these functions as arguments
+    to some other functions. These functions can modify the local environment
+    of different functions like COPYFILES or the query functions.
+
+    @{" ALL                    " link ALL}
+    @{" APPEND                 " link APPEND}
+    @{" ASSIGNS                " link ASSIGNS}
+    @{" BACK                   " link BACK} @{fg fill}{44.6}@{fg text}
+    @{" CHOICES                " link CHOICES}
+    @{" COMMAND                " link COMMAND}
+    @{" CONFIRM                " link CONFIRM}
+    @{" DEFAULT                " link DEFAULT}
+    @{" DELOPTS                " link DELOPTS}
+    @{" DEST                   " link DEST}
+    @{" DISK                   " link DISK}
+    @{" FILES                  " link SAFE}
+    @{" FONTS                  " link FONTS}
+    @{" GETDEFAULTTOOL         " link GETDEFAULTTOOL}
+    @{" GETPOSITION            " link GETPOSITION}
+    @{" GETSTACK               " link GETSTACK}
+    @{" GETTOOLTYPE            " link GETTOOLTYPE}
+    @{" HELP                   " link HELP}
+    @{" INCLUDE                " link INCLUDE}
+    @{" INFOS                  " link INFOS}
+    @{" NEWNAME                " link NEWNAME}
+    @{" NEWPATH                " link NEWPATH}
+    @{" NOGAUGE                " link NOGAUGE}
+    @{" NOPOSITION             " link NOPOSITION}
+    @{" NOREQ                  " link NOREQ}
+    @{" OPTIONAL               " link OPTIONAL}
+    @{" PATTERN                " link PATTERN}
+    @{" PROMPT                 " link PROMPT}
+    @{" QUIET                  " link QUIET}
+    @{" RANGE                  " link RANGE}
+    @{" RESIDENT               " link RESIDENT}
+    @{" SAFE                   " link SAFE}
+    @{" SETTOOLTYPE            " link SETTOOLTYPE}
+    @{" SETDEFAULTTOOL         " link SETDEFAULTTOOL}
+    @{" SETSTACK               " link SETSTACK}
+    @{" SOURCE                 " link SOURCE}
+    @{" SWAPCOLORS             " link SWAPCOLORS}
+
+@endnode
+@node ADVANCED "Advanced features"
+
+  @{b}Defining custom functions@{ub}
+    Often it should be useful to define custom functions, which are called
+    as they were part of the Installer. Use the @{"PROCEDURE" link PROCEDURE} function for this
+    purpose. The name of custom functions should start with a "P_" just to avoid
+    collisions with future builtin functions. In some cases it is very useful to have
+    local variables for such a function. The old Installer does not provide this
+    feature, but with my InstallerNG you can define so called "let environments" (see
+    the @{"LET" link LET} function). This environment can be used to create a local environment
+    for a custom function. You must do so, if your functions are recursive, i.e. if
+    they call themselves.
+
+    A custom function is defined by its name, a number (even zero) of arguments
+    and the body of the function itself.
+
+        @{fg shine}
+        /* convert a version number to a readable string */
+        (PROCEDURE P_version-to-string                              ; name
+                   #ver                                             ; argument
+                   ("%ld.%ld" (/ #ver 65536) (BITAND #ver 65535))   ; body
+        )
+
+        /* count down recursively by using LET */
+        (PROCEDURE P_recursive                                      ; name
+                   #arg                                             ; argument
+                   (LET (SET #local #arg)                           ; body
+                        (
+                          (IF #local
+                              (P_recursive (- #local 1))
+                              (NOP)
+                          )
+                        )
+                   )
+        )
+        @{fg text}
+
+  @{b}String formatting@{ub}
+    Some may know the ANSI-C function sprintf(), which takes a template string and
+    a number of arguments and creates a new string by replacing the wildcards in the
+    template string by the related argument. The Installer has this functionality too.
+    If the functional symbol (remember: this is the leftmost one, because this is a
+    prefix language) is of type string (and it does not matter whether it is a string
+    itself or a variable of type string!), then this string gets handled like a format
+    string (a template), and the following expressions are the format parameters. Possible
+    wildcards are (in fact, the Installer uses exec.RawDoFmt() so that you can write
+    every valid template string here):
+
+      %s   - string
+      %lc  - character
+      %ld  - decimal number
+      %lu  - unsigned decimal number
+      %lx  - hex number
+
+    For example, if you write
+
+        @{fg shine}
+        ("string '%s' at 0x%lx has %ld chars" "bla" $0000a123 3)
+        @{fg text}
+
+    you will get the following as result of the evaluation:
+
+        @{fg shine}
+        "string 'bla' at 0xA123 has 3 chars"
+        @{fg text}
+
+    Note: the Installer does no type checking for the arguments and every argument
+    comes as a long value (32 bit).
+
+  @{b}Function groups@{ub}
+    You can join as many functions as you want into one block: simply put parenthesis
+    around the functions you want to yoin. The result of this block is the result of
+    the last evaluated function. This is often used, if you want more than one
+    functions be part of an (e.g.) IF or just to make the code more readable.
+
+        @{fg shine}
+        (IF (= #bla #surz)                    ; the condition
+            (MESSAGE "#bla equals #surz")     ; "THEN" expression
+            (                                 ; "ELSE" block
+              (BEEP) @{fg fill}{NG}@{fg shine}
+              (MESSAGE "#bla equals #surz")
+            )
+        )
+        @{fg text}
+
+@endnode
+@node MODULES "Compiler modules"
+
+  @{fg fill}{NG}@{fg text}
+  The compiler modules are an interesting feature of the InstallerNG only
+  and should only be used by advanced programmers. A compiler module is a
+  shared library which consists of three functions. Every module has a certain
+  priority (ranging from -127...128) which allows an ordered execution of
+  several modules. The include file @{i}libraries/installerngmodules.h@{ui} defines
+  the API and the @{i}clib/installerngmodule_protos.h@{ui} defines the three functions.
+
+  Note: source code for all the modules is provided with the InstallerNG package
+
+  @{b}prettyprinter.module@{ub}
+    This module (priority -10) prints the compiled script in a nice format to
+    the serial port.
+
+  @{b}typechecker.module@{ub}
+    An attempt to implement a static type checker. Since the Installer language
+    has its origins in a terribly unclear language description (I don't dare to
+    say "language specification"), the InstallerNG tries to be more strict in its
+    type handling and, by writing this module, it becomes really interesting for
+    a script programmer...  8-)
+    This module is in an early and experimental state and, currently, does not
+    support the check of PROCEDURE's.
+
+@endnode
+
+@node FORMAL "Some theoretical stuff"
+
+  Here you find some additional information about the InstallerNG. One can find
+  how the Interpreter itself works or some theoretical aspects of the language.
+
+  For a big overview about the specification and implementation (german only)
+  please have a look at my homepage (note that this script is obsolete with
+  version 0.3+).
+
+  @{b}Interpretation@{ub}
+    The interpreter does it`s job using "call-by-name" strategy. This means it first
+    evaluates the expression at the first (functional) position of a function, which
+    results into a function call. The called function then evaluates the arguments
+    and uses the results of this as arguments. As you can see this process is recursive.
+
+    An example: given the following functions (set i (+ 3 4)) the Installer produces
+                such a tree:
+                                          set
+                                           ^
+                                         i   +
+                                             ^
+                                            3 4
+
+    Now the interpreter arrives at the top node "set". This means the interpreter
+    calls the internal function "set" and gives as arguments its childs. These childs
+    are an identifier "i" and a sub-tree. Now "set" knows it needs the value of the
+    sub-tree (+ 3 4) so it calls the internal "add" function and this functions gets
+    both, "3" and "4" as arguments. Now "add" evaluates to "7" and gives the result to
+    "set" and now "i" is set to "7".
+
+    To give this an other name: interpreting a program means to visit every node of
+    the tree in depth-first-left-to-right-order. Or: go down every (sub)-tree from
+    left to right.
+
+  @{b}Grammar@{ub}
+    The underlying grammer of the language is a context-free LL(1) grammar. Every
+    functional symbol has some attributes (e.g. "Number of args" or "Scope" attributes).
+    The parser is a top-down one. While parsing the source it calculates some attributes
+    for the nodes of the syntax tree. When done with the tree the optimizer starts to
+    try to optimize the given tree. After this a special function checks whether the
+    given tree is correct or not by comparing and calculating attributes. Don"t mix it
+    up with an Attribute Grammar -- this is no one. I just took some ideas from this
+    formalism to make the interpretation more stable.
+
+@endnode
+@node IMPORTANT "Very important notes!!!"
+
+  There are some very important things you must respect:
+
+  @{b}Version@{ub}
+    The variable @installer-version is set to the current version
+    of the Installer. In this version, this variable contains the same
+    value as the lates release of the C= installer: 44.6! Additional
+    you can check, whether you run on the InstallerNG or not by
+    testing the @installer-ng-version variable: the C= installer returns
+    a 0 (zero), but the InstallerNG holds its version in this
+    variable.
+
+       @{fg shine}
+       (IF @installer-ng-version
+         (
+           ; this InstallerNG version
+         )
+
+         (
+           ; the original amiga installer
+         )
+       )
+       @{fg text}
+
+  @{b}Most public programming faults@{ub}
+
+    @{u}Uninitialized variables@{uu}
+      Most of the programmers forget to set the variables before use.
+      The original installer accepts this and sets these variables to
+      0 (zero). The InstallerNG warns you but behaves in the same
+      way.
+      Use the debug output to find uninitialized variables!
+
+    @{u}Wrong usage of parameter functions@{uu}
+      There come some function calls like this:
+
+         @{fg shine}
+         (ASKFILE (IF (= 0 #bla) (PROMPT "Blurp"))
+                  (IF (= 1 #bla) (PROMPT "Barg"))
+                  (IF (= 2 #bla) (PROMPT "Tirz"))
+                  (HELP "Help...")
+                  (DEFAULT "SYS:")
+         )
+         @{fg text}
+
+      This results in a "Warning: wrong number of arguments", because ASKFILE
+      is missing the PROMPT argument. Note, that this is only a semantic warning,
+      the InstallerNG behaves in the right way! For future scripts use
+      something like this:
+
+         @{fg shine}
+         (ASKFILE (PROMPT (IF (= 0 #bla)
+                              "Blurp"
+                              (IF (= 1 #bla)
+                                  "Barg"
+                                  "Tirz"
+                              )
+                          )
+                  )
+                  (HELP "Help...")
+                  (DEFAULT "SYS:")
+         )
+         @{fg text}
+
+    @{u}Weird syntactic/semantic constructs@{uu}
+      It is amazing what people code and more funny what the C= Installer
+      compiles...
+
+         @{fg shine}
+         (IF <condition> <then> <else> <what-the-hell-is-this>)
+         @{fg text}
+
+      Or something like this:
+
+         @{fg shine}
+         (ASKOPTIONS (CHOICES 1 2 3
+                       (DEFAULT 1
+                         (HELP "little help..."
+                           (PROMPT "choose!")
+                         )
+                       )
+                     )
+         )
+         @{fg text}
+
+    @{u}Parameter functions at wrong positions@{uu}
+      Some scripts come along with wrong positions for the parameter functions, e.g.
+
+         @{fg shine}
+         (MAKEDIR (SAFE) (INFOS) "sys:new_dir")
+         @{fg text}
+
+      This does not work and if you have a look at the original documentation of the
+      installer language, you will find the correct expression:
+
+        @{fg shine}
+        (MAKEDIR "sys:new_dir" (SAFE) (INFOS))
+        @{fg text}
+
+@endnode
+@node INDEX "All functions in alphabetical order"
+
+  This is the index for all functions in alphabetical order. Go @{"here" link FUNCTIONS} for
+  additional explanation of the functions and a grouped overview.
+
+    @{" =                      " link EQU}
+    @{" <>                     " link NE}
+    @{" >                      " link GT}
+    @{" >=                     " link GE}
+    @{" <                      " link LT}
+    @{" <=                     " link LE}
+    @{" +                      " link ADD}
+    @{" -                      " link SUB}
+    @{" *                      " link MUL}
+    @{" /                      " link DIV}
+    @{" ABORT                  " link ABORT}
+    @{" ALL                    " link ALL}
+    @{" AND                    " link AND}
+    @{" APPEND                 " link APPEND}
+    @{" ASKDIR                 " link ASKDIR}
+    @{" ASKFILE                " link ASKFILE}
+    @{" ASKSTRING              " link ASKSTRING}
+    @{" ASKNUMBER              " link ASKNUMBER}
+    @{" ASKCHOICE              " link ASKCHOICE}
+    @{" ASKOPTIONS             " link ASKOPTIONS}
+    @{" ASKBOOL                " link ASKBOOL}
+    @{" ASKDISK                " link ASKDISK}
+    @{" ASSIGNS                " link ASSIGNS}
+    @{" BACK                   " link BACK} @{fg fill}{44.6}@{fg text}
+    @{" BEEP                   " link BEEP} @{fg fill}{NG}@{fg text}
+    @{" BITAND                 " link BITAND}
+    @{" BITNOT                 " link BITNOT}
+    @{" BITOR                  " link BITOR}
+    @{" BITXOR                 " link BITXOR}
+    @{" CALL-PLUGIN            " link CALL-PLUGIN} @{fg fill}{NG}@{fg text}
+    @{" CAST-INT               " link CAST-INT} @{fg fill}{NG}@{fg text}
+    @{" CAST-STRING            " link CAST-STRING} @{fg fill}{NG}@{fg text}
+    @{" CAT                    " link CAT}
+    @{" CHOICES                " link CHOICES}
+    @{" CLOSEMEDIA             " link CLOSEMEDIA} @{fg fill}{44.6}@{fg text}
+    @{" CLOSEWBOBJECT          " link CLOSEWBOBJECT} @{fg fill}{44.7}@{fg text}
+    @{" COMMAND                " link COMMAND}
+    @{" COMPARE                " link COMPARE} @{fg fill}{NG}@{fg text}
+    @{" COMPLETE               " link COMPLETE}
+    @{" CONFIRM                " link CONFIRM}
+    @{" COPYFILES              " link COPYFILES}
+    @{" COPYLIB                " link COPYLIB}
+    @{" CURRENTDIR             " link CURRENTDIR}  @{fg fill}{NG}@{fg text}
+    @{" DATABASE               " link DATABASE} @{fg fill}{+}@{fg text}
+    @{" DEBUG                  " link DEBUG}
+    @{" DEFAULT                " link DEFAULT}
+    @{" DELAY                  " link DELAY} @{fg fill}{NG}@{fg text}
+    @{" DELETE                 " link DELETE}
+    @{" DELOPTS                " link DELOPTS}
+    @{" DEST                   " link DEST}
+    @{" DISK                   " link DISK}
+    @{" EFFECT                 " link EFFECT} @{fg fill}{44.6}@{fg text}
+    @{" EXECUTE                " link EXECUTE}
+    @{" EXISTS                 " link EXISTS} @{fg fill}{+}@{fg text}
+    @{" EXIT                   " link EXIT}
+    @{" EXPANDPATH             " link EXPANDPATH}
+    @{" EARLIER                " link EARLIER}
+    @{" FILEONLY               " link FILEONLY}
+    @{" FILES                  " link SAFE}
+    @{" FINDBOARD              " link FINDBOARD} @{fg fill}{NG}@{fg text}
+    @{" FLUSHLIBS              " link FLUSHLIBS} @{fg fill}{NG}@{fg text}
+    @{" FONTS                  " link FONTS}
+    @{" FOREACH                " link FOREACH}
+    @{" GET-PROPERTY           " link GET-PROPERTY} @{fg fill}{NG}@{fg text}
+    @{" GETASSIGN              " link GETASSIGN}
+    @{" GETDEFAULTTOOL         " link GETDEFAULTTOOL}
+    @{" GETDEVICE              " link GETDEVICE}
+    @{" GETDISKSPACE           " link GETDISKSPACE}
+    @{" GETENV                 " link GETENV}
+    @{" GETPOSITION            " link GETPOSITION}
+    @{" GETSIZE                " link GETSIZE}
+    @{" GETSTACK               " link GETSTACK}
+    @{" GETSUM                 " link GETSUM}
+    @{" GETTOOLTYPE            " link GETTOOLTYPE}
+    @{" GETVERSION             " link GETVERSION}
+    @{" HELP                   " link HELP}
+    @{" ICONINFO               " link ICONINFO}
+    @{" IF                     " link IF}
+    @{" IN                     " link IN}
+    @{" INCLUDE                " link INCLUDE}
+    @{" INFOS                  " link INFOS}
+    @{" LET                    " link LET} @{fg fill}{NG}@{fg text}
+    @{" NEWNAME                " link NEWNAME}
+    @{" MAKEASSIGN             " link MAKEASSIGN}
+    @{" MAKEDIR                " link MAKEDIR}
+    @{" MESSAGE                " link MESSAGE}
+    @{" NEWPATH                " link NEWPATH}
+    @{" NOGAUGE                " link NOGAUGE}
+    @{" NOP                    " link NOP} @{fg fill}{NG}@{fg text}
+    @{" NOPOSITION             " link NOPOSITION}
+    @{" NOREQ                  " link NOREQ}
+    @{" NOT                    " link NOT}
+    @{" ONERROR                " link ONERROR}
+    @{" OPENWBOBJECT           " link OPENWBOBJECT} @{fg fill}{44.7}@{fg text}
+    @{" OPTIONAL               " link OPTIONAL}
+    @{" OR                     " link OR}
+    @{" PATHONLY               " link PATHONLY}
+    @{" PATMATCH               " link PATMATCH}
+    @{" PATTERN                " link PATTERN}
+    @{" PROCEDURE              " link PROCEDURE}
+    @{" PROMPT                 " link PROMPT}
+    @{" PROTECT                " link PROTECT}
+    @{" PUT-PROPERTY           " link PUT-PROPERTY} @{fg fill}{NG}@{fg text}
+    @{" QUIET                  " link QUIET}
+    @{" QUERYDISPLAY           " link QUERYDISPLAY} @{fg fill}{44.6}@{fg text}
+    @{" READ-PROPERTY-OBJECT   " link READ-PROPERTY-OBJECT} @{fg fill}{NG}@{fg text}
+    @{" RANDOM                 " link RANDOM} @{fg fill}{NG}@{fg text}
+    @{" RANGE                  " link RANGE}
+    @{" REBOOT                 " link REBOOT} @{fg fill}{NG}@{fg text}
+    @{" REMOVE-PROPERTY        " link REMOVE-PROPERTY} @{fg fill}{NG}@{fg text}
+    @{" RENAME                 " link RENAME}
+    @{" RESIDENT               " link RESIDENT}
+    @{" RETRACE                " link RETRACE} @{fg fill}{44.6}@{fg text}
+    @{" REXX                   " link REXX}
+    @{" RUN                    " link RUN}
+    @{" SAFE                   " link SAFE}
+    @{" SAVE-PROPERTY-OBJECT   " link SAVE-PROPERTY-OBJECT} @{fg fill}{NG}@{fg text}
+    @{" SELECT                 " link SELECT}
+    @{" SET                    " link SET}
+    @{" SETDEFAULTTOOL         " link SETDEFAULTTOOL}
+    @{" SETENV                 " link SETENV} @{fg fill}{NG}@{fg text}
+    @{" SETMEDIA               " link SETMEDIA} @{fg fill}{44.6}@{fg text}
+    @{" SETSTACK               " link SETSTACK}
+    @{" SETTOOLTYPE            " link SETTOOLTYPE}
+    @{" SHIFTLEFT              " link SHIFTLEFT}
+    @{" SHIFTRIGHT             " link SHIFTRIGHT}
+    @{" SHOWMEDIA              " link SHOWMEDIA} @{fg fill}{44.6}@{fg text}
+    @{" SHOWWBOBJECT           " link SHOWWBOBJECT} @{fg fill}{44.7}@{fg text}
+    @{" SIMULATE-ERROR         " link SIMULATE-ERROR} @{fg fill}{NG}@{fg text}
+    @{" SOURCE                 " link SOURCE}
+    @{" STARTUP                " link STARTUP}
+    @{" STRLEN                 " link STRLEN}
+    @{" SUBSTR                 " link SUBSTR}
+    @{" SWAPCOLORS             " link SWAPCOLORS}
+    @{" SWING                  " link SWING} @{fg fill}{NG}@{fg text}
+    @{" TACKON                 " link TACKON}
+    @{" TEXTFILE               " link TEXTFILE}
+    @{" TOOLTYPE               " link TOOLTYPE}
+    @{" TRACE                  " link TRACE} @{fg fill}{44.6}@{fg text}
+    @{" TRANSCRIPT             " link TRANSCRIPT}
+    @{" TRAP                   " link TRAP}
+    @{" UNTIL                  " link UNTIL}
+    @{" USER                   " link USER}
+    @{" WELCOME                " link WELCOME}
+    @{" WHILE                  " link WHILE}
+    @{" WORKING                " link WORKING}
+    @{" XOR                    " link XOR}
+
+@endnode
+
+@node ABORT "ABORT"
+
+  This exits the installation with the given messages and executes
+  the {"ONERROR" link ONERROR} functions (if any)
+
+  @{b}Template@{ub}
+    (ABORT [msg]* )
+
+  @{b}Parameters@{ub}
+    [msg] - strings which will be concatenated an shown right before
+            the InstallerNG starts to execute the ONERROR functions
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (ABORT "Sorry, I have to quit cause: " #reason)
+    @{fg text}
+
+  @{b}See also@{ub}
+    @{"ONERROR" link ONERROR}
+
+@endnode
+@node ADD "ADD"
+
+  Add all the parameters
+
+  @{b}Template@{ub}
+    (+ [value]+ )
+
+  @{b}Parameters@{ub}
+    [value] - the value to be added
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the sum of all arguments
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node AND "AND"
+
+  The logical "and", i.e. AND deliveres true if all its arguments are true. AND
+  stops the evaluation with the first false-argument
+
+  @{b}Template@{ub}
+    (AND [value]+ )
+
+  @{b}Parameters@{ub}
+    [value] - the value which should logically be tested
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 1 for true and 0 for false
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node ASKDIR "ASKDIR"
+
+  Ask the user for a name of a directory. The Installer will show a dir requester panel
+  whichs allows an easy selection of the requested directory.
+
+  @{b}Template@{ub}
+    (ASKDIR [option]+ )
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP    - tell the user what's going to happen
+    DEFAULT - the default directory; this can be a relative path
+    NEWPATH - allows to use non-existent paths for DEFAULT
+    DISK    - initially show a list of all drives
+    ASSIGNS - logical assigns satisfy as well
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns the user selected directory
+
+  @{b}Note@{ub}
+    - does return the DEFAULT without a request in "Novice" mode
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (ASKDIR (PROMPT "select a directory")
+            (HELP "...")
+            (DEFAULT "C:")
+    )
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node ASKFILE "ASKFILE"
+
+  Ask the user for a file. The Installer will show a file requester panel
+  whichs allows an easy selection of the requested file.
+
+  @{b}Template@{ub}
+    (ASKFILE [option]+ )
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP    - tell the user what's going to happen
+    DEFAULT - the default file; this can be a relative one
+    NEWPATH - allows to use non-existent paths for DEFAULT
+    DISK    - initially show a list of all drives
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns the user selected file (with expanded path)
+
+  @{b}Note@{ub}
+    - does return the DEFAULT without a request in "Novice" mode
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (ASKFILE (PROMPT "where can i find your 'delete' command?")
+             (HELP "...")
+             (DEFAULT "C:Delete")
+    )
+    @{fg text}
+
+  @{b}See also@{ub}
+
+
+@endnode
+@node ASKSTRING "ASKSTRING"
+
+  Ask the user for string. The Installer will show a panel where the
+  user can enter the desired text.
+
+  @{b}Template@{ub}
+    (ASKSTRING [option]+ )
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP    - tell the user what's going to happen
+    DEFAULT - the default string
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns the string, typed by the user
+
+  @{b}Note@{ub}
+    - does return the DEFAULT without a request in "Novice" mode
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (ASKSTRING (PROMPT "gimme your name")
+               (HELP "...")
+               (DEFAULT "Linda Perry")
+    )
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node ASKNUMBER "ASKNUMBER"
+
+  Ask the user for number. The Installer will show a panel where the
+  user can enter the number. Furthermore, your can specify a range and
+  the user cannot enter numbers outside of this range.
+
+  @{b}Template@{ub}
+    (ASKNUMBER [option]+ )
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP    - tell the user what's going to happen
+    DEFAULT - the default number
+    RANGE   - lower and upper range (if any) for the requested number
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the number
+
+  @{b}Note@{ub}
+    - does return the DEFAULT without a request in "Novice" mode
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (ASKNUMBER (PROMPT "gimme a small number")
+               (HELP "...")
+               (DEFAULT 0)
+               (RANGE 0 99)
+    )
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node ASKCHOICE "ASKCHOICE"
+
+  Ask the user to select one out of 32 (max) choices. The Installer will show
+  a panel with several mx buttons and the user has to select one of these.
+
+  @{b}Template@{ub}
+    (ASKCHOICE [option]+ )
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP    - tell the user what's going to happen
+    DEFAULT - the default choice (default is 0)
+    CHOICES - the list of choices, where the user has to select one
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the number of the selected choice (starting with zero)
+
+  @{b}Note@{ub}
+    - does return the DEFAULT without a request in "Novice" mode
+    - an empty string for a choice means an invisible mx
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; should return either 0 (male) 1 (female) or 3 (don't know)
+    (ASKCHOICE (PROMPT "what's your sex?")
+               (HELP "...")
+               (DEFAULT 1)
+               (CHOICES "male" "female" "" "don' know")
+    )
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node ASKOPTIONS "ASKOPTIONS"
+
+  Ask the user to select some out of 32 (max) options. The Installer will show
+  a panel with several radio buttons and the user has to select the desired ones.
+
+  @{b}Template@{ub}
+    (ASKOPTIONS [option]+ )
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP    - tell the user what's going to happen
+    DEFAULT - the default choice (default -1)
+    CHOICES - the list of choices, where the user has to select one
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns a bitmask of selected choices, where a set bit indicates, that
+    the related choices was selected
+
+  @{b}Note@{ub}
+    - does return the DEFAULT without a request in "Novice" mode
+    - an empty string for a choice means an invisible mx
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; should return 0 (nothing), 1 (upper), 2 (lower) or 3 (both)
+    (ASKOPTIONS (PROMPT "what do you like for breakfest")
+                (HELP "...")
+                (DEFAULT 1)
+                (CHOICES "tea" "toast)
+    )
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node ASKBOOL "ASKBOOL"
+
+  Ask the user to just answer "Yes" or "No" like questions. The Installer
+  shows two mx buttons and the user selects the related button.
+
+  @{b}Template@{ub}
+    (ASKBOOL [option]+ )
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP    - tell the user what's going to happen
+    DEFAULT - the default choice (default 0)
+    CHOICES - replace at least one of the both "Yes" and "No" by custom ones
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 1 for "Yes" and 0 for "No"
+
+  @{b}Note@{ub}
+    - does return the DEFAULT without a request in "Novice" mode
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (ASKBOOL (PROMPT "Amiga is really cool")
+             (HELP "...")
+             (DEFAULT 1)
+             (CHOICES "Sure" "Never)
+    )
+    @{fg text}
+
+  @{b}See also@{ub}
+
+
+@endnode
+@node ASKDISK "ASKDISK"
+
+  Ask the user to insert a specific disk. As long as this disk is not
+  available, the Installer will wait.
+
+  @{b}Template@{ub}
+    (ASKDISK [option]+ )
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP    - tell the user what's going to happen
+    DEST    - the requested disk
+    NEWNAME - a name to assign to the disk when inserted for later reference
+    DISK    - show drives initially
+    ASSIGNS - also accept logical devices
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns a bitmask of selected choices, where a set bit indicates, that
+    the related choices was selected
+
+  @{b}Note@{ub}
+    - the volume name must be supplied without a colon! (i.e. you must write
+      "env" instead of "env:")
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; waits until the user inserts the disk "bla:"
+    (ASKDISK (PROMPT "insert disk 'BLA:'")
+                (HELP "...")
+                (DEST "bla")
+    )
+    @{fg text}
+
+  @{b}See also@{ub}         
+
+@endnode
+@node BEEP "BEEP"
+
+  @{fg fill}{NG}@{fg text} Simply flashes the screen and beeps.
+
+  @{b}Template@{ub}
+    (BEEP)
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+    This respects your prefs-settings when beeping.
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (BEEP)
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node BITAND "BITAND"
+
+  Does a bitwise AND with the arguments
+
+  @{b}Template@{ub}
+    (BITAND [value]{2} )
+
+  @{b}Parameters@{ub}
+    [value] - the arguments for the bitwise logical AND
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the result of the bitwise AND
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}                       
+
+  @{b}See also@{ub}
+
+@endnode
+@node BITOR "BITOR"
+
+  Does a bitwise OR with the arguments
+
+  @{b}Template@{ub}
+    (BITOR [value]{2} )
+
+  @{b}Parameters@{ub}
+    [value] - the arguments for the bitwise logical OR
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the result of the bitwise OR
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node BITXOR "BITXOR"
+
+  Does a bitwise OR with the arguments
+
+  @{b}Template@{ub}
+    (BITXOR [value]{2} )
+
+  @{b}Parameters@{ub}
+    [value] - the arguments for the bitwise logical XOR
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the result of the bitwise XOR
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node BITNOT "BITNOT"
+
+  Does a bitwise NOT with the argument
+
+  @{b}Template@{ub}
+    (BITAND [value] )
+
+  @{b}Parameters@{ub}
+    [value] - the value to be bitwise negated
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the result of the bitwise NOT
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node CALL-PLUGIN "CALL-PLUGIN"
+
+  @{fg fill}{NG}@{fg text}
+  Call external functions via a typed API. Every one of those external functions
+  must be implemented as a shared system library. See the API.guide for further
+  details and refer to the includes.
+
+  @{b}Template@{ub}
+    (CALL-PLUGIN <plugin-url>
+                 <version>
+                 [ <argument> ]*
+                 [ <option> ]*
+    )
+
+  @{b}Parameters@{ub}
+    <plugin-url>   a STRING;
+                   the URL of the plugin you want to use. If this is a local
+                   file, then it must be in your "libs:installerng/functionplugins"
+                   path and the string must start with a "file://";
+                   currently, no other protocol than "file" is supported, but
+                   a "ftp" would be of use here
+    <version>      a NUMBER;
+                   the version of the plugin you want to use; be aware, this is
+                   an Installer like version, means the upper 16 bits hold the
+                   version number and the lower 16 bits the revision
+    <argument>     the arguments for the plugins; note that they must fulfil the
+                   type specification of the plugin!
+
+  @{b}Options@{ub}
+    <option> any supported argument function can be used here, depending on the
+             plugin definition
+
+  @{b}Result@{ub}
+    Type:   depends on the plugin; in case of an runtime error, the InstallerNG
+            can return type NUMBER because it could not obtain type information from
+            the plugin!
+
+  @{b}Note@{ub}
+    - currently, revisiion numbers are ignored
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; print a textfile by using the loadtextfile.plugin
+    (message
+      (call-plugin "file://loadtextfile.plugin"  ; the plugin to be used
+                   0x00250000                    ; plugins minimal version 37.0
+                   "s:user-startup"              ; 1st argument: file to load
+                   FALSE                         ; 2nd argument: file is no binary
+      )
+    )
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node CAST-INT "CAST-INT"
+
+  @{fg fill}{NG}@{fg text} Konvert an arbitrary value into a number
+
+  @{b}Template@{ub}
+    (CAST-INT <value>)
+
+  @{b}Parameters@{ub}
+    <value> - whatever
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the number value of [value] or 0, iff the casting was
+    not possible
+
+  @{b}Note@{ub}
+    Casting fails, iff [value] is a string value and does not contain
+    a translateable character sequence (e.g. (CAST-INT "a") will fail)
+
+    equivalent: @{fg shine}(+ [value] 0)@{fg text}
+                @{fg shine}(* [value] 1)@{fg text}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node CAST-STRING "CAST-STRING"
+
+  @{fg fill}{NG}@{fg text} Konvert an arbitrary value into a string
+
+  @{b}Template@{ub}
+    (CAST-STRING <value>)
+
+  @{b}Parameters@{ub}
+    <value> - whatever
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns the string value of [value], i.e. return a string as it
+    is and turn a number into a string, which contains this number
+
+  @{b}Note@{ub}
+    equivalent: @{fg shine}(CAT [value])@{fg text}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node CAT "CAT"
+
+  Concatenate several strings.
+
+  @{b}Template@{ub}
+    (CAT [string]+ )
+
+  @{b}Parameters@{ub}
+    [string] - the strings to be concatenated
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns the concatenation of all argument strings
+
+  @{b}Note@{ub}
+    - CAT converts its number arguments into strings, such that you may
+      use CAT for getting a string out of an number
+
+  @{b}Example@{ub}                                   
+    @{fg shine}
+    (SET #longstring (CAT "this is a long string with numbers..." 4 5 "82" "!!!"))
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node CLOSEMEDIA "CLOSEMEDIA"
+
+  Closes an arbitrary media object, which must have been opened using
+  @{"SHOWMEDIA" link SHOWMEDIA}
+
+  @{b}Template@{ub}
+    (CLOSEMEDIA [mediaobject] )
+
+  @{b}Parameters@{ub}
+    [mediaobject] - the object to be closed
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+    see @{"SHOWMEDIA" link SHOWMEDIA}
+
+  @{b}Example@{ub}
+    see @{"SHOWMEDIA" link SHOWMEDIA}
+
+  @{b}See also@{ub}
+    @{"SETMEDIA" link SETMEDIA}, @{"SHOWMEDIA" link SHOWMEDIA}
+
+@endnode
+@node CLOSEWBOBJECT "CLOSEWBOBJECT"
+
+  Closes an arbitrary workbench object, which currently only can be a disk
+  or a drawer or a trashcan
+
+  @{b}Template@{ub}
+    (CLOSEWBOBJECT [wbobject] )
+
+  @{b}Parameters@{ub}
+    [wbobject] - the object to be closed
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 1, if CLOSEWBOBJECT could perform this closing action, 0 if
+    not or -1, if the machine (i.e. the Workbench) does not support this
+    function.
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    see @{"OPENWBOBJECT" link OPENWBOBJECT}
+
+  @{b}See also@{ub}
+    see @{"SHOWWBOBJECT" link SHOWWBOBJECT}, @{"OPENWBOBJECT" link OPENWBOBJECT}
+
+@endnode
+@node COMPARE "COMPARE"
+
+  @{fg fill}{NG}@{fg text}
+  This function compares two values of any, but the same type and returns
+  the result of this comparison.
+
+  @{b}Template@{ub}
+    (COMPARE [expr1] [expr2] )
+
+  @{b}Parameters@{ub}
+    [expr1] - first value
+    [expr2] - value, which has to be compared with the first value
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns  1 - [expr1] greater than [expr2]
+             0 - [expr1] equals [expr2]
+            -1 - [expr1] is smaller than [expr2]
+
+  @{b}Note@{ub}
+    - both arguments must be of the same type. The Installer tries
+      to convert a string into a number if the types are not equal
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (COMPARE 2 2)              -> 0
+    (COMPARE 2 "2")            -> 0
+    (COMPARE "bla" "nana")     -> -1
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node COMPLETE "COMPLETE"
+
+  Inform the user about the completion of an installation process.
+  This message will be printed in the title bar of the installer
+  window.
+
+  @{b}Template@{ub}
+    (COMPLETE [done])
+
+  @{b}Parameters@{ub}
+    [done] - a number between 0 and 100 which means the amount
+             of work, which is already done
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the argument [done]
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (COMPLETE 75)  ; print, that 75% of the installation is done
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node COPYFILES "COPYFILES"
+
+  Copy a number of files from a source to a destination. The Installer
+  shows the files and the user may select/deselect, which files of the
+  predefined files should be copied.
+
+  @{b}Template@{ub}
+    (COPYFILES [option]+ )
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP       - tell the user what's going to happen
+    SOURCE     - the name of the source file or directory (may be relative)
+    DEST       - name of the destination file or directory (may be relative)
+                 Note: the destination directory will be created, if it does
+                 not exist
+    NEWNAME    - if copying one file only, and file is to be renamed, this is the
+                 new name.
+    CHOICES    - a list of files/directories to be copied (optional)
+    ALL        - all files/directories in the source directory should be copied.
+    PATTERN    - indicates that files/directories from the source dir matching this
+                 pattern should be copied
+    FILE       - Only copy files; by default the Installer will match and copy
+                 subdirectories
+    INFOS      - switch to copy icons along with other files/directories.
+    NOPOSITION - reset the position of every icon copied.
+    FONTS      - switch to not display ".font" files, yet still copy any that match
+                 a directory that is being copied
+    NOGAUGE    - don't display the status indicator
+    OPTIONAL   - dictates what will be considered a failure on copying; the first
+                 three options are mutually exclusive (they may not be specified
+                 together)
+
+                 FAIL: Installer aborts if could not copy (the default).
+                 NOFAIL: Installer continues if could not copy.
+                 OKNODELETE: aborts if can't copy, unless reason was "delete protected".
+                 FORCE: unprotect destination
+                 ASKUSER: ask user if the file should be unprotected (but not in
+                   novice) In the case of `askuser', the default for novice mode
+                   is an answer of "no".  Therefore, you may want to use `force'
+                   to make the novice mode default answer appear to be "yes".
+    DELOPTS    - removes options set by "optional"
+    CONFIRM    - if this option is present, user will be prompted to indicate which
+                 files are to be copied, else the files will be copied silently.
+    SAFE       - copy files even if in PRETEND mode.
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Return 0
+
+  @{b}Note@{ub}
+    - the options ALL/CHOISES/PATTERN are mutually exclusive
+    - PATTERN only accepts standard AmigaOS patterns
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; just copy files beginning with "C" or "F" to t:
+    (COPYFILES (SOURCE "c:")
+               (DEST "T:")
+               (PATTERN "(C#?|F#?)")
+    )
+    @{fg text}
+
+@endnode
+@node COPYLIB "COPYLIB"
+
+  Copies only one file using version checking, i.e. it only overwrites the
+  destination file (if it exists) if the new file has a version/revision
+  higher than the existing file. If the destination directory does not
+  exist, it will be created.
+
+  @{b}Template@{ub}
+    (COPYLIB [option]+ )
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP       - tell the user what's going to happen
+    CONFIRM    - if this option is present, user will be prompted to confirm the
+                 copy operation, else the files will be copied silently. Note that
+                 an EXPERT user will be able to overwrite a newer file with an
+                 older one.
+    SOURCE     - the name of the source file(may be relative)
+    DEST       - name of the destination directory (may be relative)
+    NEWNAME    - if the file is to be renamed, this is the new name
+    INFOS      - switch to copy icons along with other files/directories.
+    NOPOSITION - reset the position of every icon copied.
+    NOGAUGE    - don't display the status indicator
+    OPTIONAL   - dictates what will be considered a failure on copying; the first
+                 three options are mutually exclusive (they may not be specified
+                 together)
+                 FAIL: Installer aborts if could not copy (the default).
+                 NOFAIL: Installer continues if could not copy.
+                 OKNODELETE: aborts if can't copy, unless reason was "delete protected".
+                 FORCE: unprotect destination
+                 ASKUSER: ask user if the file should be unprotected (but not in
+                   novice) In the case of `askuser', the default for novice mode
+                   is an answer of "no".  Therefore, you may want to use `force'
+                   to make the novice mode default answer appear to be "yes".
+    DELOPTS    - removes options set by "optional"
+    SAFE       - copy the file even if in PRETEND mode.
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+    - the destination directory will be created, if it does not exist
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (COPYLIB (SOURCE "libs/mylib.library_020")
+             (DEST "libs:")
+             (NEWNAME "mylib.library")
+    )
+    @{fg text}
+
+@endnode
+@node CURRENTDIR "CURRENTDIR"
+
+  @{fg fill}{NG}@{fg text}
+  Returns either the name of the current working directory or changes to a
+  specified directory
+
+  @{b}Template@{ub}
+    (CURRENTDIR [dirname]{0-1})
+
+  @{b}Parameters@{ub}
+    [dirname] - if specified this is a string, which holds the name of the new
+                working directory
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: STIRNG
+    The name of the current directory (if no [dirname] was given) or the
+    name of the old working directory (if [dirname] did specify the new
+    directory)
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; find out the current dir
+    (SET #currentdir (CURRENTDIR))
+
+    ; change to a new directory and print the old one
+    (DEBUG (CURRENTDIR "new:dir/"))
+    @{fg text}
+
+@endnode
+@node DATABASE "DATABASE"
+
+  Returns information about the AMIGA that the InstallerNG is running on. The second
+  argument [checkvalue] is meant to be optional. If you do not use this argument, DATABASE
+  always returns a string with the result (see below for valid results). When using the
+  [checkvalue], then InstallerNG returns a number which is either 0 or 1.
+
+  @{b}Template@{ub}
+    (DATABASE [feature] [checkvalue]{0-1} )
+
+  @{b}Parameters@{ub}
+    [feature]    This string argument describes the information you are looking
+                 for. Valid features are:
+                   "CPU"            - which type of CPU
+                                      ("68000", "68010", "68020", "68030", "68040", "68060")
+                   "PPC" @{fg fill}{NG}@{fg text}       - checks for PPC; returns "PPC" if there is a PPC installed,
+                                      "" otherwise
+                   "FPU"            - which type of FPU ("68881", "68882", "FPU040", "FPU060")
+                   "MMU" @{fg fill}{NG}@{fg text}       - which type of MMU ("68851", "MMU040", "MMU060")
+                   "OS-VER" @{fg fill}{NG}@{fg text}    - the version of exec (e.g. "40")
+                   "GRAPHICS-MEM"   - amount of free chip memory
+                   "FAST-MEM" @{fg fill}{NG}@{fg text}  - amount of free fast memory
+                   "TOTAL-MEM"      - total free memory
+                   "CHIPREV"        - the revision of the graphic chipset
+                                      ("AA", "ECS", "AGNUS")
+                   "GFXSYSTEM" @{fg fill}{NG}@{fg text} - the installed graphics system
+                                      ("CyberGraphics", "Picasso96")
+                   "DATE" @{fg fill}{NG}@{fg text}      - the current date of your computer
+                   "TIME" @{fg fill}{NG}@{fg text}      - the current time of your computer
+                   "GUI" @{fg fill}{NG}@{fg text}       - type of the used GUI
+
+    [checkvalue] optional; when given, this has to be a string. After evaluating the
+                 [feature], the result-string is compared to [checkvalue]. If this
+                 comparison matches, then DATABASE returns the number 1, otherwise the
+                 number 0
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    the only parameter is [feature]
+       a string containing the requested information or "unknown" if [feature] is an
+       illegal string
+
+    both parameters [feature] and [checkvalue] specified
+       a number; 1 if [checkvalue] matches the result of [feature], otherwise 0
+
+  @{b}Note@{ub}
+    - InstallerNG accepts patterns for the [checkvalue] string, which will not work
+      with the C= installer
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (DATABASE "cpu")                 ; e.g.  "68060"
+    (DATABASE "bla")                 ; "unknown"
+    (DATABASE "cpu" "68000")         ; 1 iff you run on a 68000, otherwise 0
+
+    ; this worx on every installer!!!
+    (IF @installer-ng-version
+        (
+          (DATABASE "cpu" "(68040|68060)")
+        )
+        (
+          (PATMATCH "(68040|68060)" (DATABASE "cpu"))
+        )
+    )                                ; 1 iff you run on a 68040 or 68060, otherwise 0
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node DEBUG "DEBUG"
+
+  Print anything to the InstallerNG-DEBUG console. You can supress
+  this output with switching off the "Show debug" option or by not
+  setting the DEBUGMODE shell-argument/tooltype.
+
+  @{b}Template@{ub}
+    (DEBUG [debuginfo]+ )
+
+  @{b}Parameters@{ub}
+    [debuginfo] - this can be anything: a number, a string, an expression.
+                  DEBUG prints the evaluation-result of [debuginfo] to the
+                  console window, followed by a linefeed.
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: STRING
+    The result of the last [debuginfo] - evaluation
+
+  @{b}Note@{ub}
+    - if [debuginfo] is an uninitialized variable, then DEBUG prints
+      an "<NIL>" to warn the user
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (SET a 0)
+    (DEBUG 1 "does not equal" a b)
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node DELAY "DELAY"
+
+  @{fg fill}{NG}@{fg text}
+  Sometimes it is useful to wait a specific time. Use the DELAY function for this
+  purpose.
+
+  @{b}Template@{ub}
+    (DELAY [ticks])
+
+  @{b}Parameters@{ub}
+    [ticks] - a number whichs defines the ticks. A tick is 1/50 second.
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the [ticks]
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (DELAY 50)  ; wait a second
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node DELETE "DELETE"
+
+  Delete a specific file
+
+  @{b}Template@{ub}
+    (DELETE [file] [options]* )
+
+  @{b}Parameters@{ub}
+    [file] - the path and name of the file, which has to be deleted (may be relative)
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP      - tell the user what's going to happen.
+    CONFIRM   - if this option is present, the user will be asked for confirmation,
+                otherwise the delete proceeds silently
+    OPTIONAL  - should deletions be forced.  options:
+                FORCE: unprotect destination
+                ASKUSER: ask user if the file should be unprotected (but not in novice
+                  mode) In the case of ASKUSER, the default for "Novice" mode is an
+                 answer of "No". Therefore, you may want to use FORCE to make
+                 the novice mode default answer appear to be "Yes"
+    DELOPTS   - removes options set by OPTIONAL
+    SAFE      - delete even if in "Pretend" mode
+    INFOS     - also delete corresponding info file. Do not use this option
+                together with ALL
+    ALL       - check all matching subdirectories, too
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+    - you are allowed to specify an AmigaOS pattern for the [file] parameter and
+      by setting the ALL option, DELETE will delete all matching entries
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; deletes all libraries from LIBS:, which are named bla....library
+    (DELETE "libs:bla#?.library"
+            (SAFE)
+            (ALl)
+    )
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node DIV "DIV"
+
+  Divide a number by an oter one
+
+  @{b}Template@{ub}
+    (/ [value1] [value2])
+
+  @{b}Parameters@{ub}
+    [value1]
+    [value2] - both values
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMVER
+    Returns the result of value1/value2
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node EARLIER "EARLIER"
+
+  Check, whether a file is "younger" than another file
+
+  @{b}Template@{ub}
+    (EARLIER [file1] [file2])
+
+  @{b}Parameters@{ub}
+    [file1]
+    [file2] - the files
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 1 if [file1] is earlier than [file2]; 0 otherwise
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node EFFECT "EFFECT"
+
+  If the script contains an EFFECT function, then this function will be
+  executed before any other function. EFFECT opens a new screen (with same
+  properties as the "Workbench") and forces the Installer to work on
+  that new screen. Additionally, you can define simple grafix effects on
+  this screen
+
+  @{b}Template@{ub}
+    (EFFECT [position] [effect] [color1] [color2])
+
+  @{b}Parameters@{ub}
+    [position] - moves the Installer window to a special position; valid
+                 strings are - "upper_left"
+                             - "upper_center"
+                             - "upper_right"
+                             - "center_left"
+                             - "center"
+                             - "center_right"
+                             - "lower_left"
+                             - "lower_center"
+                             - "lower_right"
+    [effect]   - specify the effect for the screens background; valid
+                 strings are - "horizontal" (fades with horizontal lines)
+                             - "radial" (fade with circles)
+    [color1]
+    [color2]   - set the fading colors; both are NUMBERS and specify the
+                 24 bit RGB value
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+    - using an own screen makes it impossible to use InstallerNG's drag-n-drop
+      features
+    - the effect "radial" only works on true-color screens and falls back to
+      "horizontal" on non-true-color screens
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; fade from black to white
+    (EFFECT "center" "horizontal" $00000000 $00ffffff)
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node EQU "EQU"
+ 
+  Checks, whether an expression equals an other expression
+
+  @{b}Template@{ub}
+    (= [value1] [value2])
+
+  @{b}Parameters@{ub}
+    [value1]
+    [value2] - the values to be compared
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 1 if both values are equal, 0 otherwise
+
+  @{b}Note@{ub}
+    - see @{"COMPARE" link COMPARE}
+    - causes a "type conflict" error, if both types are not equal and
+      when they were not convertable
+
+  @{b}Example@{ub}
+    see @{"COMPARE" link COMPARE}
+
+  @{b}See also@{ub}
+
+@endnode
+@node EXECUTE "EXECUTE"
+
+  Execute an AmigaDOS script with the given arguments
+
+  @{b}Template@{ub}
+    (EXECUTE [script] [args]* [option]* )
+
+  @{b}Parameters@{ub}
+    [script] - the script, which has to be executed
+    [args]   - the arguments for the script
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP    - tell the user what's going to happen
+    CONFIRM - ask the user for confirmation
+    SAFE    - execute even in "Pretend" mode
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the return value of the script
+
+  @{b}Note@{ub}
+    - the secondary result will be stored in the variable @ioerr
+
+  @{b}Example@{ub}                                              
+
+@endnode
+@node EXIT "EXIT"
+
+  Causes a normal termination of a script. The @{"ONERROR" link ONERROR} functions are not
+  evaluated.
+
+  @{b}Template@{ub}
+    (EXIT [message]* [option])
+
+  @{b}Parameters@{ub}
+    [message] - these strings are concatenated and displayed as the final report
+
+  @{b}Options@{ub}
+    QUIET - skip the final message
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+@endnode
+@node EXISTS "EXISTS"
+
+  Checks if a given path is valid or not. The result is a number, which describes
+  the type of the path.
+
+  @{b}Template@{ub}
+    (EXISTS [path] [option]* )
+
+  @{b}Parameters@{ub}
+    [path] - this string is the object, which has to be examined, e.g. "s:blurp"
+
+  @{b}Options@{ub}
+    NOREQ - when specified, then no requester will pop up, if [path] is not on an
+            mounted volume
+
+  @{b}Result@{ub} @{fg fill}{NG}@{fg text}
+    Type: NUMBER
+    Returns  0 - [path] does not exist
+             1 - [path] is a file
+             2 - [path] is a directory
+             3 - [path] is a link to a file
+             4 - [path] is a link to a directory
+
+  @{b}Note@{ub}
+    The old Installer just returns either 0 or not 0
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (EXISTS "s:startup-sequence")     ; should be 1
+    (EXISTS "C:")                     ; should be 2
+    (EXISTS "grfm:hlbzs/hsjs")        ; maybe 0
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node EXPANDPATH "EXPANDPATH"
+
+  Get the full path of a file or a logical assign
+
+  @{b}Template@{ub}
+    (EXPANDPATH [path])
+
+  @{b}Parameters@{ub}
+    [path] - the path which should be expanded
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns the full path of [path]
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (EXPANDPATH "c:") ; may deliver "System:C" or whatever
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node FILEONLY "FILEONLY"
+
+  Returns the file part (i.e. the last path component) of a given path
+
+  @{b}Template@{ub}
+    (FILEPART [path])
+
+  @{b}Parameters@{ub}
+    [path] - the path
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns the file part of the [path]
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+    @{"PATHONLY" link PATHONLY}
+
+@endnode
+@node FINDBOARD "FINDBOARD"
+
+  @{fg fill}{NG}@{fg text}
+  This functions makes you able to find a specific hardware expansion board in
+  the system.
+
+  @{b}Template@{ub}
+    (FINDBOARD [manufacturer] [product])
+
+  @{b}Parameters@{ub}
+    [manufacturer] - the manufacturer id of the board. this id is unique for
+                     every (registered!) hardware producer and is assigned by C=
+    [product]      - the number of the product of a specific manufacturer.
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the number of found boards
+
+  @{b}Note@{ub}
+    To get a list of valid manufacturers and their products, please have a look
+    at the "board.library" package or related tools like "ShowBoardsMUI" by
+    Torsten Bach
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (SET #boardcount (FINDBOARD 8512 67))  ; how many CV64/3D gfx-cards has the system?
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node FLUSHLIBS "FLUSHLIBS"
+
+  @{fg fill}{NG}@{fg text}
+  Removes every actually unused library from the system. This can be useful if
+  you install new libraries and want to use them without rebooting the entire
+  system.
+
+  @{b}Template@{ub}
+    (FLUSHLIBS)
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns zero
+
+  @{b}Note@{ub}
+    To flush a system shared library, it must not be used while the remove process!
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; now remove unused libraries from the system
+    (FLUSHLIBS)
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node FOREACH "FOREACH"
+
+  For each file of a directory, which matches a given pattern,
+  a sequence of functions will be executed. The variables @each-name
+  and @each-type will hold the name and the AmigaDOS object type
+  (file/directory) for each of the matching files.
+
+  @{b}Template@{ub}
+    (FOREACH [dir] [pattern] [fun]+)
+
+  @{b}Parameters@{ub}
+    [dir]     - the directory which will be used for the walk
+    [pattern] - an AmigaDOS pattern, which specifies the files, for which
+                some functions will be executed
+    [fun]     - functions for matching files; these functions should make
+                use of the variables @each-name and @each-type
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Return 0
+
+  @{b}Note@{ub}
+    - @each-type is less than zero for files; greater than zero for directories
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; recursively print a directory tree of a given dir
+    (PROCEDURE P_PrintDirTree #d
+               (LET (SET #dir #d)
+                    (FOREACH #dir "#?"
+                             (
+                               (DEBUG @each-name)
+                               (IF (> @each-type 0) (P_PrintDirTree (tackon #dir @each-name)))
+                             )
+                    )
+               )
+    )
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node GE "GE"
+
+  Checks, whether an expression is greater or equal to an other expression
+
+  @{b}Template@{ub}
+    (>= [value1] [value2])
+
+  @{b}Parameters@{ub}
+    [value1]
+    [value2] - the values to be compared
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 1 if [value1] is greater or equal than [value2], 0 otherwise
+
+  @{b}Note@{ub}
+    - see @{"COMPARE" link COMPARE}
+    - causes a "type conflict" error, if both types are not equal and
+      when they were not convertable
+
+  @{b}Example@{ub}
+    see @{"COMPARE" link COMPARE}
+
+  @{b}See also@{ub}
+
+@endnode
+@node GETASSIGN "GETASSIGN"
+
+  Returns the pathname of an AmigaDOS object.
+
+  @{b}Template@{ub}
+    (GETASSIGN [name] [spec]{0-1} )
+
+  @{b}Parameters@{ub}
+    [name] - the name of the object, for which the path should be found
+    [spec] - specifies, in which list the installer should search; valid
+             strings are: - "a" for the list of assigns (default)
+                          - "v" for the volume list
+                          - "d" for the device list
+             Note that you are allowed to specify several lists by appendig
+             the specification characters (i.e. if you want to search all
+             three list, simply write "adv")
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns the pathname or an empty string, if the pathname could not
+    be found
+
+  @{b}Note@{ub}
+    - without setting a [spec], only the assign list will be checked
+    - [name] must be specified without colons; i.e. instead of "ENV:" you
+      must write "ENV"
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node GETDEVICE "GETDEVICE"
+
+  Returns the name of the device, on which a given path resides
+
+  @{b}Template@{ub}
+    (GETDEVICE [path])
+
+  @{b}Parameters@{ub}
+    [path] - the path, for which the device name should be found
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns the device name
+
+  @{b}Note@{ub}
+    - the device name comes without colons
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; find out, on which device the mountlist resides
+    (GETDEVICE "devs:mountlist") ; may return "System"
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node GETDISKSPACE "GETDISKSPACE"
+
+  Returns the available free diskspace in bytes on the disk given by
+  a path.
+
+  @{u}New for v44+@{uu}
+  Additionally, you may specify the unit for the calculated space.
+  Typical hard drives are larger than 4 G today and partitions may
+  also be larger than 2 G. Older versions of Installer returns illegal
+  values for partitions larger than 2 GB. The new installer returns the
+  maximum integer (2147483647) if the partition is too large.
+
+  @{b}Template@{ub}
+    (GETDISKSPACE [path] [unit]{0-1} )
+
+  @{b}Parameters@{ub}
+    [path] - the path, which specifies device
+    [unit] - optional and defines the unit for the returned disk space:
+             "B" (or omitted) is "Bytes", "K" is "Kilobytes", "M" is "Megabytes"
+             and "G" is "Gigabytes"
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the free disk space or -1, if [path] was illegal
+
+  @{b}Note@{ub}
+    - you should use at least unit "K" in new installer scripts to
+      avoid overflows with large harddrives.
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node GETENV "GETENV"
+
+  Returns the content of a environment variable, which is usually
+  located in the "ENV:" drawer
+
+  @{b}Template@{ub}
+    (GETENV [varname])
+
+  @{b}Parameters@{ub}
+    [varname] - the name of the variable
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns the content of the variable
+
+  @{b}Note@{ub}
+    - currently, the content is limited to 64 bytes, which should be
+      enough in most cases
+    - binary data are not supported
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node GET-PROPERTY "GET-PROPERTY"
+
+  @{fg fill}{NG}@{fg text}
+  Read a specific property of a symbol.
+
+  @{b}Template@{ub}
+    (GET-PROPERTY <symbol> <property>)
+
+  @{b}Parameters@{ub}
+    <symbol>   - the target symbol
+    <property> - the desired property of the symbol
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: depends on the propertys type
+    Returns the value of the property
+
+  @{b}Note@{ub}
+    Raises an error, if the property does not exist.
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (SET #bla "savage is cool :-)")      ; declare a symbol #bla
+    (READ-PROPERTY-OBJECT #bla)          ; try to read saved properties
+    (PUT-PROPERTY #bla "property" 20)    ; add property "property" to the symbol #bla
+    (MESSAGE                             ; get the value of #bla`s property "property"
+      (GET-PROPERTY #bla "property")
+    )
+    (SAVE-PROPERTY-OBJECT #bla)          ; save the properties of #bla
+    (REMOVE-PROPERTY #bla "property")    ; remove "property" from #bla
+    @{fg text}
+
+  @{b}See also@{ub}
+    @{"PUT-PROPERTY" link PUT-PROPERTY}
+    @{"REMOVE-PROPERTY" link REMOVE-PROPERTY}
+
+    @{"READ-PROPERTY-OBJECT" link READ-PROPERTY-OBJECT}
+    @{"SAVE-PROPERTY-OBJECT" link SAVE-PROPERTY-OBJECT}
+
+@endnode
+@node GETSIZE "GETSIZE"
+
+  Returns the size of a file in bytes
+
+  @{b}Template@{ub}
+    (GETSIZE [filename])
+
+  @{b}Parameters@{ub}
+    [filename] - the path and name of the file
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the size of the file
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node GETSUM "GETSUM"
+
+  Calculate a checksum for a file. This could be used for checking
+  version or if the content of files differs
+
+  @{b}Template@{ub}
+    (GETSUM [filename])
+
+  @{b}Parameters@{ub}
+    [filename] - the name of the file, for which you wanna calc the checksum
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Result: NUMBER
+    Returns the checksum for a file
+
+  @{b}Note@{ub}
+    - use the "GetSum" shell command (provided with the InstallerNG package)
+      to calculate checksums for files from a shell
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node GETVERSION "GETVERSION"
+
+  This returns the version of a file. The file must have a valid RomTag
+  structure or a valid AmigaDOS 2.x version string. If you do not provide
+  the filename, this simply returns the version of the OS.
+
+  @{b}Template@{ub}
+    (GETVERSION [name]{0-1} [option]* )
+
+  @{b}Parameters@{ub}
+    [name] - the file, for shich you need the version
+
+  @{b}Options@{ub}
+    RESIDENT - specifying this, causes the Installer to search the systems
+               library and device lists for the [name] entry
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the version of the file or OS; returns 0 if [name] was invalid
+
+  @{b}Note@{ub}
+    The result is a 32 bit value; the upper 16 bits contain the version
+    and the lower 16 bits the revision.
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (GETVERSION) ; returns the version of the OS
+    (GETVERSION "c:dir") ; returns DIR's version
+    (GETVERSION "dos.library" (RESIDENT)) ; returns the version of the dos.library
+
+    ; this function converts a version number to a readable string
+    (PROCEDURE version-to-string #ver ("%ld.%ld" (/ #ver 65536) (BITAND #ver 65535)))
+    (MESSAGE "OS version of your Amiga: " (version-to-string (GETVERSION)) " !!!")
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node GT "GT"
+
+  Checks, whether an expression is greater than an other expression
+
+  @{b}Template@{ub}
+    (> [value1] [value2])
+
+  @{b}Parameters@{ub}
+    [value1]
+    [value2] - the values to be compared
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 1 if [value1] is greater than [value2], 0 otherwise
+
+  @{b}Note@{ub}
+    - see @{"COMPARE" link COMPARE}
+    - causes a "type conflict" error, if both types are not equal and
+      when they were not convertable
+
+  @{b}Example@{ub}
+    see @{"COMPARE" link COMPARE}
+
+  @{b}See also@{ub}
+
+@endnode
+@node ICONINFO "ICONINFO"
+
+  Obtain information about an icon's tool type and more. Except for
+  the result, this function differs from other functions. The arguments
+  for most parameters are not values but names of symbols that will be
+  set to those values by the function. Be careful!
+
+  @{b}Template@{ub}
+    (ICONINFO [option]+ )
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP           - tell the user what's going to happen.
+    DEST           - the name of the icon to be modified. There is no need to specify a
+                     ".info" extension.
+    CONFIRM        - if this option is present, the user will be asked for confirmation,
+                     otherwise the modification proceeds silently.
+    SAFE           - make changes even if in "Pretend" mode
+    GETTOOLTYPE    - the tooltypes name (STRING) and the target symbols name (STRING)
+                     which will hold the value of the tooltype; if the tooltype does not
+                     exist, InstallerNG does not modify the value of the target variable
+                     or (if the variable was not declared yet) creates a STRING variable
+                     with the value "" (empty string)
+    GETDEFAULTTOOL - symbol name for the default tool name of a project.
+    GETSTACK       - symbol name for the current stack size of the icon.
+    GETPOSITION    - Two symbol names for the saved icon position in X and Y direction.
+                     Do not use this lightly. It is intended to keep icon
+                     positions on updates with help of the parameter SETPOSITION
+                     of the TOOLTYPE function. Arbitrarily changing icon positions
+                     will lead to annoyed users due to different Workbench and font
+                     setups.  If the icon doesn't have a position set, -1 is returned
+                     for the respective position value. This may be passed to
+                     TOOLTYPE
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; show the initial size of the stack of the InstallerNG
+    (ICONINFO (DEST "C:InstallerNG")
+              (GETSTACK "stack")
+    )
+    (MESSAGE stack)
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node IF "IF"
+
+  Conditionally execute functions. If [condition] is TRUE (i.e. not 0) then
+  the [then] will be executed, otherwise [else]
+
+  @{b}Template@{ub}
+    (IF [condition] [then] [else] )
+
+  @{b}Parameters@{ub}
+    [condition] - any expression
+    [then]      - functions which are executed if [condition] is TRUE
+    [else]      - functions which are executed if [condition] is FALSE
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: depends
+    Returns the result of [then] or [else]
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (IF (= 2 4)               ; condition
+        (MESSAGE "TRUE")      ; then
+        (                     ; else
+          (MESSAGE "FALSE")
+          (BEEP)
+        )
+    )
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node IN "IN"
+
+  Returns 0 if none of the given bit numbers (starting at 0 for the
+  LSB) is set in the value, else returns a mask of the bits that were set.
+
+  @{b}Template@{ub}
+    (IN  [value] [bitnum]+ )
+
+  @{b}Parameters@{ub}
+    [value]  - the value to be checked
+    [bitnum] - the numbers of bits, which are checked, whether they are
+               set in [value] or not
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0 or a mask
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node LE "LE"
+
+  Checks, whether an expression is less or equal to an other expression
+
+  @{b}Template@{ub}
+    (<= [value1] [value2])
+
+  @{b}Parameters@{ub}
+    [value1]
+    [value2] - the values to be compared
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 1 if [value1] is less or equal than [value2], 0 otherwise
+
+  @{b}Note@{ub}
+    - see @{"COMPARE" link COMPARE}
+    - causes a "type conflict" error, if both types are not equal and
+      when they were not convertable
+
+  @{b}Example@{ub}
+    see @{"COMPARE" link COMPARE}
+
+  @{b}See also@{ub}
+
+@endnode
+@node LET "LET"
+
+  @{fg fill}{NG}@{fg text}
+  This function creates a new environment. This means, you can declare new variables
+  within the <init> functions and use them in the <body> functions. If you define
+  local variables, which have the same name like existing ones, you "replace" the existing
+  by the local variables. Nevertheless you can access existing variables, which are
+  not overwritten.
+  Imagine of the new environment as a layer, which overwrites variables with the same name
+  but keeps all other variables.
+  Put this function as the first into a PROCEDURE definition and write the body of the
+  PROCEDURE as the body of the LET function! Now you have private variables for the
+  procedure :)
+
+  @{b}Template@{ub}
+    (LET <init> <body> )
+
+  @{b}Parameters@{ub}
+    <init> - one function, which initializes the local environment. It does not make
+             sense to use other functions than SET here
+    <body> - the body of a LET function are the functions, which use this local
+             environment
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    LET returns the result of the last function of <body>
+
+  @{b}Note@{ub}
+    Since LET is a simple function, you can create LET environments inside of LET
+    environments inside of...
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; this "creates" the value 7 by adding values of the  local environment
+    (LET (SET x 3 y 4)
+         (+ x y)
+    )
+
+    ; a procedure with local variables
+    (PROCEDURE P_bla #arg1 #arg2
+      (LET (SET #local_x #arg1
+                #local_y #arg2
+           )
+
+           (
+              ; do anything with #local_x and #local_y
+           )
+      )
+    )
+    @{fg text}
+
+@endnode
+@node LT "LT"
+
+  Checks, whether an expression is less than an other expression
+
+  @{b}Template@{ub}
+    (< [value1] [value2])
+
+  @{b}Parameters@{ub}
+    [value1]
+    [value2] - the values to be compared
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 1 if [value1] is less than [value2], 0 otherwise
+
+  @{b}Note@{ub}
+    - see @{"COMPARE" link COMPARE}
+    - causes a "type conflict" error, if both types are not equal and
+      when they were not convertable
+
+  @{b}Example@{ub}
+    see @{"COMPARE" link COMPARE}
+
+  @{b}See also@{ub}
+
+@endnode
+@node MAKEASSIGN "MAKEASSIGN"
+
+  Assigns an assign to a path or removes a specific assign.
+
+  @{b}Template@{ub}
+    (MAKEASSIGN [assign] [path]{0-1} [option]* )
+
+  @{b}Parameters@{ub}
+    [assign] - the name for the assign
+    [path]   - optional; the path, which should be assigned to [assign]
+
+  @{b}Options@{ub}
+    SAFE - if specified, the assign will be created even in "Pretend" mode
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+    - omit [path] to clear the assign
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node MAKEDIR "MAKEDIR"
+
+  Just create a new directory. Furthermore you are allowed to
+  specify a complete path and the Installer will create all the
+  necessary sub-directories
+
+  @{b}Template@{ub}
+    (MAKEDIR [name] [option]* )
+
+  @{b}Parameters@{ub}
+    [name] - the name or path of the directory
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP     - tell the user what's going to happen
+    CONFIRM  - ask for confirmation; otherwise the directory will be
+               created silently
+    INFOS    - also create an icon for the drawer
+    SAFE     - make the directory even in "Pretend" mode
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node MESSAGE "MESSAGE"
+
+  Display some text to the user
+
+  @{b}Template@{ub}
+    (MESSAGE [string]* [option]* )
+
+  @{b}Parameters@{ub}
+    [string] - the strings, which, all concatenated into one single string,
+               gets displayed
+
+  @{b}Options@{ub}
+    ALL - Show the text also to "Novice" users
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns the displayed text
+
+  @{b}Note@{ub}
+    - in "Novice" mode, the text will not be shown as long as you do not
+      specify the ALL option
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node MUL "MUL"
+
+  Multiply some values
+
+  @{b}Template@{ub}
+    (* [value]* )
+
+  @{b}Parameters@{ub}
+    [value] - all the values, from which the result will  be calculated
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the product of the multiplication
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node NE "NE"
+
+  Checks, whether an expression is equals an other expression
+
+  @{b}Template@{ub}
+    (<> [value1] [value2])
+
+  @{b}Parameters@{ub}
+    [value1]
+    [value2] - the values to be compared
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 1 if [value1] does not equal [value2], 0 otherwise
+
+  @{b}Note@{ub}
+    - see @{"COMPARE" link COMPARE}
+    - causes a "type conflict" error, if both types are not equal and
+      when they were not convertable
+
+  @{b}Example@{ub}
+    see @{"COMPARE" link COMPARE}
+
+  @{b}See also@{ub}
+
+
+@endnode
+@node NOP "NOP"
+
+  @{fg fill}{NG}@{fg text}
+  Does nothing...
+  Since my language definition does not allow empty function-lists,
+  I thought it would be useful to have a NOP function for this case :)
+  Additional, if you give an expressin as argument, NOP evaluates this
+  expression and returns it's value instead of 0 (weird...)
+
+  @{b}Template@{ub}
+    (NOP [expr]{0-1})
+
+  @{b}Parameters@{ub}
+    expr - if given, NOP evaluates this expression
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: depends on [expr] or NUMBER (if no [expr] is given)
+    Returns [expr] or 0 (if no [expr] is given)
+
+  @{b}Note@{ub}
+    You may ask, why i did this. The reason is simple: I needed something
+    like a "return (x)" in a PROCEDURE...
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; if @bla equals 5, then do nothing, else beep and pop a message
+    (IF (= @bla 5)
+        (NOP) @{fg fill}{NG}@{fg shine}
+        (
+          (BEEP) @{fg fill}{NG}@{fg shine}
+          (MESSAGE "@bla does not equal 5")
+        )
+    )
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node NOT "NOT"
+
+  Negates the boolean value of an expression
+
+  @{b}Template@{ub}
+    (NOT [value])
+
+  @{b}Parameters@{ub}
+    [value] - the value to be negated
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the boolean "Not" of the value
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node ONERROR "ONERROR"
+
+  When a fatal error occurs that was not trapped, a set of statements
+  can be called to clean-up after the script.  These statements are
+  logged in by using the onerror construct.  Note that onerror can be
+  used multiple times to allow context sensitive termination.
+
+  @{b}Template@{ub}
+    (ONERROR [fun]* )
+
+  @{b}Parameters@{ub}
+    [fun] - some functions, which will be executed in case of not trapped errors
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; execute this in case of an error
+    (ONERROR (BEEP) @{fg fill}{NG}@{fg shine}
+             (DEBUG "bad error!!!")
+             (EXIT (QUIET))
+    )
+    @{fg text}
+
+  @{b}See also@{ub}
+    @{"TRAP" link TRAP}
+
+@endnode
+@node OR "OR"
+
+  The logical "or", i.e. OR deliveres true if at least one of its arguments is true.
+  OR stops the evaluation with the first true-argument
+
+  @{b}Template@{ub}
+    (OR [value]+ )
+
+  @{b}Parameters@{ub}
+    [value] - the value which should logically be tested
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 1 for true and 0 for false
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node OPENWBOBJECT "OPENWBOBJECT"
+
+  Open a workbench object, which can be either a disk, a drawer, a trashcan, a
+  tool or a project
+
+  @{b}Template@{ub}
+    (OPENWBOBJECT [wbobject] [option]* )
+
+  @{b}Parameters@{ub}
+    [wbobject] - the object to be opened
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP     - tell the user what's going to happen
+    CONFIRM  - ask for confirmation
+    SAFE     - open the [wbobject] even in "Pretend" mode
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 1 if OPENWBOBJECT succeeded, 0 if the [wbobject] could
+    not be found, or -1 if the machine (i.e. the Workbench) does not
+    support this function
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; open the "SYS:" drawer
+    (OPENWBOBJECT "sys:" (PROMPT "now opening the \"sys:\" drawer...")
+                         (HELP "...")
+                         (CONFIRM expert) @{fg fill}{NG}@{fg shine}
+    )
+
+    ; scroll to or make the "Prefs" drawer visible
+    (SHOWWBOBJECT "sys:prefs")
+
+    ; close the system drawer
+    (CLOSEWBOBJECT "sys:")
+
+    ; run the multiview, as the user had double-clicked its icon
+    (OPENWBOBJECT "sys:tools/multiview" (PROMPT "simulating a workbench start for multiview")
+                                        (HELP "...")
+                                        (CONFIRM novice) @{fg fill}{NG}@{fg shine}
+    )
+
+    @{fg text}
+
+  @{b}See also@{ub}
+    see @{"SHOWWBOBJECT" link SHOWWBOBJECT}, @{"OPENWBOBJECT" link OPENWBOBJECT}
+
+@endnode
+@node PATHONLY "PATHONLY"
+
+  Returns the non-file part of a given path by extracting the last
+  component (the file part) from the path
+
+  @{b}Template@{ub}
+    (PATHONLY [path])
+
+  @{b}Parameters@{ub}
+    [path] - the path, from which you need the path part
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: STRInG
+    Returns the path part of [path]
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+    @{"FILEONLY" link FILEONLY}
+
+@endnode
+@node PATMATCH "PATMATCH"
+
+  Determines, if a given string matches an AmigaDOS pattern or not. The
+  pattern has to fulfill the conventions for patterns of the AmigaDOS!
+
+  @{b}Template@{ub}
+    (PATMATCH [pattern] [string])
+
+  @{b}Parameters@{ub}
+    [pattern] - an AmigaDOS pattern
+    [string]  - the string, which gets matched against the [pattern]
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 1 if the string matches the pattern, 0 otherwise
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node PROCEDURE "PROCEDURE"
+
+  Using this function, you can define your own functions.
+
+  @{b}Template@{ub}
+    (PROCEDURE [name] [params]* [fun]+ )
+
+  @{b}Parameters@{ub}
+    [name]   - an dentifier, which defines the name of the procedure
+    [params] - a list of parameters for the function
+    [fun]    - the body of the function
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    (internally, this does not execute like other functions and, thus,
+    has not return value/type)
+
+  @{b}Note@{ub}
+    - for future compatibility, please name your functions starting with
+      "P_" as prefix, so that collisions with new functions will be avoided
+    - PROCEDURE should be named "DEF-FUNCTION" or something similar, but
+      for compatibility I kept the name for the InstallerNG
+
+  @{b}Example@{ub}
+    see @{"GETVERSION" link GETVERSION} or @{"FOREACH" link FOREACH} for sample functions
+
+  @{b}See also@{ub}
+
+@endnode
+@node PROTECT "PROTECT"
+
+  Either get or set the protection values of a given file or
+  directory. You can define the protection mask by a string or by
+  a number mask.
+
+  @{b}Template@{ub}
+    (PROTECT [file] [mask]{0-1} [option])
+
+  @{b}Parameters@{ub}
+    [file] - the file for this operation
+    [mask] - optional; either a string or a decimal number, which specifies the
+             mask of bits for the file. The bits and the related characters
+             are defined as follows
+
+               8 7 6 5 4 3 2 1  <- bit number
+
+               h s p a r w e d  <- corresponding protection flag
+
+               ^ ^ ^ ^ ^ ^ ^ ^
+               | | | | | | | |
+               | | | | | | | +- \
+               | | | | | | +--- | 0 = flag set
+               | | | | | +----- | 1 = flag clear
+               | | | | +------- /
+               | | | |
+               | | | |
+               | | | +--------- \
+               | | +----------- | 0 = flag clear
+               | +------------- | 1 = flag set
+               +--------------- /
+
+
+  @{b}Options@{ub}
+    SAFE - change protection even in "Pretend" mode
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0 (for failure) or 1 (for success) if you changed the protection
+    bits of a file or, if you want to read a protection (in this case, omit
+    the [mask] argument), returns the mask of protection bits of the given file
+
+  @{b}Note@{ub}
+    - this follows the AmigaOS rules for protection bits
+    - you must not use the "H" bit since this is currently not supported
+      by the AmigaOS
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node PUT-PROPERTY "PUT-PROPERTY"
+
+  @{fg fill}{NG}@{fg text}
+  Bind a property to a symbol. Imagine of a "property" as an attribut,
+  i.e. a property-name and a related value. If the property already exists,
+  its value just gets updated.
+
+  @{b}Template@{ub}
+    (PUT-PROPERTY <symbol> <property> <value>)
+
+  @{b}Parameters@{ub}
+    <symbol>   - the target symbol
+    <property> - the property you wish to create or modify
+    <value>    - the (new) value of the property
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: depends on the type of <value>
+    Returns <value>
+
+  @{b}Note@{ub}
+    If the <property> for the <symbol> already exists, the value of
+    the property will be changed to <value>
+
+  @{b}Example@{ub}
+    see @{"GET-PROPERTY" link GET-PROPERTY}
+
+  @{b}See also@{ub}
+    @{"GET-PROPERTY" link GET-PROPERTY}
+    @{"REMOVE-PROPERTY" link REMOVE-PROPERTY}
+
+    @{"READ-PROPERTY-OBJECT" link READ-PROPERTY-OBJECT}
+    @{"SAVE-PROPERTY-OBJECT" link SAVE-PROPERTY-OBJECT}
+
+@endnode
+@node QUERYDISPLAY "QUERYDISPLAY"
+
+  Returns information about the current display of the Installer window
+
+  @{b}Template@{ub}
+    (QUERYDISPLAY [object] [attribute])
+
+  @{b}Parameters@{ub}
+    [object]    - the target object, must be "screen" or "window"
+    [attribute] - the attribute of the object, which has to be examined;
+                  valid attributes are for
+                  windows: "width", "height", "upper", "lower" "left" "right"
+                  screens: "width", "height", "depth", "colors"
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the value of the attribute
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node RANDOM "RANDOM"
+
+  @{fg fill}{NG}@{fg text}
+  This results in a random number, which ranges in given bounds
+
+  @{b}Template@{ub}
+    (RANDOM <lower> <upper>)
+
+  @{b}Parameters@{ub}
+    <lower>
+    <upper> - the numbers which specify the range, where the result ranges in
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns a random number from <lower> ... <upper>
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (RANDOM 20 50) ; give a number between 20 and 50
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node READ-PROPERTY-OBJECT "READ-PROPERTY-OBJECT"
+
+  @{fg fill}{NG}@{fg text}
+  Read all the properties of an object. See @{"SAVE-PROPERTY-OBJECT" link SAVE-PROPERTY-OBJECT}
+  for the construction of the filename, where the InstallerNG
+  stores the data.
+
+  @{b}Template@{ub}
+    (READ-PROPERTY-OBJECT <ident>)
+
+  @{b}Parameters@{ub}
+    <ident> - the identifier, for which the InstallerNG should
+              read the properties
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+    The InstallerNG reads only properties of type STRING. If you
+    need a NUMBER value and you are not sure, whether or not the
+    InstallerNG imlicitly casts to NUMBER, you should use the
+    @{"CAST-INT" link CAST-INT} function, to convert a STRING value into a NUMBER value.
+
+  @{b}Example@{ub}
+    see @{"GET-PROPERTY" link GET-PROPERTY}
+
+  @{b}See also@{ub}
+    @{"GET-PROPERTY" link GET-PROPERTY}
+    @{"PUT-PROPERTY" link PUT-PROPERTY}
+    @{"REMOVE-PROPERTY" link REMOVE-PROPERTY}
+
+    @{"SAVE-PROPERTY-OBJECT" link SAVE-PROPERTY-OBJECT}
+
+@endnode
+@node REBOOT "REBOOT"
+
+  @{fg fill}{NG}@{fg text}
+  This function causes a reboot of your Amiga. Several scripts may need this to
+  mount new drivers to the system. Be careful with this ;)
+
+  @{b}Template@{ub}
+    (REBOOT <options>)
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+    (SAFE) - specifying this will cause a reboot even in pretend mode
+
+  @{b}Result@{ub}  :)
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (REBOOT)         ; reboots, but not in pretend mode
+    (REBOOT (SAFE))  ; always reboot
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node REMOVE-PROPERTY "REMOVE-PROPERTY"
+
+  @{fg fill}{NG}@{fg text}
+  Remove a specific property from a symbol. This does really @{u}remove@{uu} the property
+  itself, not only a reset of the property!
+
+  @{b}Template@{ub}
+    (REMOVE-PROPERTY <symbol> <property>)
+
+  @{b}Parameters@{ub}
+    <symbol>   - the target symbol
+    <property> - the property you wish to remove
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+    Raises an error, if the property does not exist.
+
+  @{b}Example@{ub}
+    see @{"GET-PROPERTY" link GET-PROPERTY}
+
+  @{b}See also@{ub}
+    @{"GET-PROPERTY" link GET-PROPERTY}
+    @{"PUT-PROPERTY" link PUT-PROPERTY}
+
+    @{"READ-PROPERTY-OBJECT" link READ-PROPERTY-OBJECT}
+    @{"SAVE-PROPERTY-OBJECT" link SAVE-PROPERTY-OBJECT}
+
+@endnode
+@node RENAME "RENAME"
+
+  Rename a file/directory or a disk.
+
+  @{b}Template@{ub}
+    (RENAME [oldname] [newname] [option* )
+
+  @{b}Parameters@{ub}
+    [oldname] - the source file/directory or the disk to be renamed; in
+                case of an disk, the name must contain a colon (e.g. "DF0:")
+    [newname] - new name; in case of a disk, the new name must NOT contain
+                the colon
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP     - tell the user what's going to happen
+    CONFIRM  - if this is present, then the user will be asked for confirmation
+    DISK     - you must specify this, if you want to rename a disk
+               (called "relabeling)
+    SAFE     - rename even in "Pretend" mode
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node RETRACE "RETRACE"
+
+  This will skip the last evaluated TRACE an does continue to work at
+  the previous one. A tracepoint gets lost if the evaluation leaves the
+  scope of the TRACE.
+
+  @{b}Template@{ub}
+    (RETACE)
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (TRACE) ; set the first tracepoint
+    (MESSAGE "now followes an IF")
+    (IF (= 1 1)
+        (
+          (TRACE) ; this tracepoint gets lost when the installer
+                  ; leaves this then-block!
+          (MESSAGE "then")
+        )
+        (MESSAGE "else")
+    )
+    (TRACE)
+    (RETACE)
+    @{fg text}
+
+    This will result in an infinite loop, because the inner TRACE (situated
+    in the then-block) gets lost and RETRACE skips to the trailing TRACE
+
+  @{b}See also@{ub}
+    @{"TRACE" link TRACE}
+
+@endnode
+@node REXX "REXX"
+
+  Executes a given ARexx script with the given arguments.
+
+  @{b}Template@{ub}
+    (REXX [script] [arg]* [option]* )
+
+  @{b}Parameters@{ub}
+    [script] - the script to be executed
+    [arg]    - arguments for the script
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP    - tell the user what's going to happen
+    CONFIRM - if specified, the user will be asked for confirmation
+    SAFE    - execute, even in "Pretend" mode
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the primary result of the script and stores the secondary
+    result in @ioerr
+
+  @{b}Note@{ub}
+    - this needs an active ARexx server
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node RUN "RUN"
+
+  Executes a binary programm with the given parameters
+
+  @{b}Template@{ub}
+    (RUN [command] [arg]* [option]* )
+
+  @{b}Parameters@{ub}
+    [command] - the command, which should be executed
+    [arg]     - arguments for the command
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP    - tell the user what's going to happen
+    CONFIRM - if specified, the user will be asked for confirmation
+    SAFE    - run command, even in "Pretend" mode
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the primary result of the command and stores the secondary
+    result in @ioerr
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node SAVE-PROPERTY-OBJECT "SAVE-PROPERTY-OBJECT"
+
+  @{fg fill}{NG}@{fg text}
+  Save the properties of an identifier to a file. The filename is
+  built by appending the name of the identifier to the application
+  name (i.e. the value of the builtin variable @APP-NAME). By saving
+  such a property list, you will get a file, which contains all the
+  properties in this format:
+
+    propertyname=value
+    propertyname=value
+    ...
+
+  You may use this to store configurations or whatever by simply
+  using such property lists.
+
+  @{b}Template@{ub}
+    (SAVE-PROPERTY-LIST <ident>)
+
+  @{b}Parameters@{ub}
+    <ident> - an identifier, which properties should be saved to a file
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    see @{"GET-PROPERTY" link GET-PROPERTY}
+
+  @{b}See also@{ub}
+    @{"GET-PROPERTY" link GET-PROPERTY}
+    @{"PUT-PROPERTY" link PUT-PROPERTY}
+    @{"REMOVE-PROPERTY" link REMOVE-PROPERTY}
+
+    @{"SAVE-PROPERTY-OBJECT" link SAVE-PROPERTY-OBJECT}
+
+@endnode
+@node SELECT "SELECT"
+
+  Evaluate one out of a list of expressions.
+
+  @{b}Template@{ub}
+    (SELECT [num] [expression]* )
+
+  @{b}Parameters@{ub}
+    [num]        - specify the number of expression, which should be evaluated
+                   (starting with zero)
+    [expression] - an arbitrary expression
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: depends on the type of the expression
+    Returns the result of the evaluated expression
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; writes "zap"
+    (SELECT 2 (MESSAGE "bla") (MESSAGE "burp") (MESSAGE "zap"))
+
+    ; or shorter with the same result
+    (MESSAGE (SELECT 2 "bla" "burp" "zap"))
+
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node SET "SET"
+
+  Set a value to a variable. If this is the first setting, then this
+  value will be declared. Access to not initialized variables will
+  cause a runtime warning and will deliver the number zero.
+
+  @{b}Template@{ub}
+    (SET [[name] [value]]* )
+
+  @{b}Parameters@{ub}
+    [name]  - the name of the variable
+    [value] - the (new) value for this variable
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: depends
+    Returns the last setting
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node SETENV "SETENV"
+
+  @{fg fill}{NG}@{fg text}
+  Sets a system variable. This is only temporary done in the ENV: directory
+  and the variable will be lost after a reset.
+
+  @{b}Template@{ub}
+    (SETENV <varname> <value>)
+
+  @{b}Parameters@{ub}
+    <varname> - a string which is the name of the variable
+    <value>   - this string must contain the value for the variable
+
+  @{b}Options@{ub}
+    (RESIDENT) - specify this to write the variable to both, ENV: and
+                 ENVARC: directories, otherwise the variable will only
+                 be written to ENV:
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns <value>
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (SET var "MY_TEMP_VARIABLE")
+    (SETENV var "the value of my temp variable" (RESIDENT))
+    @{fg text}
+
+  @{b}See also@{ub}
+    @{"GETENV" link GETENV}
+
+@endnode
+@node SETMEDIA "SETMEDIA"
+
+  Modify properties of a media object.
+
+  @{b}Template@{ub}
+    (SETMEDIA [object] [action] [actionparam]{0-1} )
+
+  @{b}Parameters@{ub}
+    [object]      - the media object identifier; @{fg fill}{NG}@{fg text} can be either a
+                    string or an identifier of type STRING
+    [action]      - the action, which has to be performed with the media object and
+                    depends on the objects type; valid actions strings are
+                      "pause"
+                      "play"
+                      "contents"
+                      "index"
+                      "retrace"
+                      "browser_prev"
+                      "browser_next"
+                      "command"
+                      "rewind"
+                      "fastforward"
+                      "stop"
+                      "locate"
+    [actionparam] - if [action] is "command" or "locate", then this will hold the command
+                    string argument
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    see @{"SHOWMEDIA" link SHOWMEDIA}
+
+  @{b}See also@{ub}
+    @{"SETMEDIA" link CLOSEMEDIA}, @{"SHOWMEDIA" link SHOWMEDIA}
+
+@endnode
+@node SHIFTLEFT "SHIFTLEFT"
+
+  Bit oriented shifting of a value. Zeros are shifted in on the
+  opposite side.
+
+  @{b}Template@{ub}
+    (SHIFTLEFT [value] [shiftamount])
+
+  @{b}Parameters@{ub}
+    [value]       - the value to be shifted
+    [shiftamount] - the amount of shifts
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    The left-shifted [value]
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node SHIFTRIGHT "SHIFTRIGHT"
+
+  Bit oriented shifting of a value. Zeros are shifted in on the
+  opposite side.
+
+  @{b}Template@{ub}
+    (SHIFTRIGHT [value] [shiftamount])
+
+  @{b}Parameters@{ub}
+    [value]       - the value to be shifted
+    [shiftamount] - the amount of shifts
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    The right-shifted [value]
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node SHOWMEDIA "SHOWMEDIA"
+
+  This opens a datatype object (you need at least AmigaOS 3.0 for this)
+  and presents it to the user. Depending on the type of the media object,
+  this function can open a custom window to show the file.
+
+  @{b}Template@{ub}
+    (SHOWMEDIA [name] [file] [position] [size] [borderflag] [attr]* )
+
+  @{b}Parameters@{ub}
+    [name]       - a string, which specifies the name for this media object; this
+                   will be used by SETMEDIA and CLOSEMEDIA functions later
+    [file]       - the name of the file to show
+    [position]   - if the media object needs a window (e.g. pictures or animations)
+                   this defines the (relative) size of the window; valid strings are:
+                     "upper_left"
+                     "upper_center"
+                     "upper_right"
+                     "center_left"
+                     "center"
+                     "center_right"
+                     "lower_left"
+                     "lower_center"
+                     "lower_right"
+    [size ]      - if the media object needs a window, then this defines the
+                   (relative) size of the window; valid strings are:
+                     "none"
+                     "small"
+                     "small_medium"
+                     "small_large"
+                     "medium"
+                     "medium_small"
+                     "medium_large"
+                     "large"
+                     "large_small"
+                     "large_medium"
+    [borderflag] - if set to 1, then the window will have scrollers in its borders,
+                   otherwise (i.e. if 0) it gets no borders
+    [attr]       - some attributes, which specify the datatypes attributes, valid
+                   strings are:
+                     "wordwrap"
+                     "panel"
+                     "play"
+                     "repeat"
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 1 if the datatype could be opened, 0 otherwise
+
+  @{b}Note@{ub}
+    - Every viewer runs as an own process, i.e. you may continue script execution,
+      while the viewer process shows pictures, anims, AmigaGuides® and so on.
+    - it seams that an absolute path is required for browsing AmigaGuides® files
+      (use the @{"EXPANDPATH" link SHOWMEDIA} function in this case)
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node SHOWWBOBJECT "SHOWWBOBJECT"
+
+  Makes an arbitrary workbench object visible, i.e. it scrolls the view
+  of a workbench drawer, until the named object becomes visible
+
+  @{b}Template@{ub}
+    (SHOWWBOBJECT [wbobject] )
+
+  @{b}Parameters@{ub}
+    [wbobject] - the object to be viewed
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 1, if SHOWWBOBJECT succeeded, 0 if the [wbobject] could
+    not be found, or -1 if the machine (i.e. the Workbench) does not
+    support this function
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    see @{"OPENWBOBJECT" link OPENWBOBJECT}
+
+  @{b}See also@{ub}
+    see @{"SHOWWBOBJECT" link SHOWWBOBJECT}, @{"OPENWBOBJECT" link OPENWBOBJECT}
+
+@endnode
+@node SIMULATE-ERROR "SIMULATE-ERROR"
+
+  @{fg fill}{NG}@{fg text}
+  A runtime error will be simulated. This is very useful for testing and
+  debugging scripts.
+
+  @{b}Template@{ub}
+    (SIMULATE-ERROR <error>)
+
+  @{b}Parameters@{ub}
+    <error> - a number value which ranges from 1 to 5. The meaning of the
+              numbers are:  1 - Quit
+                            2 - Out of mem
+                            3 - Error in script
+                            4 - DOS error (@ioerr is set to 236 (ERROR_NOT_IMPLEMENTED))
+                            5 - Bad parameter data
+              every other number simulates the "Out of range" error.
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns <error>
+
+  @{b}Note@{ub}
+    The <error> argument numbers are the same as used by the @{"TRAP" link TRAP} function.
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (ONERROR (
+               (BEEP)
+               (MESSAGE "Damn, an error!")
+             )
+    )
+    (SIMULATE-ERROR 2)
+
+    ...
+
+    (SET #err (TRAP 3 (SIMULATE-ERROR 3)
+              )
+    )
+    (IF (= #err 3) (MESSAGE "There was an error in the script..."))
+    @{fg text}
+
+  @{b}See also@{ub}
+    @{"ONERROR" link ONERROR}, @{"TRAP" link TRAP}
+
+@endnode
+@node STARTUP "STARTUP"
+
+  Using this function, you can add commands to the users startup files.
+  First, the Installer tries to modify the "user-startup" and if this
+  failes, it creates a new "user-startup" and adds a call to this
+  "user-startup" file to the "startup-sequence" (but asks for confirmation
+  befor it writes to the "startup-sequence"). Old modifications of the
+  application will be replaced by these new ones.
+
+  @{b}Template@{ub}
+    (STARTUP [appname] [option]* )
+
+  @{b}Parameters@{ub}
+    [appname] - The Installer will comment the modifications by noting the
+                name of the application, which caused the modifications; use
+                the @app-name variable here
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP    - tell the user what's going to happen
+    CONFIRM - if specified, the user will be asked for confirmation
+    COMMAND - used to declare an AmigaDOS command line, which will be added to
+              the startup script.
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node STRLEN "STRLEN"
+
+  Calculates the length of a given string, i.e. the number of characters
+
+  @{b}Template@{ub}
+    (STRLEN [string])
+
+  @{b}Parameters@{ub}
+    [string] - the string
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the length of the string
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node SUB "SUB"
+
+  Subtract all the parameters
+
+  @{b}Template@{ub}
+    (- [value]+ )
+
+  @{b}Parameters@{ub}
+    [value] - the values to be subtracted, starting with the first one
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the result of this chain of subtractions
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node SUBSTR "SUBSTR"
+
+  Returns a substring of a given string by extracting a part of the string
+
+  @{b}Template@{ub}
+    (SUBSTR [string] [offset] [count]{0-1} )
+
+  @{b}Parameters@{ub}
+    [string] - the original string
+    [offset] - number of the first character of the new substring
+    [count]  - optional; the length of the new substring
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns the created substring
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (SUBSTR "this is cool, isn't it?" 8 4) ; returns "cool"
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node SWING "SWING"
+
+  @{fg fill}{NG}@{fg text}
+  This allows you to jump (inside of this block) from one function to its neighbour
+  function. Thus, you may use all the ASK... functions to set the installation
+  environment AND to have an undo/redo option
+
+  @{b}Template@{ub}
+    (SWING <stmt> ...)
+
+  @{b}Parameters@{ub}
+    <stmt> - one or more functions. SWING will jump between them
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: number
+    Returns 0
+
+  @{b}Note@{ub}
+    Nesting SWING functions will work, but going backwards is somehow difficult...
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (SET number 5
+         text "bla"
+    )
+
+    (SWING
+      (SET number (ASKNUMBER (PROMPT "Enter a number")
+                             (HELP "...")
+                             (DEFAULT number)
+                  )
+      )
+      (SET text (ASKSTRING (PROMPT "Enter a text")
+                           (HELP "...")
+                           (DEFAULT text)
+                )
+      )
+    )
+    @{fg text}
+
+@endnode
+@node TACKON "TACKON"
+
+  Add a component to an existing path. This function also cares for
+  handling the ":" and "/" delimiters correctly
+
+  @{b}Template@{ub}
+    (TACKON [path] [file])
+
+  @{b}Parameters@{ub}
+    [path] - the path, which has to be expanded
+    [file] - the file, which will tacked on
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns a new path
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    see @{"FOREACH" link FOREACH}
+
+  @{b}See also@{ub}
+
+@endnode
+@node TEXTFILE "TEXTFILE"
+
+  Creates a new text file from other text files or by strings. This
+  is useful to create configuration files scripts or environments.
+
+  @{b}Template@{ub}
+    (TEXTFILE [option]* )
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP     - tell the user what's going to happen
+    CONFIRM  - if present, then the user will be asked for confirmation
+    SAFE     - create the file even in "Pretend" mode
+    APPEND   - write this string to the text file
+    INCLUDE  - include the given file into th new text file
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node TOOLTYPE "TOOLTYPE"
+
+  Modify the tooltypes of an existing tool. I.e. you can set,
+  change and delete tooltypes and the related values.
+
+  @{b}Template@{ub}
+    (TOOLTYPE [option]* )
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+    PROMPT
+    HELP           - tell the user what's going to happen
+    CONFIRM        - if specified, the user will be asked for confirmation
+    SAFE           - modify even in "Pretend" mode
+    DEST           - the name of the icon to be modified; there is no need
+                     to spevify e ".info" extension
+    SETTOOLTYPE    - the tooltype name and its value string
+    SETDEFAULTTOOL - specify the default tool for the icon
+    SETSTACK       - the stack value
+    NOPOSITION     - clear the position of the icon
+    SETPOSITION    - two numbers to specify the position for the icon
+    SWAPCOLORS     - <obsolete, ignored>
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Return 0
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (TOOLTYPE "InstallerNG"
+              (SETSTACK 50000)
+              (NOPOSITION)
+              (SETTOOLTYPE "MINUSER")  ; remove the MINUSER tooltype
+              (SETTOOLTYPE "DEFUSER" "AVERAGE")  ; set the DEFUSER=AVERAGE tooltype
+              (SETTOOLTYPE "ALWAYSCONFIRM" "")  ; specify the ALWAYSCONFIRM
+    )
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node TRACE "TRACE"
+
+  Set a "Tracepoint" somewhere in the code. Use the function RETRACE or BACK
+  to jump to this point. You are allowed to set as many tracepoints as you want.
+
+  @{b}Template@{ub}
+    (TRACE)
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 0 (zero)
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    see @{"RETRACE" link RETRACE}
+
+  @{b}See also@{ub}
+    @{"RETRACE" link RETRACE}
+    @{"BACK" link BACK}
+
+@endnode
+@node TRANSCRIPT "TRANSCRIPT"
+
+  Write some text to the logfile.
+
+  @{b}Template@{ub}
+    (TRANSCRIPT [string]* )
+
+  @{b}Parameters@{ub}
+    [string] - the strings to write to the log. All strings will be concatenated
+               and appended by a linefeed.
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns the written text
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node TRAP "TRAP"
+
+  Used for catching errors. Works much like C "longset" function, i.e. when
+  an error occurs while interpreting the functions inside of the TRAP, control
+  is passed to the function rights after TRAP.
+  [flags] determine which errors are trapped. The trap function itself
+  returns the error type or zero if no error occurred.
+
+  @{b}Template@{ub}
+    (TRAP [flags] [fun]* )
+
+  @{b}Parameters@{ub}
+    [flags] - specify the error, which should be catched; valid error codes
+              are 1 - user abort
+                  2 - out of memory
+                  3 - error in script
+                  4 - DOS error
+                  5 - bad parameter data
+    [fun]   - the functions, which are interpreted inside of the TRAP
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns the error code itself or zero, if no error occured.
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    ; #errcode holds 1 in case of an error or 0, if no error occured
+    (SET #errcode (TRAP 1 ( /* do anything here, what should be trapped */ ))) @{fg fill}{NG}@{fg shine}
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node UNTIL "UNTIL"
+                                                                                           n
+  A list of functions will be executed until the condition holds (or: while
+  this condition does not hold)
+
+  @{b}Template@{ub}
+    (UNTIL [condition] [fun]* )
+
+  @{b}Parameters@{ub}
+    [condition] - a boolean expression
+    [fun]       - a list of functions which are executed as long as [condition] is FALSE
+                  (or until [condition] is TRUE)
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: depends
+    Returns the result of the last function
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (SET i 5)                      ; set a variable i to value 5
+    (UNTIL (= i 0)                 ; check whether i equals to zero
+           (                       ; if i doesnt equal to zero then:
+             (MESSAGE "i = " i)    ;   - print the value of i
+             (SET i (- i 1))       ;   - decrement i with 1
+           )
+    )
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node USER "USER"
+
+  Change the user mode. You must not SET the @user variable - use USER
+  for this.
+
+  @{b}Template@{ub}
+    (USER [level])
+
+  @{b}Parameters@{ub}
+    [level] - the new user level. Must be either 0 (or "novice"), 1 (or
+              "average") or 2 (or "expert")
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns [level]
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node WELCOME "WELCOME"
+
+  Use this function to show the Welcome panel of the Installer. If the
+  Installer cannot find WELCOME in your script, it pretends that its
+  first function is WELCOME and, thus, initially shows the Welcome panel.
+
+  Whithin the Welcome panel you select the User mode (Novice, Average or
+  Expert) and set the Logfile, the installation mode (Real or Pretend)
+  and with the InstallerNG you can also set advanced features.
+
+  In addition, WELCOME sets the @user-level and @pretend variables.
+
+  @{b}Template@{ub}
+    (WELCOME [string]* )
+
+  @{b}Parameters@{ub}
+    [string] - The string arguments are prepended to the standard help text
+               for whichever of the two initial displays appears first
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns the concatenated strings
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node WHILE "WHILE"
+
+  Execute a list of functions as long as a condition holds.
+
+  @{b}Template@{ub}
+    (WHILE [condition] [fun])
+
+  @{b}Parameters@{ub}
+    [condition] - a boolean expression
+    [fun]       - a list of functions which are executed as long as [condition] is TRUE
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: depends
+    Returns the result of the last function
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+    @{fg shine}
+    (SET i 5)                      ; set a variable i to value 5
+    (WHILE (> i 0)                 ; check whether i is greater then zero
+           (                       ; if i is greater than zero then:
+             (MESSAGE "i = " i)    ;   - print the value of i
+             (SET i (- i 1))       ;   - decrement i with 1
+           )
+    )
+    @{fg text}
+
+  @{b}See also@{ub}
+
+@endnode
+@node WORKING "WORKING"
+
+  The strings will be concatenated to form a message which will appear
+  below a standard line that reads "Working on Installation".  Useful if
+  you are doing a long operation other than file copying (which has its
+  own status display).
+
+  @{b}Template@{ub}
+    (WORKING [string]* )
+
+  @{b}Parameters@{ub}
+    [string] - the strings for the working text
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: STRING
+    Returns the text
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node XOR "XOR"
+
+  The logical "xor", i.e. XOR deliveres true if exactly one argument is true.
+
+  @{b}Template@{ub}
+    (XOR [value1] [value2])
+
+  @{b}Parameters@{ub}
+    [value1]
+    [value2] - the values which should logically be tested
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+    Type: NUMBER
+    Returns 1 for true and 0 for false
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+
+@node ALL "ALL"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node APPEND "APPEND"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node ASSIGNS "ASSIGNS"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node BACK "BACK"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+  @{b}See also@{ub}
+
+@endnode
+@node CHOICES "CHOICES"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node COMMAND "COMMAND"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node CONFIRM "CONFIRM"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node DEFAULT "DEFAULT"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node DELOPTS "DELOPTS"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node DEST "DEST"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node DISK "DISK"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node FILES "FILES"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node FONTS "FONTS"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node HELP "HELP"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node INCLUDE "INCLUDE"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node INFOS "INFOS"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node NEWNAME "NEWNAME"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node NEWPATH "NEWPATH"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node NOGAUGE "NOGAUGE"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node NOPOSITION "NOPOSITION"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node NOREQ "NOREQ"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node OPTIONAL "OPTIONAL"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node PATTERN "PATTERN"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node PROMPT "PROMPT"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node QUIET "QUIET"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node RANGE "RANGE"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node SAFE "SAFE"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node SETTOOLTYPE "SETTOOLTYPE"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node SETDEFAULTTOOL "SETDEFAULTTOOL"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node SETSTACK "SETSTACK"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node SOURCE "SOURCE"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+@node SWAPCOLORS "SWAPCOLORS"
+
+  @{b}Template@{ub}
+
+  @{b}Parameters@{ub}
+
+  @{b}Options@{ub}
+
+  @{b}Result@{ub}
+
+  @{b}Note@{ub}
+
+  @{b}Example@{ub}
+
+
+@endnode
+

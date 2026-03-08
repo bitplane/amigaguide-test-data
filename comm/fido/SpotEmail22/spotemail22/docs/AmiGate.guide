@@ -1,0 +1,1982 @@
+@database "AmiGate.guide"
+##$VER: AmiGate.guide 1.4d (8.8.95)
+
+@node Main "AmiGate Guide"
+=============================================================================
+                             - AmiGate -
+                  - A FidoNet <-> UUCP gateway package -
+                      ©1994-1995 Brian Munk Jacobsen
+                             POSTCARDWARE
+                  If you use it, please send a postcard.
+=============================================================================
+
+                       @{" Requirements                 " link REQUIREMENTS}
+                       @{" Introduction                 " link INTRODUCTION}
+                       @{" Setting up AmiGate           " link SETUP}
+
+                       @{" Theory of operation          " link THEORY}
+                       @{" The configuration files      " link CONFIG}
+                       @{" Command line arguments       " link CLIARGS}
+
+                       @{" Trouble-shooting / FAQ       " link TROUBLESHOOTING}
+
+                       @{" How to get new versions      " link NEWVERSIONS}
+                       @{" Acknowledgements             " link THANKSTO}
+                       @{" Hall of Fame                 " link REGISTER}
+
+                       @{" Copyright                    " link COPYRIGHT}
+                       @{" Disclaimer                   " link DISCLAIMER}
+                       @{" Bug Reports                  " link BUGREPORTS}
+                       @{" Support                      " link SUPPORT}
+                       @{" Todo...                      " link TODO}
+
+                       @{" Changes Log                  " link CHANGES}
+@endnode
+
+##---------------------------------------------------------------------
+@node REQUIREMENTS "Requirements"
+
+                            @{b}>> Requirements <<@{ub}
+
+AmiGate requires:
+
+1) Kickstart 37.175 or higher.
+
+2) AmigaUUCP version 1.17 (1.16 will work, but generates dubious headers. See
+   @{" Trouble-shooting / FAQ " link TROUBLESHOOTING} ).
+   Will also work with AmiTCP/INetUtils with a bit of tweaking. See
+   @{" Trouble-shooting / FAQ " link TROUBLESHOOTING}.
+   
+3) FidoNet editor/tosser of your choice. (@{" Spot " LINK THANKSTO} recommended for private
+   usage)
+
+4) traplist.library version 4 or higher. 
+
+5) Last but not least, knowledge of the inner workings of both UUCP and
+   FidoNet. If you are not confident with both your UUCP and FidoNet stuff
+   please put AmiGate in your Trashcan and forget you ever saw it. ;-)
+@endnode
+
+##---------------------------------------------------------------------
+@node INTRODUCTION "Introduction"
+
+                            @{b}>> Introduction <<@{ub}
+
+After receiving a UseNet account and spending some time testing the available
+news-readers and Email-readers on the scene, I found that none of these
+fulfilled my needs.
+
+Since the newly developed FidoNet editor/tosser @{" Spot " LINK THANKSTO} was able to handle
+FidoNet<->UUCP gated news/mail quite nicely, I decided to use this to
+read/write news/Emails.
+
+Only thing missing was a gateway program, that fulfilled _my_ needs. So I
+wrote this thingy. Hope you like it too.
+
+Basically AmiGate will convert your UUCP news/Emails into FidoNet
+netmail/echomail and the other way around. That's it.
+
+Here's a list of some of the features, for a more detailed explanation
+of the inner workings, see @{" Theory of operation " link THEORY}:
+
+ o Public or private gating.
+ o Fully FidoNet FTS/FSC compliant.
+ o Direct support for DLG user.data.
+ o Mailing list <-> Echomail conversion.
+ o Crosspostings can be ignored (Eg. only posted to the first matching area.)
+ o MIME-support (also for quoted-printable).
+ o Will not post to moderated areas but instead send email to moderator.
+ o FidoNet bouncing. Will inform sender if something goes wrong.
+ o Optional accounting for emails.
+ o Total customization of how to port the headers in UUCP messages.
+
+Even if you don't have a FidoNet address, using it together with Spot
+(a very nice FidoNet editor by Nico Francois) is much more pleasing than
+using the mail and news readers available on the Amiga. (Please note that
+this is my personal opinion ;-)
+
+And I'm not the only one...
+
+*** Area: SPOT                                    Date: 27 Jul 94  0:34:15
+*** From: Nico Francois (2:292/603.10)
+*** To  : Peter Lavender
+*** Subj: UUCP mail version?
+
+Check out what Peter wrote on 23 Jul 94 in a message to me:
+
+ PL> I guess that you have prolly been asked this a million times....but is
+ PL> there going to be a UUCP version of Spot? Or will that not happen due
+ PL> to the way usenet newsgroups are handled?
+
+I @{b}have@{ub} been asked this very question a lot yes :-)  And my answer is: check
+out AmiGate by Brian Jacobsen (brj@boble.ping.dk), @{b}excellent@{ub} gating software!
+
+I use Spot for e-mail and usenet newsgroups every day.  Works like a charm.
+
+                      _o
+   Nico Francois       #>    Software Engineer SCALA
+   <nico@augfl.be>     4     [SPOT moderator]
+
+... Some say it's true, And some say it's a fable
+--- Spot 1.2d #1
+ * Origin: -*- Spot Development -*- (2:292/603.10)
+@endnode
+
+##---------------------------------------------------------------------
+@node SETUP "Setting up AmiGate..."
+
+                         @{b}>> Setting up AmiGate <<@{ub}
+
+  Change the configs to your liking.
+
+  Test the setup using some backups of your incoming UUCP mail.
+
+  Always keep backups of your mail...
+
+  When your setup is working you can change the UUXQT variable in
+  UULIB:Config to point to a script-file that look like this instead:
+
+  If you run AmigaUUCP by Dillon (currently maintained by Michael B. Smith)
+
+	UUCP:C/GateMail.script
+		UUCP:c/AmiGate
+		UUCP:c/uuxqt
+
+  If you use the UUXQT by Kai 'wusel' Siering, use this:
+
+	UUCP:C/GateMail.script
+		.key command/f
+		.bra {
+		.ket }
+		getenv gating
+
+		if WARN
+			setenv gating true
+			UUCP:c/AmiGate
+			UUCP:c/uuxqt
+			unsetenv gating
+		endif
+
+@endnode
+##---------------------------------------------------------------------
+@node THEORY "Theory of operation"
+
+                         @{b}>> Theory of operation <<@{ub}
+
+  @{" FidoNet -> UUCP    " LINK FUDIAGRAM}  Gating from FidoNet to UUCP.
+  @{" UUCP    -> FidoNet " LINK UFDIAGRAM}  Gating from UUCP to FidoNet.
+
+@endnode
+##---------------------------------------------------------------------
+@node FUDIAGRAM "Gating FidoNet to UUCP"
+
+                         @{b}>> Gating FidoNet to UUCP <<@{ub}
+
+                                Connected nodes
+                                      
+                                      |
+                                      V
+
+                                Your mailprocessor
+                                tosses the mail and
+                             sends it to @{" GATEADDRESS " LINK GATEADDRESS}
+                               Filename: @{" FIDOTOUUCP " LINK FIDOTOUUCP}
+                                      
+                                      |
+                                      V
+
+                           AmiGate processes messages
+                                      
+                                      |
+                                      V
+                                                  No
+                                 Listed @{" USER " LINK USER}? ------> Bounce it
+
+                      EchoMail        |         NetMail
+                      _______________/ \\________________
+                      |                                |
+                      V                                |
+           No                                          |
+Bounce it<----- Listed @{" AREA " LINK AREA}?                        |
+                                                       |
+                 Yes  |                                |
+                      V                                |
+                                   Yes Email moderator |
+               NewsGroup moderated?  ----------------> |
+                                                       |
+                  No  |                                |
+                      V                                V
+
+                Call @{" SENDNEWS " LINK SENDNEWS}             Call @{" SENDMAIL " LINK SENDMAIL}
+                Call @{" BATCHNEWS " LINK BATCHNEWS}
+
+                      |                                |
+                      \\______________   _______________/
+                                     \\ /
+                                      V
+
+                               if @{" DELETEPACKET " LINK DELETEPACKET}
+                            Delete the FidoNet packet
+
+
+@endnode
+##---------------------------------------------------------------------
+@node UFDIAGRAM "Gating UUCP to FidoNet"
+
+                         @{b}>> Gating UUCP to FidoNet <<@{ub}
+
+                                Feeding site
+                                      
+                                      |
+                                      V
+                                      
+                              @{" UUSPOOLDIR " LINK UUSPOOLDIR}:X.#?
+                                      
+                                      |
+                                      V
+
+                                   AmiGate
+
+                      News            |           Email
+                      _______________/ \\________________
+                      |                                |
+                      V                                V
+                                                                 No
+                if compressed                     Listed @{" USER " LINK USER}? -----> Leave Mail
+            call @{" UNCOMPRESSBATCH " LINK UNCOMPRESSBATCH}
+
+                      |                                |
+                      V                                V
+
+           No                                    Convert to PKT
+ Drop it <----- Listed @{" AREA " LINK AREA}?                       in @{" INBOUND " LINK INBOUND}
+
+                      |                                |
+                      V                                |
+                                                       |
+                Convert to PKT                         |
+                 in @{" INBOUND " LINK INBOUND}                         |
+                                                       |
+                      |                                |
+                      V                                |
+                                                       |
+                  if @{" RNEWS " LINK RNEWS}                          |
+                 execute RNEWS                         |
+              (Puts news in UUNEWS:)                   |
+                                                       |
+                      \\______________   _______________/
+                                     \\ /
+                                      V
+
+                              Your mailprocessor
+                             processes the packets
+
+@endnode
+##---------------------------------------------------------------------
+@node CONFIG "The configuration files:"
+
+AmiGate will search for it's configuration files first in PROGDIR: (the
+directory where AmiGate resides) and then in MAIL:.
+
+You can always override this by starting AmiGate with a @{" CONFIGDIR " LINK CONFIGDIR}
+
+                         @{b}>> The configuration files: <<@{ub}
+
+   @{" AmiGate.config " LINK AMIGATECONFIG}  The configuration file
+   @{" AmiGate.areas  " LINK AMIGATEAREAS }  List of areas to gate
+   @{" AmiGate.users  " LINK AMIGATEUSERS }  Users file
+@endnode
+
+##---------------------------------------------------------------------
+@node AMIGATECONFIG "AmiGate.config keywords:"
+
+                         @{b}>> AmiGate.config keywords: <<@{ub}
+
+  @{" ACCFILE         " LINK ACCFILE}  Logfile for accounting information.
+  @{" AKASITE         " LINK AKASITE}  Optional AKA UUCP site name.
+  @{" AUTOAREA        " LINK AUTOAREA}  Adds areas on the fly. Useless.
+  @{" BATCHNEWS       " LINK BATCHNEWS}  Fully qualified name of your BatchNews executable
+  @{" BLANKLINE       " LINK BLANKLINE}  Insert blank line in FidoNet messages?
+  @{" CONSOLELEVEL    " LINK CONSOLELEVEL}  Consolelevel
+  @{" CROSSPOST       " LINK CROSSPOST}  CrossPosting?
+  @{" DELETENEWSFROMUS" LINK DELETENEWSFROMUS}  Delete news being "bounced" back?
+  @{" DELETEPACKET    " LINK DELETEPACKET}  Delete FidoNet packet after processing?
+  @{" DELETEUUCPMAIL  " LINK DELETEUUCPMAIL}  Delete incoming Emails after processing?
+  @{" DELETEUUCPNEWS  " LINK DELETEUUCPNEWS}  Delete incoming News after processing?
+  @{" DLGMODE         " LINK DLGMODE}  Check DLG user account
+  @{" FAKENET         " LINK FAKENET}  If your tosser needs a fakenet address.
+  @{" FIDOTOUUCP      " LINK FIDOTOUUCP}  FidoNet packetfile name.
+  @{" GATEADDRESS     " LINK GATEADDRESS}  The "fake" FidoNet address of the Gate.
+  @{" HEADERTEXT      " LINK HEADERTEXT}  Puts header information of your choice in UUCP messages.
+  @{" INBOUND         " LINK INBOUND}  Your FidoNet inbound directory
+  @{" KLUDGE          " LINK UFHEADERS}  UUCP Message headers that will be IFNA kludged.
+  @{" LINEBREAK       " LINK LINEBREAK}  Break FidoNet messages to 79 characters?
+  @{" LOGFILE         " LINK LOGFILE}  Name of the logfile
+  @{" LOGLEVEL        " LINK LOGLEVEL}  Loglevel
+  @{" MAXMSGSIZE      " LINK MAXMSGSIZE}  Maximum size of U->F messages (split at this size)
+  @{" NAUGHTYREPLY    " LINK NAUGHTYREPLY}  Don't use it. Generates illegal FidoNet kludges
+  @{" NEWSSERVER      " LINK NEWSSERVER}  For news to mail services.
+  @{" NODEADDRESS     " LINK NODEADDRESS}  Your FidoNet address.
+  @{" NOREPLYADDR     " LINK NOREPLYADDR}  Don't use the REPLYADDR kludge.
+  @{" ORGANIZATION    " LINK ORGANIZATION}  Organization header of UseNet messages.
+  @{" ORIGIN          " LINK ORIGIN}  FidoNet Origin line contents
+  @{" PACKETAPPEND    " LINK PACKETAPPEND}  Append U->F messages to existing packets.
+  @{" PORT            " LINK UFHEADERS}  UUCP Message headers that will be ported.
+  @{" PUBLIC          " LINK PUBLIC}  Do you want public gating?
+  @{" RNEWS           " LINK RNEWS}  Fully qualified name of RNews
+  @{" SENDMAIL        " LINK SENDMAIL}  Fully qualified name of SendMail
+  @{" SENDNEWS        " LINK SENDNEWS}  Fully qualified name of RNews
+  @{" SITE            " LINK SITE}  Your complete UUCP site name.
+  @{" STATICORIGIN    " LINK STATICORIGIN}  Always use the text from ORIGIN.
+  @{" STRIP           " LINK UFHEADERS}  UUCP Message headers that will be stripped.
+  @{" TEMPDIR         " LINK TEMPDIR}  Directory for temporary files.
+  @{" TIMEZONE        " LINK TIMEZONE}  Timezone
+  @{" UNCOMPRESSBATCH " LINK UNCOMPRESSBATCH}  Fully qualified name of UnCompressBatch
+  @{" USEORIGID       " LINK USEORIGID}  German kludge for gating U->F messages.
+  @{" UUSPOOLDIR      " LINK UUSPOOLDIR}  Your UUSPOOL directory.
+  @{" XENOLINK        " LINK XENOLINK}  Ignore packet sender and always use INTL: kludge
+
+@endnode
+##---------------------------------------------------------------------
+@node ACCFILE "ACCFILE"
+
+                          @{b}>> ACCFILE <<@{ub}
+
+This keyword allows you to put accounting log information in a different file
+than @{" LOGFILE " LINK LOGFILE}.
+
+@{b}ACCFILE "Logs:AmiGateAcc.log"@{ub}
+
+NOTE: You still have to set the @{" LOGLEVEL " LINK LOGLEVEL} high enough to include accounting
+information.
+@endnode
+
+##---------------------------------------------------------------------
+@node AUTOAREA "AUTOAREA"
+
+                          @{b}>> AUTOAREA <<@{ub}
+
+AUTOAREA will cause areas not listed in the AmiGate.areas to be added
+on the fly. If you gate all newsgroups this can save you from having to
+maintenance the AmiGate.areas file. This is only useful with the
+@{" CROSSPOST " LINK CROSSPOST} switched on.
+
+Areas will be added on the fly as 
+
+ AREA + <usenetconferencename> <usenetconferencename>
+
+Okay Brian, the idea was good but in real life this keyword is useless,
+since it will create an echomail for every bleeding newsgroup in the
+newsgroups header.
+
+@{b}AUTOAREA@{ub}
+
+@endnode
+
+##---------------------------------------------------------------------
+@node PACKETAPPEND "PACKETAPPEND"
+
+                          @{b}>> PACKETAPPEND <<@{ub}
+
+PACKETAPPEND will make AmiGate append U->F messages to existing packets
+your INBOUND directory.
+
+It traverses the INBOUND directory looking for a packet which is smaller
+than 100 KB. If it exists gated messages will be appended to this packet,
+if not a new packet will be created.
+
+If you use AmiGate together with AmiTCP/NNTPXfer please set this or else
+you will get a PKT file for each news-file.
+
+@{b}PACKETAPPEND@{ub}
+
+@endnode
+
+##---------------------------------------------------------------------
+@node SITE "SITE"
+
+                          @{b}>> SITE <<@{ub}
+
+This should contain your UUCP sitename. My Email-address is
+<brj@boble.ping.dk> so I set the SITE variable like this:
+
+@{b}SITE "boble.ping.dk"@{ub}
+
+When AmiGate traverses your @{" UUSPOOLDIR " LINK UUSPOOLDIR} looking for files, it will
+only process messages bound for this site and the optional @{" AKASITE " LINK AKASITE}.
+@endnode
+##---------------------------------------------------------------------
+@node AKASITE "AKASITE"
+
+                          @{b}>> AKASITE <<@{ub}
+
+Optional AKASITE name. This keyword is normally not neccesary.
+
+@{b}AKASITE "blob.ping.dk"@{ub}
+
+When AmiGate traverses your @{" UUSPOOLDIR " LINK UUSPOOLDIR} looking for files, it will
+process messages bound for this site as well as the site specified in @{" SITE " LINK SITE}.
+@endnode
+
+##---------------------------------------------------------------------
+@node TEMPDIR "TEMPDIR"
+
+                          @{b}>> TEMPDIR <<@{ub}
+
+When AmiGate creates temporary files, it will store them in this directory.
+This will also be used when invoking @{" UNCOMPRESSBATCH " LINK UNCOMPRESSBATCH}.
+
+If you see AmiGate run out of memory, then try changing this to your harddisk.
+
+@{b}TEMPDIR "T:"@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node UUSPOOLDIR "UUSPOOLDIR"
+
+                          @{b}>> UUSPOOLDIR <<@{ub}
+
+This is the directory AmiGate traverses when looking for incoming UUCP
+Emails and News-batches. Defaults to UUSPOOL:
+
+You may need to change this if you have subdirectories for each site in your
+UUSPOOL:
+
+@{b}UUSPOOLDIR "UUSPOOL:"@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node HEADERTEXT "HEADERTEXT"
+
+                          @{b}>> HEADERTEXT <<@{ub}
+
+You can use the HEADERTEXT to put a headertext in all UUCP-messages
+coming from your site.
+
+Use at your own risk. Potentionally dangerous, since you can use this
+to create headers that are non-RFC conforming.
+
+Under normal circumstances there is no need to use HEADERTEXT.
+
+It accepts some limited format specifiers:
+
+ %n inserts the users email-address (without sitename appended).
+ %N inserts the users real name.
+ %s inserts your SITENAME.
+ %% inserts a % character.
+ \\n inserts a newline character.
+
+It is for instance useful to generate a different Reply-To: header.
+
+NOTE: If you use it to generate a different Reply-To: header you should
+      use @{b}HEADERTEXT "Reply-To: %n@%s (%N)"@{ub} otherwise it won't conform
+      with the RFC's.
+
+@{b}HEADERTEXT "Reply-To: %n@%s (%N)\\nX-CrazyHeader: Afternoons and coffeespoons"@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node FIDOTOUUCP "FIDOTOUUCP"
+
+                          @{b}>> FIDOTOUUCP <<@{ub}
+
+This is the name of the FidoNet packet, in which AmiGate will look for F->U
+messages.
+
+If your tosser creates a packet named: 2.999.99.0.OUT you would set this to:
+
+@{b}FIDOTOUUCP "Mail:OutBound/2.999.99.0.OUT"@{ub}
+
+You can override this via the @{" GATEPKT " LINK GATEPKT} argument.
+@endnode
+
+##---------------------------------------------------------------------
+@node DELETENEWSFROMUS "DELETENEWSFROMUS"
+
+                          @{b}>> DELETENEWSFROMUS <<@{ub}
+
+When using a news to mail gateway, you might get your news postings tossed
+back at you. If you specify:
+
+@{b}DELETENEWSFROMUS@{ub}
+
+AmiGate will ignore news from your feed that has a user on your SITE as a
+sender. 
+
+Under normal circumstances you won't need this.
+@endnode
+
+##---------------------------------------------------------------------
+@node DELETEPACKET "DELETEPACKET"
+
+                          @{b}>> DELETEPACKET <<@{ub}
+
+If this keyword is specified, AmiGate will delete the FidoNet packet
+@{" FIDOTOUUCP " LINK FIDOTOUUCP} after processing.
+
+While setting up AmiGate you may choose to comment out this keyword, so the
+packet won't be deleted after processing.
+
+If anything goes wrong during gating, the packet will NOT be deleted.
+
+@{b}DELETEPACKET@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node NEWSSERVER "NEWSSERVER"
+
+                          @{b}>> NEWSSERVER <<@{ub}
+
+If you are using a servide that won't allow you to post news as news (like
+demon in the UK) you can use this option in conjunction with the "N" option
+in the areas setting to have the news posted from your site gated into an
+email with the name of this server appended.
+
+An example:
+
+You have NEWSSERVER set to:
+
+@{b}NEWSSERVER "news.demon.co.uk"@{ub}
+
+And in your AmiGate.areas:
+
+@{b}AREA N alt.fan.jello-biafra AF.JELLO@{ub}
+
+Messages written in the AF.JELLO FidoNet echo will be sent as email to:
+
+<alt.fan.jello-biafra@news.demon.co.uk>
+
+See also @{" AREA " LINK AREA}
+@endnode
+
+##---------------------------------------------------------------------
+@node NODEADDRESS "NODEADDRESS"
+
+                          @{b}>> NODEADDRESS <<@{ub}
+
+This should be set to your FidoNet address. So if your FidoNet address
+is "2:236/19.0" set this to:
+
+@{b}NODEADDRESS "2:236/19.0"@{ub}
+
+If you are a point and only run AmiGate to be able to use your FidoNet
+editor for reading and writing News/Emails, you probably want to set
+this to a point-address.
+@endnode
+
+##---------------------------------------------------------------------
+@node NOREPLYADDR "NOREPLYADDR"
+
+                          @{b}>> NOREPLYADDR <<@{ub}
+
+Some BBS software/FidoNet editors do not support the REPLYADDR kludge as
+described in FSC-0035.
+If you specify
+
+@{b}NOREPLYADDR@{ub}
+
+AmiGate will try to put the email address of the sender into the FidoNet
+To: field instead of the real name. If the email-address is longer than
+the 36 characters allowed in the FidoNet To: field, it will use the
+REPLYADDR kludge anyway.
+
+Don't use it if you don't need it.
+@endnode
+
+##---------------------------------------------------------------------
+@node FAKENET "FAKENET"
+
+                          @{b}>> FAKENET <<@{ub}
+
+If your tosser needs a fakenet SEEN-BY on FidoNet Echomail messages
+then specify your fakenet here:
+
+@{b}FAKENET "1019"@{ub}
+
+@endnode
+
+##---------------------------------------------------------------------
+@node GATEADDRESS "GATEADDRESS"
+
+                          @{b}>> GATEADDRESS <<@{ub}
+
+Set this to the "fake" FidoNet address assigned to the gate.
+
+If you set up the gate as "2:236/19.1":
+
+@{b}GATEADDRESS "2:236/19.1"@{ub}
+
+Your tosser should toss U->F messages to this address.
+If you are running a node this will usually be a point address.
+@endnode
+
+##---------------------------------------------------------------------
+@node ORIGIN "ORIGIN"
+
+                          @{b}>> ORIGIN <<@{ub}
+
+When gating UUCP news to a FidoNet area, then under normal circumstances
+the Origin line will be set to the Organization header.
+
+For messages without an Organization header, the contents of this
+setting will be used:
+
+@{b}ORIGIN "Boblebadet"@{ub}
+
+If you always want to use this text then specify @{" STATICORIGIN " LINK STATICORIGIN} as well.
+
+@endnode
+
+##---------------------------------------------------------------------
+@node STATICORIGIN "STATICORIGIN"
+
+                          @{b}>> STATICORIGIN <<@{ub}
+
+When gating UUCP news to a FidoNet area, then under normal circumstances
+the Origin line will be set to the Organization header.
+
+This switch will cause AmiGate to always use the text from @{" ORIGIN " LINK ORIGIN}.
+
+@{b}STATICORIGIN@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node ORGANIZATION "ORGANIZATION"
+
+                          @{b}>> ORGANIZATION <<@{ub}
+
+This will be put into the Organization: header for all messages coming
+from AmiGate when gating FidoNet to UUCP.
+
+@{b}ORGANIZATION "Boblebadet, Copenhagen, Denmark"@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node CROSSPOST "CROSSPOST"
+
+                          @{b}>> CROSSPOST <<@{ub}
+
+If you are running a public gate, you should specify
+
+@{b}CROSSPOST@{ub}
+
+Comment out this line and crossposted messages will only be gated to the first
+matching FidoNet area (very useful is you run a private site and don't want to
+look at all these MB crossposts).
+@endnode
+
+##---------------------------------------------------------------------
+@node LINEBREAK "LINEBREAK"
+
+                          @{b}>> LINEBREAK <<@{ub}
+
+The following is to support STUPID UseNet news readers
+which cannot figure out how to break lines that are too long.
+
+LINEBREAK will cause an EXPLICIT line break to be inserted into
+any line which is longer than 80 characters. This slows down F->U gating
+a bit.
+
+@{b}LINEBREAK@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node INBOUND "INBOUND"
+
+                          @{b}>> INBOUND <<@{ub}
+
+Set this to your FidoNet inbound directory. AmiGate will place its
+FidoNet packets there.
+
+@{b}INBOUND "Mail:Inbound"@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node TIMEZONE "TIMEZONE"
+
+                          @{b}>> TIMEZONE <<@{ub}
+
+Set this to the TimeZone of your country. Set it to the same as your
+UULIB:Config TimeZone setting.
+
+@{b}TIMEZONE "CET"@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node BATCHNEWS "BATCHNEWS"
+
+                          @{b}>> BATCHNEWS <<@{ub}
+
+If BATCHNEWS is specified, AmiGate will invoke BATCHNEWS after gating
+the echomail messages for UseNet conferences.
+
+Comment it out, if you want manual processing.
+
+@{b}BATCHNEWS "uucp:c/batchnews"@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node RNEWS "RNEWS"
+
+                          @{b}>> RNEWS <<@{ub}
+
+If RNEWS is specified, AmiGate will invoke Rnews after gating
+the messages in a UUCP newsbatch to FidoNet.
+
+The advantage of getting AmiGate to invoke Rnews instead of letting
+UUXQT handle this is that the News-batch won't have to be decompressed
+twice.
+
+Comment it out, if you want manual processing.
+
+@{b}RNEWS "uucp:c/rnews -h -t T:"@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node SENDNEWS "SENDNEWS"
+
+                          @{b}>> SENDNEWS <<@{ub}
+
+AmiGate will use RNews when gating FidoNet echomail to a UseNet conference.
+
+Where to find it:
+
+@{b}SENDNEWS "uucp:c/rnews -h -p -t T:"@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node SENDMAIL "SENDMAIL"
+
+                          @{b}>> SENDMAIL <<@{ub}
+
+AmiGate will use SendMail when gating FidoNet netmail to a UUCP Emails.
+
+Use
+
+@{b}SENDMAIL "uucp:c/sendmail -R \\"\\" <"@{ub}
+
+for AmigaUUCP 1.17
+@endnode
+
+##---------------------------------------------------------------------
+@node UNCOMPRESSBATCH "UNCOMPRESSBATCH"
+
+                          @{b}>> UNCOMPRESSBATCH <<@{ub}
+
+Fully qualified name of your UnCompressBatch executable.
+
+@{b}UNCOMPRESSBATCH "uucp:c/uncompressbatch"@{ub}
+
+Please note that the current version of UnCompressBatch does ONLY handle
+compressed News. If you are receiving News that are GZip'ed or LhA'ed,
+you'll need to dearchive them manually before starting AmiGate.
+
+NOTE: A version of UnCompressBatch that support GZip'ed news is available
+      from me.
+@endnode
+
+##---------------------------------------------------------------------
+@node DELETEUUCPMAIL "DELETEUUCPMAIL"
+
+                          @{b}>> DELETEUUCPMAIL <<@{ub}
+
+Do you want AmiGate to delete succesfully gated Emails from UUSPOOL: after
+processing then specify:
+
+@{b}DELETEUUCPMAIL@{ub}
+
+Comment out this line if you want to keep them for manual processing.
+
+NOTE: AmiGate will never delete undelivered mail. So if you have set up BMS
+      on your system, don't worry. AmiGate will not delete these.
+@endnode
+
+##---------------------------------------------------------------------
+@node DELETEUUCPNEWS "DELETEUUCPNEWS"
+
+                          @{b}>> DELETEUUCPNEWS <<@{ub}
+
+Do you want AmiGate to delete succesfully gated news from UUSPOOL: after
+processing then specify:
+
+@{b}DELETEUUCPNEWS@{ub}
+
+Comment out this line if you want to keep them for manual processing.
+
+NOTE: If you have specified @{" RNEWS " LINK RNEWS} then the news files will
+      always be deleted, so this only makes sense, if RNEWS is left out.
+@endnode
+
+##---------------------------------------------------------------------
+@node NAUGHTYREPLY "NAUGHTYREPLY"
+
+                          @{b}>> NAUGHTYREPLY <<@{ub}
+
+Normally AmiGate generates FidoNet MSGID kludges that look like this:
+
+^MSGID: 2:999/99.0 E5CD71A1
+
+If you specify:
+
+@{b}NAUGHTYREPLY@{ub}
+
+AmiGate will generate header and kludges differently:
+
+1) UseNet->FidoNet: "Message-ID:" header will be translated to "^MSGID:" kludge
+2) FidoNet->UseNet: "^REPLY:" kludge will be translated to "References:" header
+                    for news and "In-Reply-To:" for Emails.
+
+@{b}This breaks just about every law there is in FidoNet. Don't use it, if you're
+gating for anybody else but yourself. Don't say I didn't warn you.@{ub}
+
+On the other hand, this will cause thread reading to be available on the UseNet
+side and Spot for instance is able to handle these illegal kludges.
+@endnode
+
+##---------------------------------------------------------------------
+@node USEORIGID "USEORIGID"
+
+                          @{b}>> USEORIGID <<@{ub}
+
+If you specify:
+
+@{b}USEORIGID@{ub}
+
+AmiGate will translate:
+
+1) UseNet->FidoNet: "Message-ID:" header will be translated to "^ORIGID:" kludge
+
+2) FidoNet->UseNet: "^ORIGID" kludge will be translated to "Message-ID:" header
+
+This is a german extension to the FSC (FidoNet proposals). Don't use it if you
+don't need it.
+@endnode
+
+##---------------------------------------------------------------------
+@node LOGFILE "LOGFILE"
+
+                          @{b}>> LOGFILE <<@{ub}
+
+The file AmiGate will use for logging:
+
+@{b}LOGFILE "Logs:AmiGate.log"@{ub}
+
+All messages from AmiGate will be logged in this file.
+
+This is what the logfile may look like:
+
+! 16-Feb-94 21:18:13  AmiGate 1.2c started
+! 16-Feb-94 21:18:13  U->F: Email from "kleis@mink.ping.dk" sent to "Brian Jacobsen"
+$ 16-Feb-94 21:18:13  U->F: # 2:999/99.9 # 1194 # kleis@mink.ping.dk
+| 16-Feb-94 21:18:20  U->F: 23 Msgs, 1 NetMail, 22 EchoMail.
+| 16-Feb-94 21:18:20  F->U: 0 Msgs, 0 NetMail, 0 EchoMail.
+! 16-Feb-94 21:18:20  AmiGate 1.2c ended
+
+You can adjust the amount of information in the logfile by setting the
+@{" LOGLEVEL " LINK LOGLEVEL}.
+@endnode
+
+##---------------------------------------------------------------------
+@node LOGLEVEL "LOGLEVEL"
+
+                          @{b}>> LOGLEVEL <<@{ub}
+
+This allows you to specify how much info you want in your @{" LOGFILE " LINK LOGFILE}.
+
+The levels are:
+
+0 Error                  LogChar "+" 
+1 Warnings               LogChar "-"
+2 General info           LogChar "|" 
+3 Detailed info          LogChar "!"
+4 Accounting             LogChar "$"
+5 General debug          LogChar "#" 
+6 Detailed debug         LogChar "*"
+
+@{b}LOGLEVEL 4@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node CONSOLELEVEL "CONSOLELEVEL"
+
+                          @{b}>> CONSOLELEVEL <<@{ub}
+
+This allows you to specify how much info AmiGate will output to the console.
+
+See @{" LOGLEVEL " LINK LOGLEVEL} for a description of the levels.
+
+@{b}CONSOLELEVEL 6@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node MAXMSGSIZE "MAXMSGSIZE"
+
+                          @{b}>> MAXMSGSIZE <<@{ub}
+
+This allows you to specify the maximum size (bytes) of messages that will be gated.
+
+This only applies to U->F gating.
+
+Only the size of the message text is measured, so set it a few hundred bytes
+lower to account for the message header and trailer.
+
+Messages that exceeds this size will be split.
+
+If you comment out this keyword or set it to 0 no size splitting will be done.
+
+To prevent you from doing something stupid ;-) values lower than 1000 will be
+ignored.
+
+@{b}MAXMSGSIZE 10240@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node PUBLIC "PUBLIC"
+
+                          @{b}>> PUBLIC <<@{ub}
+
+AmiGate will normally only gate from users listed in @{" AmiGate.users " LINK AMIGATEUSERS}.
+
+But AmiGate can be configured to be a public gate if you like.
+ 
+Specify PUBLIC and the type.
+
+0 This is the same as leaving out the PUBLIC keyword.
+  AmiGate will only gate to and from users in the AmiGate.users file.
+
+1 Public gating with FTN style addressing for both news and emails.
+  AmiGate will the search the AmiGate.users file before falling back to FTN
+  style adressing.
+
+2 Same as no. 1 but Fidonet users not listed in the AmiGate.users file will
+  only be allowed to send news (no emails).
+
+3 Public gating with site style addressing for both news and emails.
+  AmiGate will the search the AmiGate.users file before falling back to site
+  style adressing.
+
+
+@{b}PUBLIC 0@{ub}
+
+Example:
+
+If the PUBLIC keyword is set to 1 and a FidoNet user called "Brian Jacobsen"
+at 2:236/19.73 writes an email to the gate and he's not listed then his
+email-address will become:
+
+<Brian.Jacobsen@p73.f19.n236.z2.fidonet.org>
+
+If the PUBLIC keyword is set to 3 and a FidoNet user called "Brian Jacobsen"
+at 2:236/19.73 writes an email to the gate and he's not listed then his
+email-address will become:
+
+<Brian.Jacobsen@p73.f19.n236.z2.boble.ping.dk>
+
+@endnode
+##---------------------------------------------------------------------
+@node DLGMODE "DLGMODE"
+
+                          @{b}>> DLGMODE <<@{ub}
+
+When determining whether a user is allowed to use the gate AmiGate normally
+only searches the AmiGate.users file.
+
+Specifying DLGMODE causes AmiGate to also check the UUCP flag in
+USER:uucpname/User.Data as used by DLG.
+
+If the UUCP flag is set to 2 then the user will be allowed to post.
+
+Here is the flow-chart:
+
+                        @{b}>> FidoNet->UUCP <<@{ub}
+
+- Check the fido address, if NOT equal to the NODEADDRESS then proceed as now.
+
+- If the address is the NODEADDRESS then the msg was written from the BBS
+  so check user bbs access:
+  - compute uucpname by replacing all space in the [From] field by a '_'
+    (Example: A msg is from "Brian Jacobsen", uucpname ='Brian_Jacobsen')
+    - if user:uucpname/User.Data exists     /* where to get access flag */
+      - if UUCP flag is set /* then user has access */
+         - The user is allowed to write.
+  - if any of the above fail user does not have write access, bounce msg.
+
+                        @{b}>> UUCP->FidoNet <<@{ub}
+
+- Check if uucpname is found in amigate.users, if yes proceed as now
+
+- If uucpname is not found, then it might be for a bbs user so check access
+  flag datas by checking UUCP flag of user:uucpname/User.Data as above.
+
+- If this check fail or if user:uucpname/User.Data does not exist then the user
+  does not have uucp access so do not transmit. if check is successful then
+  compute realname by replacing '_' by space and transmit to the NODEADDRESS.
+@endnode
+
+##---------------------------------------------------------------------
+@node BLANKLINE "BLANKLINE"
+
+                          @{b}>> BLANKLINE <<@{ub}
+
+If you want a blank line in FidoNet messages after kludges but before the
+message text
++ a blank IFNA ^A kludge between "true" FidoNet kludges and KLUDGED
+UUCP headers specify:
+
+@{b}BLANKLINE@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node NOQP "NOQP"
+
+                          @{b}>> NOQP <<@{ub}
+
+Under normal circumstances AmiGate will send emails containing 8-bit charsets
+in MIME quoted-printable as the transportation layer of UUCP only guarantee
+preservation of 7 bits.
+
+This can be annoying for the user in the other end if his mail-reader does not
+support MIME.
+
+Therefore you can override this in two ways, first as a command-line switch
+in which case AmiGate will never send MIME quoted-printable.
+
+  1> @{b}AmiGate NOQP@{ub}
+
+Or second, you can specify NOQP in () after the To: user line when writing the
+To: user address in your Fidonet-editor.
+
+To: kleis@mink.ping.dk(NOQP)
+
+This will only override it for this email.
+@endnode
+
+##---------------------------------------------------------------------
+@node XENOLINK "XENOLINK"
+
+                          @{b}>> XENOLINK <<@{ub}
+
+Under normal circumstances AmiGate checks that the FidoNet packet to be
+gated is actually coming from your @{" NODEADDRESS " LINK NODEADDRESS}.
+
+And it will only put an INTL: kludge if the FidoNet zone destination of a
+netmail differs from your own zone.
+
+@{b}XENOLINK@{ub}
+
+will cause AmiGate to ignore who sent the packet (packetheader sender)
+and always put INTL: kludges on netmails.
+
+Only use this switch if you have to.
+@endnode
+
+##---------------------------------------------------------------------
+@node UFHEADERS "PORT, STRIP, KLUDGE"
+
+                          @{b}>> PORT, STRIP, KLUDGE <<@{ub}
+
+A special feature of AmiGate is the ability to specify exactly how you want
+UseNet headers converted when gating to FidoNet.
+
+@{b}PORT@{ub}
+
+The header will be ported directly to FidoNet and become part of the message
+text.
+
+@{b}STRIP@{ub}
+
+The header will be stripped from the FidoNet message.
+
+@{b}KLUDGE@{ub}
+
+The header will be ported to FidoNet but hidden with an IFNA kludge (^A).
+
+In general, if you're running a public gate, then you'd probably want STRIP
+as the default.
+
+Perhaps the best way to show how this works is with an example. I received
+the following Email:
+
+-----------------------------------------------------------------------------
+From mink.ping.dk!kleis Wed Dec 15 21:59:01 1993
+Received: from mink by ic1.ic.dk with UUCP id AA15015
+  (5.65c8/IDA-1.4.4j); Wed, 15 Dec 1993 21:53:20 +0100
+Received: by mink.ping.dk (V1.16/wusel)
+	  id <0jgu@mink.ping.dk>; Wed, 15 Dec 93 21:19:52 CET
+Date: Wed, 15 Dec 93 21:19:52 CET
+Message-Id: <9312152019.0jgt@mink.ping.dk>
+From: kleis@mink.ping.dk (Klaus Alexander Seistrup)
+To: brj@boble.ping.dk
+Subject: Test
+X-Charset: ISO_8859-1
+X-Char-Esc: 29
+
+Test.......................................
+
+-----------------------------------------------------------------------------
+
+
+
+Assuming my AmiGate.config looks like this:
+-----------------------------------------------------------------------------
+; First specify the default:
+STRIP
+;
+; Now specify exceptions to the default:
+;
+PORT "Received:"
+PORT "Subject:"
+KLUDGE "X-Charset:"
+-----------------------------------------------------------------------------
+
+
+
+Then the FidoNet message will look like this:
+-----------------------------------------------------------------------------
+XPkt v1.0 - Examine FidoNet *.PKT-files.
+©1992 Fredrik Kjellberg 2:203/416@FidoNet
+
+- PKTHEADER -----------------------------------------------------------------
+Header type: FSC-0039
+Orig adr   : 2:999/99.0
+Dest adr   : 2:999/99.9
+Created    : 1994-02-21 20:14:19
+Prod Code  : feh - UNKNOWN
+PVMajor    : 0
+PVMinor    : 0
+Password   :
+Capability : 0001h
+ProdData   : 00000000h
+
+- MSG    1 ------------------------------------------------------------------
+Orig/Dest: 999/99 -> 999/99
+Attr     : PVT
+From     : Klaus Alexander Seistrup                 Date: 15 Dec 93  21:19:52
+To       : Brian Jacobsen
+Subj     : Test
+
+^TOPT 9
+^MSGID: 2:999/99.0 E5CD71A1
+^REPLYADDR kleis@mink.ping.dk
+^PID: AmiGate 0.16 (19.2.94)
+Received: from mink by ic1.ic.dk with UUCP id AA15015
+  (5.65c8/IDA-1.4.4j); Wed, 15 Dec 1993 21:53:20 +0100
+Received: by mink.ping.dk (V1.16/wusel)
+	  id <0jgu@mink.ping.dk>; Wed, 15 Dec 93 21:19:52 CET
+Subject: Test
+^X-Charset: ISO_8859-1
+
+Test.............................................
+
+
+- INFO ----------------------------------------------------------------------
+@endnode
+
+##---------------------------------------------------------------------
+@node AMIGATEUSERS "AmiGate.users keywords:"
+
+                         @{b}>> AmiGate.users keywords: <<@{ub}
+
+AmiGate.users should contain one or more of the following:
+
+  @{" USER " LINK USER}  A user that will be allowed to send and receive mail through the gate.
+@endnode
+
+##---------------------------------------------------------------------
+@node USER "USER"
+
+                          @{b}>> USER <<@{ub}
+
+This keyword is used to describe a user that will be allowed to use the gate.
+To send/receive mail (both netmail and echomail) a user must be either be
+listed in this or AmiGate must have been set up to do @{" PUBLIC " LINK PUBLIC} gating.
+
+The syntax is:
+
+@{b}USER <UUCP-name> <FidoNet-address> <real name (Fido-Name)>@{ub}
+
+Examples:
+
+USER brj		2:999/99.9 Brian Jacobsen
+USER postmaster		2:999/99.9 PostMester
+USER hannibal		2:111/11.1 Hannibal the Cannibal
+USER aminetw		2:999/99.9 AmiNet weekly
+USER aminetd		2:999/99.9 AmiNet daily
+
+
+Please note that AmiGate checks both the FidoNet address and the Real Name
+when checking if a user is allowed to post.
+
+If you have the same <UUCP-name> listed more than once, U->F emails will
+only be sent to the first listed address.
+@endnode
+
+##---------------------------------------------------------------------
+@node AMIGATEAREAS "AmiGate.areas keywords:"
+
+                         @{b}>> AmiGate.areas keywords: <<@{ub}
+
+AmiGate.areas should contain one or more of the following keywords:
+
+  @{" AREA       " LINK AREA}  Description of UseNet conference <-> FidoNet area.
+  @{" MAILLIST   " LINK MAILLIST}  Description of UseNet mailinglist <-> FidoNet area.
+  @{" NEWSACTIVE " LINK NEWSACTIVE}  Read areas from an active file.
+
+@endnode
+
+##---------------------------------------------------------------------
+@node AREA "AREA"
+
+                          @{b}>> AREA <<@{ub}
+
+This keyword describes a normally gated area. Eg. a UseNet conference that
+will be gated into a FidoNet echomail area.
+
+The syntax is:
+
+@{b}AREA MapCode <UseNet-name> <FidoNet-areaname> <moderator>@{ub}
+
+Where MapCode is one of the following:
+
+   + Gate Both ways
+   - Don't gate F->U
+   M Moderated. Postings will be converted to an Email to <moderator>
+   N Send all news to <UseNet-name>@@{"NEWSSERVER" LINK NEWSSERVER} as Emails.
+
+<UseNet-name> is the name of the UseNet conference.
+<FidoNet-areaname> is the name of the FidoNet area.
+<moderator> is only relevant for moderated areas of course.
+
+Examples:
+
+AREA + comp.sys.amiga.programmer      CSA.PROGRAMMER
+AREA - comp.sources.amiga             COMP.SRC.AMIGA
+AREA M comp.sys.amiga.announce        CSA.ANNOUNCE     announce@cs.ucdavis.edu
+@endnode
+
+##---------------------------------------------------------------------
+@node MAILLIST "MAILLIST"
+
+                          @{b}>> MAILLIST <<@{ub}
+
+This special feature makes it possible to gate a mailing-list into a FidoNet
+area.
+
+The syntax is:
+
+@{b}MAILLIST MapCode <FidoNet-areaname> <username> <mailinglistname>@{ub}
+
+Where MapCode is one of the following:
+
+   +  Gate Both ways @{b}(*)@{ub}.
+   -  Don't gate F->U.
+   ++ Gate Both ways @{b}(*)@{ub}. Do not check To: and Cc: header
+   -- Don't gate F->U. Do not check To: and Cc: header
+
+<FidoNet-areaname> is the name of the FidoNet area.
+<username>         must be the user you used when subscribing to the
+                   mailing-list. This user should also be listed in
+                   your @{" AmiGate.users " LINK AMIGATEUSERS} file.
+<mailinglistname>  is the address of the mailing-list.
+                   AmiGate will search the To: and Cc: for this address
+                   except when using ++ or -- MapCode.
+
+If using the ++ or -- switch then @{b}THIS USER MUST BE UNIQUE@{ub} and @{b}ONLY USED
+FOR THE MAILINGLIST@{ub} because all emails to this user will end up in the
+FidoNet area.
+
+@{b}(*)@{ub} All messages to the mailing-list will appear to be coming from <username>
+    Be sure the mailing-list keeper accepts this before setting it to gate
+    both ways.
+
+Examples:
+
+MAILLIST -- AMINET.WEEKLY aminetw aminet-weekly@wunet.wustl.edu
+MAILLIST -- AMINET.DAILY  aminetd aminet-daily@wunet.wustl.edu
+MAILLIST - MINK.FILES    brj     minknews@mink.ping.dk
+MAILLIST + FUGATEWAYS    brj     fuuf@aldhfn.org
+@endnode
+
+##---------------------------------------------------------------------
+@node NEWSACTIVE "NEWSACTIVE"
+
+                          @{b}>> NEWSACTIVE <<@{ub}
+
+
+If you have a list of active newsgroups like the one required by GRn or
+AmiTCP, you can use this to save you from having to type in the areas
+here. Place this keyword after your AREA definitions in this config, as
+the AREA will then be read and added first allowing you to override the
+settings created from the NEWSACTIVE keyword.
+
+The active file is usually in the format:
+   news.group.name ....
+
+AmiGate will ignore everything after the newsgroup name and create the
+area as if had been created with
+
+   AREA + news.group.name news.group.name
+
+
+@{b}NEWSACTIVE "UULIB:NewsGroups"@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node CLIARGS "Command line arguments:"
+
+                         @{b}>> The configuration files: <<@{ub}
+
+   @{" CONFIGDIR   " LINK CONFIGDIR}  Overrides the default directory for the configuration files
+   @{" DUMPCONFIG  " LINK DUMPCONFIG}  A complete list of the config
+   @{" GATEPKT     " LINK GATEPKT}  Gate a single FidoNet packet
+   @{" GATENEWS    " LINK GATENEWS}  Gate a single Usenet newsfile
+   @{" GATEMAILBOX " LINK GATEMAILBOX}  Gate emails from a Mailbox instead of UUSPOOL:
+   @{" NOQP        " LINK NOQP}  Don't use MIME quoted-printable
+@endnode
+
+##---------------------------------------------------------------------
+@node CONFIGDIR "CONFIGDIR"
+
+                          @{b}>> CONFIGDIR <<@{ub}
+
+AmiGate will search for it's configuration files first in PROGDIR: (the
+directory where AmiGate resides) and then in MAIL:.
+
+You can override this by starting AmiGate with a CONFIGDIR argument.
+
+Example:
+
+  1> @{b}AmiGate CONFIGDIR SYS:Configs@{ub}
+
+@endnode
+
+##---------------------------------------------------------------------
+@node DUMPCONFIG "DUMPCONFIG"
+
+                          @{b}>> DUMPCONFIG <<@{ub}
+
+Dumps the configuration. You better have a scrollbar on your CLI. :)
+
+Can be useful for finding errors in your configuration files.
+
+Example:
+
+  1> @{b}AmiGate DUMPCONFIG@{ub}
+
+@endnode
+
+##---------------------------------------------------------------------
+@node GATEPKT "GATEPKT"
+
+                          @{b}>> GATEPKT <<@{ub}
+
+If your mailer software don't support not packing packets then
+use AmiGate as the archiver.
+
+Example:
+
+  1> @{b}AmiGate GATEPKT dummyargument packet@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node GATENEWS "GATENEWS"
+
+                          @{b}>> GATENEWS <<@{ub}
+
+Gates a single Usenet newsfile to FidoNet echomail.
+
+Example:
+
+  1> @{b}AmiGate GATENEWS logs:bax/D.pingnetd0bbpww@{ub}
+@endnode
+
+##---------------------------------------------------------------------
+@node GATEMAILBOX "GATEMAILBOX"
+
+                          @{b}>> GATEMAILBOX <<@{ub}
+
+Gates emails from a MailBox instead of UUSPOOL.
+
+Example:
+
+  1> @{b}AmiGate GATEMAILBOX UUMail:brj@{ub}
+
+If @{" DELETEUUCPMAIL " LINK DELETEUUCPMAIL} is specified then the file will be deleted
+if processed succesfully.
+@endnode
+
+##---------------------------------------------------------------------
+@node TROUBLESHOOTING "Troubleshooting / Frequently asked questions"
+
+                         @{b}>> Troubleshooting / FAQ <<@{ub}
+
+@{" Question  1 " LINK Q1}  How does the builtin charset conversion routines work?
+
+@{" Question  2 " LINK Q2}  AmiGate says "U->F: !rnews out of sync" when trying to
+               process UUCP newsbatches.
+
+@{" Question  3 " LINK Q3}  AmiGate does not work with my XFH partitions.
+               I get the error: 209: packet request type unknown.
+
+@{" Question  4 " LINK Q4}  Does Amigate call UUxqt when it has finished the
+               gating part? The fact that UUSPOOL: is empty suggests this.
+
+@{" Question  5 " LINK Q5}  How do I write netmails to the gate?
+
+@{" Question  6 " LINK Q6}  My tosser won't allow me to specify the name of my
+               outbound packet. It wants an archiver.
+
+@{" Question  7 " LINK Q7}  AmiGate rejects mail written by one of my users. I'm
+               quite sure he is listed?
+
+@{" Question  8 " LINK Q8}  When gating from FidoNet to UseNet the messages have
+               two Message-ID headers?
+
+@{" Question  9 " LINK Q8}  When gating from FidoNet to UseNet the From: header
+               contains an extra pair of () after my name?
+
+@{" Question 10 " LINK Q10}  I receive news compressed with GZip but my "uncompressbatch"
+               is only able to handle compressed news.
+
+@{" Question 11 " LINK Q11}  How come my news postings does not have a proper "References"
+               header? or Some jerk complains he is unable to do thread
+               reading on my postings?
+
+@{" Question 12 " LINK Q12}  Will AmiGate work with AmiTCP?
+
+@endnode
+
+##---------------------------------------------------------------------
+@node Q1 "Troubleshooting / Frequently asked questions"
+
+Good question, as this can seem rather complicated.
+
+                      @{b}FidoNet Netmail -> UUCP email:@{ub}
+
+First AmiGate checks if the message contains any hibit characters.
+If this is not the case then the message will just be sent as is.
+
+If it contained hi-bit chars then check for a valid CHRS: kludge in the
+FidoNet message:
+
+If the kludge is @{b}CHRS: LATIN-1 2@{ub} then send as MIME Quoted-Printable.
+
+If the kludge is @{b}CHRS: IBMPC 2@{ub} then convert to ISO-8859 charset and send as
+MIME Quoted-Printable.
+
+If no valid CHRS: kludge is found and the message contained hi-bit chars then
+these will be stripped.
+
+As you see AmiGate will normally never send 8-bit emails due to the fact
+that there is a rather large chance that this will be stripped underway
+by some machine. This can be overridden by using the @{" NOQP " LINK NOQP} command line
+switch.
+
+                  @{b}FidoNet Echomail -> UseNet newsgroups:@{ub}
+
+Same as above except that the 8-bit messages will be sent with standard MIME
+
+'Content-Type: text/plain; charset=iso-8859-1'
+'Content-Transfer-Encoding: 8bit'
+
+headers rather than Quoted-Printable.
+
+                          @{b}UUCP -> FidoNet:@{ub}
+
+Nowhere near as complicated. Quoted-Printable will be converted to ISO-8859.
+ISO-8859 messages will receive a @{b}CHRS: LATIN-1 2@{ub}.
+
+So tell all your users that if they want to preserve bit 8, they should
+switch to a FidoNet editor that supports charsets. If they do, then
+AmiGate will put a nice MIME-header in the UUCP-messages.
+
+If you don't understand a word I said, never mind. Rest assured AmiGate will
+do whatever is possible to ensure correct charset conversion.
+@endnode
+
+##---------------------------------------------------------------------
+@node Q2 "Troubleshooting / Frequently asked questions"
+
+The logic is as follows:
+
+Read First line
+If "#! cunbatch"
+   Call uncompressbatch
+
+If "#! rnews ..."
+   Okay multiple article newsfile
+else
+   Okay this is single article newsfile
+
+The number following the "#! rnews" sentence indicates the number of bytes to
+process as a news article. After having read that number of bytes AmiGate
+tries to read the next line. That line is expected to be a new "#! rnews"
+line. If it's not AmiGate determines that the bundle is corrupted and gives
+you the "!rnews out of synch" error message.
+
+The files in question will be renamed from X.yyyyyyyy and D.zzzzzzzz to
+E.yyyyyyyy and E.yyyyyyyy.
+
+@endnode
+
+##---------------------------------------------------------------------
+@node Q3 "Troubleshooting / Frequently asked questions"
+
+Get the author of XFH to support ExamineFH(). Don't blame me ;-)
+
+@endnode
+
+##---------------------------------------------------------------------
+@node Q4 "Troubleshooting / Frequently asked questions"
+
+No, it doesn't. It will feed the news to "Rnews" if you specified this in
+AmiGate.config, but it will not touch the Emails. Unless you specified
+@{" DELETEUUCPMAIL " LINK DELETEUUCPMAIL}, in which case succesfully gated Emails will be deleted
+after processing.
+
+If you still find your UUSPOOL: empty, then chances are that you're running
+'wusel' UUCP. My best advice is: Don't. The second best is to use the script
+described under @{" SETUP " LINK SETUP}.
+
+@endnode
+
+##---------------------------------------------------------------------
+@node Q5 "Troubleshooting / Frequently asked questions"
+
+Either the FidoNet To: field or the first line in the letter must contain
+a valid Email-address. AmiGate also accepts additional lines containing
+Cc: or Bcc:.
+
+Okay, an example. I want to send an Email to dummy1@amigate.org with
+carbon-copies to dummy2@amigate.org and dummy3@amigate.org:
+
+So I write a netmail that looks like this:
+
+From: Brian Jacobsen		2:999/99.9
+To: AmiGate			2:999/99.0
+Subject: This is a test
+
+------------------------ Body text -------------------------
+To: dummy1@amigate.org
+Cc: dummy2@amigate.org, dummy3@amigate.org
+
+Hey, I was walking my bag through a twenty-storey nonstop snowstorm
+Pirrelli calendar girls wrestling in body lotion.
+My head is swimming with poetry and prosa
+Excuse me one moment, whilst I powder my nose.
+
+Kind regards
+Brian
+-------------------- End of body text ----------------------
+@endnode
+
+##---------------------------------------------------------------------
+
+@node Q6 "Troubleshooting / Frequently asked questions"
+
+> If I write messages to the gated newsgroups I don't really have control
+> over what the resulting exported file will be called. How then can I
+> inform Amigate of the correct filename to gate from Fido - uucp.
+
+> 2.999.99.1.FLO     73 ----rwed Today     12:06:00: From 2:999/99@fidonet;
+> 2.999.99.1.SA0    295 ----rwed Today     12:06:00
+
+Set up AmiGate as the archiver for point 1 in your tosser. If you have say
+"C:Lha a" today you should be able to use "AmiGate @{" GATEPKT " LINK GATEPKT}" instead.
+@endnode
+
+##---------------------------------------------------------------------
+@node Q7 "Troubleshooting / Frequently asked questions"
+
+I'm quite sure he is not. ;-)
+
+Let's take some common cases. You have this @{" USER " LINK USER} in your
+AmiGate.config.
+
+@{b}USER brj                2:999/99.9     Brian Jacobsen@{ub}
+
+
+1. He complains that he gets the following message from the gate:
+      The user "Prowler" (2:999/99.9) is not allowed to use the gate.
+
+Yes, he's changed the FidoNet from: to "Prowler" when writing the letter.
+Since AmiGate double checks the address AND the name, this will be rejected.
+Tell him always to use his real name: Brian Jacobsen
+
+2. He complains that he gets the following message from the gate:
+      The user "Brian Jacobsen" (2:999/99.8) is not allowed to use the gate.
+
+Same thing, but this time you have set his address wrong. .8 should be .9
+@endnode
+
+##---------------------------------------------------------------------
+@node Q8 "Troubleshooting / Frequently asked questions"
+
+You're using AmigaUUCP version 1.16 or older.
+
+Upgrading to AmigaUUCP 1.17b4 or higher will fix it.
+
+All binaries, sources, and man pages for 1.17b4 are available for BMS from
+adastra.cvl.va.us and by FTP from:
+
+FTP SITE:
+   Machine is     litamiga.epfl.ch [128.178.151.32]
+   Directory is   /pub/amiga/uucp
+   Manager is     schaefer@di.epfl.ch
+   Note:          Available only from 1600 to 0900 GMT+2
+@endnode
+
+##---------------------------------------------------------------------
+@node Q10 "Troubleshooting / Frequently asked questions"
+
+AmigaUUCP 1.17b5 will include "uncompressbatch" with external archiver
+support. (I know, 'cause I added it ;-)
+
+Until then you can get the "uncompressbatch" version from me.
+
+Just send me an email.
+@endnode
+
+##---------------------------------------------------------------------
+@node Q11 "Troubleshooting / Frequently asked questions"
+
+ > BTW what is a References: line? I have one asshole in a newsgroup
+ > complaining that I'm not posting with one. What is it and should I give
+ > a damn? BTW MessageID threading doesn't seem to work. Is that
+ > unavoidable or could this be added to Amigate?
+
+FidoNet message-threading and the UseNet equivalent does not work well
+together. But if you are using AmiGate together with Spot for a single user
+system you can get the reply-threading somewhat functional by using the
+@{" NAUGHTYREPLY " LINK NAUGHTYREPLY} switch in the config. This will hack the usenet Message-ID
+into the FidoNet MSGID kludge and AmiGate will know and use this when you
+reply to a message.
+
+However the @{" NAUGHTYREPLY " LINK NAUGHTYREPLY} switch is only recommended for a private gate
+setup together with Spot. I've heard rumours that Mail-Manager chokes on this
+abuse of the MSGID kludge, which I personally don't blame them.
+@endnode
+
+##---------------------------------------------------------------------
+@node Q12 "Troubleshooting / Frequently asked questions"
+
+Yes, it should work with AmiTCP. However you do need a bit of twisting.
+
+First you should use get hold of the archive "IU-14-amitcp.lha" by
+Michael B. Smith. Available from Aminet. Set it up. I also use
+NNTPGet and PutMail. Thus I only use the Internet utils NNTPPost.
+
+I included my config files for AmiTCP in the SampleCfg_AmiTCP directory
+as well as the end of my Startnet and Stopnet scripts.
+
+If you want to use NNTPxfer instead of NNTPGet you'll have to do:
+
+ 1> SetEnv NNTPRNews AmiGate GATENEWS
+
+See the manual for NNTPxfer for an explanation of NNTPRNews.
+
+I am not going to describe in details how to set up AmiGate for use with 
+AmiTCP but you should set @{" PACKETAPPEND " LINK PACKETAPPEND} and have a look at the 
+@{" DELETENEWSFROMUS " LINK DELETENEWSFROMUS} keyword.
+@endnode
+
+##---------------------------------------------------------------------
+@node COPYRIGHT "Copyright notice"
+
+                          @{b}>> Copyright notice <<@{ub}
+
+AmiGate is Copyright © 1994-1995 Brian Munk Jacobsen, but freely
+redistributable as POSTCARDWARE: If you like this program and use it regularly,
+you are obliged to send me a postcard. *;) Please respect this...!
+@endnode
+
+##---------------------------------------------------------------------
+@node DISCLAIMER "Disclaimer notice"
+
+                         @{b}>> Disclaimer notice <<@{ub}
+
+ The software is provided "as is" without warranty of any kind,
+either expressed or implied, including,  but  not  limited  to the
+implied warranties of merchantability and fitness for a particular
+purpose.
+ In no event will the author be liable to you for any incidental
+or consequential damages arising from your use or inability to use
+the software (including, but not limited to loss of data or data
+being rendered), even if the author has been advised of the
+possibility of such damages or for any claim by any other party.
+@endnode
+
+##---------------------------------------------------------------------
+@node BUGREPORTS "Bug reports"
+
+                            @{b}>> Bug reports <<@{ub}
+
+If you find any errors, have suggestions for improvements, or you simply
+would like to send a small donation of whatever kind, then please send it to
+the address below:
+
+              Brian Munk Jacobsen
+              Glumsøvej 21 st.tv.
+              2700 Brønshøj
+              Denmark
+
+              Email:   brj@boble.ping.dk
+              FidoNet: 2:235/318.10
+
+ When sending bug-reports, please include if possible an accurate but brief
+description of the problem, relevant FidoNet-packets or UseNet-files plus
+your AmiGate config-files. Remember to specify your version of AmiGate too.
+
+ If you think AmiGate parses your config settings wrong, please try the
+the @{" DUMPCONFIG " LINK DUMPCONFIG} CLI switch.
+@endnode
+
+##---------------------------------------------------------------------
+@node NEWVERSIONS "How to get new versions"
+
+                   @{b}>> How to get new versions <<@{ub}
+
+1. New non-beta versions will be uploaded to Aminet.
+
+2. A mailinglist is available. See @{" Support " LINK SUPPORT}
+
+@endnode
+
+##---------------------------------------------------------------------
+@node SUPPORT "Support"
+
+                   @{b}>> Support <<@{ub}
+
+ I have created a mailing list for AmiGate.
+
+ This list will replace the AmiGate new version server and of course also
+allow for discussion and questions of gating issues.
+
+ To subscribe send an email to <listserv@boble.ping.dk> with bodytext
+
+ADD amigatelist
+
+ After that you should receive a message confirming that you have been
+added together with a short introduction to the list. (The listserver also
+understands several other commands, send email with bodytext HELP to
+receive a list of supported commands).
+
+ To submit mailings to the list, send your emails to the address
+<amigatelist@boble.ping.dk>.
+
+ If you want the mailinglist to be gated into a FidoNet area you can place
+the following line in your AmiGate.areas (replace youruserid with your own
+userid).
+
+MAILLIST + AMIGATELIST <youruserid> amigatelist@boble.ping.dk
+@endnode
+
+##---------------------------------------------------------------------
+@node THANKSTO "Acknowledgements..."
+
+                             @{b}>> Acknowledgements: <<@{ub}
+
+The following names are either trademarks or the efforts of the person and/or
+company listed:
+
+   - Amiga, AmigaDOS by Commodore-Amiga, Inc.
+   - Amiga UUCP currently maintained by Michael B. Smith
+   - DDDGate by Eric de Jong
+   - Fido and FidoNet are trademarks of Tom Jennings, Fido Software
+   - Spot by Nico François
+   - traplist.library and TrapDoor by Maximilian Hantsch and Martin Laubach
+   - XPkt by Fredrik Kjellberg
+   - MimeLite source code by Gisle Hannemyr
+   
+
+                             @{b}>> Thanks to: <<@{ub}
+
+   - @{i}Klaus Seistrup@{ui} <kleis@mink.ping.dk> for extensive beta-testing and help.
+   - @{i}Eric de Jong@{ui} for DDDGate and beta-testing.
+   - @{i}Nico François@{ui} <nico@nbre.nfe.be> for bringing us the best FidoNet
+     editor available: Spot.
+   - @{i}Michael B. Smith@{ui} <mbs@adastra.cvl.va.us> for maintaining the Amiga UUCP
+     project.
+   - @{i}Eric Delord@{ui} <ed@ramses.fdn.org> for being the first registered user (and
+     his generous financial contribution ;-)
+   - All registered users @{" Hall of Fame " LINK REGISTER}
+   - All users who contributed with suggestions and bug-reports (you know who
+     you are).
+
+   - Portions of this software are derived from the mimelite library
+     written by Gisle Hannemyr (gisle@oslonett.no) and are used with
+     his permission.
+@endnode
+
+##---------------------------------------------------------------------
+@node REGISTER "Registered users..."
+
+This page features a list of all registered users who sent me a physical
+postcard. Thanks!
+
+	   @{b}>> Registered users hall of fame: <<@{ub}
+
+	Alex Kristensen  (Denmark)
+	Andreas Vögele   (Germany)	(signed with all users at his site)
+	Colin Jones      (Wales)
+	Eric Delord      (France)	(100 DKK)
+	Eric Krieger     (Netherlands)
+	Jurgen           (Germany)
+	Klaus Seistrup   (Denmark)
+	Lothar           (Germany)
+	Martin Oswald    (Germany)	(10 DEM in a nice frame)
+	Mat Bettinson    (England)
+	Metin Sevignano  (Germany)
+	Mike Mossman     (Canada)
+	Ray Gould        (England)	(two cards)
+	Richard de Vos   (Netherlands)                    
+	Shaun ?          (Australia)
+
+@endnode
+
+##---------------------------------------------------------------------
+@node TODO "ToDo:"
+
+                                @{b}>> ToDo: <<@{ub}
+
+Reply-To: headers on Emails sent via a @{" MAILLIST " LINK MAILLIST}.
+
+                             @{b}>> Considering: <<@{ub}
+
+The ability to make only some areas public.
+
+SOUP packet support.
+@endnode
+
+##---------------------------------------------------------------------
+@node CHANGES "Changes Log:"
+
+                            @{b}>> Changes Log: <<@{ub}
+
+Version changes prior to 1.0 (first public release) deleted.
+
+Version Changes:
+------- ----------------------------------------------------------------------
+@REMARK lastver
+1.4d	Oops, the new @{" NEWSSERVER " LINK NEWSSERVER} keyword caused the mailing list keyword
+	 MAILLIST to fail sometimes. Fixed.
+	When gating F->U @{b}very@{ub} long lines (>10Kb) caused an Enforcer hit. Fixed.
+	@{" DELETENEWSFROMUS " LINK DELETENEWSFROMUS} now works as intended.
+	Added my config files for AmiTCP in the directory SampleCfg_AmiTCP.
+	See also @{" Question 12 " LINK Q12}
+
+
+1.4c	@{b}>> IMPORTANT NOTICE <<@{ub} The format of the @{" SENDMAIL " LINK SENDMAIL} config keyword has
+	 changed!!! It will no longer append '-R "" <' automatically, so if you
+	 are using AmigaUUCP 1.17 you'll have to change this. See @{" SENDMAIL " LINK SENDMAIL}
+	 for details.
+	No longer makes a Newsgroup header if 'N' option is used in @{" AREA " LINK AREA}.
+
+1.4b	If the Date: header was missing from an email/news file, AmiGate
+	generated an invalid PKT file. Fixed.
+	The @{" GATEMAILBOX " LINK GATEMAILBOX} sometimes (very rare) garbled messages.
+	New keyword @{" NOREPLYADDR " LINK NOREPLYADDR}.
+	New keyword @{" NEWSACTIVE " LINK NEWSACTIVE}. Reads area definitions from an active
+	 file. Saves you from having to maintenance two files.
+
+1.4a	If the @{" GATENEWS " LINK GATENEWS} argument is used and no file is specified
+	 input will be read from stdin. This is primarily for use with NNTPXfer.
+	 See also @{" Trouble-shooting / FAQ " link Q12}.
+	New completely useless keyword @{" AUTOAREA " LINK AUTOAREA}.
+	New keyword @{" PACKETAPPEND " LINK PACKETAPPEND}. Appends U->F messages to
+	 existing packets. Useful with AmiTCP.
+@REMARK endlastver
+
+1.4	Last version released via the new version server. For further
+	 information see @{" How to get new versions " LINK NEWVERSIONS}
+	New keywords primarily for use with service providers like demon in
+	 the UK: @{" NEWSSERVER " LINK NEWSSERVER}, @{" DELETENEWSFROMUS " LINK DELETENEWSFROMUS} and 'N' option in @{" AREA " LINK AREA}.
+	The REPLYADDR kludge for mailing-lists is now set to the real posters
+	 address. Don't know why I haven't done this before. Perhaps there
+	 was a reason, so if this gives you any trouble let me know. :-)
+	AmiGate will now continue with next newsbatch when encountering a
+	 defective newsbatch (Eg. RNews out of synch). This means that it
+	 will not stop when running unattended, but it also means that you
+	 should check the log for errors every once in a while.
+	The @{" GATEMAILBOX " LINK GATEMAILBOX} didn't delete its temporary file after processing.
+	Multiple occurence of the same email-adresses are now allowed. Emails
+	 sent U->F are simply gated to the first occurence. See @{" USER " LINK USER}
+	Now using version 2.3 of MimeLite source.
+	The "X-Z-F-TO:" and the "X-Comment-To:" headers are now examined when
+	 gating news to echomail. The realname will be placed in the FidoNet
+	 To: field.
+	The header STRIP, PORT, KLUDGE comparison routine compared one
+	 character less than it should. Fixed.
+	The INTL kludge on letters being gated U->F used the @{" NODEADDRESS " LINK NODEADDRESS},
+	 now uses @{" GATEADDRESS " LINK GATEADDRESS}.
+	AmiGate will no longer choke on news-batches that has a "!# rnews"
+	less than or equal to 0.
+	Parsing of the FidoNet Origin: line made more tolerant.
+	Corrupted newsbatches will be renamed to avoid reprocessing when
+	 running unattended.
+
+1.3a	Broke the @{" HEADERTEXT " LINK HEADERTEXT} routine in the last version. Fixed.
+
+1.3	Now using version 2.2 of MimeLite source.
+	Made the detection of invalid FidoNet packets more strict. AmiGate
+	 will now stop processing FidoNet packets that are invalid.
+	Fixed a rare bug in the FidoNet packet parsing routine caused by a
+	 buffer being too small.
+	Well, I just received some _very_ corrupted Usenet newsfiles, that
+	 caused AmiGate to guru instantly. Added some "safety" code to help
+	 fix these messages.
+	The parsing of the From: line was buggy, fixed.
+	Sometimes generated illegal FidoNet dates, fixed.
+	Added some format specifiers to @{" HEADERTEXT " LINK HEADERTEXT} keyword.
+	The X-To: header is now examined when gating news to echomail. The
+	 realname will be placed in the FidoNet To: field.
+	Added new @{" GATEMAILBOX " LINK GATEMAILBOX} CLI argument.
+	Added new @{" AKASITE " LINK AKASITE} argument.
+	Recompiled with SAS/C 6.55.
+
+1.2	Changed the linebreak routine to force a break at column 79 instead
+	 of 80. Should keep the gate at ibmmail.com from complaining.
+	All I/O buffers are now set to 8 KB.
+	New @{" DELETEUUCPNEWS " LINK DELETEUUCPNEWS} switch.
+	Due to several requests the @{" MAXMSGSIZE " LINK MAXMSGSIZE} will no longer truncate
+	 messages when gating U->F but split them instead.
+	Somehow the USERNAME var remained set after AmiGate finished. Fixed.
+	Added @{" NOQP " LINK NOQP} command line switch.
+	Fixed a problem which caused invalid Message-ID: headers (Actually
+	 bypassed is a better word for it, as the bug is in RawDoFmt()
+	 pre v39)
+	Removed the "Distribution: world" from the headers. If you miss it
+	 use @{" HEADERTEXT " LINK HEADERTEXT} to generate it.
+	Added public gating using site style addressing. See @{" PUBLIC " LINK PUBLIC}.
+	Added new @{" GATENEWS " LINK GATENEWS} argument.
+	Fixed the Origin length calculation routine.
+	Added new @{" STATICORIGIN " LINK STATICORIGIN} keyword.
+	Now accepts both full site qualification and local name only in the
+	 control-files. Both "C rmail boble!brj" and 
+	 "C rmail boble.ping.dk!brj" are valid.
+
+1.1	Rewrote the detection of tearline and Origin line completely.
+	 Should be bulletproof now. ;-)
+	Enhanced detection of mailing-list's a bit.
+	MSGID kludge from FidoNet messages will now be used to construct the
+	 UUCP messageid header if present.
+	Added arguments to PUBLIC keyword. See @{" PUBLIC " LINK PUBLIC}
+	F->U gating code rewritten.
+	Added code to detect invalid FidoNet packets.
+	Added ++ and -- mapcode to @{" MAILLIST " LINK MAILLIST}. Will cause AmiGate to not look
+	 for the To: and Cc: when deciding if an email is to a mailing list.
+	Optimized the logfile writing.
+	Now using version 2.1 of MimeLite source.
+	Rewrote detection of To: and Cc:
+	Added support for german ORIGID kludge: See @{" USEORIGID " LINK USEORIGID}
+	Added @{" DLGMODE " LINK DLGMODE} to support DLG User.Data
+	Cc: and Bcc: are now given to SendMail as headers instead of
+	 arguments.
+	REPLY kludge added to bounced messages.
+	Mailing list messages U->F will now be sent to "All" instead of the
+	 mailling list users real name. That will stop Spot from thinking all
+	 messages are to you if you sign on to the mailing list using your own
+	 userid.
+
+1.0	First public release.
+@endnode

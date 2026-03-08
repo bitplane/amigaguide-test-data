@@ -1,0 +1,258 @@
+@database "RA.guide"
+@author "Dietmar Eilert"
+@remark "$VER: RA Guide 1.0 (22. März 01)"
+@font courier.font 13
+@node MAIN "Welcome"
+
+    Remote Access ©2001 @{"Dietmar Eilert" link COPYRIGHT}
+
+    @{b}ABSTRACT@{ub}
+
+    RA is a shared library project which simplifies the task of running other
+    applications  to show documents (a typical use of RA is a "Link to my web
+    site" button in applications).
+
+    @{b}CONTENTS@{ub}
+
+    @{"  Copyright    " link COPYRIGHT   }
+    @{"  Description  " link DESCRIPTION }
+    @{"  Programs     " link PROGRAMS    }
+    @{"  Library      " link LIBRARY     }
+    @{"  Appendix     " link APPENDIXA   }
+@endnode
+@node COPYRIGHT "Copyright"
+
+@{b}COPYRIGHT@{ub}
+
+    Dietmar Eilert
+    Mies-v-d-Rohe-Str.31, 52074 Aachen, Germany
+    Phone: +49-(0)179-2186378
+    E-Mail: golded@web.de
+    E-Mail: dietmar_eilert@yahoo.de (backup address)
+    WWW:    http://golded.tripod.com
+
+    This package is freely distributable provided that it is  distributed  in
+    its   original  unmodified  form,  with  all  copyright  notices  intact.
+    Including it with other software is permitted provided that said software
+    credits  the  author  (see  above) in its manual. The author reserves the
+    right to interdict distribution without prior notice if these  conditions
+    are not met.
+@endnode
+@node DESCRIPTION "Description"
+
+@{b}DESCRIPTION@{ub}
+
+    RA is a shared library to open files in  applications  (e.g.  a  browser)
+    without  knowledge  of  the  executable name, its location on disk or its
+    ARexx port. Developers can use RA to easily (with less than five lines of
+    code)  add  a go-online button to an application whichs, if clicked, runs
+    the browser and shows a web page.
+
+    RA uses a database of application descriptions  to  find  information  on
+    applications  stored  on the user's computer. A small default database is
+    shipped with this  package.  It  includes  preconfigured  information  on
+    common  Amiga  applications. New application descriptions can be added to
+    the database with the remoteconfig program (the idea behind  remoteconfig
+    is  that  future installation scripts will directly register applications
+    with  RA).  The  library  will  use  the  database  to  find  the  listed
+    applications  on  the  user's  computer.  This process is called database
+    validation. It involves scanning all local drives.  Once  validated,  all
+    applications  detected  during  validation  can  be  accessed through the
+    library functions on a class basis: programmers won't deal with  specific
+    applications  but  with  application  classes like BROWSER or EDITOR. The
+    library  will  then  resolve  your  requests  and  internally  select  an
+    application (with preference given to running applications).
+
+    The package includes  library  frontends  (shell  commands)  for  use  in
+    installer  scripts  so  that software authors can directly register their
+    programs as default application for appropriate application classes.
+
+@{b}INSTALLATION@{ub}
+
+    Doubleclick the installer script icon. After installation,  there  is  no
+    program  for users to run: RA is designed to be used by applications, not
+    by users. If you have a web browser installed on your computer,  try  the
+    following  command  in  a  shell window to see if RA can address your web
+    browser:
+
+            @{"remoteopen" link PROGRAMS} BROWSER file="http://golded.tripod.com/index.htm".
+@endnode
+@node PROGRAMS "Programs"
+
+@{b}PROGRAMS@{ub}
+
+    RA includes various programs for use by applications,  in  shell  windows
+    and in installation scripts: remoteconfig and remoteopen.
+
+    1. bin/remoteopen
+
+       remoteopen runs a registered application in order to show a  document.
+       The command syntax is:
+
+                     remoteopen CLASS/A,FILE/K,APP/K
+
+       CLASS/A is the application class. FILE/K is  the  document  you  would
+       like  to  open (as defined in the RA configuration file). APP/K is the
+       name of your preferred  application  for  this  job  (if  you  have  a
+       preference). The following example opens an URL in a web browser:
+
+            remoteopen BROWSER file="http://golded.tripod.com/index.htm".
+
+    2. bin/remoteconfig
+
+       remoteconfig can be used to configure the RA database which lists  the
+       applications understood by RA. The intended purpose of this command is
+       to be used by developers in installation  scripts  to  register  their
+       software with RA. The command syntax of remoteconfig is:
+
+                remoteconfig ADD/K,DEL/K,VALIDATE/S,FOLDER/K,DEEP/S
+
+       ADD/K adds the specified configuration string  to  the  database.  The
+       configuration  string must end with an LF code (further format details
+       can  be  found  below;  see  "database  format").  DEL/K  deletes  the
+       specified  application(s)  from the database. You may use wildcards to
+       delete multiple applications. Finally, VALIDATE/S starts the  database
+       validation  process,  ie.  a  disk scan to locate applications on your
+       drives. DEEP/S and FOLDER/K may  be  used  to  refine  the  validation
+       process:  RA  defaults  to  use a smart searching strategy to keep the
+       time required for a disk scan as low as possible. However, RA may fail
+       to  detect all applications in smart mode. DEEP/S will force RA to use
+       slow conventional searching instead. The  FOLDER/K  parameter  can  be
+       used  to set the starting point for the drive scan to further minimize
+       validation time (why waste time on searching all drives if you install
+       your software in "software:" ?). Examples:
+
+                    remoteconfig validate
+
+                    remoteconfig validate folder="c:"
+
+                    remoteconfig add="class=BROWSER name=AWeb exe=aweb *n"
+
+                    remoteconfig del="#?aweb#?"
+@endnode
+@node LIBRARY "Library"
+
+@{b}THE LIBRARY@{ub}
+
+    A description of the  library  interface  for  programmers  who  wish  to
+    interface  to  the library directly without using remoteopen/remoteconfig
+    can be found in the autodoc file  "developer/library/autodoc/remote.doc".
+    The following library functions are available:
+
+        remote.library/RemoteInit
+        remote.library/RemoteAdd
+        remote.library/RemoteRemove
+        remote.library/RemoteOpen
+        remote.library/RemoteValidate
+
+@{b}EXAMPLE@{ub}
+
+    This example demonstrates how simple usage of this libary  is:  it  opens
+    the specified url (STRPTR) in a web browser:
+
+    if (RemoteBase = OpenLibrary("remote.library", 37))
+    {
+        int error = RemoteOpen("BROWSER", NULL, url, REMOTE_OPEN_ASYNC);
+
+        CloseLibrary(RemoteBase);
+    }
+
+@endnode
+@node APPENDIXA "Appendix A: Configuration"
+
+@{b}CONFIGURATION FORMAT@{ub}
+
+    The database usually is kept in the file "s:remote.ini" (or optionally in
+    the file the environment variable "remote.cfg" is pointing to). It can be
+    viewed and modified with any text editor. The  average  user  will  never
+    have  to deal with this file while software authors should understand the
+    database format so that they can register their own applications  in  the
+    database (the remoteconfig command uses the same format). This is how the
+    database file might look like on your computer:
+
+    ; remote.library configuration file (wildcards supported in VERSION/K,PORT/K,INSTALLPATH/K)
+    CLASS="BROWSER" NAME="IBrowse" VERSION="" INSTALLPATH="#?/ibrowse/" EXE="ibrowse" MINSIZE=100000 STACK=8192 ASSIGN="" PORT="IBROWSE" OPEN="*"%s*"" OPENRX="GOTOURL *"%s*""
+    CLASS="BROWSER" NAME="AWeb DEMO" VERSION="#?DEMO#?" INSTALLPATH="#?/aweb#?" EXE="aweb" MINSIZE=100000 STACK=16384 ASSIGN="AWEB:" PORT="" OPEN="*"%s*"" OPENRX=""
+    CLASS="BROWSER" NAME="AWeb" VERSION="~(#?DEMO#?)" INSTALLPATH="#?/aweb#?" EXE="aweb" MINSIZE=100000 STACK=16384 ASSIGN="AWEB:" PORT="AWEB.#?" OPEN="*"%s*"" OPENRX="OPEN *"%s*""
+    CLASS="BROWSER" NAME="Mindwalker" VERSION="" INSTALLPATH="" EXE="mindwaker" MINSIZE=100000 STACK=32768 ASSIGN="" PORT="MINDWALKER" OPEN="*"%s*"" OPENRX="OPENURL *"%s*""
+    CLASS="BROWSER" NAME="Voyager NG" VERSION="" INSTALLPATH="#?/voyager/" EXE="v" MINSIZE=100000 STACK=65536 ASSIGN="" PORT="VOYAGER" OPEN="*"%s*"" OPENRX="OPENURL *"%s*""
+
+    There is exactly one entry (line) for  each  application.  It  lists  the
+    application  class,  the  application  name and a few other details which
+    will be used by the library to locate and access the applications.  Order
+    in  this  file  is  important: RA will scan the database file from top to
+    bottom when looking for applications. The syntax you  use  in  this  file
+    will  have  to conform with AmigaDOS rules. For example, string arguments
+    must be given in quotation marks if they contain spaces. Quotation  marks
+    in  strings can be inserted as *". Linefeeds can be inserted as *n. Below
+    is a description of all options:
+
+@{u}CLASS@{uu}
+
+    The application class. While you can freely choose any string you like  I
+    would suggest that you only use class names from the list below (and that
+    you register new names with the RA author to have them included here).
+
+        EDITOR         Editor for ASCII files
+        WORDPROCESSOR  Editor for RTF
+        HTMLEDITOR     Editor for HTML
+        MAILTO         E-Mail sender
+        PLAYWAV        Player for WAV
+        TCPSTACK       TCP stack
+        VIEWGUIDE      Viewer for guides
+        VIEWIMAGE      Viewer for images
+        SPOOLER        Spooler for ASCII files
+        BROWSER        WWW browser
+
+@{u}NAME@{uu}
+
+    A symbolic application name; can be chosen freely.
+
+@{u}VERSION@{uu}
+
+    Version requirement: This pattern is  pattern-matched  with  the  version
+    string  found  in files during database validation to improve reliability
+    of executable identification
+
+@{u}INSTALLPATH@{uu}
+
+    Path requirement (root directory): This pattern is  pattern-matched  with
+    the  path  to  files during database validation to improve reliability of
+    executable identification.
+
+@{u}EXE@{uu}
+
+    The executable name.
+
+@{u}MINSIZE@{uu}
+
+    The executable size given here is  used  during  database  validation  to
+    improve  validation  reliability: files smaller than MINSIZE are ignored.
+    Consider that compression may be used on some systems: the MINSIZE  value
+    should  not  exceed  50%  of  the  real  file  size  so  that  compressed
+    executables can still be identified.
+
+@{u}STACK@{uu}
+
+    The minimum stack required to run the program.
+
+@{u}ASSIGN@{uu}
+
+    Some applications require that a new assign  to  the  root  directory  is
+    created  during  installation. You can specify the assign in the database
+    to help RA improve reliability of executable identification.
+
+@{u}PORT@{uu}
+
+    ARexx port name of the application (may contain wildcards).
+
+@{u}OPEN@{uu}
+
+    The argument template for passing a file name to the application when  it
+    is started (if RA can't find running applications).
+
+@{u}OPENRX@{uu}
+
+    The argument template for passing a file name to the application's  ARexx
+    port (if RA can find running applications).
+@endnode

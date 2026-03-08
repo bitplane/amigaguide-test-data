@@ -1,0 +1,932 @@
+@DATABASE "Default"
+@NODE "Main" "NBar"
+@TOC "MAIN"
+
+                               @{b}---* NBAR *---@{ub}
+
+                               v1.52 - Mars 97
+
+
+
+
+
+
+                               @{" Présentation  " LINK "Présentation"}
+
+                               @{" Tarification  " LINK "Tarification"}
+
+                               @{" Installation  " LINK "Installation"}
+                               @{"   Lancement   " LINK "Installation"}
+
+                               @{"  Utilisation  " LINK "Utilisation"}
+
+                               @{"  Fichier Log  " LINK "Fichier-Log"}
+
+                               @{" Configuration " LINK "Configuration"}
+
+                               @{"  Limitations  " LINK "Limitations"}
+
+                               @{" Distribution  " LINK "Distribution"}
+
+                               @{"  Historique   " LINK "Historique"}
+
+
+@ENDNODE
+
+@NODE "Présentation" "Présentation"
+@TOC "MAIN"
+
+@{b}Présentation
+------------@{ub}
+
+
+L'Amiga ne possédant pas vraiment de logiciel intégré pour l'exploitation
+d'Internet, je cherchais un petit utilitaire permettant de lancer les
+différents softs utilisés pour le Net (dialer, browser Web, ...) et prenant
+trés peu de place à l'écran. Je désirais aussi pouvoir suivre facilement
+mes temps et côuts de connexion.
+
+Ne trouvant pas de soft réunissant ces fonctions, j'ai décidé d'écrire NBAR.
+Petite limitation: il nécessite l'utilisation de Miami comme Dialer.
+
+NBar se présente sous la forme d'une barre et d'une fenêtre d'information
+optionnelle @{" Voir Grab d'écran " LINK NBar.grab/main}.
+
+NBar réalise les fonctions suivantes:
+
+- Lancement d'applications par gadgets librement définissables.
+- Pilotage Miami: Connexion / Déconnexion, Iconification / Désiconification.
+- Possibilité d'utiliser 2 configurations pour Miami (ex: accès à 2 providers).
+- Affichage vitesse de transfert / avertissement arrivée des nouveaux courriers.
+- Récupération automatique du courrier et des news (avec Yam et Thor).
+- Interface graphique trés compacte.
+
+- Affichage temps et côuts de la connexion en cours.
+- Affichage cumul mensuel des temps et côuts des connexions.
+- Archivage des cumuls mensuels des temps et côuts des connexions, du nombre
+  et du temps moyen de connexion mensuel.
+- Prise en compte des tarifications Primaliste et Temporalis.
+
+Les différentes fonctions sont détaillées dans le paragraphe utilistaion.
+
+NBAR est un script arexx (passé à la moulinette de RexxOpt pour un gain en
+taille et en vitesse d'exécution). Il utilise la rexxarplib.library.
+
+
+
+@ENDNODE
+
+
+@NODE "Tarification" "Tarification"
+@TOC "MAIN"
+
+@{b}Rappels à propos du calcul du côut d'une communication
+------------------------------------------------------@{ub}
+
+En France, la tarification des communications téléphoniques est basée sur le
+le calcul d'Unités Téléphoniques (UT) consommées et obéit à 3 règles:
+
+- le côut d'une UT est fixe (aujourd'hui 0,615F HT).
+- la durée de l'UT est variable suivant le jour, l'heure et la distance de
+  l'appel.
+- toute UT entamée est facturée.
+
+De cela, on peut en tirer 2 conclusions:
+
+ a) Pour faire un calcul exact du côuts de communications, il ne faut pas
+    prendre comme base un côut par minute ou par seconde, mais totaliser
+    un nombre d'UT consommées. Exemple:
+
+    En zone de tarifiction locale, après 22h30 la durée de l'UT est de 9 minutes.
+    Ma communication dure 3 minutes. Ainsi, il serait faux de faire le calcul
+    suivant:
+
+    Faux Côut de la communication = Côut UT / durée UT x durée com.
+                                  =   0,615 /    9'    x     3'
+                                  =   0,205 F
+
+    Le vrai côut est celui du nombre d'UT consommées, soit dans ce cas:
+
+    Vrai Côut de la communication = 1 x 0,615 = 0,615 F
+
+    La plupart des utilitaires de calcul de côut ne suivent pas les règles
+    de la tarification France Telecom et donnent donc des résultats faux.
+
+    NBAR calcule la durée de l'UT en fonction du jour, de l'heure et de la
+    distance d'appel (zone tarifaire). Un calendrier (96-97) lui permet
+    d'affecter aux jours fériés les règles de calcul d'UT qui leur sont
+    propres (jour férié = dimanche).
+
+    Concernant le calcul des côuts, NBAR compte le nombre d'UT consommées,
+    ses résultats sont donc justes.
+
+ b) En cours de communication, Il est intéressant de connaître ou en est la
+    consommation de l'UT en cours pour le cas échéant,
+
+    - soit d'abréger la communication afin de ne pas engager la consommation
+      d'une nouvelle UT.
+
+    - soit de prolonger la communication afin de consommer complétement l'UT
+      en cours.
+
+    Pour cela NBAR dispose d'une 'barre de consommation d'UT'.
+
+
+
+@{b}Services FT offrant une tarification réduite
+--------------------------------------------@{ub}
+
+A ce jour, France Telecom propose 2 services qui s'appliquent aux communications
+échangées en France métropolitaine et à l'exception des services suivants:
+Teletel, Audiotel, Numéro Azur, Télex, Eurosignal, Alphapage, Radiocom 2000,
+GSM, Transpac, Mémophone.
+Les réductions se cumulent avec les avantages horaires. Les services Temporalis
+et Primaliste ne peuvent se cumuler.
+
+Pour des informations plus détaillées, consultez votre agence France Telecom ou
+le Web de France Telecom: www.francetelecom.fr
+
+
+1 - TEMPORALIS
+
+    Offre: Réduction du côut de toutes les communications échangées (selon les
+           restrictions listées ci-dessus). Le taux de réduction varie avec la
+           durée de la communication:
+
+           - 10% pour les communications durant plus de  5 mn
+           - 20% pour les communications durant plus de 10 mn
+           - 30% pour les communications durant plus de 15 mn
+
+    Côut : 15F TTC / mois
+
+
+2 - PRIMALISTE
+
+    Offre: Réduction de 20% du côut de toutes les communications échangées
+           avec 6 correspondants privilégiés (les 6 numéros d'appels peuvent
+           être à tout moment redéfinis).
+
+    Côut : 15F TTC / mois
+
+
+Ces services peuvent vous faire réaliser quelques économies. Le choix du service
+dépend de vos habitudes d'appel et du temps moyen de vos communications. On peut
+cependant remarquer que,
+
+- Avantage Temporalis, si la plupart de vos appels durent plus de 10mn et/ou que
+  vous avez un grand nombre de correspondants.
+- Avantage Primaliste, si la plupart de vos appels durent moins de 10mn et que
+  vous avez un nombre restreint de correspondants.
+
+NBar vous renseigne sur votre temps moyen de communication (voir fichier log).
+
+
+* FORFAIT LOCAL
+
+  Depuis mars 1997, ce nouveau service vous donne droit à un forfait bimestriel
+  de 12 heures de communications passées exclusivement dans votre zone locale,
+
+  . en semaine de 18h à 8h
+  . pendant tout le week-end et les jours fériés
+
+  Côut : 30F TTC / mois
+
+  Les services Temporalis et Primaliste peuvent s'ajouter au Forfait Local: les
+  réductions fournies par ces services se réalisent alors sur les communications
+  passées au dela des 12 heures bimestrielles.
+  La durée minimale d'abonnement au Forfait Local est de 6 mois.
+
+
+@ENDNODE
+
+@NODE "Installation" "Installation"
+@TOC "MAIN"
+
+@{b}Installation
+------------@{ub}
+
+
+Le système (>= 2.0) doit disposer d'Arexx installé.
+
+NBAR est uniquement prévu pour fonctionner avec le dialer Miami v1.1+.
+
+NBAR utilise la rexxarplib.library v3.3. Si vous ne l'avez pas, celle fournie
+ci-jointe est à copier dans votre répertoire libs/.
+
+
+Copier NBAR.cfg dans votre répertoire s:. L'éditer et le modifier pour adapter
+NBAR à votre usage (voir @{"configuration" LINK "Configuration"}).
+
+
+
+@{b}Lancement
+---------@{ub}
+
+
+* En mode 'CLI'
+
+  Copier NBAR là ou vous le désirez.
+
+  NBAR se lance par la commande:   run rx <chemin>NBAR [fichier.config]
+
+  l'argument [fichier.config] indique à NBAR dans quel fichier il trouvera
+  sa configuration. Il est ainsi possible d'utiliser des configurations
+  différentes.
+  Si vous n'utilisez pas d'argument, NBAR utilisera s:NBAR.cfg.
+
+
+* En mode 'Workbench'
+
+  Copier NBAR dans le répertoire assigné Rexx:
+    ou
+  Copier NBAR ou vous le désirez, puis éditez N.Bar et remplacer la ligne
+
+         'rx NBAR' par 'rx <chemin>NBAR [Fichier.config]'
+
+  Copier N.Bar et N.Bar.info là ou vous le désirez.
+
+
+NBAR pilotant Miami, ne pas mettre le flag 'auto-online' dans la rubrique
+'Start' de la configuration 'Events'.
+
+@ENDNODE
+
+@NODE "Utilisation" "Utilisation"
+@TOC "MAIN"
+
+@{b}Utilisation
+-----------@{ub}
+
+
+NBAR utilise 2 fenêtres: une principale possédant différents gadgets et une
+fenêtre Info renseignant plus précisément sur les temps/côuts de connexion.
+@{" Voir Grab d'écran " LINK NBar.grab/main}
+
+Le titre de la fenêtre comprend une zone message. Son positionnement horizontal
+peut être précisément défini par le paramètre ZMo (voir @{"Configuration" LINK "Configuration"}).
+
+
+  Fenêtre principale: @{" Menus " LINK "WM-Menus"}  @{" Gadgets" LINK "WM-Gadgets"}
+
+
+ @{" Fenêtre Info" LINK "WInfo"}
+
+@ENDNODE
+
+@NODE "WM-Menus" "Menus Fenêtre principale"
+@TOC "MAIN"
+
+@{b}Menus Fenêtre principale
+------------------------@{b}
+
+  @{b}Menu NBAR@{ub}
+
+  . @{b}Miami@{ub}     : Lance Miami (sans fichier config en argument).
+
+  . @{b}Sauve Pos@{ub} : Sauvegarde dans s:NBAR.cfg la position actuelle de la fenêtre
+                principale et celle de la fenêtre Info (si celle-ci a été
+                précédemment enregistrée par 'Sauve Pos' de son propre menu).
+
+  . @{b}A Propos@{ub}  : un peu d'info.
+
+  . @{b}Quitte@{ub}    : Sauvegarde les données (temps, nb UT, côuts) des éventelles
+                communications réalisées.
+                Quitte le programme et ferme Miami s'il est lancé.
+
+  @{b}Menu Prefs@{ub}
+
+  . @{b}Info Côuts@{ub} : Valide/dévalide l'affichage des côuts dans l fenêtre Info.
+
+  . @{b}Auto Front@{ub} : Valide/dévalide la mise en avant plan automatique des
+                 fenêtres.
+
+
+  @{b}Menu MIAMI-Settings@{ub}
+
+  . @{b}<Setting 1>@{ub} : Nom de la configuration Miami définie dans le fichier de
+                  configuration (NBAR.cfg). Deux configurations peuvent être
+  . @{b}<Setting 2>@{ub} : définies.
+                  Ce menu permet de choisir le fichier de configuration de
+                  Miami qui sera utilisé lors de la prochaine connexion.
+                  (ex: choix entre 2 providers).
+                  Lors d'un changement de configuration, Miami sera fermé puis
+                  relancé avec la nouvelle configuration choisie.
+                  (voir configuration).
+
+  Le calcul des côuts prend en compte les réductions tarifaires des services
+  Primaliste ou Temporalis s'ils sont utilisés.
+
+
+@ENDNODE
+
+@NODE "WM-Gadgets" "Gadgets Fenêtre principale"
+@TOC "MAIN"
+
+@{b}Gadgets fenêtre principale
+--------------------------@{b}
+
+
+  @{b}I@{ub} : Ouvre la fenêtre Info si elle n'est pas présente, la ferme dans le cas
+      contraire.
+
+
+  @{b}xx U@{ub} : Iconifie Miami s'il est lancé.
+
+         Affiche le nombre d'UT facturées depuis le début de la communication.
+         (Début com.: connexion de votre modem à celui de votre provider).
+
+
+  @{b}0--------x'@{ub} : Désiconifie Miami s'il est lancé.
+
+                Ce gadget fournit l'état de la consommation de l'UT en cours.
+
+                A son extrémité droite est affichée la durée de l'UT actuelle
+                calculée suivant le jour, l'heure et la zone de tarification.
+                Ainsi, avant d'engager une communication, vous avez une pemière
+                idée de son côut.
+                NBAR reconnait les jours fériés et calcule correctement leurs
+                durées d'UT.
+
+                Le gadget porte une barre qui repésente la part de l'UT en
+                cours qui reste à consommer avant la prochaine UT.
+
+                Dés que Miami a réalisé avec succès sa connexion, la barre
+                change de couleur (voir Configuration) et décroit au fur et
+                à mesure que l'UT est consommée.
+                La barre changera de couleur lorsque le temps restant avant
+                le passage à la prochaine UT passe en dessous d'un certain
+                seuil (voir Configuration). Cette alerte permet d'avoir le
+                temps nécessaire pour se déconnecter si on le désire.
+
+
+  @{b}« ONLINE »@{ub} : Lance Miami s'il n'est pas lancé.
+
+               Demande à Miami de se connecter (idem au gadget OnLine de Miami)
+               en utilisant la configuration (MSettings) en cours affichée dans
+               la zone message.
+               Dés que la connexion est réalisée, NBAR affiche dans la zone
+               message la vitesse de transfert négociée ansi que la présence
+               éventuelle de nouveau courrier (si le paramètre CNMail est
+               renseigné). Si le paramètre Automail est utilisé, Yam sera lancé
+               et il récupérera le courrier en attente (voir configuration).
+
+               Lorsque la connexion est demandée, il n'est pas possible de
+               l'interrompre depuis NBar. Pour cela, il faut agir sur le gadget
+               'Cancel' de la fenêtre 'Dial' de Miami.
+
+
+  @{b}» OFFLINE «@{ub} : Apparaît en remplacement du gadget « ONLINE » dès que
+                la connexion a été réalisée avec succès.
+                Demande à Miami de se déconnecter (idem au gadget OffLine
+                de Miami).
+
+
+  @{b}M@{ub} : Le gadget existe s'il a été défini dans le fichier de configuration.
+      Il lance la récupération du courrier en attente chez votre fournisseur.
+      Il engage une connexion si nécessaire.
+
+
+  @{b}N@{ub} : Le gadget existe s'il a été défini dans le fichier de configuration.
+      Il lance la récupération des news en attente chez votre fournisseur.
+      Il engage une connexion si nécessaire. Si Thor est aussi utilisé pour
+      récupérer le courrier (defini dans GMail), le courrier en attente sera
+      aussi récupéré. S'il y a réception de news et/ou de courrier la liste
+      des messages reçus est affichée.
+
+
+  @{b}Gadget 1@{ub} : Lance par run la commande associée au Gadget 1
+
+    :
+    :                      (voir configuration)
+
+  @{b}Gadget n@{ub} : Lance par run la commande associée au Gadget n
+
+
+
+La barre de la fenêtre contient une zone message qui fournira principalement les
+informations suivantes:
+
+- Hors connexion: La Configuration de Miami en cours.
+
+- Lors d'une connexion réussie: La vitesse de transfert négociée.
+                                La présence éventuelle de nouveau courrier.
+                                (voir configuration et limitations)
+
+@ENDNODE
+
+@NODE "WInfo" "Fenêtre Info"
+@TOC "MAIN"
+
+@{b}Fenêtre Info
+------------@{ub}
+
+  @{b}Menu@{ub}
+
+  @{b}Sauve Pos@{ub} : Enregistre la position actuelle de la fenêtre Info (elle sera
+              sauvegardée par 'Sauve Pos' du menu de la fenêtre principale).
+
+
+Les informations suivantes sont affichées dans cette fenêtre:
+
+- @{b}1ère ligne (T)@{ub} : Totalisation mensuelle des temps de connexion, du nombre d'UT
+                   consommées et de leur côuts (TTC). L'affichage du côut est
+                   optionnel et la période mensuelle définie selon le paramètre
+                   JDCM (voir configuration).
+
+- @{b}2ème ligne (C)@{ub} : Pour la Communication en Cours, temps, nombre d'UT consommées
+                   et côut (TTC) depuis le début de la connexion. L'affichage du
+                   côut est optionnel (voir configuration).
+
+  Le calcul des côuts prend en compte les réductions tarifaires des services
+  Primaliste ou Temporalis s'ils sont utilisés.
+
+
+@ENDNODE
+
+@NODE "Fichier-Log" "Fichier Log"
+@TOC "MAIN"
+
+@{b}Fichier Log
+-----------@{ub}
+
+
+Dans ce fichier sont archivés les cumuls mensuels des temps de connexion et
+du nombre d'UT consommées. On y trouve aussi le cumul mensuel des côuts de
+communication HT et TTC (avec TVA à 20,6%), le nombre de communications et
+le temps moyen d'une communication (TMC).
+
+Le calcul des côuts prend en compte les réductions tarifaires des services
+Primaliste ou Temporalis s'ils sont utilisés.
+
+Chaque ligne contient les informations relatives à une même période mensuelle.
+Le jour de début de la période mensuelle est défini par le paramètre JDCM
+défini dans la @{"configuration" LINK "Configuration"}.
+La période débute à JDCM/Mois/Année et se termine à JDCM-1/Mois+1/Année.
+Une nouvelle ligne sera crée à chaque nouvelle période.
+
+Le nom du fichier Log est défini dans la @{"configuration" LINK "Configuration"} (paramètre LogFile).
+Il sera automatiquement crée à la première utilisation.
+
+ @{i}! Le fichier Log peut être édité mais son format ne doit pas être modifié !
+ ! Si besoin, travaillez sur une copie du fichier                          !@{ui}
+
+
+Exemple de fichier Log (avec JDCM=20):
+
+
+                          NBar - Fichier log
+                          ------------------
+
+ Période     Temps    Unités    Coût HT / TTC     Nb Com    TMC
+
+ 20/03/97
+            00:21:24    029    17.835  21.509 F    010    00:02:28
+ 20/02/97
+            01:16:07    017    10.455  12.087 F    009    00:01:47
+ 20/01/97
+
+
+@ENDNODE
+
+@NODE "Configuration" "Configuration"
+@TOC "MAIN"
+
+@{b}Configuration
+-------------@{ub}
+
+
+ Editez le fichier s:NBAR.cfg et modifiez les paramètres comme il est indiqué
+ ci dessous:
+
+
+ --------* Configuration NBAR *--------
+
+
+ WX = x    : x et y = Positions de la fenêtre principale. Infos sauvegardées
+ WY = y    : par 'Sauve Pos' du menu de la fenêtre principale.
+
+ WIX = x   : x et y= Positions de la fenêtre principale. Infos sauvegardées
+ WIY = y   : par 'Sauve Pos' du menu de la fenêtre principale.
+
+
+ @{b}ZMo = n@{ub} : n= Décalage vers la droite (en points) de la zone message par
+           rapport au bord gauche de la fenêtre. Ce règlage permet de placer
+           correctement la zone message dans le titre de la fenêtre, cela en
+           fonction de la taille des fontes que vous utilisez (0 par défaut).
+
+ @{b}WInfo = n@{ub} : n= 0: pas d'ouverture de la fenêtre Info au lancement de NBAR.
+             n= 1: ouverture de la fenêtre Info au lancement de NBAR.
+
+
+ @{b}InfoC = n@{ub} : 0: pas d'affichage des Côuts dans la fenêtre Info.
+             1: affichage des Côuts dans la fenêtre Info.
+
+ @{b}WFront= 0@{ub} : n= 0: pas d'affichage automatique des fenêtre en avant-plan.
+             n= 1: d'affichage automatique des fenêtre en avant-plan.
+
+
+ @{b}ColC  = n@{ub} : n= Couleur de la 'barre consommation UT' lorsque la connexion est
+                réalisée (communication en cours).
+
+
+ @{b}ColNC = n@{ub} : n= Couleur de la 'barre consommation UT' lorsqu'il n'y a pas de
+                connexion en cours (pas de communication en cours).
+
+
+ @{b}ColA  = n@{ub} : n= Couleur de la 'barre consommation UT' lorsque le seuil alerte
+                est dépassé.
+
+
+ @{b}Alerte= n@{ub} : n= Seuil du temps restant à l'UT en cours en dessous duquel la
+                'barre consommation UT' prendra la couleur définie par le
+                paramètre ColA. Temps en secondes. Si vous ne désirez pas
+                d'alerte, mettre la valeur 0.
+
+@{b}TAppel= n@{ub} : n= Temps de prise de la ligne (en secondes)
+
+             - Si votre modem est connecté au port série standard de l'Amiga,
+               NBar détecte la prise de ligne nécessaire pour démarrer le
+               comptage du temps de connexion. Dans ce cas mettre la valeur 0.
+               Un timeout de 45s est utilisé afin de pouvoir interrompre la
+               connexion.
+
+             - Si votre modem n'est pas relié au port série (cas des cartes
+               multi-série), NBar ne sait pas détecter la prise de ligne.
+               Ce paramètre lui fournit le temps moyen de prise de ligne.
+               Pour déterminer n, mesurer le temps entre l'appui du gadget
+               «ONLINE» et le début de négociation du modem (à l'issue des
+               sonneries).
+
+
+ @{b}SMiami= "xxx"@{ub} : Mettre la commande de lancement de Miami avec son chemin
+                 complet. Ex:  SMiami= "SYS:Net/Miami/Miami"
+                 Ne pas oublier les "".
+
+
+ @{b}LogFile = "xxx"@{ub} : Nom et chemin complet du fichier Log.
+                   Ex:  LogFile = "s:NBAR.log"
+                   Si vous ne désirez pas de fichier Log, mettre "".
+                   Ne pas oublier les "".
+
+
+ @{b}MLogFile = "xxx"@{ub} : Nom et Chemin complet du fichier .log de Miami.
+                    Ce paramètre est nécessaire pour pouvoir afficher la
+                    vitesse de transfert et avertir de l'arrivée de courrier
+                    lors d'une connexion (NBAR l'extrait de ce fichier).
+                    Selon la forme des messages retournés par votre provider
+                    lors de la procédure de connexion, cette fonction peut
+                    donner des résultats incorrects. Dans ce cas, il est
+                    possible de la désactiver en mettant "".
+                    Ne pas oublier les "".
+
+
+ @{b}JDCM = n@{ub}  : Définit le Jour de Début pour la période de Cumul Mensuel. Par
+             défaut, le 01. La période débute à JDCM/Mois/Année et se termine
+             à JDCM-1/Mois+1/Année. Par exemple avec JDCM=20, le cumul mensuel
+             des temps, côuts et nombre de connexions sera réalisé pour des
+             périodes allant du 20/mois/année au 19/mois+1/année.
+             Voir exemple @{"Fichier Log" LINK "Fichier-Log"}.
+             Lorsque, étant le jour J et le mois M, vous modifiez JDCM, la
+             nouvelle période sera prise en compte à la date,
+             . JDCM/M+1/année si JDCM < J
+             . JDCM/M/année si JDCM >= J
+
+
+ @{b}CUHT = n@{ub}  : Côut Hors Taxe d'une Unité Téléphonique (actuellement: 0.615).
+
+
+ @{b}MSettings@{ub} : <Nom_Config> <Fichier de configuration Miami> <Tarif> [<Thor SysName>]
+
+             Ce paramètre sert à définir,
+
+             - la configuration qui sera utilisée au lancement de Miami.
+             - la tarification utilisée: zone tarifaire et éventuellement
+               réduction Primaliste ou Temporalis
+             - le nom du système utilisé par Thor lorsqu'on l'utilise pour
+               les fonctions de récupération des news et/ou du courrier
+               (voir ci-dessous paramètre GNews).
+
+
+             * Définition configuration Miami:
+
+             Deux configurations peuvent être définies correspondant à deux
+             paramètres MSettings. La configuration à utilser pourra alors être
+             choisie à partir du menu MIAMI-Settings de la fenêtre principale.
+
+             Il est obligatoire de définir au moins un paramètre MSettings.
+             Les arguments du paramètre MSettings doivent être écrits dans
+             l'ordre indiqué et séparés par un espace.
+
+
+             <Nom_Config> : Nom de la configuration qui apparaîtra dans le
+                            menu MIAMI-Settings.
+
+             <Fichier de configuration Miami> : Fichier config de Miami avec
+             son chemin complet.
+             MIAMI sera lancé avec SETTINGS=<Fichier de configuration Miami>
+
+             Si vous désirez que Miami utilise sa configuration par défaut,
+             mettre DEF.
+
+             Par exemple, cette fonction peut être utile lorsque l'on est
+             appelé à se connecter chez deux providers différents et donc
+             utiliser des configurations différentes pour Miami.
+
+             ex:  MSettings = Wanadoo SYS:Net/Maimi/Wanadoo.miami
+                  MSettings = HOL DEF
+
+                Wanadoo.miami est un fichier de configuartion de Miami
+                adapté à la connexion sur Wanadoo. La connexion sur AOL
+                utilise la configuration par défaut de Miami.
+
+             Le premier paramètre MSettings défini est choisi pour configuration
+             active au lancement de NBAR (Wanadoo dans l'exemple).
+
+
+             * Définition de la tarification:
+
+             Cet argmument sert au calcul du côut des communications qui dépend,
+
+             - de la zone tarifaire de votre fournisseur d'accès (distance de
+               votre appel - Voir votre annuaire pour la connaître).
+             - de votre abonnement éventuel au service Primaliste ou Temporalis.
+
+             <Tarif> : n[r] avec
+
+               n = 1 : Zone Locale (d<52 km)      r =   : pas de réduction
+               n = 2 : Zone Nationale (d>52 km)   r = P : No d'appel Primaliste
+                                                  r = T : Abonnement Temporalis
+
+                ex: <Tarif> : 1T   < Appel local avec réduction Temporalis
+                              2    < Appel National sans réduction
+
+
+             * Définition du nom de système utilsé par Thor:
+
+             > Si vous n'utilisez pas Thor dans les fonctions de récupération
+               des news et/ou de courrier, ne rien mettre dans <Thor SysName>.
+
+             > Si vous utilisez Thor, l'argument <Thor SysName> doit être
+               renseigné afin d'archiver aux bons endroits les messages et
+               news reçus.
+               Mettre dans <Thor SysName> le nom du système utilisé (à choisir
+               dans la liste des systèmes affichée dans la fenêtre de démarrage
+               de Thor).
+
+               Si vous avez défini deux configurations pour Miami, mettre dans
+               chaque MSettings les noms des systèmes correspondants qui peuvent
+               être différents ou identiques pour les deux MSettings.
+
+               Ex:  MSettings = Wanadoo SYS:Net/Maimi/Wanadoo.miami 1T NET
+                    MSettings = HOL DEF 3 NET
+
+
+ @{b}GMail@{ub} : [<Cmde lancement Mailer>] <Y/T> [G] [CNX] [AUTO] [(<chaîne arrivée mail>)]
+
+         Ce paramètre optionnel définit la fonction de récupération du
+         courrier en attente chez votre fournisseur. Cette fonction ne
+         supporte actuellement que les mailers Yam et Thor.
+         Si vous n'utilisez pas un de ces mailers ou que vous ne désirez
+         pas cette fonction, effacez la ligne.
+
+         Ex: GMail : "Sys:Internet/Yam/Yam" Y G CNX AUTO (new mail)
+             GMail : T G CNX
+
+         [<Cmde lancement Mailer>] : Si vous utilisez Yam, mettre sa commande
+                                     de lancement avec son chemin complet qui
+                                     doit être entre "".
+                                     Si vous utilisez Thor, ne rien mettre.
+
+         <Y/T> : Type du mailer utilisé. Vous utilisez Yam, mettre Y
+                                         Vous utilisez Thor, mettre T
+
+         [G] : Définit la présence ou non d'un gadget 'M' dans la fenêtre de
+               de NBar. Ce gadget, placé à droite du gadget «ONLINE» permet
+               de lancer la récupération du courrier.
+               Si vous désirez le gadget, mettre G, Sinon ne rien mettre.
+
+         [CNX] : Récupération du courrier à chaque connexion. Si vous désirez
+                 cette fonction, mettre CNX, sinon ne rien mettre.
+
+         (<chaîne arrivée mail>) : Utilisé pour détecter l'arrivée de courrier.
+
+               La détection d'arrivée de courrier est faite par la recherche
+               d'une chaîne dans le fichier .log de Miami (défini dans le
+               paramètre MLogfile) et qui indiquera l'arrivée de courrier.
+               Pour déterminer cette chaîne, il faut tout d'abord observer
+               dans le fichier .log de Miami, le message envoyé par votre
+               provider lors de la connexion vous indiquant la présence de
+               courrier en attente. Cela fait, (<chaîne arrivée mail>) sera
+               tout ou partie de ce message.
+
+               ex: lors de l'arrivée de courrier, on trouve dans le fichier
+                   .log de Miami, le message: 'you have 3 new mails'
+
+                   'new mail' est alors la portion de chaîne nécessaire et
+                   suffisante pour indiquer l'arrivée de courrier.
+                   Le paramètre est donc:  (new mail)
+
+               Si votre provider ne vous avertit pas lors de la présence de
+               courrier en attente, annuler la fonction en n'utilisant pas
+               ce paramètre.
+
+         [AUTO] : Fonction de récupération automatique du courrier arrivé.
+
+               Cette fonction engage la récupération automatique du courrier
+               suite à une détection d'arrivée de courrier.
+               Ne peut être utilisée que si la détection d'arrivée de courrier
+               a été définie, sinon ne pas utiliser cette option.
+
+
+ @{b}GNews@{ub} : [G] [CNX]
+
+         Ce paramètre optionnel définit la fonction de récupération des news
+         en attente chez votre fournisseur. Actuellement, cette fonction ne
+         supporte que Thor et utilise la commande GetTCP dans Thor/bin.
+         La fonction nécessite la connaissance du nom d'un système qui aura
+         préalablement été installé dans Thor. Le nom du systeme à utiliser
+         est défini dans le paramètre MSettings (voir ci-dessus).
+         Les options utilsées pour la récupérations du courrier et des news
+         sont celles définies par Thor lors de la configration du système.
+
+         Si vous ne désirez pas utiliser cette fonction, effacez la ligne
+         entière.
+
+         Ex: GNews : G CNX
+
+         [G] : Définit la présence ou non d'un gadget 'N' dans la fenêtre de
+               NBar. Ce gadget, placé à droite du gadget «ONLINE» permet de
+               lancer la récupération des news.
+               Si vous désirez le gadget, mettre G, Sinon ne rien mettre.
+
+         [CNX] : Récupération des news à chaque connexion. Si vous désirez
+                 cette fonction, mettre CNX, sinon ne rien mettre.
+
+
+ @{b}Gadget@{ub} : <Nom_Gadget> <Commande de lancement de l'application choisie>
+
+          Le paramètre Gadget est optionnel. Il vous permet de définir un
+          gadget à afficher dans la fenêtre pricipale et la commande qui lui
+          sera affectée. Si vous ne l'utilisez pas, effacez la ligne entière.
+
+          Les arguments du paramètre MGadget doivent être écrits dans l'ordre
+          indiqué et séparés par un espace.
+
+          -  <Nom_Gadget> : le nom que portera le gadget qui sera placé dans
+             la fenêtre principale, à gauche du gadget « ONLINE ».
+
+          -  la commande associée qui sera lancée (par run) en indiquant son
+             chemin complet: <Commande de lancement de l'application choisie>
+
+          Ex:  Gadget = WEB SYS:Net/IBrowse/IBrowse
+               Gadget = FTP execute SYS:Net/AmFTP/Start-AmFTP
+               Gadget = Mail SYS:Net/Yam/Yam
+
+          Chaque nouvelle définition du paramètre gadget crée un nouveau
+          gadget (3 gadgets sont crées dans l'exemple ci-dessus).
+          Vous pouvez ainsi créer autant de gadgets que vous le désirez, la
+          seule limitation étnt la largeur de votre écran Workbench. Si le
+          nombre de gadgets définis est trop important, seuls ceux pouvant
+          être affichés le seront.
+
+          Les gadgets seront placés dans la fenêtre principale, à gauche du
+          gadget « ONLINE », dans l'ordre selon lequel ils ont été définis.
+          L'exemple ci-dessus donne le placement:  « ONLINE »  WEB  FTP  Mail
+
+@ENDNODE
+
+@NODE "Limitations" "Limitations"
+@TOC "MAIN"
+
+@{b}Limitations
+-----------@{ub}
+
+    - Une communication entamée à un mois M et terminée à un mois M+1 sera
+      totalisée entièrement sur le mois M+1 et non répartie sur les 2 mois.
+
+    - Ne sait gérer que les communications à destination de la France
+      métropolitaine.
+
+
+    J'ai écrit ce petit utilitaire pour mes besoins personnels. Il ne répond
+    donc pas forcément aux besoins particuliers de certains. Il est cependant
+    possible d'y apporter des modifictions/ajouts/corrections. Pour cela vous
+    pouvez me contacter aux adresses mentionnées.
+
+@ENDNODE
+
+@NODE "Distribution" "Distribution"
+@TOC "MAIN"
+
+@{b}Auteur - Remerciements - Distribution
+-------------------------------------@{ub}
+
+
+    Auteur :   Alain PETIT
+
+    Contact:   Bal TITEPA sur 3614 AMIGATEL
+
+               EMail: apetit@infrescom.fr
+
+
+    Merci à :  Didier Levet (Kakace) pour ses tests et ses bonnes suggestions.
+
+
+    NBAR est totalement freeware. Il doit être distribué avec sa documentation.
+
+@ENDNODE
+
+@NODE "Historique" "Historique"
+@TOC "MAIN"
+
+@{b}Historique
+----------@{ub}
+
+
+    @{b}v 1.52@{ub} . Remise à jour de la définition des zones de tarifications: les 4
+             précédantes zones sont désormais remplacées par 2 zones: locale
+             et nationale (paramètre 'MSettings' - voir @{"Configuration" LINK "Configuration"}).
+
+           . Remise à jour réduction Primaliste (-20% depuis le 04/03/97).
+
+
+    @{b}v 1.51@{ub} . Possibilité de choisir le jour de début de la période de cumul
+             mensuel (paramètre 'JDCM' - voir @{"Configuration" LINK "Configuration"}).
+             Compatible avec ancien fichier Log.
+
+
+    @{b}v 1.5@{ub}  . Ajout fonctions de récupération du courrier et des news utilisant
+             Yam et Thor (paramètres 'GMail' & 'GNews' - voir @{"Configuration" LINK "Configuration"}).
+
+           . Correction calcul du temps de communication: prise en compte du
+             temps d'appel (paramètre 'TAppel' - voir @{"Configuration" LINK "Configuration"}).
+
+           . Correction de bugs.
+
+           Cette version nécessite la modification du fichier de @{"Configuration" LINK "Configuration"}.
+           (suppression 'AutoMail' et 'CNMail'; modification 'MSettings'; ajout
+           'GMail' et 'GNews')
+
+
+    @{b}v 1.4@{ub}  . Prise en compte de la tarification Temporalis.
+             (paramètre 'Temmporalis' - voir @{"Configuration" LINK "Configuration"})
+
+           . Avec Yam comme mailer, possibilité de récupération automatique du
+             courrier en attente (paramètre 'AutoMail' - voir @{"Configuration" LINK "Configuration"}).
+
+           . Ajout dans fichier log: Nombre de communications mensuelles et
+             temps moyen de communication.
+
+           . Possibilité d'ajuster la position horizontale de la zone message
+             (paramètre 'ZMo' - voir @{"Configuration" LINK "Configuration"}).
+
+           . Prise en compte dans le temps global de communication du temps de
+             la connexion TCP (intervale de temps entre la prise de ligne par
+             le modem et la fin de connexion de Miami).
+
+           . Correction de bugs.
+
+
+    @{b}v 1.3@{ub}  . Possibilité d'utiliser Miami avec 2 configurations différentes
+             (ex: accès à 2 providers différents).
+
+           . Possibilité de choisir le fichier de config (passé en argument).
+
+           . Message d'avertissement de réception courrier.
+
+           . Possibilité d'Auto-Front des fenêtres.
+
+           . Informations désormais affichées dans le titre de la fenêtre
+             principale (l'argument WMes disparait du fichier de config).
+
+
+    @{b}v 1.2@{ub}  . Personnalisation accrue: possibilité de définir le nombre désiré
+             de gadgets.
+
+           . Rafraîchissement totaux mensuels (Temps et Nb UT) de la fenêtre
+             Info lorsque qu'une communication est en cours.
+
+           . Affichage optionnel des Côuts dans la fenêtre info.
+
+           . Possibilité de suprimer les messages lors de la connexion et de
+             la déconnexion.
+
+           . Correction de bugs.
+
+           Cette version nécessite la modification du fichier de @{"Configuration" LINK "Configuration"}.
+
+
+    @{b}v 1.1@{ub}  . Ajout reconnaissance des jours fériés (suppression option 'F').
+
+           . Possibilité d'affichage vitesse de transfert lors de la connexion.
+
+           . Ajout Icône et script associé pour execution en mode 'Workbench'.
+
+           . Ajout sauvegarde infos dans fichier log lorsque l'on quitte sans
+             s'être déconnecté par le gadget '» OFFLINE «'.
+
+
+    @{b}v1.0@{ub}   . La première.
+
+@ENDNODE
+

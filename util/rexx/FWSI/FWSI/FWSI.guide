@@ -1,0 +1,367 @@
+@database 003a05a8-13
+@master FWMacros:FWSI.guide
+@$VER: 1.0
+@remark Created with Heddley v1.1 (c) Edd Dumbill 1994
+
+@node "Main" "Final Writer Spreadsheet Import"
+Final Writer Spreadsheet Import
+
+FWSI (Final Writer Spreadsheet Import) is a modular ARexx program for direct
+importing (as a text/graphic object) of spreadsheet data into FinalWriter.
+Developed for FW 4.0, the program may also work with earlier versions of Final
+Writer.
+
+FWSI is *capable* of importing many @{"parameters" link "Parameters" 0} of a spreadsheet, but not all
+spreadsheets are capable of exporting all those parameters. I have included
+PCALC.fwsi for importing from Professional Calc, FCALC.fwsi for importing from
+Final Calc, and CSV for importing Comma (or any other delimiter) Separated
+Value ASCII data.
+
+The Final Calc import module is the most sophisticated module, allowing import
+of most parameters. The ProCalc module only allows the import of height and
+width data in addition to the cell contents, and the CSV module can obviously
+only import the cell contents.
+
+I was unable to get the ARexx interface of EasyCalc working, and since the
+docs aren't included in the TurboCalc demo version, I was unable to create a
+TCALC.fwsi module. I know TurboCalc has some features (such as multi-line
+rows) that are currently unsupported by FWSI; if someone wants to send me a
+legal copy of TurboCalc I will gladly modify FWSI to incorporate as many
+TurboCalc features as possible :-)
+
+FWSI.rexx may not be modified and then distributed in any way; distribution of
+the original, unmodified version of the macro is allowed by any no-cost-
+for-the-software means. FWSI modules (that is, those ARexx programs ending in
+.fwsi and intended for use in conjunction with FWSI.rexx) may be created,
+modified, and distributed as desired.
+
+  @{" Installation       " link "Installation" 0}
+  @{" Use                " link "Use" 0}
+  @{" User Variables     " link "UserVariables" 0}
+  @{" Module Programming " link "ModuleProgramming" 0}
+  @{" Author             " link "Author" 0}
+@endnode
+
+@node "Installation" "Installation"
+Installation
+
+Copy FWSI.rexx and the import modules (#?.fwsi) to FinalWriter/FWMacros (or
+where ever you keep your Final Writer macros). Follow the instructions on page
+3-29 of the Final Writer 4 manual for adding FWSI to the user menu.
+
+Edit FWSI.rexx, changing the value of the 'DefaultDir' user variable to the
+location of your import modules (including the terminating ':' or '/').
+
+The following libraries are required for FWSI:
+
+   rexxsupport.library
+   rexxarplib.library
+   rexxreqtools.library
+@endnode
+
+@node "Use" "Use"
+Use
+
+Open/Create a Final Writer document; this macro MUST be launched from Final
+Writer.
+
+Non-CSV: Open the spreadsheet from which you want to import data and select a
+range (note that single-cell imports are not supported; a *range* of two or
+more cells must be selected). From within Final Writer, run the FWSI macro.
+
+CSV: From any spreadsheet that can export ASCII text, select a range and
+export it. Make sure you know what character is used as the field delimiter.
+From within Final Writer, run the FWSI macro.
+
+FWSI compares the currently open ARexx host ports to the list of #?.fwsi
+modules found in the default directory (make sure you edited FWSI.rexx to have
+the 'DefaultDir' user variable set to the location of your import modules,
+including the terminating ':' or '/'). If a port is found that matches one of
+the import modules, that import module will be launched, feeding the
+appropriate data back to FWSI. Note that it can take many seconds of apparent
+inactivity for all the data to be fed from the import module to FWSI ... don't
+get worried too quickly if nothing appears to be happening. (I couldn't get a
+rexxarplib progress indicator to open on the Final Writer screen; any ideas?)
+
+If a matching port can't be found, the CSV import module is launched. A
+requestor will ask you to select the data file. If tabs (ASCII 09) are found
+in the ASCII file, they will be used as the field delimiter. If tabs are not
+found, you will be asked to type the field delimiter. If you cancel this
+requestor, you will be asked to enter the ASCII value of the field delimeter.
+If you cancel THIS requestor, the import process will be terminated.
+
+When the import module has finished sending data, the table will be generated
+on the current page of the Final Writer document.
+
+See the @{"user variables" link "UserVariables" 0} for information on how to customize the generated
+tables.
+@endnode
+
+@node "UserVariables" "User Variables"
+User Variables
+
+The following variables can be changed to customize the generation of tables
+in Final Writer; they are shown below along with their default values. Note
+that the value for 'DefaultDir' MUST be changed to point to the location of
+the import modules, including the terminating ':' or '/'.
+
+ ColSpace      = .125
+ RowSpace      = .05
+ CorrectHt     = .78
+ DefaultDir    = "FWMacros:"
+ DefaultStyle  = ''
+ DefaultAttrib = ''
+ DefaultColor  = 'Black'
+ DefaultAlign  = 'Center'
+ DefaultFont   = ''
+ DefaultPoints = 10
+ DefaultBorder = '00001111'
+ ShadeColor    = 'PaleYellow'
+ DLOffset      = .01
+ FrameTable    = 1
+ FrameOffset   = .1
+ ShadowTable   = 1
+ ShadowOffset  = .03
+ SmartWidth    = 1
+
+ColSpace: The amount of space between columns, in inches (required).
+
+RowSpace: The amount of space between rows, in inches (required).
+
+CorrectHt: When text block is placed in Final Writer, the value given for the
+TOP of the block is really translated to be the BASELINE of the text block by
+Final Writer. This value, then, attempts to correct for this shortcoming of
+the Final Writer ARexx implementation. It represents the percentage of the
+font height below the top where the baseline of the font is. I'm guessing the
+range will be 70-80%, depending on the font used. 78% seems to work well with
+the SoftSans standard font used by Final Writer (required, but can be 0 if
+this problem is fixed).
+
+DefaultDir: This MUST point to the location of the import modules, including
+the terminating ':' or '/' (required).
+
+DefaultStyle: The default style (bold and/or italics) used for data if a style
+is not passed for a given cell. The only three acceptable entries are: Bold,
+Italic, and BoldItalic (optional).
+
+DefaultAttrib: The default attributes (underlined, shaded, reverse) used for
+data if attributes are not passed for a given cell. Only three entries are
+acceptible: Underline, Shaded, Reverse. These can be combined, for example:
+'Shaded Underline' (optional).
+
+DefaultColor: The default color used for data if a color is not passed for a
+given cell. If the 'Reverse' attribute is set, this will be the color of the
+cell and the text will be generated in white. Acceptible values depend on the
+color names used in your Final Writer Project Preferences (required).
+
+DefaultAlign: The default alignment used for data if an alignment is not
+passed for a given cell. Acceptable values are: Left, Right, and Center
+(required).
+
+DefaultPoints: The default font size if a size is not passed for a given cell.
+If this variable is not assigned, the default text block font size will be
+used (optional).
+
+DefaultBorder: The default border pattern if a pattern is not passed for a
+given cell. The digits mean the following (the border will be drawn if the
+digit is set to 1):
+
+ First digit   = Double line left
+ Second digit  = Double line right
+ Third digit   = Double line bottom
+ Fourth digit  = Double line top
+ Fifth digit   = Single line left
+ Sixth digit   = Single line right
+ Seventh digit = Single line bottom
+ Eighth digit  = Single line top
+
+If a double-line is indicated, it will be drawn whether or not a single line
+is indicated (required).
+
+ShadeColor: The color used for the background of shaded cells (required if the
+'Shaded' attribute is set).
+
+DLOffset: The distance between the outer and inner lines of a double-line
+border (required).
+
+FrameTable: Will draw a frame around the table if set (required).
+
+FrameOffset: The distance from the table the frame is to be drawn (required if
+'FrameTable' is set).
+
+ShadowTable: Will draw a shadow behind the frame around the table if set. If
+this variable is set, a frame will be drawn whether or not the 'FrameTable'
+variable is set.
+
+ShadowOffset: The distance from the frame the shadow will extend (required if
+'ShadowTable' is set).
+
+SmartWidth: If unset (i.e., = 0) FWSI will calculate the column width based on
+the length of the widest text in that column. A table might look like this for
+example:
+
+ ----------------------------------------------------------------
+ | This cell has a long string in it |       |       |          |
+ ----------------------------------------------------------------
+ | Normal                            | Sized | Cells | Are Here |
+ ----------------------------------------------------------------
+
+If 'SmartWidth' is set, however, FWSI will try to write long texts over empty
+adjacent cells, resulting in a table that looks more like:
+
+ -------------------------------------
+ | This cell has a long string in it |
+ -------------------------------------
+ | Normal | Sized | Cells | Are Here |
+ -------------------------------------
+
+Setting 'SmartWidth' will cause this adjustment for both left-aligned and
+centered cells. Give your table a try with 'SmartWidth' set ... if doesn't
+look so hot, delete it and try again with 'SmartWidth' unset.
+@endnode
+
+@node "ModuleProgramming" "Module Programming"
+Import modules must be named <SSPortName>.fwsi where <SSPortName> is the
+case-insensitive ARexx port name opened by the spreadsheet program.
+
+Data is passed from the import module to FWSI using FWSI's ARexx port,
+'FWSIPort.' From the import module, this is accomplished with the following
+statement:
+
+ address 'FWSIPort' <data>
+
+FWSI will accept three types of data:
+
+ @{" Error data     " link "ErrorData" 0}
+ @{" NULL()         " link "NULL" 0}
+ @{" Parameter data " link "ParameterData" 0}
+
+The minimum data required to be passed are: number of columns, number of rows,
+and cell contents ("contents" of empty cells need not be passed).
+
+
+See the included FCALC.fwsi module for a programming example.
+@endnode
+
+@node "ErrorData" "Error data"
+If an error is encountered during execution of the import module that would
+interfere with table generation, the module must send an error message. The
+format for sending an error message is:
+
+ address 'FWSIPort' 'ERROR NO_RANGE'
+
+The acceptable errors at this time are:
+
+ NO_RANGE    : No range selected
+ CANT_OPEN   : Can't open source file
+ NO_FILE     : No CSV file selected
+ NO_DELIM    : No field delimiter selected
+ CANT_FIND   : Can't locate the import modules
+ UNKNOWN     : Unknown error
+
+The user will be notified of the error and the macro will quit.
+@endnode
+
+@node "NULL" "NULL()"
+When data transmission is completed, the import module must send a NULL
+message to FWSI as follows:
+
+  address 'FWSIPort' NULL()
+
+This will signal FWSI that it can go ahead and safely generate the table. If a
+NULL message is not sent, Final Writer will not be able to quit (although it
+should still be able to function).
+@endnode
+
+@node "ParameterData" "Parameter data"
+Any message other than an ERROR message or NULL message is considered to be
+parameter data. Parameter data is INTERPRETED by FWSI when it is received, so
+the message must be an ARexx executable string. An import module code fragment
+might look like:
+
+   do row = 1 to RowCount
+      do col = 1 to ColumnCount
+         /* get cell contents here, assign to variable 'CellContents' */
+         address 'FWSIPort' 'CellContents.'row'.'col' = "'CellContents'"'
+      end
+   end
+
+Note the quoted '.' between the row and col variables, the quoted equal sign
+and opening quote mark, and the quoted closing quote mark. See the @{"parameters" link "Parameters" 0}
+for a definition of the data format required for each parameter.
+@endnode
+
+@node "Parameters" "Parameters"
+Parameters
+
+The following parameters are used by FWSI to build tables in Final Writer.
+Note that only the RowCount, ColCount, and CellContents parameters MUST be
+sent; no data needs to be sent for empty cells.
+
+  RowCount               Number of rows in the table.
+  ColCount               Number of columns in the table.
+  RowHeight.row          Height of row
+  ColWidth.col           Width of column
+  CellContents.row.col   Contents (text) of the cell in row and col
+  CellStyle.row.col      Text style (bold and/or italics)
+  CellAttrib.row.col     Text attributes (reverse, underline, shaded)
+  CellColor.row.col      Text color
+  CellAlign.row.col      Text alignment
+  CellPoints.row.col     Text size (in points)
+  CellBorder.row.col     Borders around the cell
+
+RowCount: An integer representing the number of rows in the table.
+
+ColCount: An integer representing the number of columns in the table.
+
+RowHeight: A numer representing the height, in inches, of each row.
+
+ColWidth: A numer representing the width, in inches, of each column.
+
+CellContents: A quoted string representing the contents of each cell.
+
+CellStyle: A quoted string representing the style of each cell. Currently only
+'Bold', 'Italic', and 'BoldItalic' are allowed.
+
+CellAttrib: A quoted string representing the attributes of each cell.
+Currently only combinations of 'Underline', 'Shaded', and 'Reverse' are
+allowed.
+
+CellColor: A quoted string representing the text color (or cell background if
+the 'Reverse' attribute is sent) of each cell. Allowable values depend on the
+colors set in the Final Writer Color Preferences.
+
+CellAlign: A quoted string representing the alignment of the contents of each
+cell. Currently only 'Left', 'Center', and 'Right' are allowed.
+
+CellPoints: An integer representing the size, in points, of the font in each
+cell.
+
+CellBorder: A quoted string representing the border arrangement for each cell.
+The characters of the string are as follows:
+
+ First character   = Double line left
+ Second character  = Double line right
+ Third character   = Double line bottom
+ Fourth character  = Double line top
+ Fifth character   = Single line left
+ Sixth character   = Single line right
+ Seventh character = Single line bottom
+ Eighth character  = Single line top
+
+So to get double lines top and bottom and a single line left, the quoted
+string would be '00111000'.
+
+
+Note that not all modules will be able to send all parameters to FWSI; it
+depends on the completeness of the spreadsheet program's ARexx implementation
+and on the ingenuity of the module author.
+@endnode
+
+@node "Author" "Author"
+ Ron Goertz
+ NW 223 Clay Court
+ Pullman, WA  99163
+ rgoertz@wsu.edu
+@endnode
+

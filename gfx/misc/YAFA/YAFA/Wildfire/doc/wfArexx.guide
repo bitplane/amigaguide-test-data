@@ -1,0 +1,871 @@
+@DATABASE
+@NODE MAIN "Wildfire - Arexx-Documentation"
+#################################################################
+#                                                               #
+#        Wildfire - an Animation-System for the Amiga           #
+#                        Release 1.0                            #
+#                                                               #
+#            Copyright © 1995-1996 WK-Artworks                  #
+#                  All rights reserved                          #
+#            Unauthorized Duplication Prohibited                #
+#---------------------------------------------------------------#
+#                                                               #
+#                     ARexx¹-Documentation                      #
+#                                                               #
+#################################################################
+
+                      @{" 1. Introduction   " LINK introduction}
+                      @{" 2. Usage          " LINK usage}
+                      @{" 3. Error-Messages " LINK errors}
+                      @{" 4. Custom-windows " LINK cwindows}
+                      @{" 5. Commands       " LINK commands}
+
+                (Last changes: Thursday 25-Apr-96)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+¹ ARexx is Copyright © William S. Hawes
+@ENDNODE
+
+@NODE introduction "1. Introduction"
+ The ARexx-port is another powerful feature of Wildfire,
+ it allows you to:
+  -use all features from within other programs
+  -enhance the GUI with your own windows
+  -write own ARexx-applications which operate like the program itself
+
+ Example: You have designed a nice special effect like
+          a transition between three animations or whatever.
+          Now you want to integrate this nice feature into
+          Wildfire as a "natural feature".
+          It's easy ! All you have to do is to design a
+          so-called custom-window with buttons, string-gadgets
+          switches, ... and to write the procedure itself.
+
+@ENDNODE
+
+@NODE usage "2. Usage"
+The port-name is equal to the publicscreen-name
+which is visible after clicking into the Wildfire-screen.
+For the first running copy of the programm it's "Wildfire",
+for the second "Wildfire.1" and so on.
+I don't think that's very usefull to run more copies at
+one time - but it's possible.
+
+The command-hierarchy is equal to the graphical representation,
+this makes it very easy to find the right name of the requested
+command. Every command consists of the hierarchy-identifier and
+the function-name, e.g. the "Play"-button of the Player-window
+is named "P_PLAY".
+
+Most of the arguments are strings or integer-values. It's recommended
+to enclose strings into "'"-characters otherwise they are converted
+to uppercase by the ARexx-system.
+
+
+There are three ways to invoke ARexx-commands:
+ 1. scripts
+  1a) called as macros from Wildfire pressing one of the function-keys
+  1b) started from a shell
+ 2. direct commands
+ 3. external programs
+
+Direct commands are nice to try out a special command, e.g., if you
+want to check out the "PL_APPENDDIR"-command type:
+
+ rx "address 'Wildfire' pl_appenddir 'data:grafix/frames'
+
+
+@ENDNODE
+
+@NODE cwindows "4. Custom-windows"
+ Custom-windows are another powerful feature of Wildfire.
+ You can create a much own windows as you want, they can
+ be loaded, saved, opened, closed, deleted, ... at any time.
+ So it's possible to create Toolmanager-like docks on the
+ Wildfire-screen which can be loaded at startup.
+
+ But the main purpose is to give you the possibility to enhance
+ the program and to fit to your needs.
+
+4.1 Window-elements
+-------------------------------------------------------------------
+ Custom windows can contain
+  -buttons
+  -string-gadgets
+  -switches
+  -lines
+  -boxes and
+  -texts.
+ All these elements remain to the window as long as you
+ don't kill them.
+ But you have the possibility to apply graphical elements
+ which are not stored as structures to the window.
+ So you could create an own progress-bar or a function-plotter..
+
+4.2 Window-coordinates
+-------------------------------------------------------------------
+ Because Wildfire has a fontsensitve GUI you can't use
+ absolute coordinates to specify window-elements.
+ So you have to design your windows using a topaz.8-font
+ to ensure that they look perfect for example with a times.24-font.
+
+ If you want to design a very difficult window with 500
+ gadgets, 300 bevelboxes, ... it's seems to be no bad idea
+ to use GadToolsBox¹. Using this nice program you can drag and
+ size your gadgets in an easy way - just take down the coordinates
+ after finishing it.
+
+4.3. A complex example
+-------------------------------------------------------------------
+
+ The following example called "Transition.rexx" fades one YAFA-animation
+ into another. (This is a very nice feature I currently needed.)
+ But it's no trivial ARexx-script like the other supplied macros -
+ it creates it's own window with Buttons, Filerequester-gadgets, ... !
+
+ 1. Program-structure
+
+    (i) create the window, initialize the parameters
+    (ii) perform an endless loop receiving messages:
+          1. check for pressed gadgets-> start filerequester etc.
+          2. check if the closegadget was pressed -> exit
+          3. check if the start-button was pressed -> check the parameters -> do it
+
+ 2. Program
+
+    /* are we right ? */
+     if ~show('P','Wildfire') then do
+      say " Error: The Wildfire-program must be started before executing this script."
+      exit
+     end
+
+    address 'Wildfire'
+     options results
+
+    /* init the globals */
+     wnd="Transition"
+     tmpdir="shit:"
+     frames="30"
+     depth="6"
+
+    /* use the default drawers to make life easier */
+     t_getanimdrawer
+    src1fn=result
+    src2fn=src1fn
+    destfn=src1fn
+
+    t_getprojectdrawer
+    prjfn=result
+    doprj="0"
+
+    /* create the window */
+    cw_add wnd 476 184
+    cw_addgadget wnd string 73 53 291 "Src1"
+    cw_addgadget wnd string 73 68 291 "Src2"
+    cw_addgadget wnd string 73 85 291 "Dest"
+    cw_addgadget wnd string 73 102 291 "Prj"
+    cw_addgadget wnd string 155 119 74 "Frames"
+    cw_addgadget wnd switch 367 119 74 "CreateProject"
+    cw_addgadget wnd string 155 134 74 "Depth"
+    cw_addgadget wnd string 367 135 74 "tmpDir"
+    cw_addgadget wnd button 30 156 412 "Start"
+    cw_addgadget wnd button 367 53 74 "s1Browse"
+    cw_addgadget wnd button 367 68 74 "s2Browse"
+    cw_addgadget wnd button 367 85 74 "dBrowse"
+    cw_addgadget wnd button 367 102 74 "pBrowse"
+    cw_addtext wnd 40 14 2 "Note: This window was created during runtime"
+    cw_addtext wnd 80 24 2 "and is a functional example demonstrating"
+    cw_addtext wnd 80 34 2 "the power of the Wildfire-ARexx-port."
+    cw_open wnd
+    /* fill the gadgets with some presets */
+    cw_setgadget wnd "CreateProject" doprj
+    cw_setgadget wnd "Src1" src1fn
+    cw_setgadget wnd "Src2" src2fn
+    cw_setgadget wnd "Dest" destfn
+    cw_setgadget wnd "Prj" prjfn
+    cw_setgadget wnd "Frames" frames
+    cw_setgadget wnd "Depth" depth
+    cw_setgadget wnd "tmpDir" tmpdir
+
+    /* main loop */
+    do i=1 to 2
+     /* endless-loop (I don't know another way in ARexx) */
+     i=i-1
+     /* check if the window is open */
+     cw_isopen wnd
+     qt=result
+     if qt=0 then call cleanup /* window was closed -> exit */
+     /* wait for gadgets */
+     cw_wait wnd
+     gadget=result
+     /* which gadget was pressed ? */
+     if gadget="Src1" then do
+      cw_getgadget wnd "Src1"
+      src1fn=result
+     end
+     else if gadget="Src2" then do
+      cw_getgadget wnd "Src2"
+      src2fn=result
+     end
+     else if gadget="Dest" then do
+      cw_getgadget wnd "Dest"
+      destfn=result
+     end
+     else if gadget="Prj" then do
+      cw_getgadget wnd "Prj"
+      prjfn=result
+     end
+     else if gadget="tmpDir" then do
+      cw_getgadget wnd "tmpDir"
+      tmpdir=result
+     end
+     else if gadget="s1Browse" then do
+      t_getfile src1fn
+      src1fn=result
+      cw_setgadget wnd "Src1" src1fn
+     end
+     else if gadget="s2Browse" then do
+      t_getfile src2fn
+      src2fn=result
+      cw_setgadget wnd "Src2" src2fn
+     end
+     else if gadget="dBrowse" then do
+      t_getfile destfn
+      destfn=result
+      cw_setgadget wnd "Dest" destfn
+     end
+     else if gadget="pBrowse" then do
+      t_getfile prjfn
+      prjfn=result
+      cw_setgadget wnd "Prj" prjfn
+     end
+     else if gadget="Frames" then do
+      cw_getgadget wnd "Frames"
+      frames=result
+     end
+     else if gadget="Depth" then do
+      cw_getgadget wnd "Depth"
+      depth=result
+     end
+     else if gadget="CreateProject" then do
+      cw_getgadget wnd "CreateProject"
+      doprj=result
+     end
+     /* let's do it */
+     else if gadget="Start" then do
+      /* analyze the selected anims */
+      t_animinfo src1fn
+      err=result
+      if err="1" then call error
+      else do
+       t_getwidth
+       width1=result
+       t_getheight
+       height1=result
+       t_getframes
+       frames1=result
+       t_animinfo src2fn
+       err=result
+       if err="1" then call error
+       else do
+        t_getwidth
+        width2=result
+        t_getheight
+        height2=result
+        t_getframes
+        frames2=result
+        /* check the width, ... */
+        if frames>=frames1 then call error
+        else do
+         if frames>=frames2 then call error
+         else do
+          if width1!=width2 then call error
+          else do
+           if height1!=height2 then call error
+            /* o.k., lets do it */
+            /* create the required frames from the 1st animation*/
+            c_processor disabled
+            m_openconverter
+            c_inputtype "YAFAANIM"
+            c_inputfilename src1fn
+            c_outputtype "PICTURES"
+            c_openoutputoptions
+            address command "makedir " || tmpdir || "tra"
+            address command "makedir " || tmpdir || "trb"
+            po_basename tmpdir || "tra/pic"
+            po_firstframe frames1-frames+1
+            po_lastframe frames1
+            po_shift "-" || frames1-frames
+            c_convert
+            /* create the required frames from the 2nd animation*/
+            c_inputfilename src2fn
+            po_basename tmpdir || "trb/pic"
+            po_firstframe 1
+            po_lastframe frames
+            po_shift 0
+            c_convert
+            /* create the picture-list */
+            c_closeoutputoptions
+            c_inputtype "PICTURES"
+            c_outputtype "YAFAANIM"
+            c_openinputoptions
+            pl_removerange
+            pl_appenddir tmpdir || "tra"
+            c_closeinputoptions
+            /* set the YAFA-parameters */
+            c_openoutputoptions
+            c_outputfilename destfn
+            yo_openanalysis
+            a_frames 12
+            a_test
+            a_use
+            c_closeoutputoptions
+            /* add the process */
+            c_processor enabled
+            m_openprocessor
+            pc_clear
+            pc_depth depth
+            pc_openvariables
+            v_clear
+            v_add "amount"
+            pc_closevariables
+            pc_add "COMPOSE" 0 0 "amount" tmpdir || "trb/pic" frames FRONT STREAM
+            /* create the envelope */
+            v_envelope
+            ev_move 1 "0.0"
+            ev_add frames "100.0"
+            ev_viewall
+            ev_add frames/3 "25.0"
+            ev_add 2*frames/3 "75.0"
+            ev_use
+            v_envelope /* just to show it */
+            /* YEAH !!! */
+            c_convert
+            address command "delete >NIL: " || tmpdir || "tra all"
+            address command "delete >NIL: " || tmpdir || "trb all"
+            c_outputexport
+            pc_quitadpro
+            v_clear
+            pc_clear
+            m_closeconverter
+            m_closeprocessor
+            m_openplayer
+           end
+          end
+         end
+        end
+       end
+      end
+     end
+    end /* main-loop */
+
+    cleanup:
+    cw_kill wnd
+    exit
+
+    error:
+    m_request "An error has occured, please check your parameters."
+    return
+
+
+¹ GadToolsBox is Copyright © 1991-93 Jaba Development
+
+@ENDNODE
+
+
+@NODE errors "3. Error-Messages"
+There are 4 error-messages which will be shown together
+with the command in the default CON:-window:
+ 1: wrong number of arguments
+ 2: wrong arguments
+ 3: unknown command
+ 4: command failed
+
+Most of the commands are valid everywhere, but there are exeptions,
+e.g. if you haven't defined any variable you can't open
+the envelope-window. This would cause error 4.
+
+Normally you can access all program functions without opening
+any of the windows, but there are the following exceptions:
+ -Timecodes-, AnimInfo-, Envelope- and EnvelopeAdvanced-commands
+  require that the corresponding Window was opened
+  (This is due the internal data-structure and no error or
+   similar.)
+
+
+If the program executes an ARexx-command all requesters
+except the one invoked by the "M_MESSAGE"-command are
+turned off, but the requester-messages are shown in the
+default CON:-window.
+
+@ENDNODE
+
+@NODE commands "5. Commands"
+The command-list below shows all available commands,
+values enclosed into brackes are alternative keywords.
+
+ Main:
+  M_EXIT			-exit the program
+  M_WAIT secs                	-cause the program to wait, useful in
+                                 demo-scripts
+  M_MESSAGE text               	-display a message in a Wildfire-requester
+  M_REQUEST text        	-display a requester, returns 0 if the "O.k."-
+				 button was pressed
+  M_OPENCONVERTER               -open the converter-window
+  M_CLOSECONVERTER            	-close the converter-window
+  M_OPENPROCESSOR
+  M_CLOSEPROCESSOR
+  M_OPENEDITOR
+  M_CLOSEEDITOR
+  M_OPENPLAYER
+  M_CLOSEPLAYER
+  M_OPENPREFS
+  M_CLOSEPREFS
+  M_OPENINFO
+  M_CLOSEINFO
+  M_MOVE x y			-move the main-window to the location (x,y)
+  M_TOFRONT			-turn the Wildfire-screen into foreground
+  M_TOBACK			-turn the Wildfire-scrrren into background
+
+Tools:
+  T_DELPICTURELIST		-delete the current picturelist and the all
+				 the pictures
+  T_GETNUMBER title [preset]    -pop up a number-requester, the result can be
+                                 received by the calling ARexx-script
+  T_GETSTRING title [preset]    -pop up a string-requester
+  T_GETFILE title [preset]	-open a filerequester
+  T_GETDRAWER titlee [preset]	-open a drawer-requester
+  T_ANIMINFO name 		-analyze a YAFA-file, returns 0 if no error
+                                 occured. The values of interest like width,
+ 				 height, ... can be received by using the
+                 		 T_GET*-commands
+  T_PICINFO name (0=o.k.)       -the same as T_ANIMINFO for ILBM-pictures
+  T_GETWIDTH                    -write the width-value obtained by T_ANIMINFO
+				 or T_PICINFO to the ARexx-results-stack
+  T_GETHEIGHT
+  T_GETDEPTH
+  T_GETCOLORS
+  T_GETFRAMES
+  T_GETANIMDRAWER        	-returns the default animation-drawer,
+                                 this value could be used as preset
+				 for a filerequester
+  T_GETPROJECTDRAWER
+  T_GETPICDRAWER
+  T_GETMODDRAWER
+  T_PEXTENSION
+
+ Prefs:
+  PR_PLAYERSCREEN name          -change the name of the public-screen used 
+				 by the player in window-mode
+  PR_SCREENMODE id width height depth -change the settings of the Wildfire-screen
+  PR_SCREENDEPTH depth		-change only the depth of the Wildfire-screen
+  PR_LOADPREFS
+  PR_SAVEPREFS
+  PR_OPENPATHS			-open the Paths-window
+  PR_CLOSEPATHS
+  PR_OPENMACROS
+  PR_CLOSEMACROS
+  PR_DCLICKTIME val
+  PR_STATISTICS (ON|OFF)
+  PR_VISUALSUBDIV (5|10|15|20)
+  PR_EXPERTMODE (ON|OFF)
+  PR_BRUTALBLIT (ON|OFF)
+  PR_SESSIONFREQ (ON|OFF)
+  PR_NOCHIPMEM (ON|OFF)
+  PR_MOVE x y           	-move the prefs-window
+
+ Paths:
+  PT_ANIMATIONDRAWER name
+  PT_PICTUREDRAWER name
+  PT_PROJECTDRAWER name
+  PT_SOUNDDRAWER name
+  PT_ANNOTATIONDRAWER name
+  PT_SESSIONDRAWER name
+  PT_PROCESSDRAWER name
+  PT_VARIABLESDRAWER name
+  PT_ENVELOPEDRAWER name
+  PT_MACRODRAWER name
+  PT_WINDOWDRAWER name
+  PT_HELPDRAWER name
+  PT_YAFAPATTERN name
+  PT_ANIMPATTERN name
+  PT_PROJECTPATTERN name
+  PT_PROCESSPATTERN name
+  PT_SESSIONPATTERN name
+  PT_VARIABLESPATTERN name
+  PT_ENVELOPEPATTERN name
+  PT_MACROPATTERN name
+  PT_WINDOWPATTERN name
+  PT_YAFAPLAYER name
+  PT_ANIMPLAYER name
+  PT_VIEWER name
+  PT_ADPRO name
+  PT_MOVE x y            	-move the paths-window
+
+ Info:
+  I_FREEMEM			-free all lists etc.
+  I_MOVE x y                    -move the info-window
+
+ Text:
+  TXT_TEXT file			-read the text file "file" and display it's
+				 content in the text-window
+  TXT_TEXTNC file		-open a text-window with cannot be closed
+				 by te user
+  TXT_MOVE x y			-move the text-window
+  TXT_CLOSE			-close the text-window
+  TXT_WAIT			-wait until the user pressed one close-gadget
+				 of the text-window
+  TXT_CENTRE			-centre the text-window on the Wildfire-screen
+ 				 and bring it to front
+
+ Player:
+  P_PROJECTFILE [name]
+  P_ANIMFILE [name]
+  P_BUFFERS num
+  P_DISPLAY (NORMAL|ZOOMED|DITHERED)
+  P_CACHING (ON|OFF)
+  P_OUTPUT (HARDWARE|WINDOW|BGWINDOW|SCREEN)
+  P_WAIT (ON|OFF)
+  P_PLAY [from to]
+  P_MOVE x y
+  P_OPENANIMINFO
+  P_CLOSEANIMINFO
+  P_OPENTIMECODES
+  P_CLOSETIMECODES
+
+ AnimInfo:
+  AI_MOVE x y
+  AI_EXPORT name
+  AI_IMPORT num
+
+ Timecodes:
+  TC_RANGE from to step
+  TC_IMPORT name
+  TC_EXPORT name
+  TC_TIMERANGE num
+  TC_MOVE x y
+
+ Editor:
+  E_AADD name
+  E_AKILL
+  E_AREPLACE name
+  E_AINFO
+  E_ASELECT name
+  E_ASELECTNEXT
+  E_ASELECTPREV
+  E_AFROM from
+  E_ATO to
+  E_AUP
+  E_ADOWN
+  E_MADD name (MODULE|SAMPLE|EXECUTABLE)
+  E_MKILL
+  E_MREPLACE name
+  E_MEDIT
+  E_MSELECT name
+  E_MSELECTNEXT
+  E_MSELECTPREV
+  E_MUP
+  E_MDOWN
+  E_OPENPROFILE
+  E_CLOSEPROFILE
+  E_PLAYALL
+  E_PLAYSEL
+  E_SAVEALL
+  E_FILENAME [name]
+  E_CLEAR
+  E_EXPORT
+  E_LOAD
+  E_SAVE
+  E_INSERT file
+  E_APPEND file
+  E_MOVE x y
+
+ EditorAnimInfo:
+  EAI_DISPLAY (NORMAL|ZOOMED|DITHERED)
+  EAI_CACHING (ON|OFF)
+  EAI_BUFFERS num
+  EAI_SPEED num
+  EAI_MOVE x y
+  EAI_CLOSE
+
+ ModuleOptions:
+  MO_TEST
+  MO_STOP
+  MO_CLOSE
+  MO_MOVE x y
+
+ SampleOptions:
+  SO_TEST
+  SO_STOP
+  SO_CHANNEL (LEFT0|RIGHT0|LEFT1|RIGHT1)
+  SO_REPEAT num
+  SO_VOLUME num
+  SO_CLOSE
+  SO_MOVE x y
+
+ CommandOptions:
+  CO_TEST
+  CO_CLOSE
+  CO_MOVE x y
+
+ Processor:
+  PC_ADD type [options]
+    SCALE width(v) height(v)
+    CROP left(v) top(v) width(v) height(v)
+    COMPOSE left(v) top(v) mix(v) sequence repeat (BACKGROUND|FRONT) (STREAM|TEMP) [red green blue]
+    COMMAND string
+    BALANCING red(v) green(v) blue(v) bright(v) contrast(v) gamma(v)
+    TWIRL centreX(v) centreY(v) radius(v) amount(v) bradius(v)
+    COLLAPSE centreX(v) centreY(v) radius(v) amount(v) bradius(v)
+    ROLL pixels(v) (LEFT|RIGHT|DOWN|UP|DOWNLEFT|DOWNRIGHT|UPLEFT|UPRIGHT) (ON|OFF)
+    BLUR centerWeight(v) threshold(v)
+    DISPLACE radius(v) probability(v) seed(v)
+    ROTATE centreX(v) centreY(v) radius(v) amount(v) bradius(v)
+    RIPPLE centreX(v) centreY(v) speed(v) period(v) amplitude(v) phase(v) frame(v) (CONSTANT|INCREASE|DECREASE) [ramp(v) levelOff(v)]
+  PC_KILL
+  PC_CLEAR
+  PC_SELECT (SCALE|CROP|COMPOSE|COMMAND|BALANCING|TWIRL|COLLAPSE|ROLL|BLUR|DISPLACE|ROTATE|RIPPLE) [which]
+  PC_UP
+  PC_DOWN
+  PC_FROM num
+  PC_TO num
+  PC_OPENEDIT
+  PC_MOVEEDIT x y
+  PC_CLOSEEDIT
+  PC_MEMORY num
+  PC_QUITADPRO
+  PC_MODE (COLOR|HAM6|HAM8)
+  PC_DITHER (NONE|FLOYD|BURKES|SIERRA|JARVIS|STUCKI|RANDOM|LARGEORDERED|SMALLORDERED)
+  PC_DITHERAMOUNT num
+  PC_DEPTH num
+  PC_FILENAME [name]
+  PC_LOAD
+  PC_SAVE
+  PC_OPENPCSINGLEPICTURE
+  PC_CLOSEPCSINGLEPICTURE
+  PC_OPENVARIABLES
+  PC_CLOSEVARIABLES
+  PC_MOVE
+
+ Variables:
+  V_ADD name
+  V_SELECT name
+  V_KILL
+  V_RENAME
+  V_SELECT name
+  V_ENVELOPE
+  V_FILENAME
+  V_SAVE
+  V_LOAD
+  V_CLEAR
+  V_MOVE
+
+ Envelope:
+  EV_XRANGE xmin xmax
+  EV_YRANGE ymin ymax
+  EV_VIEWALL
+  EV_SCROLLUP
+  EV_SCROLLDOWN
+  EV_SCROLLLEFT
+  EV_SCROLLRIGHT
+  EV_SELECT num
+  EV_SELECTNEXT
+  EV_SELECTPREV
+  EV_KILL
+  EV_ADD xval yval
+  EV_MOVE xval yval
+  EV_DRAG xval yval steps
+  EV_LOAD name
+  EV_SAVE name
+  EV_INTERPOLATION (SPLINE|BEZIER|LINEAR)
+  EV_USE
+  EV_CANCEL
+  EV_OPENADVANCED
+  EV_MOVE
+
+ SinglePicture:
+  PCS_FILENAME name
+  PCS_TEST
+  PCS_APPLYCENTRE
+  PCS_FRAME num
+  PCS_MOVE
+
+ EnvelopeAdvanced:
+  EVA_RANGE from to step
+  EVA_SCALE
+  EVA_SHIFT
+  EVA_LOADCURVE name
+  EVA_SAVECURVE name
+  EVA_LOADTIMECODES
+  EVA_SAVETIMECODES
+  EVA_XVAL val
+  EVA_YVAL val
+  EVA_CLOSE
+  EVA_MOVE
+
+ Converter:
+  C_INPUTTYPE (PICTURES|YAFAANIM|IFFANIM)
+  C_INPUTEXPORT
+  C_INPUTFILENAME name
+  C_OUTPUTTYPE (PICTURES|YAFAANIM|IFFANIM)
+  C_OUTPUTEXPORT
+  C_OUTPUTFILENAME name
+  C_ANNOTATION (ON|OFF)
+  C_ANNOFILENAME [name]
+  C_ANNOSTRING [string]
+  C_LOADSESSION [name]
+  C_SAVESESSION [name]
+  C_CONVERT
+  C_OPENINPUTOPTIONS
+  C_OPENOUTPUTOPTIONS
+  C_CLOSEINPUTOPTIONS
+  C_CLOSEOUTPUTOPTIONS
+  C_PREVIEW (NONE|WINDOW|SCREEN)
+  C_PROCESSOR (ENABLED|DISABLED)
+  C_MOVE
+
+ YAFAOptions:
+  YO_IMAGEDATA (RAW|CHUNKY)
+  YO_DELTA (NONE|BYTE|WORD|LONG)
+  YO_COMPRESSION (NONE|XPK)
+  YO_COMPRESSOR name
+  YO_MODE mode
+  YO_COLORMAP (UNLOCKED|LOCKED)
+  YO_SPEED num
+  YO_FORCETIMECODES (ON|OFF)
+  YO_OPENANALYSIS
+  YO_MOVE
+
+ Analysis:
+  A_FRAMES num
+  A_TEST
+  A_USE
+  A_CANCEL
+  A_MOVE
+
+ ANIMOptions:
+  AO_TYPE (ANIM5|ANIM7S|ANIM7L)
+  AO_COLORMAP (UNLOCKED|LOCKED)
+  AO_SCREENMODE mode
+  AO_MOVE
+
+ PictureOptions:
+  PO_BASENAME name
+  PO_SCREENMODE mode
+  PO_FIRSTFRAME num
+  PO_LASTFRAME num
+  PO_SHIFT num
+  PO_MOVE
+
+ PictureList:
+  PL_INSERT names
+  PL_APPEND names
+  PL_INSERTDIR name
+  PL_APPENDDIR name
+  PL_DUPLICATE times
+  PL_SORT
+  PL_CHECK
+  PL_RANGE from to step
+  PL_REMOVERANGE
+  PL_TIMERANGE num
+  PL_SHOW
+  PL_SELECT name [which]
+  PL_SELECTNEXT
+  PL_SELECTPREV
+  PL_OPENPICTUREINFO
+  PL_CLOSEPICTUREINFO
+  PL_MOVE
+
+ Effects:
+  SCALE_WIDTH val
+  SCALE_HEIGHT val
+  CROP_LEFT val
+  CROP_TOP val
+  CROP_WIDTH val
+  CROP_HEIGHT val
+  COMPOSE_LEFT val
+  COMPOSE_TOP val
+  COMPOSE_MIX val
+  COMPOSE_SEQUENCE val
+  COMPOSE_REPEAT val
+  COMPOSE_PRIORITY (BACKGROUND|FRONT)
+  COMPOSE_SOURCE (STREAM|TEMP)
+  COMPOSE_TCOLOR red green blue
+  COMMAND_STR string
+  BALANCING_RED val
+  BALANCING_GREEN val
+  BALANCING_BLUE val
+  BALANCING_BRIGHT val
+  BALANCING_CONTRAST val
+  BALANCING_GAMMA val
+  TWIRL_CENTREX val
+  TWIRL_CENTREY val
+  TWIRL_RADIUS val
+  TWIRL_AMOUNT val
+  TWIRL_BRADIUS val
+  COLLAPSE_CENTREX val
+  COLLAPSE_CENTREY val
+  COLLAPSE_RADIUS val
+  COLLAPSE_AMOUNT val
+  COLLAPSE_BRADIUS val
+  ROLL_PIXELS
+  ROLL_DIRECTION (LEFT|RIGHT|DOWN|UP|DOWNLEFT|DOWNRIGHT|UPLEFT|UPRIGHT)
+  ROLL_WRAP (ON|OFF)
+  BLUR_CENTERWEIGHT val
+  BLUR_THRESHOLD val
+  DISPLACE_RADIUS val
+  DISPLACE_PROBABILITY val
+  DISPLACE_SEED
+  ROTATE_CENTREX val
+  ROTATE_CENTREY val
+  ROTATE_RADIUS val
+  ROTATE_AMOUNT val
+  ROTATE_BRADIUS val
+  RIPPLE_CENTREX val
+  RIPPLE_CENTREY val
+  RIPPLE_SPEED val
+  RIPPLE_PERIOD val
+  RIPPLE_AMPLITUDE val
+  RIPPLE_PHASE val
+  RIPPLE_FRAME val
+  RIPPLE_TYPE (CONSTANT|INCREASE|DECREASE)
+  RIPPLE_RAMP val
+  RIPPLE_LEVELOFF val
+
+ Custom-Windows:
+  CW_CLOSE name
+  CW_OPEN name
+  CW_MOVE name x y
+  CW_ADD name width height
+  CW_KILL name
+  CW_ADDGADGET window (STRING|BUTTON|SWITCH) left top width name [action]
+  CW_GETGADGET window name
+  CW_SETGADGET window name value
+  CW_WAITGADGET window name
+  CW_ADDTEXT window left top pen text
+  CW_ADDLINE window x1 y1 x2 y2 pen
+  CW_ADDRECT window left top width height pen (NORMAL|FILLED|BBOX|BBOX2)
+  CW_DRAWTEXT window left top pen text
+  CW_DRAWLINE window x1 y1 x2 y2 pen
+  CW_DRAWRECT window left top width height pen (NORMAL|FILLED|BBOX|BBOX2)
+  CW_SAVE name
+  CW_LOAD name
+  CW_WAIT name
+  CW_ISOPEN name

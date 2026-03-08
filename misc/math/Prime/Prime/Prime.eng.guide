@@ -1,0 +1,316 @@
+@DATABASE PrimzahlV70
+@WORDWRAP
+@WIDTH 80
+
+@NODE MAIN "Primzahl V7.0"
+
+
+
+
+
+                @{b}Prime V7.0
+
+                Overview@{ub}
+                --------
+
+                @{"Introduction"          LINK Introduction}
+                @{"Usage"                 LINK Usage}
+
+                @{"Speed (Sieve)"         LINK SpeedSieve}
+                @{"Speed (Test)"          LINK SpeedTest}
+                @{"Comparision"           LINK Comparision}
+
+                @{"History"               LINK History}
+                @{"Credits"               LINK Thanks}
+                @{"To Do"                 LINK ToDo}
+
+                @{"Author"                LINK Author}
+                @{"Disclaimer"            LINK Disclaimer}
+
+@ENDNODE
+
+@NODE "Introduction"
+
+  Prime
+  -----
+
+  This short program calculates all primenumbers till a given maximum.
+You can save all found primenumbers to a file.
+
+  Prime uses the "Sieve of Eratosthenes", and requires a processor >= 68020.
+It uses special optimizations for 68040- and 68060-processors.
+
+Since version 6 you can test 64-bit-integers. This enlarges the possible
+range from 4e9 up to 1e19 (10,000,000,000,000,000,000 !). Now Prime can
+tell you all dividers of a given number.
+
+        @{"Next" LINK Usage}
+@ENDNODE
+
+@NODE "Usage"
+
+@{b}Usage@{ub}
+-----
+
+  Prime can only be called from the shell.
+Argument-template:  Prime MAX/A,FILE/K,BIGBUFFER=BB/S,
+                          RANGESTART=RS/N,RANGEEND=RE/N,
+                          TEST/S,RECURSIVE=R/S,PROCESSOR=P/N
+
+Meaning of the options:
+ MAX        - maximum number for the search
+ FILE       - file, the numbers are written in
+ BIGBUFFER  - if you use this option, a bigger outputbuffer will be used
+              without BB: 8 KByte, with BB: 256 KByte
+ RANGESTART - startnumber for output
+ RANGEEND   - end of range for output
+ TEST       - test value of MAX
+ RECURSIVE  - find all factors of MAX
+ PROCESSOR  - switch processor dependent code
+
+  Prime can be interrupted with CTRL-C if it is in the output-loop. If
+you dont supply a filename, no primenumbers will be written. If the RANGE-
+parameters aren't correct, they will be internally replaced by default
+values, eg. 0 for RANGESTART and MAX for RANGEEND. The minimum for
+MAX is 2000 due to the calculation algorithm.
+
+  If TEST is selected, only the MAX-value is used. The program will test
+MAX and output the result.
+
+  The parameters are checked via the DOS/ReadArgs-function. This is important
+for the integer-arguments RS and RE. The Operating System (OS) handles these
+numbers as signed 32-bit-integers! ReadArgs (OS 3.1) accepts numbers in the
+range from -2,147,483,649 till +2,147,483,649. Internally +2,147,483,649 equals
+-2,147,483,647, what is represented by $8000,0001.
+
+  The routine for calculating primenumbers accepts arguments till 2,147,483,647
+(= $7fff,ffff). This would result in using a memory block of 128 MB.
+
+  When testing numbers the maximum value depends on the PROCESSOR argument.
+With the 68020/68040-optimization you can test numbers up to 10^19-1
+(9,999,999,999,999,999,999). When using the 68060-optimization, only
+numbers up to 2^62-1 (4,611,686,018,427,387,903) are allowed.
+
+  Normally Prime uses the operating system to determine the processor
+it runs on. But you could override this by using the PROCESSOR argu-
+ment. Three values are allowed: 68020, 68040 and 68060. The 68020-
+option is appropriate for 68030 too.
+
+        @{"Next" LINK SpeedSieve}
+@ENDNODE
+
+@NODE "SpeedSieve"
+
+@{b}Speed (Sieve)@{ub}
+-------------
+
+  In version 7 the calculation of primenumbers is slightly changed. So
+the timings changed a little bit too. Additionally the Forbid/Permit-
+pair in the calculation routine was removed to enable the multitasking,
+when Prime is running. For measuring accurate timings you have to set
+the task priority to higher values (I prefer 30).
+
+On my AMIGA (A500, 68030/50MHz, 68882/50MHz, 16/1 MB) the command
+"Prime MAX .. FILE DH3:Test BB" needs the following time:
+
+      MAX      Sieve  Count   Output  counted
+                 [s]    [s]      [s]  primenumbers
+   1.000.000    0.28   0.04     3.58       78498
+   2.000.000    0.58   0.08     6.56      148933
+   5.000.000    1.60   0.14    15.90      348513
+  10.000.000    3.36   0.28    30.60      664579
+  20.000.000    7.20   0.58    59.44     1270607
+  50.000.000   19.34   1.46   141.38     3001134
+ 100.000.000   40.92   2.90              5761455
+ 200.000.000   86.58   5.82             11078937
+
+  The number of primenumbers to a given maximum is roughly MAX/ln(max).
+The length of the written textfile can be estimated with ~10 * number
+of primenumbers.
+
+  Prime works with VMM and uses the virtual memory. It needs MAX/16 byte
+plus the output-buffer of 8 (or 256) Kbyte. Because of the heavy memory
+access virtual memory slows down the calculation significantly. (This was
+true for my old turboboard. With the new board (E-Matrix) I couldn't
+get VMM to work. So Prime together with VMM is untested.)
+
+        @{"Next" LINK SpeedTest}
+@ENDNODE
+
+@NODE "SpeedTest"
+
+@{b}Speed (Test)@{ub}
+------------
+
+  The test-routine can test 64-bit-integers. But the routine uses a
+simple loop with divide-instructions. So you get long calculation-times
+for big numbers! With my Amiga I get these timings:
+
+        MAX                Calculation
+                              [s]
+       99.999.999.999.973     5.7
+      100.000.000.000.031     5.7
+      999.999.999.999.989    18.2
+    1.000.000.000.000.037    18.2
+    9.999.999.999.999.937    59.8
+   10.000.000.000.000.061    59.8
+   99.999.999.999.999.997   213.0
+  100.000.000.000.000.003   213.0
+  999.999.999.999.999.989   904.4
+1.000.000.000.000.000.003   904.4
+
+  Version 7 is now about 10% faster than version 6! Additional Prime
+calculates recursively all dividers of the argument (and prints them),
+if you select the "RECURSIVE"-option.
+
+  For small numbers, the calculation time grows by a factor of 3.2 per
+power of ten. For bigger numbers, the program has to use its own routine
+instead of the 64/32-bit-division of the processor and so the factor grows
+up to 4.
+
+  The 68060-processor has its problems with this test as it has to emulate
+the used division instructions. This has a great impact on the multitasking.
+Because of that I programmed a special routine, which doesn't use these
+instructions. So the multitasking can run smoothly as always, but the 68060
+is slower than a 68030 (with same frequency).
+
+        @{"Next" LINK Comparision}
+@ENDNODE
+
+@NODE "Comparision"
+
+@{b}Comparision of different computers/processors@{ub}
+---------------------------------------------
+
+  Prime now contains different code for different processors.
+Therefor runtimes are dependent from the used optimization.
+
+  Some results from different systems, compared to my Amiga:
+
+ processor  RAM   Sieve  Count   Test   comment
+ 68030/50    16    1.00   1.00   1.00   my Amiga
+ 68060/50          1.45   3.50   0.36   Simon N. Goodwin
+ WinUAE      16    0.43   0.32   0.90   PII 350MHz, Windows98
+ WinUAE      16    0.22   0.18   0.50   Pentium166MMX, Windows98
+
+        @{"Next" LINK History}
+@ENDNODE
+
+@NODE "History"
+
+@{b}History@{ub}
+----------
+
+ version  date
+   1.0    21.10.93  1st simple version
+   1.1    23.10.93  numbers till 720.000
+   1.2    25.10.93  requester for max-argument
+
+   2.0    30.10.93  numbers till MAXINT (2^32-1)
+                    SQRT-function completeöy defined
+
+   3.0    10.12.93  new algorithm: Sieve of Eratosthenes with
+                      appropriate speedup
+
+   4.0    15.01.95  only 68030 + 68882; better memoryhandling; if
+                      there is, virtual memory is used; ReadArgs
+   4.1    18.12.95  adjustments for  VMM
+   4.2    25.02.96  output to stdout, Ctrl-C-option
+   4.3    01.03.96  new output-routine, new options
+
+   5.0    02.03.96  new conversion-routine instead of Exec/RawDoFmt
+   5.1    03.03.96  conversion-routine optimized (3x faster than version 4.3)
+   5.2    23.10.96  counter for calculated primenumbers, time for calculation
+                      and output
+   5.3    11.07.97  sieve-routine optimized
+          31.08.97  MAX-argument is checked now
+
+   6.0    04.10.97  test-routine for single numbers
+   6.1    01.11.97  test-routine now for 64bit-numbers
+                    output for small numbers (<2000) corrected
+   6.2    12.12.97  new documentation (AmigaGuide)
+   6.3    11.04.99  fixed a program error
+                    (all powers of 5 are said to be prime)
+                    some optimizations
+   6.4    22.07.99  fixed stupidous bug in output-routine
+                    (completely wrong output!)
+   7.0ß   01.10.99  internal test version: two independent programs for
+                    68020 and 68060, optimized calculations, output of
+                    divider
+   7.0    29.12.99  integrated all different processor optimizations into
+                    one program, new argument for selecting processor
+                    dependent code, recursive calculation of dividers
+
+        @{"Next" LINK Thanks}
+@ENDNODE
+
+@NODE "Thanks"
+
+@{b}Credits@{ub}
+-------
+
+  I like to thank all the people, who send me their test results and
+error messages as well.
+
+  Special thanks to Simon N. Goodwin, who helped me with the 68060-
+optimization. Without his help and inspirations I wouldn't have done
+all this.
+
+        @{"Next" LINK ToDo}
+
+@ENDNODE
+
+@NODE "ToDo"
+
+@{b}ToDo-List@{ub}
+---------
+
+- make the output comfortable and formattable
+
+- other suggestions ???
+
+  It depends on my motivation and spare time, if and when I
+will program these points.
+
+        @{"Next" LINK Author}
+@ENDNODE
+
+@NODE "Author"
+
+@{b}About me@{ub}
+--------
+
+  If you have any questions, remarks, suggestions or bug reports please
+let me know. If you have no remarks, then you should drop me a little
+e-mail with your speed-results from prime. For this purpose I included
+a little scriptfile, which writes the results to a textfile.
+
+ Gerd Wieczorek
+
+SMail:   Berliner Str.1
+         14959 Trebbin
+         BRD
+
+EMail:   wieczor@mat.ee.tu-berlin.de
+
+        @{"Next" LINK Disclaimer}
+@ENDNODE
+
+@NODE "Disclaimer"
+
+@{b}Disclaimer@{ub}
+----------
+
+  This program is freeware, but gifts of (nearly) all kinds are welcome by
+the @{"author" LINK Author}.
+
+  The entire risk as to the use of the program and the information presented
+is assumed by the user. In no event will I be liable for any damage resulting
+from any claim arising of the use of the program or the information presented
+herein, even if I have been advised of the possibilities of such damages.
+If anyone wants to include prime into another archive, he should send me
+an e-mail before.
+
+        @{"To Top" LINK MAIN}
+@ENDNODE
+

@@ -1,0 +1,1633 @@
+@database "rxcd.guide"
+@Index "Functions"
+
+@Node Main "RxCD"
+
+    @{b}RxCD@{ub}
+    Copyright 2001-2002 by Alfonso Ranieri
+
+
+    @{" Introduction " LINK "Introduction"}    @{" Terms        " LINK "Terms"       }
+    @{" Author       " LINK "Author"      }    @{" Functions    " LINK "Functions"   }
+    @{" WRID         " LINK "WRID"        }    @{" Sense        " LINK "Sense"       }
+
+@EndNode
+
+@Node "Introduction" "RxCD Introduction"
+
+  @{b}Introduction@{ub}
+
+
+    This library contains low level functions to manipulate audio
+    CD.
+
+    A CD device is referred by a name, e.g. CD0 CD2, or by an
+    unique CD descriptor ID returned by @{"CDCreate()" LINK "CDCreate"}.
+
+    You may use CDCreate() for speed reasone if in your macro you
+    use a lot of RxCD functions calls.
+
+    You have to use CDCreate() anytime you want to add an
+    interrupt.
+
+    So the first argument of any CDXXX() function will always be
+    a CD definition:
+
+    - ID
+      the ID returned by CDCreate()
+    - CD
+      a CD name or an ID
+    - CDName
+      a CD name, not an ID
+
+    The second argument of most CDXXX() functions is an ARexx
+    stem name. It is used to store debug informations.
+
+    Quite all functions return an integer:
+    - 0
+      Success
+    - >0
+      Failure
+
+    On failure, if you have supplied a valid second argument,
+    there will be set the fields:
+
+    - DevErr
+      The exec.library device error
+
+    - Status
+      The SCSI2 Status
+
+    - CC
+      The Check Condition flag of Status. This is very important.
+
+    - ASCIISense
+      The sense data in ASCII format
+
+    - Valid
+
+    - ErrorCode
+      Always 0x 70x 71x
+
+    - SegmentNumber
+
+    - FileMark
+
+    - EOM
+
+    - ILI
+
+    - SenseKey
+      The type of the error
+
+    - Error
+      The SenseKey in human form
+
+    - Information
+
+    - ASL
+
+    - CSI
+
+    - ASC
+      With ASCQ you can know what happen
+
+    - ASCQ
+
+    - Reasone
+      The ASC/ASCQ in human form
+
+    - FRUC
+
+    - SKSV
+
+    - SKS
+
+    See @{"sense" LINK "Sense"} format.
+
+    Audio CD programming is not that easy. Different hardware
+    devices and exec.library software devices may react in
+    different modes. That means that your CD soft or hard device
+    might refuse to perform some operation or they might perform
+    that differently.
+
+    Audio CD programming is very vendor specific.
+
+    More info about SCSI2 standard may be found at
+    http://www.uni-mainz.de/~tacke/scsi/SCSI2-index.html
+
+@EndNode
+
+@Node "Author" "RxCD Author"
+
+  @{b}Author@{ub}
+
+
+    I am @{i}Alfonso Ranieri@{ui}
+
+    My e-mail address is @{i}alforan@tin.it@{ui}
+
+    My home page is at @{i}http://digilander.libero.it/asoft/@{ui}
+
+@EndNode
+
+@Node "WRID" "RxCD Warning, Requirements, Installation and Distribution"
+
+  @{b}Warning, Requirements, Installation and Distribution@{ub}
+
+
+    @{u}Warning@{uu}
+    THIS SOFTWARE AND INFORMATION ARE PROVIDED AS IS. ALL USE IS
+    AT YOUR OWN RISK, AND NO LIABILITY OR RESPONSIBILITY IS
+    ASSUMED. NO WARRANTY IS MADE,
+
+    @{u}Requirements@{uu}
+    The library needs:
+    - AmigaOS, version 3 or higher
+
+    @{u}Installation@{uu}
+    - Run the installer script
+    - The library dispatch offset is -30
+
+    @{u}Distribution@{uu}
+    RxCD is freeware
+
+    You are free to distribute it as long as the original archive
+    is kept intact. Commercial use or its inclusion in other
+    software package is prohibited without prior written consent
+    from the Author.
+
+@EndNode
+
+@Node "Terms" "RxCD Terms"
+
+  @{b}Terms@{ub}@{uu}
+
+
+    The main terms used in this guide are:
+
+    - @{b}ID@{ub}
+      The device descriptor as returned by @{"CDCreate()" LINK "CDCreate"}
+      it is an integral number
+
+    - @{b}CD@{ub}
+      An AmigaDOS device name (f.e. "CD0") or an ID
+
+    - @{b}CDName@{ub}
+      An AmigaDOS device name (f.e. "atapi.device")
+
+    - @{b}Track@{ub}
+      A sub-division of the CD-ROM media. A disc has from 1 to 99
+      tracks. The data within a track are always of the same
+      type: DATA or AUDIO. A disc can start at any track number.
+      Before an audio track there me a so called pause area.
+      Before a data track there may be a so called pre gap area.
+      After a data track there may be a so called post gap area.
+
+    - @{b}Index@{ub}
+      An index is a subdivision of a CD-ROM track. A track can
+      have from 1 to 99 index numbers. Index numbers within a
+      track are sequential starting with 1. In the pause area the
+      index is 0.
+
+    - @{b}Address@{ub}
+      Physical address of a frame on a CD
+
+    - @{b}Frame@{ub}
+      1/75 of a second. A physical sector on CD-ROM media. Also
+      the F field unit of a MSF CD-ROM address
+
+    - @{b}MSF@{ub}
+      Minutes/Seconds/Frames rappresents an address on a CD
+      addr =manipulate*75*60 + S*75 + F it is also used to
+      indicate a duration (of a track, a set of tracks or the
+      whole CDROM).
+
+    - @{b}stem or stemName@{ub}
+      A valid ARexx variable name e.g. var var.0 var.name
+
+    - @{b}Types of arguments:@{ub}
+      . D    Any data    --    --
+      . N    Numeric     /N    ARexx integral number
+      . S    Symbol      /S    ARexx valid symbol
+      . V    StemName    /V    As S but with length<32
+      . O    StemName    /O    As V but maybe "" also
+
+@EndNode
+
+@Node "Functions" "RxCD Functions"
+
+  @{b}Functions@{ub}
+
+
+    @{b}CD objects@{ub}
+      @{"CDCreate             " LINK "CDCreate"             }    @{"CDDispose            " LINK "CDDispose"            }
+
+    @{b}Interrupts@{ub}
+      @{"CDAddChangeInt       " LINK "CDAddChangeInt"       }    @{"CDRemChangeInt       " LINK "CDRemChangeInt"       }
+      @{"CDAddFrameInt        " LINK "CDAddFrameInt"        }    @{"CDRemFrameInt        " LINK "CDRemFrameInt"        }
+
+    @{b}Loading@{ub}
+      @{"CDLock               " LINK "CDLock"               }    @{"CDPause              " LINK "CDPause"              }
+      @{"CDStartStop          " LINK "CDStartStop"          }
+
+    @{b}Play@{ub}
+      @{"CDPlay               " LINK "CDPlay"               }    @{"CDPlay10             " LINK "CDPlay10"             }
+      @{"CDPlay12             " LINK "CDPlay12"             }    @{"CDPlayMSF            " LINK "CDPlayMSF"            }
+      @{"CDPlayTrackIndex     " LINK "CDPlayTrackIndex"     }    @{"CDPlaytrackRelative10" LINK "CDPlayTrackRelative10"}
+      @{"CDPlaytrackRelative12" LINK "CDPlayTrackRelative12"}
+
+    @{b}Info@{ub}
+      @{"CDInfo               " LINK "CDInfo"               }    @{"CDModeSense          " LINK "CDModeSense"          }
+      @{"CDStatus             " LINK "CDStatus"             }    @{"CDToc                " LINK "CDToc"                }
+      @{"CDRequestSense       " LINK "CDRequestSense"       }
+
+    @{b}Various@{ub}
+      @{"CDCDDB4String        " LINK "CDCDDB4String"        }    @{"CDOptions            " LINK "CDOptions"            }
+      @{"CDReZeroUnit         " LINK "CDReZeroUnit"         }    @{"CDSeek               " LINK "CDSeek"               }
+      @{"CDTestUnit           " LINK "CDTestUnit"           }    @{"CDVolume             " LINK "CDVolume"             }
+
+    @{b}Help@{ub}
+      @{"GetRxCDString        " LINK "GetRxCDString"        }    @{"Help                 " LINK "Help"                 }
+
+@EndNode
+
+@Node "CDCreate" "RxCD Functions - CDCreate"
+
+  @{b}CDCreate@{ub} - creates a CD object
+
+  @{b}Synopsis@{ub}
+    ID = CDCreate(CDName)
+    <CDName>
+
+  @{b}Function@{ub}
+    Creates an internal CD object and returns its descriptor.
+
+  @{b}Inputs@{ub}
+    CDName - audio CD device name
+
+  @{b}Result@{ub}
+    ID - an integer:
+         -  0 - failure, a RxCD @{"error code" LINK "GetRxCDString"} in RC
+         - >0 - success, a valid CD descriptor
+
+  @{b}See@{ub}
+    @{"CDDispose()" LINK "CDDispose"}
+
+@EndNode
+
+@Node "CDDispose" "RxCD Functions - CDDispose"
+
+  @{b}CDDispose@{ub} - disposes a CD object
+
+  @{b}Synopsis@{ub}
+    call CDDispose(ID)
+    <ID/N>
+
+  @{b}Function@{ub}
+    Disposes an internal CD object created with @{"CDCreate()" LINK "CDCreate"}.
+
+  @{b}Inputs@{ub}
+    ID - audio CD device descriptor
+
+  @{b}Result@{ub}
+    Always returns 0.
+
+  @{b}See@{ub}
+    @{"CDCreate()" LINK "CDCreate"}
+
+@EndNode
+
+@Node "CDOptions" "RxCD Functions - CDOptions"
+
+  @{b}CDOptions@{ub} - sets cd options
+
+  @{b}Synopsis@{ub}
+    call CDOptions(ID,opts)
+    <ID/N>,[opts]
+
+  @{b}Function@{ub}
+    Sets option of internal CD object created with @{"CDCreate()" LINK "CDCreate"}.
+
+    @{i}opts@{ui} is one or more of
+    - Smart
+      Tries 2 times to obtain an answer
+
+    If an options is not supplied it is cleared.
+
+  @{b}Inputs@{ub}
+    ID   - audio CD device descriptor
+    opts - options to set
+
+  @{b}Result@{ub}
+    Always returns 0.
+
+@EndNode
+
+@Node "CDAddChangeInt" "RxCD Functions - CDAddChangeInt"
+
+  @{b}CDAddChangeInt@{ub} - adds a change-disk interrupt
+
+  @{b}Synopsis@{ub}
+    sig = CDAddChangeInt(ID)
+    <ID/N>
+
+  @{b}Function@{ub}
+    Adds a change interrupt so that anytime @{i}ID@{ui} is
+    open/closed, your macro is signaled via @{i}sig@{ui}.
+
+    Warning: your CD exec.library device may refuse to add the
+    interrupt.
+
+  @{b}Inputs@{ub}
+    ID - audio CD device descriptor
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - failure, a RxCD @{"error code" LINK "GetRxCDString"} in RC
+          - >0 - success, a valid CD descriptor
+
+  @{b}See@{ub}
+    @{"CDRemChangeInt()" LINK "CDRemChangeInt"}
+
+@EndNode
+
+@Node "CDRemChangeInt" "RxCD Functions - CDRemChangeInt"
+
+  @{b}CDRemChangeInt@{ub} - removes a change-disk interrupt
+
+  @{b}Synopsis@{ub}
+    call = CDRemChangeInt(ID)
+    <ID/N>
+
+  @{b}Function@{ub}
+    Removes a change-disk interrupt added by @{"CDAddChangeInt()" LINK "CDAddChangeInt"}.
+
+  @{b}Inputs@{ub}
+    ID - a device descriptor
+
+  @{b}Result@{ub}
+    Always returns 0.
+
+  @{b}See@{ub}
+    @{"CDAddChangeInt()" LINK "CDAddChangeInt"}
+
+@EndNode
+
+@Node "CDAddFrameInt" "RxCD Functions - CDAddFrameInt"
+
+  @{b}CDAddFrameInt@{ub} - adds a frame interrupt
+
+  @{b}Synopsis@{ub}
+    sig = CDAddFrameInt(ID)
+    <ID/N>
+
+  @{b}Function@{ub}
+    Adds a frame interrupt so that anytime @{i}ID@{ui} is playing
+    and the current frame changes your macro is signaled via
+    @{i}sig@{ui}.
+
+    Warning: your CD exec.library device will refuse to add the
+    interrupt for sure :-) It means mainly that to control the
+    playing you have to poll like all CD players do.
+
+  @{b}Inputs@{ub}
+    ID - audio CD device descriptor
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - failure, a RxCD @{"error code" LINK "GetRxCDString"} in RC
+          - >0 - success, a valid CD descriptor
+
+  @{b}See@{ub}
+    @{"CDRemFrameInt()" LINK "CDRemFrameInt"}
+
+@EndNode
+
+@Node "CDRemFrameInt" "RxCD Functions - CDRemFrameInt"
+
+  @{b}CDRemFrameInt@{ub} - removes a change-disk interrupt
+
+  @{b}Synopsis@{ub}
+    call = CDRemFrameInt(ID)
+    <ID/N>
+
+  @{b}Function@{ub}
+    Removes a frame interrupt added by @{"CDAddFrameInt()" LINK "CDAddFrameInt"}.
+
+  @{b}Inputs@{ub}
+    ID - a device descriptor
+
+  @{b}Result@{ub}
+    Always returns 0.
+
+  @{b}See@{ub}
+    @{"CDAddFrameInt()" LINK "CDAddFrameInt"}
+
+@EndNode
+
+@Node "CDLock" "RxCD Functions - CDLock"
+
+  @{b}CDLock@{ub} - lock/unlock a CD
+
+  @{b}Synopsis@{ub}
+    res = CDLock(CD,debug,status)
+    <CD>,<debug/O>,[status/N]
+
+  @{b}Function@{ub}
+    Lock or unlock the cd.
+
+  @{b}Inputs@{ub}
+    CD     - audio CD device name or descriptor
+    debug  - an ARexx stem name
+    status - 0 unlock, 1 lock
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+@EndNode
+
+@Node "CDPause" "RxCD Functions - CDPause"
+
+  @{b}CDPause@{ub} - pause/continue a CD
+
+  @{b}Synopsis@{ub}
+    res = CDPause(CD,debug,status)
+    <CD>,<debug/O>,[status/N]
+
+  @{b}Function@{ub}
+    Pauses or continues a CD.
+
+  @{b}Inputs@{ub}
+    CD     - audio CD device name or descriptor
+    debug  - an ARexx stem name
+    status - 0 pause, 1 continue
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+  @{b}See@{ub}
+    @{"CDStartStop()" LINK "CDStartStop"}
+
+@EndNode
+
+@Node "CDStartStop" "RxCD Functions - CDStartStop"
+
+  @{b}CDStartStop@{ub} - starts/stops a CD
+
+  @{b}Synopsis@{ub}
+    res = CDStartStop(CD,debug,opt)
+    <CD>,<debug/O>,[opt]
+
+  @{b}Function@{ub}
+    Ejects or injects a CD.
+
+  @{b}Inputs@{ub}
+    CD    - audio CD device name or descriptor
+    debug - an ARexx stem name
+    opt   - one of:
+            . Stop
+            . Ready
+            . Load
+            . Eject
+            . Toggle
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+  @{b}See@{ub}
+    @{"CDPause()" LINK "CDPause"}
+
+@EndNode
+
+@Node "CDPlay" "RxCD Functions - CDPlay"
+
+  @{b}CDPlay@{ub} - plays a CD by a track pair
+
+  @{b}Synopsis@{ub}
+    res = CDPlay(CD,debug,fromTrack,toTrack)
+    <CD>,<debug/O>,[fromTrack/N],[toTrack/N]
+
+  @{b}Function@{ub}
+    Plays a CD starting from @{i}fromTrack@{ui} track to
+    @{i}toTrack@{ui} track
+
+  @{b}Inputs@{ub}
+    CD        - audio CD device name or descriptor
+    debug     - an ARexx stem name
+    fromTrack - the track to start at (default 1)
+    toTrack   - the track to stop at (default 99)
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+  @{b}See@{ub}
+    @{"CDPlay10()" LINK "CDPlay10"} @{"CDPlay12()" LINK "CDPlay12"} @{"CDPlayMSF()" LINK "CDPlayMSF"}
+    @{"CDPlayTrackIndex()" LINK "CDPlayTrackIndex"} @{"CDPlaytrackRelative10()" LINK "CDPlayTrackRelative10"} @{"CDPlaytrackRelative12()" LINK "CDPlayTrackRelative12"}
+
+@EndNode
+
+@Node "CDPlay10" "RxCD Functions - CDPlay10"
+
+  @{b}CDPlay10@{ub} - plays a CD by address/len
+
+  @{b}Synopsis@{ub}
+    res = CDPlay10(CD,debug,absAddr,shortLen)
+    <CD>,<debug/O>,[absAddr/N],[shortLen/N]
+
+  @{b}Function@{ub}
+    Plays a CD starting at long @{i}absAddr@{ui} address for
+    short @{i}shortLen@{ui} frames.
+
+  @{b}Inputs@{ub}
+    CD       - audio CD device name or descriptor
+    debug    - an ARexx stem name
+    absAddr  - the address to start at
+    shortLen - the short frames to play
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+  @{b}See@{ub}
+    @{"CDPlay()" LINK "CDPlay"} @{"CDPlay12()" LINK "CDPlay12"} @{"CDPlayMSF()" LINK "CDPlayMSF"}
+    @{"CDPlayTrackIndex()" LINK "CDPlayTrackIndex"} @{"CDPlaytrackRelative10()" LINK "CDPlayTrackRelative10"}
+    @{"CDPlaytrackRelative12()" LINK "CDPlayTrackRelative12"}
+
+@EndNode
+
+@Node "CDPlay12" "RxCD Functions - CDPlay12"
+
+  @{b}CDPlay12@{ub} - plays a CD by address/len
+
+  @{b}Synopsis@{ub}
+    res = CDPlay12(CD,debug,absAddr,longLen)
+    <CD>,<debug/O>,[absAddr/N],[longLen/N]
+
+  @{b}Function@{ub}
+    Plays a CD starting at long @{i}absAddr@{ui} address
+    for long @{i}longLen@{ui} frames.
+
+  @{b}Inputs@{ub}
+    CD      - audio CD device name or descriptor
+    debug   - an ARexx stem name
+    absAddr - the address to start at
+    longLen - the long frames to play
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          o >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+  @{b}See@{ub}
+    @{"CDPlay()" LINK "CDPlay"} @{"CDPlay10()" LINK "CDPlay10"} @{"CDPlayMSF()" LINK "CDPlayMSF"}
+    @{"CDPlayTrackIndex()" LINK "CDPlayTrackIndex"} @{"CDPlaytrackRelative10()" LINK "CDPlayTrackRelative10"}
+    @{"CDPlaytrackRelative12()" LINK "CDPlayTrackRelative12"}
+
+@EndNode
+
+@Node "CDPlayMSF" "RxCD Functions - CDPlayMSF"
+
+  @{b}CDPlayMSF@{ub} - plays a CD by MSF pair
+
+  @{b}Synopsis@{ub}
+    res = CDPlayMSF(CD,debug,startMin,startSec,startFrame,endMin,endSec,endFrame)
+    <CD>,<debug/O>,[startMin/N],[startSec/N],[startFrame/N],[endMin/N],[endSec/N],[endFrame/N]
+
+  @{b}Function@{ub}
+    Plays a CD from
+    @{i}startMin@{ui}-@{i}startSec@{ui}-@{i}startFrame@{ui} to
+    @{i}endMin@{ui}-@{i}endSec@{ui}-@{i}endFrame@{ui}.
+
+    It means that the function plays the CD from the addr
+    @{i}startMin@{ui}+60*75+@{i}startSec@{ui}*75+@{i}startFrame@{ui}
+    to the addr @{i}endMin@{ui}+60*75+@{i}endSec@{ui}*75+@{i}endFrame@{ui} .
+
+  @{b}Inputs@{ub}
+    CD         - audio CD device name or descriptor
+    debug      - an ARexx stem name
+    startMin   - the minute to start at
+    startSec   - the second to start at
+    startFrame - the frame to start at
+    endMin     - the minute to stop at
+    endSec     - the second to stop at
+    endFrame   - the frame to stop at
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+  @{b}See@{ub}
+    @{"CDPlay()" LINK "CDPlay"} @{"CDPlay10()" LINK "CDPlay10"} @{"CDPlay12()" LINK "CDPlay12"}
+    @{"CDPlayTrackIndex()" LINK "CDPlayTrackIndex"} @{"CDPlaytrackRelative10()" LINK "CDPlayTrackRelative10"}
+    @{"CDPlaytrackRelative12()" LINK "CDPlayTrackRelative12"}
+
+@EndNode
+
+@Node "CDPlayTrackIndex" "RxCD Functions - CDPlayTrackIndex"
+
+  @{b}CDPlayTrackIndex@{ub} - plays a CD by track/index pair
+
+  @{b}Synopsis@{ub}
+    res = CDPlayTrackIndex(CD,debug,startTrack,startIndex,endTrack,endIndex)
+    <CD>,<debug/O>,[startTrack/N],[startIndex/N],[endTrack/N],[endIndex/N]
+
+  @{b}Function@{ub}
+    Plays a CD starting at track @{i}startTrack@{ui} index @{i}startIndex@{ui}
+    to track @{i}endTrack@{ui} index @{i}endIndex@{ui}.
+
+  @{b}Inputs@{ub}
+    CD         - audio CD device name or descriptor
+    debug      - an ARexx stem name
+    startTrack - the track to start at
+    startIndex - the index (inside @{i}startTrack@{ui}) to start at
+    endTrack   - the track to stop at
+    endIndex   - the index (inside @{i}endTrack@{ui}) to stop at
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+  @{b}See@{ub}
+    @{"CDPlay()" LINK "CDPlay"} @{"CDPlay10()" LINK "CDPlay10"} @{"CDPlay12()" LINK "CDPlay12"}
+    @{"CDPlayMSF()" LINK "CDPlayMSF"} @{"CDPlaytrackRelative10()" LINK "CDPlayTrackRelative10"} @{"CDPlaytrackRelative12()" LINK "CDPlayTrackRelative12"}
+
+@EndNode
+
+@Node "CDPlayTrackRelative10" "RxCD Functions - CDPlayTrackRelative10"
+
+  @{b}CDPlayTrackRelative10@{ub} - plays a CD by track/addr/len
+
+  @{b}Synopsis@{ub}
+    res = CDPlayTrackRelative10(CD,debug,relAddr,track,shortLen)
+    <CD>,<debug/O>,[relAddr/N],[track/N],[shortLen/N]
+
+  @{b}Function@{ub}
+    Plays a CD starting at address @{i}relAddr@{ui} relative to
+    the track @{i}track@{ui} for short @{i}shortLen@{ui} frames.
+
+  @{b}Inputs@{ub}
+    CD       - audio CD device name or descriptor
+    debug    - an ARexx stem name
+    relAddr  - the address, relative to @{i}track@{ui}, to start at
+    track    - the track @{i}relAddr@{ui} is relative to
+    shortLen - the short frames to play
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+  @{b}See@{ub}
+    @{"CDPlay()" LINK "CDPlay"} @{"CDPlay10()" LINK "CDPlay10"} @{"CDPlay12()" LINK "CDPlay12"}
+    @{"CDPlayMSF()" LINK "CDPlayMSF"} @{"CDPlayTrackIndex()" LINK "CDPlayTrackIndex"} @{"CDPlaytrackRelative12()" LINK "CDPlayTrackRelative12"}
+
+@EndNode
+
+@Node "CDPlayTrackRelative12" "RxCD Functions - CDPlayTrackRelative12"
+
+  @{b}CDPlayTrackRelative12@{ub} - plays a CD by track/addr/len
+
+  @{b}Synopsis@{ub}
+    res = CDPlayTrackRelative11(CD,debug,relAddr,track,longLen)
+    <CD>,<debug/O>,[relAddr/N],[track/N],[len/N]
+
+  @{b}Function@{ub}
+    Plays a CD starting at address @{i}relAddr@{ui} relative to
+    the track @{i}track@{ui} for long @{i}longLen@{ui} frames.
+
+  @{b}Inputs@{ub}
+    CD      - audio CD device name or descriptor
+    debug   - an ARexx stem name
+    relAddr - the address to start at, relative to @{i}track@{ui}
+    track   - the track @{i}relAddr@{ui} is relative to
+    longLen - the long frames to play
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+  @{b}See@{ub}
+    @{"CDPlay()" LINK "CDPlay"} @{"CDPlay10()" LINK "CDPlay10"} @{"CDPlay12()" LINK "CDPlay12"}
+    @{"CDPlayMSF()" LINK "CDPlayMSF"} @{"CDPlayTrackIndex()" LINK "CDPlayTrackIndex"} @{"CDPlaytrackRelative10()" LINK "CDPlayTrackRelative10"}
+
+@EndNode
+
+@Node "CDCDDB4String" "RxCD Functions - CDCDDB4String"
+
+  @{b}CDCDDB4String@{ub} - returns CDDB protocol-4 query string
+
+  @{b}Synopsis@{ub}
+    res = CDCDDB4String(CD)
+    <CD>,<debug/O>,<var/S>
+
+  @{b}Function@{ub}
+    Retrieves CDDB protocol-4 query string
+
+  @{b}Inputs@{ub}
+    CD    - audio CD device name or descriptor
+    debug - an ARexx stem name
+    var   - an ARexx var name where to store result
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+  @{b}See@{ub}
+    @{"CDToc()" LINK "CDToc"}
+
+@EndNode
+
+@Node "CDInfo" "RxCD Functions - CDInfo"
+
+  @{b}CDInfo@{ub} - retrieves CD driver informations
+
+  @{b}Synopsis@{ub}
+    res = CDInfo(CD,debug,stem)
+    <CD>,<debug/O>,<stem/V>
+
+  @{b}Function@{ub}
+    Retrieves CD driver informations, writing in @{i}stem@{ui}
+    the fields:
+    - PeripheralQualifier
+    - PeripheralType
+    - Removable
+    - Modifier
+    - Iso
+    - Ecma
+    - ANSI
+    - AENC
+    - TrmIOP
+    - Rdf
+    - ALength
+    - RelAddr
+    - Wbus32
+    - Wbus16
+    - Sync
+    - Linked
+    - CmdQueue
+    - SoftReset
+    - Vendor
+    - Product
+    - Revision
+
+    PeripheralQualifier:
+    - 000b
+      The specified peripheral device type is currently connected
+      to this logical unit. If the target cannot determine
+      whether or not a physical device is currently connected, it
+      shall also use this peripheral qualifier when returning the
+      INQUIRY data. This peripheral qualifier does not mean that
+      the device is ready for access by the initiator. o 001b The
+      target is capable of supporting the specified peripheral
+      device type on this logical unit; however, the physical
+      device is not currently connected to this logical unit. o
+      010b Reserved o 011b The target is not capable of
+      supporting a physical device on this logical unit. For this
+      peripheral qualifier the peripheral type shall be set to
+      1Fh to provide compatibility with versions of SCSI. All
+      other peripheral device type are reserved for this
+      peripheral qualifier. o 1XXb Vendor-specific
+
+    PeripheralType:
+    - 00h       Direct-access device (e.g. magnetic disk)
+    - 01h       Sequential-access device (e.g. magnetic tape)
+    - 02h       Printer device
+    - 03h       Processor device
+    - 04h       Write-once device (e.g. some optical disks)
+    - 05h       CD-ROM device
+    - 06h       Scanner device
+    - 07h       Optical memory device (e.g. some optical disks)
+    - 08h       Medium changer device (e.g. jukeboxes)
+    - 09h       Communications device
+    - 0Ah - 0Bh Defined by ASC IT8 (Graphic arts pre-press devices)
+    - 0Ch - 1Eh Reserved
+    - 1Fh       Unknown or no device type
+
+    Of course, we are interested to 05h device type (humm maybe
+    to 08h ?).
+
+  @{b}Inputs@{ub}
+    CD    - audio CD device name or descriptor
+    debug - an ARexx stem name
+    stem  - where to write the fields
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+  @{b}See@{ub}
+    @{"CDModeSense()" LINK "CDModeSense"}
+
+@EndNode
+
+@Node "CDModeSense" "RxCD Functions - CDModeSense"
+
+  @{b}CDModeSense@{ub} - retrieves current media parameters
+
+  @{b}Synopsis@{ub}
+    res = CDModeSense(CD,debug,stem)
+    <CD>,<debug/O>,<stem/V>
+
+  @{b}Function@{ub}
+    Retrieves current media parameters, writing in @{i}stem@{ui}
+    the fields:
+    - MediumType
+    - Specific
+    - BDlength
+    - PS
+    - Immed
+    - Sotc
+    - APRVal
+    - LBA
+    - PBS
+    - Out0
+    - Vol0
+    - Out1
+    - Vol1
+    - Out2
+    - Vol2
+    - Out3
+    - Vol3
+
+    MediumType codes:
+    - 00h       Default (only one type supported)
+    - 01h       120 mm CD-ROM data only
+    - 02h       120 mm CD-DA audio only
+    - 03h       120 mm CD-ROM data and audio combined
+    - 04h       Reserved
+    - 05h       80 mm CD-ROM data only
+    - 06h       80 mm CD-DA audio only
+    - 07h       80 mm CD-ROM data and audio combined
+    - 08h - 7Fh Reserved
+    - 80h - FFh Vendor-specific
+
+    Note that the above are generic codes. Many disk and CDROM
+    may report different codes. Never trust on them: you better
+    watch the TOC of the disc, if any, to decide which kind of
+    disk it is.
+
+  @{b}Inputs@{ub}
+    CD    - audio CD device name or descriptor
+    debug - an ARexx stem name
+    stem  - where to write the fields
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+  @{b}See@{ub}
+    @{"CDInfo()" LINK "CDInfo"}
+
+@EndNode
+
+@Node "CDStatus" "RxCD Functions - CDStatus"
+
+  @{b}CDStatus@{ub} - retrieves the CD status
+
+  @{b}Synopsis@{ub}
+    res = CDStatus(CD,debug,stem)
+    <CD>,<debug/O>,<stem/V>
+
+  @{b}Function@{ub}
+    Retrieves the CD status, writing in @{i}stem@{ui} the fields:
+    - AudioStatus/N
+    - Play
+    - Pause
+    - Complete
+    - DLength
+    - Adr
+    - PreEmphasis
+    - CopyPerm
+    - Audio
+    - 4Channels
+    - Track
+    - Index
+    - AbsAddr
+    - RelAddr
+
+    AudioStatus codes:
+    - 00h - Audio status byte not supported or not valid
+    - 11h - Audio play operation in progress
+    - 12h - Audio play operation paused
+    - 13h - Audio play operation successfully completed
+    - 14h - Audio play operation stopped due to error
+    - 15h - No current audio status to return
+
+    Note that "Competed audio status" is reported only to the
+    inizializator that requested the operation. It means that to
+    receive that status you must CDCreate() a device and start a
+    play operation. Also note that after you received a Complete,
+    you will receive a Pause for sure.
+
+  @{b}Inputs@{ub}
+    CD    - audio CD device name or descriptor
+    debug - an ARexx stem name
+    stem  - where to write the fields
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+@EndNode
+
+@Node "CDToc" "RxCD Functions - CDToc"
+
+  @{b}CDToc@{ub} - reads the table of contents
+
+  @{b}Synopsis@{ub}
+    res = CDToc(CD,debug,stem)
+    <CD>,<debug/O>,<stem/V>
+
+  @{b}Function@{ub}
+    Reads the table of contents, writing in @{i}stem@{ui} the
+    fields:
+
+    - MediumType
+      . 0 only data
+      . 1 only audio
+      . 2 data and audio
+
+    - Tracks
+      The number of the tracks
+
+    - Num
+      As tracks
+
+    - FirstTrack
+      First track index. Note that this might not be 1.
+
+    - LastTrack
+      Last track index. Valid tracks are FirstTrack,...,LastTrack
+
+    - StartAddr
+      Where the first track starts
+
+    - EndAddr
+      Where the last track ends
+
+    - Frames
+      Duration of the CD in frames
+
+    - Min
+    - Sec
+    - Frame
+      Duration of the CD in MSF
+
+    - Audio
+      1 if the disk contain at least one audio track, 0
+      otherwise.
+
+    - Data
+      1 if the disk contain at least one data track, 0 otherwise.
+
+    - ID
+      The freedb (http://freedb.freedb.org) ID of the disk
+
+    And int stem.i , i=0,...,NUM-1
+
+    - Track
+      Track number. Note that this may be not i+1
+
+    - StartAddr
+      Start address of the track
+
+    - EndAddr
+      End address of the track (As Robert A. Sisk noted, it is
+      probably 1 frame too much; if you need that to do some
+      calculation subtract 1 to EndAddr)
+
+    - Frames
+      Duration of the track in frames
+
+    - StartMin
+    - StartSec
+    - Startframe
+      Where the track starts in MSF
+
+    - EndMin
+    - EndSec
+    - Endframe
+      Where the track ends in MSF
+
+    - Min
+    - Sec
+    - Frame
+      Duration of the track in MSF
+
+    - ADR
+
+    - Audio
+      Type of the track: 0 DATA, 1 AUDIO
+
+    - PreEmphasis
+
+    - CopyPerm
+
+    - 4Channels
+
+  @{b}Inputs@{ub}
+    CD    - audio CD device name or descriptor
+    debug - an ARexx stem name
+    stem  - where to write the fields
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+  @{b}See@{ub}
+    @{"CDCDDBString()" LINK "CDCDDBString"}
+
+@EndNode
+
+@Node "CDRequestSense" "RxCD Functions - CDRequestSense"
+
+  @{b}CDRequestSense@{ub} - returns sense data
+
+  @{b}Synopsis@{ub}
+    res = CDREquestSense(CD,debug)
+    <CD>,<debug/V>
+
+  @{b}Function@{ub}
+    Asks to the device for the @{"sense" LINK "Sense"} data.
+
+  @{b}Inputs@{ub}
+    CD    - audio CD device name or descriptor
+    debug - an ARexx stem name
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+@EndNode
+
+@Node "CDTestUnit" "RxCD Functions - CDTestUnit"
+
+  @{b}CDTestUnit@{ub} - tests unit ready
+
+  @{b}Synopsis@{ub}
+    res = CDTestUnit(CD,debug)
+    <CD>,<debug/O>
+
+  @{b}Function@{ub}
+    Tests if the @{i}CD@{ui} is ready.
+
+  @{b}Inputs@{ub}
+    CD    - audio CD device name or descriptor
+    debug - an ARexx stem name
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+@EndNode
+
+@Node "CDVolume" "RxCD Functions - CDVolume"
+
+  @{b}CDVolume@{ub} - changes audio volumes
+
+  @{b}Synopsis@{ub}
+    res = CDVolume(CD,debug,leftVol,rightVol)
+    <CD>,<debug/O>,[leftVol/N],[rightVol/N]
+
+  @{b}Function@{ub}
+    Changes audio volume. Note that not all CD hardware devices
+    support the software volume control.
+
+  @{b}Inputs@{ub}
+    CD       - audio CD device name or descriptor
+    debug    - an ARexx stem name
+    leftVol  - left volume (0,...255)
+    rightVol - right volume (0,...255)
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+@EndNode
+
+@Node "CDReZeroUnit" "RxCD Functions - CDReZeroUnit"
+
+  @{b}CDReZeroUnit@{ub} - resets the CDROM to a specific state
+
+  @{b}Synopsis@{ub}
+    res = CDReZeroUnit(CD,debug)
+    <CD>,<debug/O>
+
+  @{b}Function@{ub}
+    Resets the CDROM to a specific state. That state is vendor
+    specific, but usually, the CDROM position is set to 0 and
+    into pause state.
+
+  @{b}Inputs@{ub}
+    CD    - audio CD device name or descriptor
+    debug - an ARexx stem name
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+@EndNode
+
+@Node "CDSeek" "RxCD Functions - CDSeek"
+
+  @{b}CDSeek@{ub} - requests that the CDROM seek to a specified address
+
+  @{b}Synopsis@{ub}
+    res = CDSeek(CD,debug,absAddr)
+    <CD>,<debug/O>,[absAddr/N]
+
+  @{b}Function@{ub}
+    Requests that the CDROM seek to the specified logical long
+    block address @{i}absAddr@{ui}. Usually the CDROM is also set
+    into pause state.
+
+  @{b}Inputs@{ub}
+    CD      - audio CD device name or descriptor
+    debug   - an ARexx stem name
+    absAddr - the address to seek to (default 0)
+
+  @{b}Result@{ub}
+    res - an integer:
+          -  0 - success
+          - >0 - RxCD @{"error code" LINK "GetRxCDString"}
+
+@EndNode
+
+@Node "GetRxCDString" "RxCD Functions - GetRxCDString"
+
+  @{b}GetRxCDString@{ub} - returns a RxCD error string
+
+  @{b}Synopsis@{ub}
+    string = GetRxCDString(code)
+    <code/N>
+
+  @{b}Function@{ub}
+    Returns the error associated with @{i}code@{ui}.
+
+    The error string defined are:
+
+       Code   Short                String
+     ----------------------------------------------------
+
+       51    [NO MEM]             too few memory
+
+       52    [ARG MISS]           required argument missed
+
+       53    [BAD NUMBER]         bad number
+
+       54    [BAD VALUE]          bad value
+
+       55    [NO DEVICE]          device not found
+                                  The device doesn't exist
+
+       56    [NO SIGNAL]          no signal available
+                                  Exec signals are over
+
+       57    [CANT OPEN DEVICE]   can't open device
+                                  The device cannot be opened
+
+       58    [DEVICE ERROR]       device error
+                                  The device returned an error
+
+       59    [NO CD]              device is not a CD-ROM
+                                  The device is not a CD-ROM
+
+       60    [BADTOC]             invalid TOC format
+                                  Can't read this TOC
+
+  @{b}Inputs@{ub}
+    code - the code to obtain the string associated with
+
+  Returns
+    string - the string associated with code
+
+@EndNode
+
+@Node "Help" "RxCD Functions - Help"
+
+  @{b}Help@{ub} - returns RxCD functions help strings
+
+  @{b}Synopsis@{ub}
+    help=help(funName)
+    <funName>
+
+  @{b}Function@{ub}
+    Returns the arguments mask string of rxCD.library function
+    @{i}funName@{ui}.
+
+  @{b}Inputs@{ub}
+    funName - a RxCD function name
+
+  @{b}Result@{ub}
+    help - the help string associated with @{i}funName@{ui}
+
+@EndNode
+
+@Node "sense" "RxCD Sense"
+
+  @{b}Sense@{ub}
+
+
+    +=====-========-========-========-========-========-========-========-========+
+    |  Bit|   7    |   6    |   5    |   4    |   3    |   2    |   1    |   0    |
+    |Byte |        |        |        |        |        |        |        |        |
+    |=====+========+==============================================================|
+    | 0   | Valid  |                  Error code (70h or 71h)                     |
+    |-----+-----------------------------------------------------------------------|
+    | 1   |                           Segment number                              |
+    |-----+-----------------------------------------------------------------------|
+    | 2   |Filemark|  EOM   |  ILI   |Reserved|         Sense key                 |
+    |-----+-----------------------------------------------------------------------|
+    | 3   | (MSB)                                                                 |
+    |- - -+---                        Information                              ---|
+    | 6   |                                                                 (LSB) |
+    |-----+-----------------------------------------------------------------------|
+    | 7   |                           Additional sense length (n-7)               |
+    |-----+-----------------------------------------------------------------------|
+    | 8   | (MSB)                                                                 |
+    |- - -+---                        Command-specific information             ---|
+    | 11  |                                                                 (LSB) |
+    |-----+-----------------------------------------------------------------------|
+    | 12  |                           Additional sense code                       |
+    |-----+-----------------------------------------------------------------------|
+    | 13  |                           Additional sense code qualifier             |
+    |-----+-----------------------------------------------------------------------|
+    | 14  |                           Field replaceable unit code                 |
+    |-----+-----------------------------------------------------------------------|
+    | 15  |  SKSV  |                                                              |
+    |- - -+------------               Sense-key specific                       ---|
+    | 17  |                                                                       |
+    |-----+-----------------------------------------------------------------------|
+    | 18  |                                                                       |
+    |- - -+---                        Additional sense bytes                   ---|
+    | n   |                                                                       |
+    +=============================================================================+
+
+
+  @{b}Sense key@{ub}
+    +========-====================================================================+
+    | Sense  |  Description                                                       |
+    |  key   |                                                                    |
+    |--------+--------------------------------------------------------------------|
+    |   0h   |  NO SENSE.  Indicates that there is no specific sense key          |
+    |        |  information to be reported for the designated logical unit.  This |
+    |        |  would be the case for a successful command or a command that      |
+    |        |  received CHECK CONDITION or COMMAND TERMINATED status because one |
+    |        |  of the filemark, EOM, or ILI bits is set to one.                  |
+    |--------+--------------------------------------------------------------------|
+    |   1h   |  RECOVERED ERROR.  Indicates that the last command completed       |
+    |        |  successfully with some recovery action performed by the target.   |
+    |        |  Details may be determinable by examining the additional sense     |
+    |        |  bytes and the information field.  When multiple recovered errors  |
+    |        |  occur during one command, the choice of which error to report     |
+    |        |  (first, last, most severe, etc.) is device specific.              |
+    |--------+--------------------------------------------------------------------|
+    |   2h   |  NOT READY.  Indicates that the logical unit addressed cannot be   |
+    |        |  accessed.  Operator intervention may be required to correct this  |
+    |        |  condition.                                                        |
+    |--------+--------------------------------------------------------------------|
+    |   3h   |  MEDIUM ERROR.  Indicates that the command terminated with a non-  |
+    |        |  recovered error condition that was probably caused by a flaw in   |
+    |        |  the medium or an error in the recorded data.  This sense key may  |
+    |        |  also be returned if the target is unable to distinguish between a |
+    |        |  flaw in the medium and a specific hardware failure (sense key 4h).|
+    |--------+--------------------------------------------------------------------|
+    |   4h   |  HARDWARE ERROR.  Indicates that the target detected a non-        |
+    |        |  recoverable hardware failure (for example, controller failure,    |
+    |        |  device failure, parity error, etc.) while performing the command  |
+    |        |  or during a self test.                                            |
+    |--------+--------------------------------------------------------------------|
+    |   5h   |  ILLEGAL REQUEST.  Indicates that there was an illegal parameter in|
+    |        |  the command descriptor block or in the additional parameters      |
+    |        |  supplied as data for some commands (FORMAT UNIT, SEARCH DATA,     |
+    |        |  etc.).  If the target detects an invalid parameter in the command |
+    |        |  descriptor block, then it shall terminate the command without     |
+    |        |  altering the medium.  If the target detects an invalid parameter  |
+    |        |  in the additional parameters supplied as data, then the target may|
+    |        |  have already altered the medium.  This sense key may also indicate|
+    |        |  that an invalid IDENTIFY message was received (6.6.7).            |
+    |--------+--------------------------------------------------------------------|
+    |   6h   |  UNIT ATTENTION.  Indicates that the removable medium may have been|
+    |        |  changed or the target has been reset.                             |
+    |--------+--------------------------------------------------------------------|
+    |   7h   |  DATA PROTECT.  Indicates that a command that reads or writes the  |
+    |        |  medium was attempted on a block that is protected from this       |
+    |        |  operation.  The read or write operation is not performed.         |
+    |--------+--------------------------------------------------------------------|
+    |   8h   |  BLANK CHECK.  Indicates that a write-once device or a sequential- |
+    |        |  access device encountered blank medium or format-defined end-of-  |
+    |        |  data indication while reading or a write-once device encountered a|
+    |        |  non-blank medium while writing.                                   |
+    |--------+--------------------------------------------------------------------|
+    |   9h   |  VENDOR-SPECIFIC.  This sense key is available for reporting vendor|
+    |        |  specific conditions.                                              |
+    |--------+--------------------------------------------------------------------|
+    |   Ah   |  COPY ABORTED.  Indicates a COPY, COMPARE, or COPY AND VERIFY      |
+    |        |  command was aborted due to an error condition on the source       |
+    |        |  device, the destination device, or both.  (See 8.2.3.2 for        |
+    |        |  additional information about this sense key.)                     |
+    |--------+--------------------------------------------------------------------|
+    |   Bh   |  ABORTED COMMAND.  Indicates that the target aborted the command.  |
+    |        |  The initiator may be able to recover by trying the command again. |
+    |--------+--------------------------------------------------------------------|
+    |   Ch   |  EQUAL.  Indicates a SEARCH DATA command has satisfied an equal    |
+    |        |  comparison.                                                       |
+    |--------+--------------------------------------------------------------------|
+    |   Dh   |  VOLUME OVERFLOW.  Indicates that a buffered peripheral device has |
+    |        |  reached the end-of-partition and data may remain in the buffer    |
+    |        |  that has not been written to the medium.  A RECOVER BUFFERED DATA |
+    |        |  command(s) may be issued to read the unwritten data from the      |
+    |        |  buffer.                                                           |
+    |--------+--------------------------------------------------------------------|
+    |   Eh   |  MISCOMPARE.  Indicates that the source data did not match the data|
+    |        |  read from the medium.                                             |
+    |--------+--------------------------------------------------------------------|
+    |   Fh   |  RESERVED.                                                         |
+    +=============================================================================+
+
+
+  @{b}ASC and ASCQ assignments@{ub}
+    +=============================================================================+
+    |           D - DIRECT ACCESS DEVICE                                          |
+    |           .T - SEQUENTIAL ACCESS DEVICE                                     |
+    |           . L - PRINTER DEVICE                                              |
+    |           .  P - PROCESSOR DEVICE                                           |
+    |           .  .W - WRITE ONCE READ MULTIPLE DEVICE                           |
+    |           .  . R - READ ONLY (CD-ROM) DEVICE                                |
+    |           .  .  S - SCANNER DEVICE                                          |
+    |           .  .  .O - OPTICAL MEMORY DEVICE                                  |
+    |           .  .  . M - MEDIA CHANGER DEVICE                                  |
+    |           .  .  .  C - COMMUNICATION DEVICE                                 |
+    |           .  .  .  .                                                        |
+    | ASC ASCQ  DTLPWRSOMC  DESCRIPTION                                           |
+    | --- ----              ----------------------------------------------------- |
+    |  00  00   DTLPWRSOMC  NO ADDITIONAL SENSE INFORMATION                       |
+    |  00  01    T          FILEMARK DETECTED                                     |
+    |  00  02    T    S     END-OF-PARTITION/MEDIUM DETECTED                      |
+    |  00  03    T          SETMARK DETECTED                                      |
+    |  00  04    T    S     BEGINNING-OF-PARTITION/MEDIUM DETECTED                |
+    |  00  05    T    S     END-OF-DATA DETECTED                                  |
+    |  00  06   DTLPWRSOMC  I/O PROCESS TERMINATED                                |
+    |  00  11   R           AUDIO PLAY OPERATION IN PROGRESS                      |
+    |  00  12   R           AUDIO PLAY OPERATION PAUSED                           |
+    |  00  13   R           AUDIO PLAY OPERATION SUCCESSFULLY COMPLETED           |
+    |  00  14   R           AUDIO PLAY OPERATION STOPPED DUE TO ERROR             |
+    |  00  15   R           NO CURRENT AUDIO STATUS TO RETURN                     |
+    |  01  00   DW  O       NO INDEX/SECTOR SIGNAL                                |
+    |  02  00   DWR OM      NO SEEK COMPLETE                                      |
+    |  03  00   DTL W SO    PERIPHERAL DEVICE WRITE FAULT                         |
+    |  03  01    T          NO WRITE CURRENT                                      |
+    |  03  02    T          EXCESSIVE WRITE ERRORS                                |
+    |  04  00   DTLPWRSOMC  LOGICAL UNIT NOT READY, CAUSE NOT REPORTABLE          |
+    |  04  01   DTLPWRSOMC  LOGICAL UNIT IS IN PROCESS OF BECOMING READY          |
+    |  04  02   DTLPWRSOMC  LOGICAL UNIT NOT READY, INITIALIZING command REQUIRED |
+    |  04  03   DTLPWRSOMC  LOGICAL UNIT NOT READY, MANUAL INTERVENTION REQUIRED  |
+    |  04  04   DTL    O    LOGICAL UNIT NOT READY, FORMAT IN PROGRESS            |
+    |  05  00   DTL WRSOMC  LOGICAL UNIT DOES NOT RESPOND TO SELECTION            |
+    |  06  00   DWR OM  NO  REFERENCE POSITION FOUND                              |
+    |  07  00   DTL WRSOM   MULTIPLE PERIPHERAL DEVICES SELECTED                  |
+    |  08  00   DTL WRSOMC  LOGICAL UNIT COMMUNICATION FAILURE                    |
+    |  08  01   DTL WRSOMC  LOGICAL UNIT COMMUNICATION TIME-OUT                   |
+    |  08  02   DTL WRSOMC  LOGICAL UNIT COMMUNICATION PARITY ERROR               |
+    |  09  00   DT  WR O    TRACK FOLLOWING ERROR                                 |
+    |  09  01       WR O    TRACKING SERVO FAILURE                                |
+    |  09  02       WR O    FOCUS SERVO FAILURE                                   |
+    |  09  03       WR O    SPINDLE SERVO FAILURE                                 |
+    |  0A  00   DTLPWRSOMC  ERROR LOG OVERFLOW                                    |
+    |  0B  00                                                                     |
+    |  0C  00    T     S    WRITE ERROR                                           |
+    |  0C  01   D   W  O    WRITE ERROR RECOVERED WITH AUTO REALLOCATION          |
+    |  0C  02   D   W  O    WRITE ERROR - AUTO REALLOCATION FAILED                |
+    |  0D  00                                                                     |
+    |  0E  00                                                                     |
+    |  0F  00                                                                     |
+    |  10  00   D   W  O    ID CRC OR ECC ERROR                                   |
+    |  11  00   DT  WRSO    UNRECOVERED READ ERROR                                |
+    |  11  01   DT  W SO    READ RETRIES EXHAUSTED                                |
+    |  11  02   DT  W SO    ERROR TOO LONG TO CORRECT                             |
+    |  11  03   DT  W SO    MULTIPLE READ ERRORS                                  |
+    |  11  04   D   W  O    UNRECOVERED READ ERROR - AUTO REALLOCATE FAILED       |
+    |  11  05       WR O    L-EC UNCORRECTABLE ERROR                              |
+    |  11  06       WR O    CIRC UNRECOVERED ERROR                                |
+    |  11  07       W  O    DATA RESYNCHRONIZATION ERROR                          |
+    |  11  08    T          INCOMPLETE BLOCK READ                                 |
+    |  11  09    T          NO GAP FOUND                                          |
+    |  11  0A   DT     O    MISCORRECTED ERROR                                    |
+    |  11  0B   D   W  O    UNRECOVERED READ ERROR - RECOMMEND REASSIGNMENT       |
+    |  11  0C   D   W  O    UNRECOVERED READ ERROR - RECOMMEND REWRITE THE DATA   |
+    |  12  00   D   W  O    ADDRESS MARK NOT FOUND FOR ID FIELD                   |
+    |  13  00   D   W  O    ADDRESS MARK NOT FOUND FOR DATA FIELD                 |
+    |  14  00   DTL WRSO    RECORDED ENTITY NOT FOUND                             |
+    |  14  01   DT  WR O    RECORD NOT FOUND                                      |
+    |  14  02    T          FILEMARK OR SETMARK NOT FOUND                         |
+    |  14  03    T          END-OF-DATA NOT FOUND                                 |
+    |  14  04    T          BLOCK SEQUENCE ERROR                                  |
+    |  15  00   DTL WRSOM   RANDOM POSITIONING ERROR                              |
+    |  15  01   DTL WRSOM   MECHANICAL POSITIONING ERROR                          |
+    |  15  02   DT  WR O    POSITIONING ERROR DETECTED BY READ OF MEDIUM          |
+    |  16  00   DW     O    DATA SYNCHRONIZATION MARK ERROR                       |
+    |  17  00   DT  WRSO    RECOVERED DATA WITH NO ERROR CORRECTION APPLIED       |
+    |  17  01   DT  WRSO    RECOVERED DATA WITH RETRIES                           |
+    |  17  02   DT  WR O    RECOVERED DATA WITH POSITIVE HEAD OFFSET              |
+    |  17  03   DT  WR O    RECOVERED DATA WITH NEGATIVE HEAD OFFSET              |
+    |  17  04       WR O    RECOVERED DATA WITH RETRIES AND/OR CIRC APPLIED       |
+    |  17  05   D   WR O    RECOVERED DATA USING PREVIOUS SECTOR ID               |
+    |  17  06   D   W  O    RECOVERED DATA WITHOUT ECC - DATA AUTO-REALLOCATED    |
+    |  17  07   D   W  O    RECOVERED DATA WITHOUT ECC - RECOMMEND REASSIGNMENT   |
+    |  17  08   D   W  O    RECOVERED DATA WITHOUT ECC - RECOMMEND REWRITE        |
+    |  18  00   DT  WR O    RECOVERED DATA WITH ERROR CORRECTION APPLIED          |
+    |  18  01   D   WR O    RECOVERED DATA WITH ERROR CORRECTION &amp; RETRIES APPLIED|
+    |  18  02   D   WR O    RECOVERED DATA - DATA AUTO-REALLOCATED                |
+    |  18  03        R      RECOVERED DATA WITH CIRC                              |
+    |  18  04        R      RECOVERED DATA WITH LEC                               |
+    |  18  05   D   WR O    RECOVERED DATA - RECOMMEND REASSIGNMENT               |
+    |  18  06   D   WR O    RECOVERED DATA - RECOMMEND REWRITE                    |
+    |  19  00   D      O    DEFECT LIST ERROR                                     |
+    |  19  01   D      O    DEFECT LIST NOT AVAILABLE                             |
+    |  19  02   D      O    DEFECT LIST ERROR IN PRIMARY LIST                     |
+    |  19  03   D      O    DEFECT LIST ERROR IN GROWN LIST                       |
+    |  1A  00   DTLPWRSOMC  PARAMETER LIST LENGTH ERROR                           |
+    |  1B  00   DTLPWRSOMC  SYNCHRONOUS DATA TRANSFER ERROR                       |
+    |  1C  00   D      O    DEFECT LIST NOT FOUND                                 |
+    |  1C  01   D      O    PRIMARY DEFECT LIST NOT FOUND                         |
+    |  1C  02   D      O    GROWN DEFECT LIST NOT FOUND                           |
+    |  1D  00   D   W  O    MISCOMPARE DURING VERIFY OPERATION                    |
+    |  1E  00   D   W  O    RECOVERED ID WITH ECC                                 |
+    |  1F  00                                                                     |
+    |  20  00   DTLPWRSOMC  INVALID command OPERATION CODE                        |
+    |  21  00   DT  WR OM   LOGICAL BLOCK ADDRESS OUT OF RANGE                    |
+    |  21  01           M   INVALID ELEMENT ADDRESS                               |
+    |  22  00   D           ILLEGAL FUNCTION (SHOULD USE 20 00, 24 00, OR 26 00)  |
+    |  23  00                                                                     |
+    |  24  00   DTLPWRSOMC  INVALID FIELD IN CDB                                  |
+    |  25  00   DTLPWRSOMC  LOGICAL UNIT NOT SUPPORTED                            |
+    |  26  00   DTLPWRSOMC  INVALID FIELD IN PARAMETER LIST                       |
+    |  26  01   DTLPWRSOMC  PARAMETER NOT SUPPORTED                               |
+    |  26  02   DTLPWRSOMC  PARAMETER VALUE INVALID                               |
+    |  26  03   DTLPWRSOMC  THRESHOLD PARAMETERS NOT SUPPORTED                    |
+    |  27  00   DT  W  O    WRITE PROTECTED                                       |
+    |  28  00   DTLPWRSOMC  NOT READY TO READY TRANSITION(MEDIUM MAY HAVE CHANGED)|
+    |  28  01           M   IMPORT OR EXPORT ELEMENT ACCESSED                     |
+    |  29  00   DTLPWRSOMC  POWER ON, RESET, OR BUS DEVICE RESET OCCURRED         |
+    |  2A  00   DTL WRSOMC  PARAMETERS CHANGED                                    |
+    |  2A  01   DTL WRSOMC  MODE PARAMETERS CHANGED                               |
+    |  2A  02   DTL WRSOMC  LOG PARAMETERS CHANGED                                |
+    |  2B  00   DTLPWRSO C  COPY CANNOT EXECUTE SINCE HOST CANNOT DISCONNECT      |
+    |  2C  00   DTLPWRSOMC  command SEQUENCE ERROR                                |
+    |  2C  01         S     TOO MANY WINDOWS SPECIFIED                            |
+    |  2C  02         S     INVALID COMBINATION OF WINDOWS SPECIFIED              |
+    |  2D  00    T          OVERWRITE ERROR ON UPDATE IN PLACE                    |
+    |  2E  00                                                                     |
+    |  2F  00   DTLPWRSOMC  commandS CLEARED BY ANOTHER INITIATOR                 |
+    |  30  00   DT  WR OM   INCOMPATIBLE MEDIUM INSTALLED                         |
+    |  30  01   DT  WR O    CANNOT READ MEDIUM - UNKNOWN FORMAT                   |
+    |  30  02   DT  WR O    CANNOT READ MEDIUM - INCOMPATIBLE FORMAT              |
+    |  30  03   DT          CLEANING CARTRIDGE INSTALLED                          |
+    |  31  00   DT  W  O    MEDIUM FORMAT CORRUPTED                               |
+    |  31  01   D L    O    FORMAT command FAILED                                 |
+    |  32  00   D   W  O    NO DEFECT SPARE LOCATION AVAILABLE                    |
+    |  32  01   D   W  O    DEFECT LIST UPDATE FAILURE                            |
+    |  33  00    T          TAPE LENGTH ERROR                                     |
+    |  34  00                                                                     |
+    |  35  00                                                                     |
+    |  36  00     L         RIBBON, INK, OR TONER FAILURE                         |
+    |  37  00   DTL WRSOMC  ROUNDED PARAMETER                                     |
+    |  38  00                                                                     |
+    |  39  00   DTL WRSOMC  SAVING PARAMETERS NOT SUPPORTED                       |
+    |  3A  00   DTL WRSOM   MEDIUM NOT PRESENT                                    |
+    |  3B  00    TL         SEQUENTIAL POSITIONING ERROR                          |
+    |  3B  01    T          TAPE POSITION ERROR AT BEGINNING-OF-MEDIUM            |
+    |  3B  02    T          TAPE POSITION ERROR AT END-OF-MEDIUM                  |
+    |  3B  03     L         TAPE OR ELECTRONIC VERTICAL FORMS UNIT NOT READY      |
+    |  3B  04     L         SLEW FAILURE                                          |
+    |  3B  05     L         PAPER JAM                                             |
+    |  3B  06     L         FAILED TO SENSE TOP-OF-FORM                           |
+    |  3B  07     L         FAILED TO SENSE BOTTOM-OF-FORM                        |
+    |  3B  08    T          REPOSITION ERROR                                      |
+    |  3B  09         S     READ PAST END OF MEDIUM                               |
+    |  3B  0A         S     READ PAST BEGINNING OF MEDIUM                         |
+    |  3B  0B         S     POSITION PAST END OF MEDIUM                           |
+    |  3B  0C         S     POSITION PAST BEGINNING OF MEDIUM                     |
+    |  3B  0D           M   MEDIUM DESTINATION ELEMENT FULL                       |
+    |  3B  0E           M   MEDIUM SOURCE ELEMENT EMPTY                           |
+    |  3C  00                                                                     |
+    |  3D  00   DTLPWRSOMC  INVALID BITS IN IDENTIFY MESSAGE                      |
+    |  3E  00   DTLPWRSOMC  LOGICAL UNIT HAS NOT SELF-CONFIGURED YET              |
+    |  3F  00   DTLPWRSOMC  TARGET OPERATING CONDITIONS HAVE CHANGED              |
+    |  3F  01   DTLPWRSOMC  MICROCODE HAS BEEN CHANGED                            |
+    |  3F  02   DTLPWRSOMC  CHANGED OPERATING DEFINITION                          |
+    |  3F  03   DTLPWRSOMC  INQUIRY DATA HAS CHANGED                              |
+    |  40  00   D           RAM FAILURE (SHOULD USE 40 NN)                        |
+    |  40  NN   DTLPWRSOMC  DIAGNOSTIC FAILURE ON COMPONENT NN (80H-FFH)          |
+    |  41  00   D           DATA PATH FAILURE (SHOULD USE 40 NN)                  |
+    |  42  00   D           POWER-ON OR SELF-TEST FAILURE (SHOULD USE 40 NN)      |
+    |  43  00   DTLPWRSOMC  MESSAGE ERROR                                         |
+    |  44  00   DTLPWRSOMC  INTERNAL TARGET FAILURE                               |
+    |  45  00   DTLPWRSOMC  SELECT OR RESELECT FAILURE                            |
+    |  46  00   DTLPWRSOMC  UNSUCCESSFUL SOFT RESET                               |
+    |  47  00   DTLPWRSOMC  SCSI PARITY ERROR                                     |
+    |  48  00   DTLPWRSOMC  INITIATOR DETECTED ERROR MESSAGE RECEIVED             |
+    |  49  00   DTLPWRSOMC  INVALID MESSAGE ERROR                                 |
+    |  4A  00   DTLPWRSOMC  command PHASE ERROR                                   |
+    |  4B  00   DTLPWRSOMC  DATA PHASE ERROR                                      |
+    |  4C  00   DTLPWRSOMC  LOGICAL UNIT FAILED SELF-CONFIGURATION                |
+    |  4D  00                                                                     |
+    |  4E  00   DTLPWRSOMC  OVERLAPPED COMMANDS ATTEMPTED                         |
+    |  4F  00                                                                     |
+    |  50  00    T          WRITE APPEND ERROR                                    |
+    |  50  01    T          WRITE APPEND POSITION ERROR                           |
+    |  50  02    T          POSITION ERROR RELATED TO TIMING                      |
+    |  51  00    T     O    ERASE FAILURE                                         |
+    |  52  00    T          CARTRIDGE FAULT                                       |
+    |  53  00   DTL WRSOM   MEDIA LOAD OR EJECT FAILED                            |
+    |  53  01    T          UNLOAD TAPE FAILURE                                   |
+    |  53  02   DT  WR OM   MEDIUM REMOVAL PREVENTED                              |
+    |  54  00      P        SCSI TO HOST SYSTEM INTERFACE FAILURE                 |
+    |  55  00      P        SYSTEM RESOURCE FAILURE                               |
+    |  56  00                                                                     |
+    |  57  00        R      UNABLE TO RECOVER TABLE-OF-CONTENTS                   |
+    |  58  00     O         GENERATION DOES NOT EXIST                             |
+    |  59  00     O         UPDATED BLOCK READ                                    |
+    |  5A  00   DTLPWRSOM   OPERATOR REQUEST OR STATE CHANGE INPUT (UNSPECIFIED)  |
+    |  5A  01   DT  WR OM   OPERATOR MEDIUM REMOVAL REQUEST                       |
+    |  5A  02   DT  W  O    OPERATOR SELECTED WRITE PROTECT                       |
+    |  5A  03   DT  W  O    OPERATOR SELECTED WRITE PERMIT                        |
+    |  5B  00   DTLPWRSOM   LOG EXCEPTION                                         |
+    |  5B  01   DTLPWRSOM   THRESHOLD CONDITION MET                               |
+    |  5B  02   DTLPWRSOM   LOG COUNTER AT MAXIMUM                                |
+    |  5B  03   DTLPWRSOM   LOG LIST CODES EXHAUSTED                              |
+    |  5C  00   D   O       RPL STATUS CHANGE                                     |
+    |  5C  01   D   O       SPINDLES SYNCHRONIZED                                 |
+    |  5C  02   D   O       SPINDLES NOT SYNCHRONIZED                             |
+    |  5D  00                                                                     |
+    |  5E  00                                                                     |
+    |  5F  00                                                                     |
+    |  60  00         S     LAMP FAILURE                                          |
+    |  61  00         S     VIDEO ACQUISITION ERROR                               |
+    |  61  01         S     UNABLE TO ACQUIRE VIDEO                               |
+    |  61  02         S     OUT OF FOCUS                                          |
+    |  62  00         S     SCAN HEAD POSITIONING ERROR                           |
+    |  63  00        R      END OF USER AREA ENCOUNTERED ON THIS TRACK            |
+    |  64  00        R      ILLEGAL MODE FOR THIS TRACK                           |
+    |  65  00                                                                     |
+    |  66  00                                                                     |
+    |  67  00                                                                     |
+    |  68  00                                                                     |
+    |  69  00                                                                     |
+    |  6A  00                                                                     |
+    |  6B  00                                                                     |
+    |  6C  00                                                                     |
+    |  6D  00                                                                     |
+    |  6E  00                                                                     |
+    |  6F  00                                                                     |
+    |  70  00                                                                     |
+    |  71  00                                                                     |
+    |  72  00                                                                     |
+    |  73  00                                                                     |
+    |  74  00                                                                     |
+    |  75  00                                                                     |
+    |  76  00                                                                     |
+    |  77  00                                                                     |
+    |  78  00                                                                     |
+    |  79  00                                                                     |
+    |  7A  00                                                                     |
+    |  7B  00                                                                     |
+    |  7C  00                                                                     |
+    |  7D  00                                                                     |
+    |  7E  00                                                                     |
+    |  7F  00                                                                     |
+    |                                                                             |
+    |  80  xxh \\                                                                  |
+    |   THROUGH >  Vendor-specific.                                               |
+    |  FF  xxh /                                                                  |
+    |                                                                             |
+    |  xxh 80 \\                                                                   |
+    |  THROUGH >   Vendor-specific QUALIFICATION OF STANDARD ASC.                 |
+    |  xxh FF /                                                                   |
+    |              ALL CODES NOT SHOWN OR BLANK ARE RESERVED.                     |
+    +=============================================================================+
+
+@EndNode
+

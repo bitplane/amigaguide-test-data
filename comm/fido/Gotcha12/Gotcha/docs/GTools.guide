@@ -1,0 +1,527 @@
+@database GTools
+@master docs/GTools.guide
+@$VER: 1.2
+@author "Thomas Bickel"
+@(c) "1995,1996"
+@index HeddleyAutoIndex
+@remark Created with Heddley v1.1 (c) Edd Dumbill 1994
+@remark Heddley Bugs Fixed with FixHeddley 1.2 (c) 1995 by David Zvekic
+
+@node "Main" "Gotcha Tools Documentation"
+
+
+                         @{b}Gotcha Tools Documentation@{ub}
+
+
+           @{i}Copyright 1995/1996 Thomas Bickel; All rights reserved.@{ui}
+
+
+   @{"GList          " link "GList" 0}   The nodelist compiler
+   @{"GetInfo        " link "GetInfo" 0}   Get and search the nodelist for informations
+   @{"GTell          " link "GTell" 0}   Send ARexx commands
+   @{"ShowXConfig    " link "ShowXConfig" 0}   Show custom configuration entries
+   @{"GPoll          " link "GPoll" 0}   Gotchas call scheduler
+   @{"Trap2G         " link "Trap2G" 0}   Convert Trapdoor to Gotcha configurations
+   @{"GFReq          " link "GFReq" 0}   Gotchas little file request helper
+   @{"GConfig        " link "GConfig" 0}   Gotchas configuration tool
+
+   @{"Legal stuff" link "LegalStuff" 0}
+@endnode
+
+@node "GList" "GList"
+
+
+
+   @{"Basics       " link "GList_Basics" 0}  What do you need it for
+   @{"Usage        " link "GList_Usage" 0}  How to use and config it
+@endnode
+
+@node "GList_Basics" "GList Basics"
+
+   GList is Gotchas nodelist compiler. If you want to call nodes by telling
+   Gotcha the address (zone:net/node.point) rather than the phonenumber, or
+   if you want to have custom configurations than you will need to compile
+   a nodelist (or several if you want) with GList so Gotcha can access
+   the data stored therein.
+   Acctualy if you are a node and want to stay sane you should use it,
+   points don't realy need to but of course it works for points too.
+
+
+   What is a nodelist
+
+   A nodelist is a text file that contains a list of all, or a part of all
+   nodes of a network (e.g FidoNet, AmigaNet). For each node it holds
+   informations such as the phonenumber, BBS name, sysop, etc.
+
+
+   What is a nodediff
+
+   A nodediff is a text file that contains changes for a specific nodelist.
+@endnode
+
+@node "GList_Usage" "GList Usage"
+
+   GList VERBOSE/S,UPDATE/S,CONFIG
+
+   If you have specified the CONFIG keyword GList is going to try to open
+   the specified file else GList will look for it's config file
+   'GList.config' first in the current directory and if not found there in
+   'mail:' and then in 'nodelist:'.
+
+   Options:
+   VERBOSE  .. print out some more information on what's happening
+   UPDATE   .. only update the password, cost, dial, setconfig information
+               from the config file, not compile the nodelist.
+   CONFIG   .. (path and) name of the config file. If your config is not
+               named 'glist.config' or if you want to place it somewhere
+               else than the current directory, mail: or nodelist: then
+               use this one.
+
+   If you need to use a ';' somewhere as a configuration you must escape
+   it with an backslash. The same is true for backslashes.
+
+   Configuration commands (from v1.2 on the order is no longer important):
+
+   nodelistpath <path>
+      This tells GList where the nodelist(s) can be found and where to put
+   its own files.
+   Example: nodelistpath "nodelist:"
+
+
+   deloldlists yes/no
+      Specifies wether old nodelists should be deleted after a nodediff was
+   applied to it.
+   Example: deloldlists yes
+
+
+   delolddiffs yes/no
+      Specifies wether old nodediffs should be deleted after they have been
+   applied to a nodelist.
+   Example: delolddiffs yes
+
+
+   zone <number>
+      Default zone number for nodelists without zone informations.
+   Example: zone 2
+
+
+   report <filename>
+      Specifies the file to save comments from the nodelist in.
+   Example: report "ram:fidoreport.txt"
+
+
+   comment <characters>
+      When parsing the nodelist and GList encounters a comment the line
+   will be stored in the report file if the comment-identifier (the 2nd
+   character in the line) was specified in <characters>.
+
+   Comment-identifiers:
+   ;S This comment is of particular interest to Sysops.
+   ;U This comment is of particular interest to BBS users.
+   ;F This comment should appear in any formatted "Fido List".
+   ;A This comment is of general interest (shorthand for ;SUF).
+   ;E This comment is an error message inserted by MakeNL
+   ; This comment may be ignored by a nodelist processor.
+
+   Example: comment SUA
+
+
+   nodelist <nodelist> diff <nodediff> domain <domain>
+      This specifies the name (without extension!) of the nodelist file,
+   the name of the belonging diff file and the domain of the nodelist.
+   The nodelists will be compiled in the order specified in the config file,
+   it is important to put pointlists (and alike lists) at the end!
+   Examples: nodelist "NODELIST" diff "NODEDIFF" domain "fidonet"
+             nodelist "AMYLIST"  diff "AMYDIFF"  domain "amiganet"
+             nodelist "POINT4D"  diff ""         domain "fidonet"
+
+   password <password> <node> [<node> ... ]
+      Set sets up a password for (a) certain node(s). If calling out Gotcha
+   will fetch the password and send it out. On incoming calls it will
+   check wether the remotes password matches the one you set up, if not
+   Gotcha will hang up.
+
+   Example: password "abcdef" 39:23/5@amiganet 2:310/108@fidonet
+
+
+   dial <original string> <replacement string>
+      Specifies a phonenumber translation. Phonenumbers are stored in
+   international format in the nodelist. In order to be able to use them
+   you will need to specify some dial statements. When Gotcha looks up a
+   node to the nodelist it will search the translation table for a match
+   and replace <original string> with <replacement string>.
+   Examples: dial    "43-2252-"      "905-"
+             dial    "43-2682-"      "998-"
+
+
+   cost <cost> <phonenumber prefix>
+      Specifies cost per minute for the set of phonenumbers that have
+   <phonenumber prefix> in common. When Gotcha calls a node and there
+   is a cost specified it will be able to show the total cost for that
+   call. If you specify '-1' as cost this number will never be called.
+   Examples: cost    67      "43-2250"
+             cost    67      "43-2251"
+             cost    1330    "213-"
+
+
+   setconfig <address> [.<nodelist flag>.] <config string>
+      Specifies a custom configuration for a single node or all nodes
+   matching the @{"address-pattern" link "Address Patterns" 0}.
+
+   It is also possible to set a custom configuration depending on the
+   nodelist flags. Say you want to set a config for all nodes with
+   the ISDN flag, write 'setconfig * .ISDN. <desired config>'.
+   Note that in the previous example the config will get set if the
+   string ISDN is found SOMEWHERE in the flags, ie ISDNC, ISDNX or FOOISDN
+   would also cause the config to be set.
+   To avoid this behaviour add a ',' to the string to be matched.
+   'setconfig * .,ISDNC,. <config>' will make Gotcha set the config only
+   if ISDNC is found.
+   'setconfig * .,ISDN. <config>' will make Gotcha set the config only if
+   a flag is found which starts with ISDN (ie ISDNC, ISDNFOO).
+   'setconfig * .ISDN,. <config>' will make Gotcha set the config only if
+   a flags is found that ends with ISDN (ie FOOISDN, BARISDN).
+
+   It is also possible to specify mutiply nodelist flags.
+   'setconfig 2:* .,FOO,.,BAR,. <config>' will cause the config to be set
+   if the address is in zone 2 and FOO is a nodelist flag and BAR is a
+   nodelist flag of that address.
+
+   Examples: setconfig 39:* AFTERSESSION "s:amiganet.bat"
+             setconfig 40:* AFTERSESSION "s:amiganet.bat"
+             setconfig 41:* AFTERSESSION "s:amiganet.bat"
+
+
+ ;--------------- example configuration -----------------------------------
+
+ nodelistpath "nodelist:"
+
+ deloldlists yes
+ delolddiffs yes
+
+ zone 2
+
+ report "ram:fidoreport.txt"
+ comment SUA
+ nodelist "NODELIST"     diff "NODEDIFF" domain "fidonet"
+ report "ram:amyreport.txt"
+ nodelist "AMYLIST"      diff "AMYDIFF"  domain "amiganet"
+ report "ram:pointreport.txt"
+ nodelist "POINT4D"      diff ""         domain "fidonet"
+
+
+ password "abcdef" 39:23/5@amiganet 2:310/108@fidonet
+ password "bcdefg" 1:2/3.4
+
+ ; phone number translation:
+
+ dial    "43-222-"       ""            ;local calls
+ dial    "43-1-"         ""            ;local calls
+ dial    "43-2252-"      "905-"        ;Baden
+ dial    "43-5574-"      "999-"        ;Bregenz
+ dial    "43-2682-"      "998-"        ;Eisenstadt
+ dial    "43-316-"       "993-"        ;Graz
+ dial    "43-463-"       "994-"        ;Klagenfurt
+ dial    "43-732-"       "997-"        ;Linz/Donau
+ dial    "43-2236-"      "902-"        ;Mödling
+ dial    "43-662-"       "996-"        ;Salzburg Stadt
+ dial    "43-2742-"      "907-"        ;St. Pölten
+ dial    "43-2266-"      "908-"        ;Stockerau
+ dial    "43-2622-"      "906-"        ;Wiener Neustadt
+ dial    "43-"           "0"           ;Rest of Austria
+ dial    "352-"          "00432-"      ;Luxemburg
+ dial    "39-"           "040-"        ;Italy
+ dial    "49-"           "060-"        ;Germany
+ dial    "41-"           "050-"        ;Switzerland
+ dial    "-"             "-"           ;"-Unpublished-" unchanged
+ dial    ""              "00"          ;add "00" to other entries
+
+ ;cost table:
+
+ cost    400     "43-2212-"
+ cost    400     "43-2213-"
+ cost    400     "43-2214-"
+ cost    400     "43-2253-"
+ cost    867     "32-"
+ cost    867     "49-"
+ cost    867     "45-"
+ cost    1333    "358-"
+ cost    867     "33-"
+ cost    1333    "30-"
+ cost    1333    "44-"
+ cost    -1      "-"          ;-Unpublished-
+ cost    2800    ""           ;rest of the world
+
+ ;custom configurations
+
+ setconfig 39:* AFTERSESSION "s:amiganet.bat"
+ setconfig 40:* AFTERSESSION "s:amiganet.bat"
+ setconfig 41:* AFTERSESSION "s:amiganet.bat"
+
+ ;-----------------------------------------------------------------------
+@endnode
+
+@node "GetInfo" "GetInfo"
+
+   Usage: GetInfo <address> [<pattern>] [<output type>]
+
+   GetInfo can be used to obtain informations for one single node or for
+   a set of nodes matching the @{"address pattern" link "Address Patterns" 0} (and the text pattern).
+
+   <pattern> will be enclosed in #? and the Dos patternmatching function
+   will be used. E.g to list all nodes in the nodelist containing either
+   'John' or 'Mike' do: "GetInfo * (John|Mike)"
+
+   <output type> is one of a,b,c,d or e where 'a' will give most
+   informations and 'e' very few. If you want to use <output type> but
+   not <pattern> specify "" as <pattern>.
+
+   GetInfo needs a compiled nodelist (@{"GList" link "GList" 0}) in 'nodelist:'.
+
+   Examples: GetInfo 1:* "John Doe"
+             GetInfo 2:310/*
+             GetInfo * "amiga"
+
+   Press Ctrl-C to stop GetInfo.
+@endnode
+
+@node "GTell" "GTell"
+
+   GTell [<ARexx port>] <ARexx command>
+
+   This little tool will send out <ARexx command> to <ARexx port> or if
+   <ARexx port> was not specified to a port called "GOTCHA".
+
+   This is quite handy e.g. to tell Gotcha with ARexx-port "G0" to call
+   2:310/108 type: 'GTell G0 "call 2:310/108"'
+
+   Or to get the current Hydra settings:
+   'GTell G0 "getconfig NOHYDRA"'
+
+   If you specify '!' as <ARexx port> a requester will pop up and ask for
+   a port.
+@endnode
+
+@node "Address Patterns" "Address Patterns"
+
+   Address Patterns and Wildcards
+
+   Sometimes it is allowed to specify a pattern instead of a full address.
+   For those address patterns two wildcards are allowed: '*' and '?'.
+   '?' replaces one single item.
+   '*' means: assume '?' for the rest of the items.
+
+   E.g. '2:*' would match all addresses in zone 2.
+        '1:?/?.0' would match all nodes in zone 1.
+        '?:1/?.0' would match all nodes in net 1 in all zones.
+        '?:?/?.0@amiganet' would match all addresses in amiganet.
+
+   Note that domains are per default assumed to be '?'.
+   So 1:2/3 would match 1:2/3@abcdnet and 1:2/3@xyznet.
+@endnode
+
+@node "ShowXConfig" "ShowXConfig"
+
+   Usage: ShowXConfig <address>
+
+   This tool will list all, or parts of, the custom configurations set with
+   the setconfig keyword in 'glist.config' (see @{"GList" link "GList" 0}).
+
+   <address> may be a @{"pattern" link "Address Patterns" 0} too.
+
+   Example: ShowXConfig *        ; shows all custom configurations
+            ShowXConfig 2:*      ; shows custom configs for zone 2
+@endnode
+
+@node "GPoll" "GPoll"
+
+   GPoll [+/-C][+/-D][+/-N][+/-R][-O<outbound dir>][-P<port>][-A][-G]
+
+   GPoll will scan your outbound directory for files that need to be
+   delivered. It will build a calling list and send it to <port> (or GOTCHA
+   per default), this will only work with 4D-filenames such as
+   '39.23.5.0.out'.
+
+   NOTE: If you want to use this tool from within Gotcha (as a function key
+   command or from the ARexx sender) you MUST 'run' the program, NOT spawn
+   it! This is because it will send ARexx commands to Gotcha, while Gotcha
+   is waiting for the command to complete, the least thing that could happen
+   are enforcer hits, the worst a crash.
+
+   +C or -C
+      Tells GPoll to (not) call nodes which have crash mail waiting
+   (#?.CLO, #?.CUT). Default: +C
+
+   +D or -D
+      Tells GPoll to (not) call nodes which have direct mail waiting
+   (#?.DLO, #?.DUT). Default: -D
+
+   +N or -N
+      Tells GPoll to (not) call nodes which have normal mail waiting
+   (#?.OUT, #?.FLO). Default -N
+
+   +R or -R
+      Tells GPoll to (not) call nodes which have request mail waiting
+   (#?.REQ). Default: -R
+
+   -O<outbound directory>
+      Specifies the outbound directory. Default: 'mail:outbound'
+
+   -P<port>
+      Specifies the ARexx port name to send the call-list to.
+      Default: GOTCHA
+
+   -G
+      This will open a GUI which allows (and requires) some interaction.
+
+   -A
+      If '-G' is specified this will make GPoll open on the current active
+      screen.
+
+   Example: GPoll +C -D -N -R -pGOTCHA -oMail:outbound
+            ;this is also the default
+@endnode
+
+@node "Trap2G" "Trap2G"
+
+   Usage: Trap2G <trapdoor.cfg> <gotcha.config>
+
+   This little tool will convert TrapDoor configuration files to Gotcha
+   configuration files. Note that not all TD-keywords are supported but
+   about all that are usefull.
+@endnode
+
+@node "GFReq" "GFreq"
+
+   Usage: GFReq [ACTIVE]
+
+   This is little tool is intended to help on filerequests. If ACTIVE is
+   specified as a cli argument it will open its window on the active
+   (public) screen.
+
+   First select an address were you want to make your filereqest, enter it
+   in the topmost string gadget. Then select the files you want to request.
+   If you click on "CALL" you will be presented a little window that should
+   contain the name of a ARexx port to send the call command to, select a
+   port and click on "CALL" to send the ARexx command or on "Cancel" to
+   quit.
+   "Save Bak" will save a backup of the filerequest. If you enter the same
+   address the next time and no .REQ file is found the bak file will be
+   loaded (and deleted from disk!).
+
+   The best thing is to put this as an command on an function key with
+   a FKEY keyword. E.g. FKEY10 "spawn mail:bin/GFReq ACTIVE"
+@endnode
+
+@node "GConfig" "GConfig"
+
+   GConfig is a nice little GUI driven tool that lets you edit
+   configurations, get configs from an running Gotcha and set configs for a
+   running Gotcha.
+
+
+   Once started GConfig will try to read Gotchas default config
+   "mail:gotcha.config". If that fails you have the choice to either quit
+   or use the defaults.
+
+   If you're clever and either have a config in mail or decided to use
+   the defaults you'll see a nice little (well depends on your screenmode
+   and font ;) window with all sorts of gadgets in it.
+
+   Well, I guess it is quite obvious what all the stuff is about so lets
+   have a look at the row of gadgets on the bottom of the window:
+
+     Quit
+         Hmmmmmm, what do you think happens if you click this one?!?
+
+     Get...
+         That's a nice one. It lets you get a config from a Gotcha that's
+         running at the very moment you click this button. Just choose
+         the ARexx port and there you go.
+
+     Set...
+         That's the reverse of 'Get..'. NB: Only use this on Gotchas that
+         are hanging around idle. Weird things could happen else!
+         Some configs can NOT be changed this way (BUFFEREDLOG,ANSWER,
+         QUIET,REXXNAME,CX_POPKEY,CX_PRIORITY,LOGLINES), that's why there
+         is a * in the label name.
+
+     Load...
+         If you feel the desire to edit some other config then use this.
+
+     Save...
+         If you are done with your changes. It might be a good idea to save
+         the config.
+
+     Help...
+         In case you don't know Gotcha.guide by heart (which is a shame :)
+         and wonder what some weird keyword does click here.
+@endnode
+
+@node "LegalStuff" "Legal Stuff"
+
+   All Thomas Bickel products are trademarks of Thomas Bickel.
+   Other brand and product names are trademarks or registered trademarks of
+   their respective holders.
+
+   All tools described in this documentation are (c)1995/1996 Thomas Bickel.
+   All rights reserved.
+
+   The tools may be used as long as you are allowed to use Gotcha
+   (read the licence agreement in the Gotcha documentation!)
+
+   The same licence agreement as for Gotcha applies.
+
+   Have a look at the Gotcha documentation for more legal information.
+
+
+   DISCLAIMER
+
+     Each tool is provided "as is", without warranty of any kind or fitness
+   for a particular purpose, either expressed or implied, all of which are
+   hereby explicitly disclaimed. The author only guarantees that the tools
+   will occupy disk space.
+   In no event shall the author be liable to you or anyone else for any
+   damages, including any lost profits, lost savings or other incidental or
+   consequential damages arising out of the use or inability to use this
+   software.
+@endnode
+
+@node HeddleyAutoIndex "Index"
+@remark Index auto-generated by Heddley
+Index of database GTools
+
+Documents
+
+@{"Address Patterns" link "Address Patterns"}
+@{"GConfig" link "GConfig"}
+@{"GetInfo" link "GetInfo"}
+@{"GFreq" link "GFReq"}
+@{"GList" link "GList"}
+@{"GList Basics" link "GList_Basics"}
+@{"GList Usage" link "GList_Usage"}
+@{"Gotcha Tools Documentation" link "Main"}
+@{"GPoll" link "GPoll"}
+@{"GTell" link "GTell"}
+@{"Legal Stuff" link "LegalStuff"}
+@{"ShowXConfig" link "ShowXConfig"}
+@{"Trap2G" link "Trap2G"}
+
+Buttons
+
+@{"address pattern" link "Address Patterns" 0}
+@{"address-pattern" link "Address Patterns" 0}
+@{"Basics       " link "GList_Basics" 0}
+@{"GConfig        " link "GConfig" 0}
+@{"GetInfo        " link "GetInfo" 0}
+@{"GFReq          " link "GFReq" 0}
+@{"GList" link "GList" 0}
+@{"GList          " link "GList" 0}
+@{"GPoll          " link "GPoll" 0}
+@{"GTell          " link "GTell" 0}
+@{"Legal stuff" link "LegalStuff" 0}
+@{"pattern" link "Address Patterns" 0}
+@{"ShowXConfig    " link "ShowXConfig" 0}
+@{"Trap2G         " link "Trap2G" 0}
+@{"Usage        " link "GList_Usage" 0}
+@endnode

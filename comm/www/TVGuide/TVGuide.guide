@@ -1,0 +1,476 @@
+@database 6847a2e0-0
+@master //Distribution/TVGuide/TVGuide.guide
+@$VER: 
+@author "Andreas Börner"
+@(c) ""
+@remark Created with Heddley v1.1 (c) Edd Dumbill 1994
+
+@node "Main" "No title"
+                                  @{u}@{fg shine}TVGuide@{uu}@{fg text}
+
+                                Version 1.3
+
+                          @{b}(c) 1998 Andreas Börner@{ub}
+
+
+                              @{"  Einführung   " link "einfuehrung" 0}
+
+                              @{"  Rechtliches  " link "disclaimer" 0}
+
+                              @{"Voraussetzungen" link "requires" 0}
+
+                              @{" Installation  " link "installation" 0}
+
+                              @{"   Benutzung   " link "benutzung" 0}
+
+                              @{"     Autor     " link "autor" 0}
+
+                              @{"    History    " link "history" 0}
+
+                              @{"    Probleme   " link "probleme" 0}
+@endnode
+
+@node "einfuehrung" "Was ist TVGuide"
+ Vor einiger Zeit habe ich ein Tool namens WebTVGet im Aminet gefunden,
+ das über die Suchmaschine der Illustrierten Wochenzeitung das Fernseh-
+ programm der kommenden Tage lädt.
+
+ Die Idee hat mir gefallen, allerdings sind mir nach erstem Ausprobieren
+ auch diverse Einfälle zu diesem Thema gekommen. Ich habe mir überlegt, ob
+ ich diese Programmvorschau nicht auch automatisch verwalten könnte und
+ solch ein Programm bei meinem täglichen "Netcall" mitlaufen lassen
+ könnte, ohne mich darum kümmern zu müssen.
+
+ Deshalb ist von dem WebTVGet-Paket praktisch nur noch die entscheidende
+ Zeile übriggeblieben: Die Übergabe der Suchfunktion an die Suchmaschine
+ der IWZ. Drumherum habe ich ein eigenes ARexx-Script geschrieben, das den
+ Download, die Verwaltung und die Konvertierung der Programmlisten
+ übernimmt.
+
+ Hier eine kurze Liste der Möglichkeiten, die man mit TVGuide hat:
+
+ - Programmvorschau für einzelne Tage und Zeiträume, oder:
+
+ - vollautomatische Verwaltung einer Programmvorschau bis zu 6 Tage im
+   Voraus, d.h. TVGuide lädt die jeweils aktuellen Listen und löscht die
+   Alten
+
+ - umfangreiche Konfigurationsmöglichkeiten für Sender, Zeiträume und
+   Listenverwaltung
+
+ - TVGuide läuft ohne Interaktion im Hintergrund und kann so zum Beispiel
+   bei einer bestehenden TCP-Verbindung die Programmlisten aktualisieren,
+   während man im Internet surft oder News liest
+@endnode
+
+@node "disclaimer" "Rechtliches"
+ TVGuide ist Freeware. Von mir aus kann jeder damit tun und lassen, was er
+ will, solange er mich nicht dafür verantwortlich macht oder irgendwelche
+ veränderten Versionen des Scriptes unter meinem Namen in Umlauf bringt.
+
+ Das mitgelieferte Programm HTTPGet ist (c) Manuel Martin-Vivaldi und
+ im Aminet (@{b}comm/www/HTMLess.lha@{ub}) zu finden. HTTX ist (c) Gabriele Favrin
+ und ebenfalls im Aminet (@{b}comm/www/HTTX.lha@{ub}) erhältlich.
+
+ Zu guter letzt ist die RexxDosSupport-Library natürlich ebenfalls im
+ Aminet (@{b}util/rexx/rexxdossupport.lha@{ub}) abgelegt. Sie ist
+ (c) Hartmut Goebel.
+@endnode
+
+@node "requires" "Was wird zum Start benötigt?"
+ @{u}@{fg shine}Hardware:@{uu}@{fg text}
+
+ Sofern man auf dem Rechner einen TCP-Stack zu laufen kriegt, sollte es
+ auch uneingeschränkt möglich sein, TVGuide zu benutzen, also alles ab
+ OS 2.x aufwärts.
+
+
+ @{u}@{fg shine}Software:@{uu}@{fg text}
+
+ - ein laufender TCP-Stack, z.B. Miami mit Internet-Verbindung
+
+ - ein laufendes RexxMast
+
+ - diverse Rexx-Libs, die eigentlich jeder bereits installiert haben
+   sollte: rexxsupport, rexxtricks, rexxreqtools und
+   rexxdossupport (mitgeliefert)
+
+ - ein paar Shell-Befehle, die auch wirklich jeder hat, wenn er mal eine
+   Workbench benutzt hat
+
+ - HTTX benötigt zudem die ixemul.library und die ixnet.library
+
+
+ Falls tatsächlich etwas fehlen sollte, auf meiner @{"Internet-Seite" link "autor" 0} zu
+ TVGuide befinden sich Verweise zum Laden der Archive.
+@endnode
+
+@node "installation" "Installation des Programmes"
+ Normalerweise schreibe ich ja ganz gerne auch ordentliche
+ Installer-Scripts, aber für die paar Dateien lohnt sich das wirklich
+ nicht.
+
+ Also einfach alles in ein Verzeichnis kopieren, wo es nicht stört und die
+ RexxDosSupport-Lib nach LIBS:, sofern sie nicht bereits dort ist.
+
+ Wer darauf besteht, kann auch HTTPGet und HTTX entfernen oder woanders
+ hinkopieren, Hauptsache die Programme finden sich irgendwo im aktuellen
+ Suchpfad.
+
+
+ Vor dem ersten Start sollten noch die Tooltypes, insbesondere die Pfade
+ für das Listenverzeichnis und die Logdatei angepasst werden. Eine nähere
+ Erläuterung zu den Einstellungen findet sich im Abschnitt @{"Benutzung" link "benutzung" 0}.
+@endnode
+
+@node "benutzung" "Programmaufruf und Optionen"
+                       @{u}@{fg shine}Programmaufruf/Shell-Optionen@{uu}@{fg text}
+
+ Format: LISTDIR,PREFIX,SENDER,TAG,VORSCHAU/N,EXPIRE,ZEIT,LOG,NOREQ/T,
+         ANSI/T,ITEMS/T,LEN/N,ICON/T,DEFTOOL,SOCKETS/N,REXXC
+
+
+ Die Werte können sowohl als Shell-Argumente, als auch in den Tooltypes
+ übergeben werden, wobei Shell-Argumente die höchste Priorität haben:
+
+
+ LISTDIR  - Hier kann ein Verzeichnis angegeben werden, in dem die
+            Programmlisten gespeichert und gesucht werden.
+
+            @{i}Voreinstellung: ""@{ui}
+
+
+ PREFIX   - Namensprefix für die Programmlisten. An diesen Namen wird das
+            Datum der Liste angehängt.
+
+            @{i}Voreinstellung: "Tagesprogramm_"@{ui}
+
+
+ SENDER   - Eine Liste der gewünschten Sender. Die Sender-Codes bestehen
+            jeweils aus drei Buchstaben, durch Leerzeichen getrennt, oder
+            ein Sternchen für alle vorhandenen Sender.
+
+            Folgende Sendercodes sind mir bekannt. Das heißt nicht, daß
+            das alle sind. Wenn man gerne einen Sender suchen möchte, der
+            hier nicht aufgeführt ist, sollte man unter der Adresse
+            @{b}http://www.iwz.de@{ub} einfach mal nachsehen, ob der gewünschte
+            Sender abrufbar ist und welchen Suchcode er hat (die Werte
+            für die Suchfunktion stehen im Sourcecode der Suchseite),
+            bzw. das Sternchen angeben, um alle verfügbaren Sender
+            angezeigt zu bekommen:
+
+                    3Sat        - 3SA           Pro7        - PR7
+                    ARD         - ARD           RTL         - RTL
+                    Arte        - ART           RTL2        - RT2
+                    Bayern 3    - BA3           Sat.1       - SA1
+                    Eurosport   - EUR           SF 1        - DRS
+                    Hessen 3    - HR3           Super RTL   - SRT
+                    Kabel 1     - KAB           Südwest 3   - SW3
+                    Kinderkanal - KKA           TM3         - TM3
+                    MDR 3       - MDR           VOX         - VOX
+                    Nord 3      - NO3           WDR 3       - WE3
+                    ORF 1       - FS1           ZDF         - ZDF
+                    ORF 2       - FS2
+
+            @{i}Voreinstellung: *@{ui}
+
+
+ TAG      - Einer der Wochentage MO, DI, MI, DO, FR, SA, SO oder die Angabe
+            ALL für die automatische Suche nach neuen Programmlisten
+
+            @{i}Voreinstellung: ALL@{ui}
+
+
+ VORSCHAU - Dieser Parameter gibt an, für wieviele Tage im Voraus TVGuide
+            die Programmlisten laden soll, wenn bei TAG kein Wochentag
+            angegeben ist. Zulässig sind Werte von 0 bis 6.
+
+            @{i}Voreinstellung: 6@{ui}
+
+
+ EXPIRE   - Hier wird angegeben, wann alte Programmlisten gelöscht werden
+            sollen. Bei der Angabe "OFF" werden die Listen nicht
+            automatisch gelöscht, ansonsten übergibt man eine negative
+            Zahl, die angibt, ab wieviel Tage rückwärts gelöscht werden
+            soll. Zulässig sind alle Angaben ab -1.
+
+            @{i}Voreinstellung: -1@{ui}
+
+
+ ZEIT     - Hier kann eine Zeitspanne angegeben werden, für die die
+            Programme gesucht werden sollen. Will man z.B. das Programm von
+            8 Uhr morgens bis 22 Uhr abends angezeigt haben, würde man die
+            Zeitspanne mit 08-22 angeben.
+
+            Ich muß allerdings dazu sagen, daß der IWZ-Server bei Angabe
+            der Zeit 00-00 tatsächlich die Programme über 0 Uhr hinaus bis
+            5 Uhr morgens zurückgibt. Um also das komplette Tagesprogramm
+            ohne Überschneidungen zu laden, ist die Zeitangabe 05-05 am
+            sinnvollsten.
+
+            @{i}Voreinstellung: 05-05@{ui}
+
+
+ LOG      - Diese Option gibt an, ob und wo ein Logfile angelegt werden
+            soll. Diese Protokoll-Ausgabe mag für den einen oder anderen
+            nicht sonderlich brauchbar und übersichtlich sein, denn sie
+            gibt nur kurze Informationen über den Programmablauf und evl.
+            aufgetretene Fehler aus.
+
+            So richtig Sinn macht dieses Protokoll genaugenommen auch nur
+            in meinem automatischen Netcall-Script, wo es zusammen mit
+            diversen anderen Programmteilen seine Meldungen ausgibt, aber
+            falls und warum etwas schief gelaufen ist, sollte auch so
+            ersichtlich sein.
+
+            @{i}Voreinstellung: ""@{ui}
+
+
+ NOREQ    - Diese Option unterdrückt alle Requester und schreibt so z.B.
+            Fehlermeldungen direkt in die Standardausgabe. Genaugenommen
+            gibt es im Programm zur Zeit auch nur einen Requester, der am
+            Programmende ggf. eine Fehlermeldung ausgibt.
+
+            @{i}Voreinstellung: OFF@{ui}
+
+
+ ANSI     - Mit dieser Option werden die Titel der Sendung fett gedruckt,
+            sofern der verwendete Anzeiger ANSI-Codes unterstützt. Ohne
+            diese Option wird die Liste als reiner ASCII-Text ausgegeben.
+
+            @{i}Voreinstellung: OFF@{ui}
+
+
+ ITEMS    - Mit dieser Option erhält man hinter dem Programmtitel noch
+            diverse Zusatzinfos zur Sendung über Bild- und Tonformat,
+            sowie eine Spielfilmwertung.
+
+            Da für diese Option ein zusätzlicher Bearbeitungsschritt
+            notwendig ist, dauert die Konvertierung deutlich länger.
+
+            @{i}Voreinstellung: OFF@{ui}
+
+
+ LEN      - Mit dieser Option kann eingestellt werden, wie breit die Listen
+            sein sollen. Bei Angabe von LEN=0 werden die Listen nicht
+            formatiert.
+
+            @{i}Voreinstellung: 0@{ui}
+
+
+ ICON     - Stellt ein, ob ein Icon für die Liste erzeugt werden soll.
+
+            @{i}Voreinstellung: ON@{ui}
+
+
+ DEFTOOL  - Stellt das Standardprogramm für das Icon ein.
+
+            @{i}Voreinstellung: MultiView@{ui}
+
+
+ SOCKETS  - Anzahl der @{"Sockets" link "sockets" 0}, die für das laden der Suchergebnisse
+            benutzt werden sollen. Bei der Angabe Sockets=0 wird das
+            alte, sequentielle Verfahren zum laden der HTML-Seiten
+            verwendet.
+
+            @{i}Voreinstellung: 0@{ui}
+
+
+ REXXC    - Stellt den Pfad für das REXXC-Verzeichnis ein, in dem sich
+            die Programme RX und RXSET befinden.
+
+            @{i}Voreinstellung: SYS:REXXC@{ui}
+
+
+
+                               @{u}@{fg shine}Statusanzeige@{uu}@{fg text}
+
+ Zusätzlich benutzt das Script einige globale ARexx-Variablen, mit denen
+ der Status des Programmes ermittelt werden kann.
+
+ Diese Variablen können in der Shell mit dem Befehl @{b}RXSET@{ub}
+ (@{b}Workbench:REXXC/RXSET@{ub}) angezeigt und verändert werden. In anderen
+ ARexx-Scripten können zum setzen und lesen der Variablen die Befehle
+ @{b}GetClip()@{ub} und @{b}SetClip()@{ub} verwendet werden.
+
+ tvg_busyflag - Diese Variable wird von TVGuide nach dem laden der letzten
+                Liste auf 1 gesetzt und am Programmende auf 0. In anderen
+                Programmen kann diese Variable z.B. mit
+                '@{b}SetClip("tvg_busyflag",2)@{ub}' gesetzt werden, TVGuide als
+                Hintergrund-Befehl gestartet werden und der Status in
+                regelmäßigen Abständen geprüft werden, um z.B.
+                sicherzustellen, daß das Programm fertig ist, bevor man
+                die TCP-Verbindung beendet.
+
+                Hinweis: Die TCP-Verbindung kann bereits beendet werden,
+                wenn das Flag vom Programm auf 1 gesetzt wird.
+
+ tvg_retc     - Ein Returncode, den TVGuide zurückgibt. Bei 0 sollte alles
+                geklappt haben, bei Werten größer 0 enthält die
+                Fehler-Variable eine hoffentlich aussagekräftige
+                Fehlermeldung.
+
+ tvg_fehler   - Enthält eine Fehlermeldung, wenn TVGuide nicht
+                ordnungsgemäß gearbeitet hat
+@endnode
+
+@node "autor" "Wohin mit den Geldgeschenken und Sportwagen?"
+ Anregungen, Vorschläge und Bugreports können an meine EMail-Adresse
+ geschickt werden:
+
+                       @{fg shine}anbojjei@sp.zrz.tu-berlin.de@{fg text}
+
+
+
+ Die jeweils aktuelle Version dieses Programmes, sowie eine Liste der
+ benötigten Zusatzprogramme befindet sich auf meiner Homepage:
+
+                  @{fg shine}http://www.user.tu-berlin.de/~anbojjei/@{fg text}
+@endnode
+
+@node "history" "Programmgeschichte"
+V 1.0   (31.10.98) - Erstes Release
+
+
+V 1.1   (02.11.98) - Voreinstellung SENDER auf "*" geändert
+
+                   - Voreinstellung ZEIT auf 05-05 geändert
+
+                   - Bitte Abschnitt @{"Probleme" link "probleme" 0} lesen
+
+
+V 1.2   (19.11.98) - Bugfix: absoluter Pfad MD:Netcall/Protokolle/Netcall
+                     aus der Protokollroutine entfernt
+
+                   - Neue Option @{"ITEMS" link "benutzung" 117}
+
+                   - Bugfix: Ausgabe "TVGuide ... beendet" nur noch am
+                     Programmende
+
+                   - Bugfix: Bei Fehlern des IWZ-Servers wird keine leere
+                     Datei ohne Datum erzeugt
+
+                   - Neue Option @{"LEN" link "benutzung" 127} 
+
+                   - Bugfix: Alte Programmlisten werden nun beim Programm-
+                     start gelöscht bevor die neuen Listen geladen werden.
+                     Bei Fehlern bleiben so die abgelaufenen Listen nicht
+                     ewig im Verzeichnis
+
+                   - Neue Option @{"ICON" link "benutzung" 134} 
+
+                   - Neue Option @{"DEFTOOL" link "benutzung" 139} 
+
+                   - Als Überschrift der Liste wird jetzt Wochentag und
+                     Datum ausgegeben
+
+                   - erweiterte Bedeutung für das @{"tvg_busyflag" link "benutzung" 156}
+
+
+V 1.2a  (21.11.98) - Bugfix: Dummerweise hat die Expire-Funktion vergessen,
+                     die Icons zu löschen...
+
+
+V 1.3   (30.11.98) - Neue Option @{"SOCKETS" link "benutzung" 144} - Erläuterungen dazu @{"hier" link "sockets" 0}.
+
+                   - Neue Option @{"REXXC" link "benutzung" 152}
+@endnode
+
+@node "probleme" "Probleme"
+ Seit ich TVGuide benutze, ist es regelmäßig Montag morgens um drei Uhr
+ (nicht lachen - ich habe das Script in mein automatisches Netcall-
+ script integriert und das läuft nun mal um drei Uhr nachts)
+ nicht möglich, das Fernsehprogramm vom kommenden Sonntag zu laden.
+
+ Soweit ich es getestet habe, ist dem IWZ-Server zu diesem Zeitpunkt
+ schlicht und ergreifend der Tag 0 (Sonntag) völlig unbekannt und man
+ bekommt eine Fehlermeldung, wenn man diesen Tag angezeigt haben will - im
+ übrigen kommt diese Fehlermeldung immer, egal, ob man nun TVGuide
+ benutzt, oder sich den Sonntag in einem Web-Browser anzeigen lassen will.
+
+ Bei mir lädt TVGuide dann den Sonntag am folgenden Tag nach, so daß
+ Dienstag morgens bei mir immer zwei Tage geladen werden.
+
+ Tagsüber scheint der IWZ-Server aber zu funktionieren, d.h. es ist sowohl
+ Sonntag, als auch Montag tagsüber jederzeit möglich, jeden beliebigen
+ Wochentag zu laden.
+
+ Ich kann in TVGuide dagegen nichts machen - ich denke, das Programm
+ managed die Programmverwaltung sowieso schon so flexibel, daß es garnicht
+ auffällt, wenn das Sonntagsprogramm erst am Dienstag davor geladen wird,
+ statt Montags.
+
+ Man könnte natürlich bei der IWZ nachfragen, warum das nicht geht, aber
+ die werden im Zweifelsfall auch nur mit den Schultern zucken, wenn ihnen
+ jemand erzählt, er könne sich nicht montags mitten in der Nacht das
+ Programm vom kommenden Sonntag anschauen.
+
+ Ich würde eigentlich darauf verzichten wollen, denen auch noch unter die
+ Nase zu reiben, daß ich ihren Suchdienst automatisch zum zusammenstellen
+ einer kompletten 7-Tages-Programmvorschau zweckentfremde und mir nichtmal
+ ihre Werbung anschaue.
+@endnode
+
+@node "sockets" "Sockets"
+@toc "benutzung"
+@{FG shine}
+ Wichtig: Die Benutzung von Sockets ist gegenüber dem alten Verfahren
+          relativ komplex und vermutlich auch störanfälliger. Ich habe
+          die neue Laderoutine zwar bei mir ausgiebig getestet, aber ich
+          kann auch nicht alle möglichen Fehler provozieren, um zu sehen,
+          ob alles korrekt läuft. Zudem habe ich nicht die Nerven gehabt,
+          jedesmal die erzeugte Liste z.B. auf fehlende Sendungen o.ä. zu
+          durchsuchen.
+
+          Es dürfte zwar nichts mehr passieren, sobald die Konvertierung
+          der Liste erfolgreich durchgeführt wurde, aber verbürgen tue ich
+          mich nicht dafür, daß die Liste dann fehlerfrei ist.
+
+          Es können bei bestimmten Konstellationen durchaus auch noch
+          größere Fehler auftreten, die das Programm zum Abbruch
+          veranlassen. Deshalb sollte man ein Auge auf den korrekten
+          Programmablauf haben, wenn man die Socket-Option verwendet.
+
+          Es ist aber jederzeit möglich, die alte Laderoutine zu verwenden,
+          falls es zu Fehlern kommen sollte. Dazu braucht lediglich die
+          Socket-Option weggelassen oder auf Null gesetzt zu werden.
+@{FG text}
+
+
+ Die Benutzung mehrerer paralleler Prozesse beschleunigt das Laden des
+ Fernsehprogrammes enorm, da immer mehrere Suchanfragen gleichzeitig
+ abgesetzt werden und das Programm nicht bei jedem einzelnen Teil auf das
+ Eintreffen eines Suchergebnisses warten muß.
+
+ Die Anzahl der Sockets ist nur durch den verfügbaren Speicher begrenzt,
+ wobei mehr als 20 Sockets kaum noch etwas bringen, da das Fernsehprogramm
+ eines Tages weniger als 40 Teile hat.
+
+ Außerdem ist anfangs nicht bekannt, wieviele Teile das Tagesprogramm hat,
+ so daß immer mehr Suchanfragen abgesetzt werden, solange bis im hinteren
+ Bereich ein Suchergebnis ohne weitere Sendungen zurückgeliefert wird. Je
+ mehr Sockets eingestellt sind, umso mehr überflüssige Suchanfragen werden
+ abgesetzt, bevor der letzte brauchbare Programmteil gefunden wird.
+
+ Pro Socket kann man etwa mit einem Speicherverbrauch von 100kB rechnen.
+ Ich habe in einigen Tests mit 10 Sockets die Ladezeit gegenüber dem
+ sequentiellen Verfahren in etwa halbiert, mit 20 Sockets sank die Ladezeit
+ nocheinmal auf die Hälfte . Hier ein paar Testwerte für das Laden eines
+ kompletten Programmtages zu verschiedenen Zeiten:
+
+ 17:30 - sequentiell:  12 Minuten
+         10 Sockets :   6 Minuten
+         20 Sockets : 3,5 Minuten
+
+ 21:00 - sequentiell:   6 Minuten
+         20 Sockets :   2 Minuten
+
+ Man darf allerdings nicht nervös werden, wenn das Laden der letzten 1-2
+ Teile bis zu mehreren Minuten dauert; Das Programm läuft weiterhin
+ korrekt, aber der IWZ-Server braucht vereinzelt tatsächlich so lange, die
+ letzten Suchergebnisse zu liefern, besonders in der Rush Hour 17-20 Uhr,
+ wenn alle anderen auch wissen wollen, was heute läuft. Gegenüber dem
+ sequentiellen Verfahren bleibt unterm Strich aber immernoch eine enorme
+ Zeitersparnis.
+@endnode
+

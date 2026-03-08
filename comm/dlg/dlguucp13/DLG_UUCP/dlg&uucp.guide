@@ -1,0 +1,1005 @@
+@database 07b1f440-0
+@master Vault:Hatch/Docs/dlg&uucp.guide
+@$VER: 1.0
+@remark Created with Heddley v1.1 (c) Edd Dumbill 1994
+
+@node "Main" "No title"
+
+ The DLG Pro UUCP Primer
+ =======================
+
+This archive includes information and examples that will help smooth the
+path towards installing UUCP on a DLG system.
+
+Overall, UUCP is a self-contained unit.  It imports mail, it exports it, and
+it even includes a news and mail reader.  What it lacks is an interface that
+lends itself easily to online environments.  This is of course DLG's forte,
+but DLG itself lacks the ability to directly import and export mail to the
+internet.
+
+Combining the two is sometimes tricky, but actually quite simple provided
+you know a little bit about what you're doing.  Overall, it's around as
+simple to install as FidoNet and a little trickier to maintain.
+
+ @{"  " link "Overview" 0} DLG and UUCP: an overview.
+ @{"  " link "DLG-UUCP" 0} DLG's UUCP components.
+ @{"  " link "UUCP_Install" 0} Installing UUCP
+ @{"  " link "Config_UUCP" 0} Configuring the UUCP software
+   @{".SIGNATURE" link "_Signature" 0} -- a default signature file
+   @{"  Alias   " link "_Alias" 0} -- email address remapping
+   @{"  Config  " link "_Config" 0} -- your main UUCP configuration file
+   @{"  L.Sys   " link "_L.Sys" 0} -- How to connect to your uplinks
+   @{"NewsGroups" link "_Newsgroups" 0} -- A list of valid newsgroups
+   @{"   seq    " link "_SEQ" 0} -- A counter file
+   @{"   Sys    " link "_Sys" 0} -- Newsgroup distribution
+ @{"  " link "Batch" 0} Batch Files that Put it All Together
+   @{"UUCPPoll.batch" link "_UUCPPoll.batch" 0} -- polling your feed
+   @{"UUCPCall.batch" link "_UUCPCall.batch" 0} -- calling your feed
+   @{"UUCPToss.batch" link "_UUCPToss.batch" 0} -- tossing UUCP mail
+   @{"    UUCP.batch" link "_UUCP.batch" 0} -- handling incoming calls
+   @{"       CronTab" link "_CronTab" 0} -- Some sample CronTab entries
+ @{"  " link "Alternative Methods" 0} Alternative methods of hauling the mail
+ @{"  " link "Gateways" 0} Fido <--> UUCP Gateway Software
+
+I'd like to thank Greg Bastow for his initial UUCP Starter Kit text file,
+Skip Watson for his experience in ironing out the snags, Debi Tackett at
+Maximum Access for her help in getting our system up and running, and the
+maintainers of UUCP and the UUCP FAQ for thier continued efforts.
+
+
+
+$Id: dlg&uucp.guide 1.2 1996/11/26 07:06:30 Jeff_Grimmett Exp Jeff_Grimmett
+$
+@endnode
+
+@node "Overview" "DLG and UUCP: an overview"
+ DLG and UUCP -- an Overview
+ ===========================
+
+Similarities can be drawn between DLG and UUCP's relationship in the same
+way that they can be drawn between DLG and PDQMail.  In both cases, many of
+the same components exist, but are named differently.
+
+
+ DLG's Role
+ ==========
+
+In both cases, DLG exists mostly as an interface to the messages.  It
+displays the messages for you to read them, and it accepts your input into
+the message bases using exactly the same editor in both cases.  The only
+real difference from DLG's point of view is that in the case of Fido, the
+mail processing program handles all exporting and importing on its own. In
+the case of UUCP, the master program suite (UUCP) stores its messages in a
+format totally alien to DLG's. Thus, DLG contains components that handle the
+final import and export stages.
+
+
+ Front-End
+ =========
+
+The front-end for a mail system is that part of the system that talks to
+other mailers.  FidoNet uses TrapDoor and other similar programs, and UUCP
+has its front-end as well, UUCICO.  However, outgoing calls are handled
+differently than incoming.
+
+Your outgoing calls are made directly by UUCICO.  It in turn uses the UUCP
+file exchange method to move files from your server to you.  It then fires
+off UUXQT, which figures out what to do with the files you just received.
+
+Incoming calls are handled using special user accounts called UUCP Clients.
+You create this user account on your system from the sysop User editor. When
+an external system calls, it "logs in" as a user. When it sends its name and
+password, DLG will react accordingly.  It does this by looking at the UUCP
+flag for that "user" account.  If it is set to CLIENT, DLG immediately
+freezes the port and launches DLGConfig:Misc/UUCP.Batch. This program calls
+GETTY, a UUCP program that grabs the serial port and facilitates file (mail)
+transfers with the external UUCP site.  Once completed, the port is unfrozen
+and the "user" is logged out.
+
+
+ Importing
+ =========
+
+Importing refers to translating mail from an external system's format to one
+DLG understands. With Fido, your main mail importer is PDQImp. For UUCP,
+your mail importing is accomplished in two steps.  First, UUCP's RNews and
+RMail programs (under control of UUXQT) import newsgroups and email
+respectively and store them in UUCP's native format. This is useless to DLG,
+so two DLG modules are used to bring in the mail -- UUCP2DLG (email) and
+UNET2DLG (Newsgroups).
+
+ Exporting
+ =========
+
+Exporting refers to translating mail from your system's format to one
+understood by an external system. For FidoNet, PDQExp is the program that
+accomplishes this.  For UUCP, as with importing, two steps are required.
+First, a DLG module called DLGUUSend writes the message out to UUCP's
+format, then calls SendMail to actually write the message to UUCP's storage
+media. Then, for news, UUCP's BatchNews is run to bundle up your newsgroups
+for transmission to remote systems. Email does not get batched.
+
+ Maintenance
+ ===========
+
+Most mail systems require some sort of maintenance.  DLG's Fido software
+more or less automates the tasks of triming message bases and other tasks
+that must be done on a routine basis.  UUCP uses TrimNews for part of this,
+and DLG's Renumber command accomplishes the rest (from the DLG side of the
+house).
+
+ Gluing it all Together
+ ======================
+
+All these programs doing all these different tasks require some bit of
+control to work properly.  For FidoNet, PDQMail's resident process controls
+everything for us, which is extremely convenient.  For UUCP, we have no such
+central process, so we have to rely on some batch file magic to get things
+done.
+@endnode
+
+@node "DLG-UUCP" "DLG UUCP Components"
+ DLG UUCP Components
+ ===================
+
+DLG uses three programs to accomplish all of its UUCP mail processing.
+Minimal changes are required in internal DLG configurations in order to get
+UUCP to start working for you.
+
+
+ UUCP2DLG
+ ========
+
+UUCP2DLG imports email from UUCP's format to a format understood by DLG. For
+each "Mail box" it finds in the UUMail: directory, it reads in each message
+and saves it in the user's private mail directory.  The user must exist on
+your system for this to work.
+
+Each user on your system has an email address that follows this format:
+
+   First_Last@yourmachine.your_feed's_address.domain
+
+(see the UUCP documentation herein for more on that address thing).
+
+Each user may receive email whether or not that user has UUCP priveleges.
+
+
+ UNET2DLG
+ ========
+
+UNet2DLG imports newsgroups from your UUNews: paths into the DLG message
+bases that you have defined for it (see below).
+
+At one time UNet2DLG required an assign for every newsgroup you wished to
+import.  Under DLG 1.15 and later, this is not required.  All you need is
+the UUNews: assign pointing to the UUMAIL:News/ directory.
+
+
+ DLGUUSend
+ =========
+
+This program handles the writing of outgoing messages, handling both email
+and newsgroup articles.  It is called automatically whenever you write a
+UUCP email or newsgroup article.
+
+
+
+ Configuration Issues
+ ====================
+
+   User Data
+   =========
+
+First of all, each user level that you wish to have write access for UUCP
+email and newsgroups must have the UUCP WRITE flag set.  This is easy to
+accomplish if you're just setting up, and is only slightly more difficult to
+do if you've operated for a while and are just adding UUCP at this stage.
+The best method is to define the lowest template you wish to have UUCP
+access, then globally apply that template to all users, taking care to only
+applying upgrading properties.  If the UUCP flag is all that changed, it is
+the only thing that will be applied.
+
+
+   Define message areas for newsgroups
+   ===================================
+
+For each message area that you wish to define as a UseNet newsgroup, you
+must set the UUCP flag in the area's definition (Sysop menu, Define/Edit
+Message areas), and also describe the newsgroup that the message base will
+receive.  UNet2DLG scans each message base, and for each one that contains
+the UUCP flag, it will look in UUNews:dir/dir/dir/dir for the messages
+(where dir/dir/dir/dir corresponds to the newsgroup name dir.dir.dir.dir).
+
+
+   Each User Defines UUCP signature
+   ================================
+
+While it is not required, remember that DLG appends a different signature
+for UUCP email and newsgroups than it does for Echos, Alias, or Local
+message bases.  You might set up a default login stack, or even better, a
+bulletin AS a command stack, that will take them to the message menu and
+invoke the EDIT SIGNATURE command.
+
+
+   Configure UUCP
+   =============
+
+The most difficult part of this process is to configure UUCP itself. This
+requires installing the UUCP system itself, setting up its configuration
+files, and modifying your startups so that UUCP will run properly. Finally,
+you need to set up some batch files so that you can glue it all together. An
+entire section of this doc file is devoted to this issue.
+@endnode
+
+@node "UUCP_Install" "Installing UUCP"
+ Installing UUCP
+ ===============
+
+Installing UUCP is not a simple matter of disolving the archives and making
+it go.  There is a lot of tweaking and file-moving involved.  You will find
+UUCP 1.17 in three files: one for binaries (required), one for manuals (not
+required but REALLY REALLY recommended!), and one with source code (very
+optional).  Once you dissolve these archives, you'll be able to move the
+files around.  The contents of the archives break down thusly:
+
+   Bin      -- Bin for Binary, where the programs are kept
+   Lib      -- Lib for Library, where the configs are kept
+   Mail     -- Where the mail lives is stored
+   Man      -- Where the documentation is kept
+   Pub      -- Associated with BMS -- you're on your own
+   Spool    -- This is where files go during transfers.
+
+
+ BIN
+
+   This is where the actual UUCP programs are kept.  The UUCP: assign is
+   made to this directory. You should not mix this with other executables.
+
+ LIB
+
+   This is where the UUCP configuration files are kept, as well as your
+   list of newsgroups and other important files.  The assignment UULIB:
+   points to this directory.
+
+ MAIL
+
+   This directory holds your mail.  Normally, email goes here until it is
+   imported by DLG's UUCP2DLG.  The assignment UUMAIL: points to this
+   directory.
+
+   Inside of this directory is a directory called NEWS, and the UUNews:
+   assignment points to this.  In this directory are nested all the
+   directories for your UUCP newsgroups.
+
+ MAN
+
+   This directory holds the documentation for the UUCP binaries.  Once
+   you've configured UUCP, typing MAN <command> will display the doc file
+   for the command you've chosen.  The assignment UUMAN: points to this
+   directory.
+
+ SPOOL
+
+   This directory is a "scratch" directory in which files are stored
+   awaiting transfer to your feed, and where files are stored when
+   received FROM your feed.  The assignment UUSPOOL: points here.  Inside
+   this directory is another directory called BATCH.  Inside this
+   directory would be files controlling what messages need to be batched
+   for downlinks.
+
+
+The following assignments, therefore, must be made once you've copied the
+UUCP archives out.  For your convenience, this can be found in the S
+directory of this archive as UUCP-Startup.  You can modify it and then add
+the line
+
+   execute s:uucp-startup
+
+near the beginning of your dlg-startup file.
+
+
+-8X---
+
+   ; This is your UUCP setup file.
+
+ Assign UUCP:      BBS:UUCP/bin         ; main UUCP executables
+ Assign UUSpool:   BBS:UUCP/SPOOL       ; Input/output
+ Assign UULib:     BBS:UUCP/LIB         ; UUCP's config dir
+ Assign UUMail:    BBS:UUCP/Mail        ; where mail is kept
+ Assign UUNews:    BBS:UUCP/Mail/News   ; where Newsgroups are kept
+ Assign UUPub:     BBS:UUCP/Pub         ;
+ Assign UUMan:     BBS:UUCP/Man         ; where I keep my man pages
+
+
+ Assign GeTTY:     BBS:UUCP/LIB         ; Required for GeTTY
+ Assign BMS:       BBS:UUCP/Lib/BMS     ;
+
+ Path UUCP: ADD                         ; Always add to command path.
+
+-8X---
+@endnode
+
+@node "Config_UUCP" "Configuring UUCP"
+ Configuring UUCP
+ ================
+
+OK, once UUCP has been installed, you need to configure it.  The following
+files should be found in this archive's UUCP/LIB directory:
+
+   @{".SIGNATURE" link "_Signature" 0} -- a default signature file
+   @{"  Alias   " link "_Alias" 0} -- email address remapping
+   @{"  Config  " link "_Config" 0} -- your main UUCP configuration file
+   @{"  L.Sys   " link "_L.Sys" 0} -- How to connect to your uplinks
+   @{"NewsGroups" link "_Newsgroups" 0} -- A list of valid newsgroups
+   @{"   seq    " link "_SEQ" 0} -- A counter file
+   @{"   Sys    " link "_Sys" 0} -- Newsgroup distribution
+
+Note that the examples that we use are NOT comprehensive and you should read
+the UUCP documentation for more specifics.
+@endnode
+
+@node "_Signature" ".SIGNATURE"
+ .SIGNATURE
+
+   If all works right, this file will never be used, but you never know.
+   This contains a basic signature that could be appended to the end of a
+   UseNet news article on its way out.  Mine looks thus:
+
+-8X---
+
+ /**
+  **   The Techno-Mages' Guild BBS
+  **   Home of DLG Pro BBOS
+  **/
+
+-8X---
+@endnode
+
+@node "_Alias" "Alias"
+ Alias
+
+   This file contains a list of aliases that can be used to remap mail.
+   For example:
+
+      sysop:Jeff_Grimmett
+
+   This would remap mail for sysop@elric.maximumaccess.com to me.
+
+      sysop:Jeff_Grimmett,Holly_Sullivan
+
+   This would remap mail for sysop to myself and Holly.
+
+      dlg_sysop: /Jeff_Grimmett,/Holly_Sullivan,
+                 Mike_Moon@not.connected.net
+
+   This would remap mail for dlg_sysop to myself, Holly, and Mike Moon (if
+   he actually had an email address :-)
+
+   Complex pattern matching is possible.  Use MAN ALIAS to get the full
+   rundown on this.  You can leave this file out until you need it.
+@endnode
+
+@node "_Config" "Config"
+ UULIB:Config
+
+   This is the heart of your UUCP system.  This minimum config will
+   probably get you by.  As you understand UUCP better and better, you can
+   make it more elaborate:
+
+-8X---
+
+ ; Your machine's name.  YOU come up with this name, and inform your feed
+ ; of the name to use.
+
+ NodeName       elric
+
+ ; Most used for single-user systems, but used in other areas too.
+ ; One is underscored, the other is not.
+
+ UserName       Jeff_Grimmett
+ RealName       Jeff Grimmett
+
+ ; Your BBS name, or anything else that fits
+
+ Organization   The Techno-Mages' Guild * DLG Pro HQ
+
+ ; Used to read news via dmail and for reading man files.
+
+ Filter         C:More
+ RFilter        C:More
+
+ ; your feed's root name.  This you get from your feed's site
+ ; administrator.
+
+ DomainName     .maximumaccess.com
+
+ ; Your time zone. EST for Eastern Standard Time, or example, or for
+ ; Pacific Daylight Time:
+
+ TimeZone       PDT
+
+ ; the machine that your machine talks to for your main feed. This also
+ ; you get from your feed's site administrator.
+
+ DefaultNode    baluga
+
+ ; used to initialize your modem.  The \d\d portion causes a delay,
+ ; required for the more complex high-speed modems, which are pretty
+ ; common these days.
+
+ ModemInit      ATZ0\r\d\d
+
+ ; This makes UUXQT not run automatically -- we'll run it from a batch
+ ; file later, don't worry.
+
+ UUXQT dummy
+
+-8X---
+@endnode
+
+@node "_L.Sys" "L.Sys"
+ UUCP:L.SYS
+
+   L.Sys defines how your system connects to others when calling out.
+   Initially, you only need one entry:
+
+   This will get most people by.
+
+-8X---
+
+ #   This is a comment.
+
+ baluga Any SER: 28800 2782421 ogin: uelric sword: test\r
+
+-8X---
+
+ ^      ^   ^    ^     ^       ^
+ |      |   |    |     |       |
+ |      |   |    |     |       +-- A sequence of expect - response
+ |      |   |    |     |           strings. See below.
+ |      |   |    |     |
+ |      |   |    |     +-- Your provider's phone number
+ |      |   |    |
+ |      |   |    +-- The baud rate you are using
+ |      |   |
+ |      |   +-- The device to "talk" to.
+ |      |
+ |      +-- Scheduling info.  Leave as is until you get things working.
+ |
+ +-- The name of the server you will connect to.
+
+
+   The expect-send string is a series of expected strings, and the
+   response we will send back when we see them.  In the above example,
+   UUCICO waits until it sees "ogin:" and then it sends "uelric", which is
+   my UUCP account on my ISP.  Then we wait for "sword:" and we send our
+   password ("test" in the above case -- hey, it's a fake, all right? :).
+
+   This sequence of strings can go on indefinately, in theory.
+
+   You'll note that the "Login" and "Password" prompts are attenuated in
+   the above example.  This is on purpose.  The reason for this is that
+   the case of the login prompt might change -- "Login" as opposed to
+   "login", and UUCICO is case-sensitive.  So, we lop off that first part.
+@endnode
+
+@node "_Newsgroups" "NewsGroups"
+ UULIB:NewsGroups
+
+   This is a list of all your valid newsgroups, and (optionally) how many
+   days' worth of news to keep on your system.  Mine looks something like
+   this:
+
+ --8x-----
+
+ alt.appalachian 1
+ alt.archery 1
+ alt.consumers.free-stuff 1
+ alt.fairs.renaissance 1
+ alt.genealogy 1
+ alt.history.living 1
+ alt.humor.best-of-usenet 1
+ alt.sewing 1
+ alt.sys.amiga.demos 1
+ alt.sys.amiga.blitz 1
+ alt.sys.amiga.thor 1
+ alt.sys.amiga.uucp 1
+ alt.sys.amiga.uucp.patches 1
+ bit.listserv.i-amiga 1
+ comp.sys.amiga.advocacy 1
+ comp.sys.amiga.announce 1
+ comp.sys.amiga.applications 1
+ comp.sys.amiga.audio 1
+ comp.sys.amiga.cd32 1
+ comp.sys.amiga.datacomm 1
+ comp.sys.amiga.emulations 1
+ comp.sys.amiga.games 1
+ comp.sys.amiga.graphics 1
+ comp.sys.amiga.hardware 1
+ comp.sys.amiga.introduction 1
+ comp.sys.amiga.marketplace 1
+ comp.sys.amiga.misc 1
+ comp.sys.amiga.multimedia 1
+ comp.sys.amiga.networking 1
+ comp.sys.amiga.programmer 1
+ comp.sys.amiga.tech 1
+ comp.sys.amiga.unix 1
+ comp.sys.amiga.uucp 1
+ misc.consumers.frugal-living 1
+ rec.crafts.textiles.misc 1
+ rec.crafts.textiles.quilting 1
+ rec.crafts.textiles.sewing 1
+ rec.music.dementia 1
+ rec.org.sca 1
+ rec.sport.archery 1
+ soc.genealogy.methods 1
+ soc.genealogy.misc 1
+ soc.genealogy.surnames 1
+ soc.history.living 1
+
+ --8x-----
+
+   One newsgroup is listed per line, with (optionally) a number following
+   it.  If no number is specified, 7 (a week's worth of news) is assumed.
+@endnode
+
+@node "_SEQ" "seq"
+ UULIB:SEQ
+
+   Unless you got UUCP 1.16 before you got 1.17, this is undocumented. SEQ
+   is a sequence number, and is used in generating a unique identification
+   number for every message posted from your system.
+
+   It is a simple text file.  To set it up, type the following in a shell:
+
+      Echo >UULIB:SEQ "1"
+
+   That's it!
+@endnode
+
+@node "_Sys" "Sys"
+ UULIB:SYS
+
+   This file contains information about what newsgroups are routed to what
+   servers.  Most systems will have a grand total of one line:
+
+--8x---
+
+   baluga:narwhal:news:*
+
+--8x---
+
+
+   The above line can be translated as: "Send all newsgroups (the "*") to
+   baluga, also known as narwhal, also known as news".
+
+   Our system actually connects to "baluga", so all news bundled will be
+   sent to it.  However, our news server is named "narwhal" so we have to
+   ensure that we accept any news that comes from it.  Finally, our news
+   server is also known as "news" (or more completely,
+   news.maximumaccess.com) so we have to ensure that our outgoing news
+   articles have its name in them.
+
+   In essense, then, the above line indicates that baluga, narwhal, and
+   news are the same entity.
+
+   The basic format of a SYS line is, then,
+
+      <server>:<newgroups>
+
+   The newsgroups can be either explicitly indicated, or wildcarded.
+   Consider this:
+
+--8x---
+
+   baluga:narwhal:news:*
+   vir:comp.sys.amiga.*
+   gkar:alt.*
+   londo:-*.amiga.*
+
+--8x---
+
+   This scenario has me getting my primary feed from baluga/narwhal/news,
+   and supplying a downlink to vir, who is an Amiga fanatic, gkar, who's
+   interested only in the alt newsgroups, and londo, who doesn't care much
+   for the Amiga.
+@endnode
+
+@node "Batch" "UUCP Batch Files"
+ Putting it all together
+
+Now that we've configured our software, we're ready to start putting it all
+together.  I have found that a maximum of 4 batch files are really needed,
+along with some CronTab entries.
+
+ @{"UUCPPoll.batch" link "_UUCPPoll.batch" 0} -- polling your feed
+ @{"UUCPCall.batch" link "_UUCPCall.batch" 0} -- calling your feed
+ @{"UUCPToss.batch" link "_UUCPToss.batch" 0} -- tossing UUCP mail
+ @{"    UUCP.batch" link "_UUCP.batch" 0} -- handling incoming calls
+ @{"       CronTab" link "_CronTab" 0} -- Some sample CronTab entries
+@endnode
+
+@node "_UUCPPoll.batch" "UUCPPoll.batch"
+ DLGConfig:Batch/UUCPPoll.batch
+
+   As with any mailing system, you need to either poll out to collect your
+   mail, or your feed needs to call you.  Generally, you call your feed.
+
+   UUCICO looks for a poll file that indicates who to call each time it
+   calls out.  To create this file, we use a simple batch file.
+
+   The polling script accepts one argument, the name of a server (as
+   specified in @{"L.Sys" link "_L.Sys" 0}) to call.  In my case, it is "baluga".
+
+      Execute DLGConfig:Batch/UUCPPoll.batch baluga
+
+--8x--
+
+ .key site/a
+ .bra "["
+ .ket "]"
+
+ ; this parses the name of the server to call, and sets [] as our bracket
+ ; characters.
+
+ ; first, we only do this if a poll file does not exist.
+
+ if not exists uuspool:C.[site].poll
+    echo >uuspool:c.[site].poll
+    endif
+
+--8x--
+
+   This script, called with the parameter I stated above, would create
+   UUSPOOL:baluga.poll.
+
+
+   This script should be executed on a regular basis to ensure that you
+   get your mail reliably.  You can accomplish this with a @{"crontab" link "_CronTab" 0} entry.
+   I call out 4 times daily, but nothing is stopping you from calling
+   every hour.
+@endnode
+
+@node "_UUCPCall.batch" "UUCPCall.batch"
+ DLGConfig:Batch/UUCPCall.batch
+
+   This batch file actually handles the calling out to collect our mail.
+   It is a bit complex, so I've commented it liberally.
+
+   Syntax:
+
+      Execute DLGConfig:Batch/UUCPCall.batch <site name>
+
+   Where the site name is one specified in @{"L.Sys" link "_L.Sys" 0}.
+
+   In my case:
+
+      Execute DLGConfig:Batch/UUCPCall.batch <baluga>
+
+   You should execute this batch file on a regular basis, at least as many
+   times as you create poll files.  See the example @{"crontab" link "_CronTab" 0} for an easy
+   way to do this.
+
+--8x---
+
+ .key site/a
+ .bra "["
+ .ket "]"
+
+ ; ^-- Parse site name, then change bracket characters to [].
+
+ ; don't load down the CPU
+
+ ChangeTaskPri -4
+
+ ; we only do this if the @{"poll file" link "_UUCPPoll.batch" 0} exists for our site.
+
+ if exists UUSpool:C.[site].poll
+
+ ; batch file magic: this will prevent the batch file from being run again
+ ; before we're done.
+
+    DLG:GetResource -n UUCP
+
+ ; Now we grab the port when it becomes available.
+
+    DLG:GetPort -p TR0 -k "UUCP" -r "UUCICO session - polling [site]"
+
+ ; we increase the failure code to 11 so that UUCICO will not cause the
+ ; batch file to exit if it doesn't connect.
+
+    failat 11
+
+ ; This is for a 7wire (high-speed) connect.  We redirect it into con: so
+ ; that we can watch it in operation.
+
+    UUCP:UUCICO -A -X6 -s[site] -7 -n7 >con:
+
+ ; Now, if we didn't connect, UUCICO will generate a "warning" (code 10)
+ ; which will tell us that it was not successful.
+
+    if not warn
+
+ ; if we connected OK, we import our mail.
+
+       run >Con: execute @{"DLGConfig:batch/UUCPToss.batch" link "_UUCPToss.batch" 0}
+
+ ; if we DIDN'T connect OK (warning), we need to free the UUCP resource so
+ ; that we can call again later on.
+
+    Else
+       FreeResource -n UUCP
+       EndIf
+
+ ; all done now, so let's release the port.
+
+    DLG:FreePort -p TR0 -k "UUCP"
+
+    EndIf
+
+--8x---
+
+   The basic sequence of events is this:
+
+      First, we down the priority of the batch file so that it won't bog
+      down other processes running.  Then, we check to see if a @{"poll file" link "_UUCPPoll.batch" 0}
+      for our site exists.  If not, we skip everything else.  If it does,
+      we continue.
+
+      The next step is a bit of batch file magic made possible through
+      DLG. The GetResource program will allow you to define your own
+      resources that you can lock using the resource manager, TPTRM. As
+      we're using it here, it will attempt to lock the resource and not
+      continue until the resource is made available, thus we queue up
+      subsequent events.  If this is a bother, use the -i option and it
+      will fail if the resource is locked, thus breaking the script.
+
+      Next, we grab the port of our choice.  You can use a port that has
+      TrapDoor loaded on it if you wish.  The standard DLG batch files
+      allow us to take down TrapDoor if we lock the port it's on, and
+      bring it back up when the port is released.  The we we are invoking
+      it here, it will wait if there is a user online, then snatch the
+      port when the user logs off.
+
+      Next, we change the failat level for this batch file.  To understand
+      this, you need to undertand how batch files work.  If a program
+      returns a code 10 or higher, AmigaDOS batch files will by default
+      "break".  A code 10 from a program, or higher, is considered a hard
+      failure.  However, UUCICO, the following program, returns a code 10
+      if it simply gets a busy signal.  We don't want to stop the batch
+      file because of that.  So, we up the failure level to 11.  Now, if
+      UUCICO gets a busy signal, it will return 10 but it will only be
+      considered a WARNING.  We can work with that.
+
+      The next step, as you gathered, is to call out using UUCICO. In the
+      above example, it is redirected to CON:, thus giving us a window
+      where we can watch the action.
+
+      Once UUCICO is done, we do one of two things.  If UUCICO made a
+      connection, we will execute @{"UUCPToss.batch" link "_UUCPToss.batch" 0} and process our mail.  If
+      not, we must free the resource UUCP, otherwise the next attempt will
+      not go through either.  Otherwise, it is freed in the UUCPToss.batch
+      file.
+
+      Finally, we release the port that we locked earlier.  This allows
+      the port to be used for normal BBS activity once again.
+@endnode
+
+@node "_UUCPToss.batch" "DLGConfig:batch/UUCPToss.batch"
+ DLGConfig:Batch/UUCPToss.batch
+
+   This batch file is fairly straightforward.  In fact, all this stuff
+   _could_ be incorporated into UUCPCall.batch if you wanted, but keeping
+   it seperate makes things simpler.
+
+--8x---
+
+ ; we don't want to bog down the computer
+
+ ChangeTaskPri -6
+
+ ; set higher if needed, especially if unexplained crashes occur
+
+ stack 80000
+
+ ; this program sorts out the email from the newsgroups and puts them
+ ; in the right places.
+
+ uuxqt
+
+ ; import email into DLG user mailboxes
+
+ DLG:UUCP2DLG
+
+ ; import newsgroups
+
+ DLG:UNet2DLG
+
+ ; optional: if you have NewsLink and don't mind the extra time it takes,
+ ; it is an excellent idea.
+
+ ; DLG:/DLGUtils/NewsLink
+
+ ; Trim down your newsgroups
+
+ UUCP:TrimNews
+
+ ; All done, so let's release the UUCP resource that was locked in the call
+ ; batch file.
+
+ FreeResource -n UUCP
+
+--8x---
+
+As you can see, there isn't much to it.  One item that is also optional is
+TrimNews.  A lot of people prefer to run it once daily to minimize drag on
+the system.  This would be accomplished with an entry in your crontab.
+
+Note that we free the UUCP resource at the end of this batch file.  With the
+UUCP resource locked by the call batch file, and freed here, we ensure that
+we don't have two invocations of this batch file running at the same time.
+It is important that this not happen, if for no other reason that mere
+sanity. :-)
+@endnode
+
+@node "_UUCP.batch" "DLGConfig:Batch/UUCP.batch"
+ UUCP.batch
+
+   This batch file is called by DLG:Door when a "user" logs in that has
+   the UUCP CLIENT flag set in "his" account.
+
+   It is very simple:
+
+--8x---
+
+ .key port/a,device/a,unit/a
+
+ failat 100
+ path uucp: add
+ UUCICO -getty -DEVICE <device> -UNIT <unit>
+
+ ; really important! DLG:Door "freezes" the port before calling this batch
+ ; file.  In order for it to be used again, we have to unfreeze it using
+ ; TCont.
+
+ tcont -p <port>
+
+--8x---
+
+   It first parses the port, device, and unit of the device (ie, "TR0",
+   "serial.device", "0"), supplied by DLG:Door.  Then, it sets the fail
+   code WAY up high, adds UUCP: to the command path (just in case), and
+   calls UUCICO in host mode.
+
+   The last step is most crucial.  DLG:Door "Freezes" the serial port,
+   basically suspending the BBS on that port for the duration. This allows
+   8-bit clean I/O over the port without the handler attempting to remap
+   or filter anything.
+
+   The reverse of TFreeze, and program that freezes the port, is TCont,
+   which allows normal handler activity to continue.
+
+   Optionally, you could add
+
+      GetResource -n UUCP
+      Execute >CON: @{"DLGConfig:Batch/UUCPToss.batch" link "_UUCPToss.batch" 0}
+
+   at the end of this batch file, and it would automatically process any
+   mail from your downlink.
+@endnode
+
+@node "_CronTab" "crontab"
+ Sample CronTab Entries
+
+   As with Fido mail, you will probably wish to automate and schedule your
+   UUCP mail.  Here are a few examples from my crontab file.
+
+--8x---
+
+# min hour dom mon dow
+
+#once a year, reset UULIB:SEQ to 1.
+
+0 17 6 4 * echo >UULIB:SEQ "1*N"
+
+# Create a poll file 5 times daily
+
+1 4,8,12,16,22 * * * run execute dlgconfig:batch/UUCPPoll.Batch baluga
+
+# Attempt to get mail every 15 minutes
+
+1,15,30,45 * * * * run execute dlgconfig:batch/UUCPCall.Batch baluga
+
+
+--8x---
+@endnode
+
+@node "Alternative Methods" "Alternatives"
+ Alternative Methods of Getting Internet Mail
+
+UUCP is fairly primitive technology these days, and you might find it hard
+to locate an ISP that offers a UUCP feed for reasonable fees.  If that is
+the case, what are the alternatives?  There are many, but we will only
+discuss them in the most general of terms for now (a later version of this
+document may be more explicit).
+
+UUCICO is a direct serial transport mechanism, meaning it has no
+intermediaries between it and the machine on the other end.  However, it is
+not limited to just the serial port.  If you have a TCP/IP connect already,
+you can use it to transport mail without dialing out.  You can also use it
+to dial out to one ISP, telnet to another, and then get the mail from THERE.
+I know of at least one sysop in Europe that is feeding from a news server in
+the U.S. this way.  Just remember that you can use as many expect-send pairs
+as needed in your L.Sys file's string.
+
+Another method, one gaining much popularity, is SMTP (Simple Mail Transfer
+Protocol) and NNTP (Network News Transfer Protocol).  These work with TCP/IP
+stacks like AmiTCP, NetBSD, and Miami.  To use these with DLG, you will need
+an SMTP-to-UUCP filter to change the mail's format to one that DLG can
+handle.  Future versions of DLG will be able to parse these directly.
+
+Another method is to skip DLG's involvement altogether. A lot of software
+these days works directly through the shell and SMTP/NNTP mail.  AmiELM for
+mail, AmiTIN for news.  Scripts and environmental variables can be used to
+make these work online in DLG's multiuser environment.  I consider these
+kludges at best, but, to be honest, so's DLG's UUCP environment, something
+that I WILL improve in future versions.
+
+   (for anyone that is curious, I insist on using DLG's native modules for
+    UUCP, so I will be well motivated to improve them! :-)
+@endnode
+
+@node "Gateways" "Gateway Software"
+ FidoNet to UUCP Gateways
+
+As Skip Watson once stated (in less agreeable terms (now I'm in for it!)),
+FidoNet BBSs with UUCP accounts tend to like to show off a little bit and
+offer a gateway service, usually for fidonet to internet email, but often to
+gate newsgroups into FidoNet or vice-versa.
+
+The situation in this regard is bleak.
+
+At the moment, I have found one fully working gateway package, and that one
+is faulty as the dickens.
+
+ MonaLisa
+
+   Nice concept, but it has two failings:
+
+   First, it's all GUI -- no fast an speedy method of setting up a lot of
+   newsgroups at once.
+
+   Second, its author seems to have dissapeared, and, since it requires
+   registration to work all the way, it is useless without registration.
+
+
+ NetGate
+
+   One of our beta testers uses it and has much good to say about it.
+   Since it requires SMTP and I use UUCP -- no comment.
+
+
+ AmiGate
+
+   This one came recommended to me, but it has a number of bugs which I
+   have worked out in batch files and kludges  These are included without
+   comment in a directory called AmiGate.  Feel free to ask me what the
+   heck I was thinking when I put them together. :-)
+
+
+
+ Using UUCP as a FidoNet transport layer
+
+   This is often referred to as a "gateway" but really isn't.  I have
+   implemented this on my system and it appears to work quite well. I have
+   included a collection of batch and config files showing how it can be
+   used in a directory called "FidoXport".  It also includes a clever Rexx
+   script which *is* required to make it work, along with a guide file
+   that makes things a little clearer :-)
+
+
+Due to the rather rotten nature of Amiga UUCP gateway software, I will be
+integrating UUCP import modules into DLGMail -- which is also a good idea in
+its own right :-)
+@endnode
+

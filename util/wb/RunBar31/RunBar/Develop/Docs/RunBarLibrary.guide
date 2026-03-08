@@ -1,0 +1,217 @@
+@database 003aca90-0
+@master RunBarLibrary.guide
+@$VER: 1.0
+@remark RunBar 3.1
+
+@node "Main" "RunBar.library"
+
+  @{"General Info " link "General" 0} 
+
+  @{"RB_AddTask   " link "RB_AddTask" 0}
+  @{"RB_RemoveTask" link "RB_RemoveTask" 0} 
+  @{"RB_Edit      " link "RB_Edit" 0}
+@endnode
+
+@node "RB_AddTask" "RB_AddTask"
+
+    @{b}NAME@{ub}
+         RB_AddTask -- Add new RunBar menu entry.
+         
+    @{b}SYNOPSIS@{ub}
+         error = RB_AddTask(task,menu,image,info,port);
+         D0                 A0   A1   A2    A3   A4
+         
+         ULONG   RB_AddTask(struct Task *,struct SBItem *,struct Image *,
+                            struct RBInfo *,struct MsgPort **);
+                            
+    @{b}FUNCTION @{ub}                        
+         This function creates a new RunBar menu entry.
+         
+         task - Current program task pointer. 
+                (Use exec.library function task = FindTask(NULL);)
+                
+         menu - Menu structure.
+            
+            struct SBItem
+            {
+             ULONG sbi_Type;/*  0-Normal       */
+                            /*  1-Disabled     */
+                            /*  2-Bar          */
+                            /*  F-END          */
+             char  *sbi_Name;
+            };
+            
+            sbi_Type - Menu item type.
+            sbi_Name - Items text.
+            
+            *Example*
+            
+            struct SBItem menu[]=
+            {
+             {0,"Open"},         /* 0 - Normal, 1 - Disabled */ 
+             {0,"Save As..."},   /* 2 - Bar   ,15 - Menu End */
+             {2,NULL},
+             {0,"Exit"},
+             {15,NULL}     
+            };         
+         
+         image - Image pointer.
+                 (Image must be 13x13 points and 8 colors depth.Please use
+                  MagicWB palette.)
+                  
+         info - Entry info.
+         
+            struct RBInfo
+            {
+             BYTE           rb_Version; 
+             char           *rb_Name;  
+             ULONG          rb_Flags;
+            };            
+            
+            rb_Version - RunBar.library version.Always set it to RB_VERSION.
+            rb_Name    - Entry name.
+            rb_Flags   - Flags.
+            
+            *Flags*
+            
+            RBF_DUPLICATE - Allow duplicates.
+            RBF_UNIQUE    - Will not allow duplicates.
+            
+         port - Pointer to port structure pointer.Message port.
+    
+    @{b}INPUTS@{ub}
+         task  - Task pointer.
+         menu  - Menu structure pointer.
+         image - Image pointer.
+         info  - Info structure pointer.
+         port  - Pointer to port structure pointer.
+         
+    @{b}RESULTS@{ub}
+         error - Error number.NULL if no errors.
+            RB_NORUNBAR - RunBar is not running.
+            RB_MAXITEM  - Cannot add more that 15 items.
+            RB_UNIQUE   - Program already exists.
+            RB_TASK     - Task pointer error.
+            RB_PORT     - Cannot create message port.
+         
+         Port pointer set to real Message Port structure.
+     
+    @{b}NOTE@{ub}
+         In this RunBar version you never get RB_NORUNBAR error.
+@endnode
+
+@node "RB_RemoveTask" "RB_RemoveTask"
+
+    @{b}NAME@{ub}
+         RB_RemoveTask -- Remove RunBar menu entry.
+         
+    @{b}SYNOPSIS@{ub}
+         error = RB_RemoveTask(task);
+         D0                    A0   
+         
+         ULONG   RB_AddTask(struct Task *);
+                            
+    @{b}FUNCTION   @{ub}                      
+         This function remove RunBar menu entry.
+         
+         task - Current program task pointer. 
+                (Use exec.library function task = FindTask(NULL);)
+                
+    @{b}INPUTS@{ub}
+         task  - Task pointer.
+         
+    @{b}RESULTS@{ub}
+         error - If non NULL then entry list is locked.Wait some time and
+                 try remove again.
+@endnode
+
+@node "RB_Edit" "RB_Edit"
+
+    @{b}NAME@{ub}
+         RB_Edit -- Edit RunBar menu entry.
+         
+    @{b}SYNOPSIS@{ub}
+         RB_Edit(task,menu,image);
+                 A0   A1   A2
+         
+         void RB_Edit(struct Task *,struct SBItem *,struct Image *);
+                            
+    @{b}FUNCTION  @{ub}                       
+         This function Edit RunBar menu entry.
+         
+         task - Current program task pointer. 
+                (Use exec.library function task = FindTask(NULL);)
+         
+         menu - Menu structure.
+            
+            struct SBItem
+            {
+             ULONG sbi_Type;/*  0-Normal       */
+                            /*  1-Disabled     */
+                            /*  2-Bar          */
+                            /*  F-END          */
+             char  *sbi_Name;
+            };
+            
+            sbi_Type - Menu item type.
+            sbi_Name - Items text.
+            
+            *Example*
+            
+            struct SBItem menu[]=
+            {
+             {0,"Open"},         /* 0 - Normal, 1 - Disabled */ 
+             {0,"Save As..."},   /* 2 - Bar   ,15 - Menu End */
+             {2,NULL},
+             {0,"Exit"},
+             {15,NULL}     
+            };         
+         
+         image - Image pointer.
+                 (Image must be 13x13 points and 8 colors depth.Please use
+                  MagicWB palette.)       
+                
+    @{b}INPUTS@{ub}
+         task  - Task pointer.
+         menu  - Menu structure.
+         Image - Image pointer.
+         
+    @{b}RESULTS@{ub}
+         none.
+@endnode
+
+@node "General" "General"
+
+
+
+   With RunBar you can easy create program control menu.
+   
+   /*----------------------Simple interface algorithm--------------*/
+   
+   struct Task *task;
+   ULONG  error;
+   struct MsgPort *port;
+   
+   !!!!!!!! Here you must specify menu,image and info structures!!!!!!!!! 
+   
+   task = FindTask(NULL);
+   
+   error = RB_AddTask(task,menu,image,info,&port);
+   
+   !!!!!!!!Process port messages here!!!!!!!!!
+   (See Examples)
+   
+   /* Message classes.
+   
+       IDCMP_RUNBARCMD - RunBar command.
+          
+          message->code - Selected menu item number.
+          
+       IDCMP_RUNBARMSG - RunBar message.
+       
+          message->code - Message number.
+                 RB_REMOVE - remove message.  */
+                 
+   while(RB_RemoveTask(task)) Delay(10);
+@endnode
+

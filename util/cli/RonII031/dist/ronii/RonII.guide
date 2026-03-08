@@ -1,0 +1,408 @@
+@database 003fbe68-0
+@master RonII.guide
+@$VER: 1.0
+@author "Stefan Le Breton"
+@(c) "Xenia Inc."
+@remark Created with Heddley v1.1 (c) Edd Dumbill 1994
+
+@node "Main" "RonII"
+
+
+   RonII V0.28 User Documentation
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+   What is Ron?
+       Ron is a utility that starts programs if defined files/dirs are
+       changed.
+
+   Features
+      * multiple files to watch
+      * accepts only valid filenames
+      * ARexx Interface
+      * lots of options for any started program (IO redirection, stack, pri,
+        mail output, use your favourite shell etc.)
+      * watching of specific files can be stopped at any time, with any
+        valid path to it, not just the one you gave first.
+
+   Requirements
+      * OS 2.0 (V37) and up. (Yell, if you don't want
+        that it'll be 3.0 sometimes)
+         NOT included :)
+      * easyrexx.library 1.7 it saves work for me, some bytes for you.
+         RonII with my own ARexxCode was 19k, with easyrexx 12k + 3k library.
+        included (easyrexx.library is ©1994 Ketil Hunn)
+      * At least ONE filesystem, that supports notification.
+         (e.g. FFS does, CrossDOSFileSystem does not)
+        NOT included.
+
+   If you just want to watch your startup-sequence RonII may be a overkill...
+
+   Contents
+   ~~~~~~~~
+
+   @{"Starting Ron" link "RonII" 0}
+   @{"Format of RonTab" link "RonTab" 0}
+   @{"ARexx Interface" link "Rexx" 0}
+   @{"Usage conditions" link "Conditions" 0}
+   @{"Disclaimer" link "Disclaimer" 0}
+   @{"Author" link "Author" 0}
+
+
+   It's easy to add a commodities interface or a window or ...
+   It's just another signal to wait for in the mainloop and
+   calling a handle routine. If somebody is interested, I may
+   add a kernel documentation and needed files to compile RonII.
+@endnode
+
+@node "RonTab" "Format of the RonTab file"
+
+
+   Basics
+   ~~~~~~
+   The file consists of lines that look like this:
+
+      <file> <command and optional args> <options if any>
+
+   The file must be relativ to the current directory when RonII was started.
+   Better is to specify an absolute path.
+   If the command has arguments, it must be enclosed in string delimiters. ("")
+   There maybe empty(!) lines or comments that are marked with a sharp ("#").
+
+   Options
+   ~~~~~~~
+   All options must be specified. Exception is COUNT.
+
+   + Output-Redirection
+
+     MAILUSER <address>   Mail the  output of command to someone
+     >> <appendfile>       Append the output to a file
+     >  <file>             Write output to file
+
+     MAILUSER overrides >> and >. It is required, to specify @{"SENDMAIL" link "RonII" 0} on
+     startup!
+     >> overrides >.
+   _________________________________________________________________________
+
+   + Input-Redirection
+
+     < <input file>        Input is read from this file.
+   _________________________________________________________________________
+
+   + Command Environment
+
+     STACK <stack>         How much stack you'll need? If missing @{"default" link "RonII" 0}
+                           is used. The same applies, if stack is smaller than
+2048.
+     PRI <pri>             Which priority should the job have? If missing
+                           @{"default" link "RonII" 0} is used.
+     CUSTOMSH <shell>      Which shell should be used?
+     SYSSH                 Use the systemshell!
+
+     CUSTOMSHELL overrides :SYSSH and the actual usershell
+     SYSSH overrides actual usershell
+     Without a shell specification the usershell will be used.
+     _______________________________________________________________________
+
+     + RonII specific
+
+       COUNT <number>      How many changes should be detected? defaults
+                           to 1. Negative values leads to a count of
+                           2147483647, which actually means stay for a long,
+                           long time :)
+       FORCE               Change an existing list entry.
+       NOLOG               Don't log the start of the change.
+     _______________________________________________________________________
+
+
+   Internals
+   ~~~~~~~~~
+
+   ReadArgs() is used to parse the arguments. So it is required, to put a
+   space between keyword and value!
+
+   NOT >file
+   BUT > file
+
+   The template is
+
+   FILE/A,EXEC/A,COUNT/N,</K,>/K,>>/K,STACK/K/N,PRI/K/N,
+   CUSTOMSH/K,MAILUSER/K,SYSSH/S,NOLOG/S,FORCE/S
+
+
+   I took a look at CyberCron as you may see. BUT there are differences.
+   It's NOT :PRI but PRI eg. The ':' causes errors with ARexx, if you don't
+   put it inside of string delimeters. And as you have to put a command with
+   arguments also into shell string delimiters it would cause you headache to
+   find a way to pass them to DOS ReadArgs()... if it is not impossible.
+   CyberCron has another template to be compatible with historical Crons:
+
+   Event/M/A,</K,>/K... etc.
+
+   The events includes time specifications AND command WITH arguments,
+   just because historical crontabs didn't needed delimiters for command
+   and arguments. I DON'T want to concatenate all arguments into one string,
+   because it's not needed. The RonTab format is new, so why should I
+   do something that DOS does for me?
+@endnode
+
+@node "Rexx" "Rexx Interface"
+
+
+   Rexx Interface
+   ~~~~~~~~~~~~~~
+
+   The default portname is "RON_II", but this maybe @{"changed." link "RonII" 0}
+   If you start a second "Ron" it will be "RON_II.1" and so on.
+ ! Stems must not contain a dot. In fact this doesn't matter, but access
+ ! is then through: STEM..COUNT
+
+   Commands
+   ~~~~~~~~
+   ADD
+            same parameters as a @{"RonTab" link "RonTab" 0} entry
+            Add another file to be watched.
+   Template: same as in Rontab.
+   ---------
+   DEL      <file.1>...<file.n>
+            Removes files from the list. You may submit a  different path
+            to watched files than you did in RonTab/ADD.
+            (eg. "Ram:T" instead of "T:")
+   Template: FILE/A/M
+   ---------
+   LIST     <varname>
+            A list of files will be returned.
+            <VARNAME.COUNT> will contain the
+            number of files-1. In <NAME.0>...<NAME.[NAME.COUNT]>
+            the filenames will be stored.
+   Template: STEM/A
+   ---------
+   SHOW     <filename> <varname>
+            The stemvariable VARNAME will contain all information associated
+            with <filename>. Ommited string parameters will be empty ("").
+            Bools will be 0 if false, 1 if true. The following is a list of
+            appendices to VARNAME returned. *sigh* understood? If not
+            look at examplescript.
+
+            b=bool, s=string, n=number
+
+         s  FILE
+         s  FULL
+         s  EXEC
+         n  COUNT
+         s  OUT
+         b  OUTAPP
+         s  IN
+         s  MAILUSER
+         n  STACK
+         n  PRI
+         s  CUSTOMSH
+         b  SYSSH
+         b  NOLOG
+
+   Template: FILE/A,STEM/A
+   ---------
+   QUIT
+            Quits Ron. Simple :)
+   ---------
+   CLEAN
+            Remove all files
+   ---------
+   NEWRONTAB [<file>] [ADD]
+            Reads <file> as rontab. If add is specified, the watch list is
+            not cleaned. If <file> is ommited, the default RonTab is
+            used
+   ---------
+
+
+
+   EXAMPLE:
+      This alias will list currently warched files:
+
+      alias ronls rx "address ron_ii;list stem l;do i=0 to i=l.count;
+                      say l.i;end"
+
+
+   Take a look at rexx/example.ron and rexx/ronsave.ron
+@endnode
+
+@node "RonII" "Starting Ron"
+
+
+   Commandline Options
+   ~~~~~~~~~~~~~~~~~~~
+
+   RONTAB/K,LOGFILE/K,SENDMAIL/K,DEFSTACK/K/N,DEFPRI/K/N,MYPRI/K/N,PORTNAME/K
+
+
+   RONTAB            The file initially read. Defaults to "@{"S:RonTab" link "RonTab" 0}"
+
+   LOGFILE           The logfile. Logging was hacked in, should be enhanced...
+
+   SENDMAIL          If you want to @{"mail output" link "RonTab" 0} to someone, this is needed.
+                     should be in this form:
+
+                     "<smail> <fromswitch> %s <realnameswitch> *"%s*""
+
+                     <smail> must accept input from stdin!
+
+   DEFSTACK          Defaultstack for started programs, defaults to 4096.
+                     If smaller than 2048 (2K), 4096 will be used.
+
+   DEFPRI            Defaultpriority for started programs, defaults to Ron's
+                     pri.
+
+   MYPRI             Priority of Ron.
+
+   PORTNAME          @{"ARexxPort" link "Rexx" 0}, defaults to RON_II.
+
+
+
+
+   Simply set up a rontab, start RonII with needed arguments. That's it.
+
+
+
+ -----------------------------------
+ A few words to fans of the 'strings' command or hexeditors and people
+ reading documentations:
+ -----------------------------------
+ What's not documented doesn't work, or should not be used because it's
+ buggy.
+ What's documented but doesn't work, well, that's the future.
+ -----------------------------------
+@endnode
+
+@node "Hints" "Hints"
+
+
+   There is a ronaliases file, which define some usefule aliases.
+      ronls       lists all watched files
+      ronquit     quits ron
+      ronadd      adds a file, quotes for an EXEC argument must be doubled
+                  eg. ronadd s:rontab ""echo rontab changed"" count 5
+      ronclean    remove all files from the list.
+
+
+   If you have setup RonII by hand (via ARexx eg. with the ronadd alias)
+   and you want to include them into your rontab try the rexx/ronsave.ron
+   script.
+      rx rexx/ronsave.ron >>S:rontab
+@endnode
+
+@node "Conditions" "Usage conditons for RonII"
+
+
+   Status
+   ~~~~~~
+
+   Private use is ok, but I want to hear of you :)
+   Money, @{"mail" link "Author" 0} (E or snail), anything is accepted though.
+   RonII has a mail-author feature if you use :MAILUSER.
+   Mail of this kind is not accepted.
+
+   If you use RonII in business, you should send me as
+   much money as you think it is worth for you.
+   If you earn some $$$$$$$ I'd like to get some $$.
+
+   But you should send more money than the transfer will
+   cost... Once paid, you will get updates for free.
+   Still you will have to @{"mail me" link "Author" 0}.
+@endnode
+
+@node "Author" "Author"
+
+
+   Snailmail:                    EMail:
+
+   Stefan Le Breton              slbrbbbh@w250zrz.zrz.TU-Berlin.de
+   Wesendorfer Str. 8              This address may not be valid
+                                   in some time... we get another
+   D 13439 Berlin                  mailhost, and the sys admin seems
+                                   to be unable, to set up an alias...
+ --------------------------        *sigh* If mail gets bounced, mail
+                                   Postmaster@TU-Berlin.de and ask for
+   StElb@IRC                       the successor of w250zrz.zrz this 
+                                   *maybe* herkules.zrz
+@endnode
+
+@node "Thanks" "Thanks"
+
+
+   Some people to mention:
+
+   Hartmut "Essich" Goebel
+      This program was written using the PortHandle Class
+      Library which is copyrighted © 1992,1993 by hartmut Goebel
+
+   Klaus "Kamar" Heinz
+      The one who wanted a tool that starts progs on notification.
+      Betatester, the only one who reported an *obvious* bug.
+      The only one who reported bugs.
+
+   Mick "MickH" Hohmann
+      Betatester, Gave me the CyberCron hint
+
+   Carsten "Hudi" Orthbandt
+      Sent me Oberon source for an tiny,tiny ARexxhost.
+      Well finally, I found the Rexxport B-) Anyway, now
+      I'm using easyrexx.library :)
+
+   Ketil Hunn
+      thanks for easyrexx.library, I hope you'll enhance it, there are
+      some things to do.
+
+   Franz Schwarz
+      Thanks for SPrintf.mod
+
+   Christian A. "CyberCron" Wichura
+      Thanks for the CyberCron source, it was helpful.
+@endnode
+
+@node "Disclaimer" "Disclaimer"
+
+
+   Legal Mumbo Jumbo
+   ~~~~~~~~~~~~~~~~~
+                             No Warranty
+                             -----------
+
+   THERE  IS  NO  WARRANTY  FOR  THE  PROGRAM,  TO  THE EXTENT PERMITTED BY
+   APPLICABLE  LAW.   EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT
+   HOLDER  AND/OR  OTHER  PARTIES  PROVIDE  THE  PROGRAM  "AS  IS"  WITHOUT
+   WARRANTY  OF  ANY  KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT
+   LIMITED  TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+   PARTICULAR  PURPOSE.   THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE
+   OF  THE  PROGRAM  IS WITH YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE,  YOU
+   ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+
+   IN  NO  EVENT  UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+   WILL  ANY  COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY REDISTRIBUTE THE
+   PROGRAM  AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES, INCLUDING ANY
+   GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE
+   USE  OR INABILITY TO USE THE PROGRAM  (INCLUDING BUT NOT LIMITED TO LOSS
+   OF  DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR
+   THIRD  PARTIES  OR  A  FAILURE  OF THE PROGRAM TO OPERATE WITH ANY OTHER
+   PROGRAMS),  EVEN  IF  SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE
+   POSSIBILITY OF SUCH DAMAGES.
+
+
+RonII © 1994 Stefan Le Breton
+
+
+RonII is *NOT* in the Public Domain! See also usage conditions.
+
+It may be distributed only if the following files are included:
+
+   ronii
+   example.ron
+   ronaliases
+   RonII.guide
+
+
+As  long  none  of  the  above  files  is missing, RonII may be freely distributed
+on disk or on any network. A disk containing RonII may not be sold for more than 5$
+or an equivalent value. Fred Fish, regular Aminet CD's and "Meeting Pearls" are ok.
+Anyone else must contact @{"me" link "Author" 0}, maybe it's ok, maybe not...
+@endnode
+

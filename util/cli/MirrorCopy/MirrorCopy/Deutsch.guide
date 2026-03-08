@@ -1,0 +1,401 @@
+@DATABASE Deutsch.guide
+
+*********************************************************************-
+
+@NODE MAIN "MirrorCopy V1.6 © 1998-2000 Jan Hendrik Schulz"
+
+                               @{b}MirrorCopy@{ub}
+                     @{b}© 1998-2000 Jan Hendrik Schulz@{ub}
+                         @{b}Version 1.6 (22.12.2000)@{ub}
+
+
+	@{" Einleitung         " LINK INTRO}      Was ist es? Und warum?
+
+	@{" Anforderungen      " LINK NEEDS}      Benötigte Hard- und Software
+	@{" Rechtliches        " LINK LEGAL}      Bitte lesen!
+
+	@{" Installation       " LINK INSTALL}      Wie wird @{b}MirrorCopy@{ub} installiert?
+	@{" Benutzung          " LINK USAGE}      Und wie benutzt?
+
+	@{" Bekannte Fehler    " LINK BUGS}
+	@{" Geschichte         " LINK HISTORY}      Was ist neu seit der letzten Version?
+	@{" Zukunft            " LINK FUTURE}      Und was soll noch kommen?
+
+	@{" Autor              " LINK AUTHOR}      Wie ist der Autor zu erreichen?
+	@{" Danksagungen       " LINK THANKS}
+
+@ENDNODE
+
+**********************************************************************
+
+@NODE INTRO "Einleitung"
+@{u}Einleitung@{uu}
+
+@{b}MirrorCopy@{ub} ist ein Shell FileCopy Programm, welches eine @{i}exakte @{ui}Kopie
+(also eine Spiegelungen, engl. "mirror") aller Dateien und Unter-
+verzeichnisse¹ (incl. Inhalt) eines Quellverzeichnisses erstellen oder
+erneuern kann. @{"Ich" LINK AUTHOR} verwendet @{b}MirrorCopy@{ub} zur Verwaltung einer Spiegelung
+meiner System Partition auf einer bootfähigen ZIP Diskette. Auf diese
+Weise habe ich nicht nur ein Backup meiner System Partition, ich kann
+sogar direkt davon booten (wenn nötig) und habe dann alle Tools etc.
+verfügbar, an die ich gewöhnt bin.
+
+Die wichtigsten Eigenschaften von @{b}MirrorCopy@{ub} sind:
+
+  · Das Zielverzeichnis enthält anschließend genau die Dateien und
+    Unterverzeichnisse¹ wie das Quellverzeichnis - und sonst nichts!
+
+  · Die Attribute (Datum, Kommentar und Protection-Flags) der Dateien
+    und Unterverzeichnisse² im Zielverzeichnis werden auf exakt die
+    gleichen Werte gesetzt wie im Quellverzeichnis.
+
+  · @{b}MirrorCopy@{ub} berücksichtigt den bisherigen Inhalt des Zielverzeich-
+    nisses:
+    - Nur die Dateien werden kopiert, die kopiert werden müssen.
+    - Nur die Unterverzeichnisse werden angelegt, die wirklich angelegt
+      werden müssen¹
+    - Nur die Dateien und Unterverzeichnisse¹ werden aus dem Ziel-
+      verzeichnis entfernt, die wirklich entfernt werden müssen.
+    Dieses Verhalten ist besonders nützlich, wenn keine neue Spiegelung
+    erzeugt, sondern nur eine schon existierende auf den neuesten Stand
+    gebracht werden soll.
+
+  · @{b}MirrorCopy@{ub} kann gelöschte oder überschriebene Dateien in speziellen
+    "gelöschte/alte Dateien" Verzeichnissen retten (siehe @{"Benutzung" LINK USAGE})
+
+  · Der Inhalt des Quellverzeichnisses wird in keiner Weise verändert!
+    Noch nicht mal die Protection-Flags (wie etwa das Archiv-Flag)
+    werden geändert.
+
+
+Das Ergebnis eines Programm-Aufrufs der Form:
+
+  @{i}MirrorCopy source:dir/path/ dest:dir/path/ ALL @{ui}
+
+ist fast² das gleiche wie nach der Ausführung der zwei Befehle:
+
+  @{i}Delete dest:dir/path/#? ALL FORCE @{ui}
+  @{i}Copy source:dir/path/#? dest:dir/path/ ALL CLONE @{ui}
+
+Aber die Verwendung von @{b}MirrorCopy@{ub} ist schneller, speziell wenn der
+Inhalt des Quell- und des Zielverzeichnisses schon fast identisch ist.
+
+OK, aber wie arbeitet @{b}MirrorCopy@{ub} denn nun genau? @{b}MirrorCopy@{ub} vergleicht
+die beiden Verzeichnisse und:
+
+  · kopiert eine Dateien aus dem Quellverzeichnis in das Zielverzeich-
+    nis, wenn im Zielverzeichnis:
+    - bisher keine Datei mit diesem Namen existiert.
+    - eine Datei mit dem selben Namen, aber mit einer anderen Größe
+      und/oder einem anderen Datum³ existiert. (Die alte Datei wird
+      überschrieben oder in das @{"OLDDIR" LINK USAGE 30} Verzeichnis verschoben.)
+    - keine Datei, aber ein Verzeichnis mit diesem Namen existiert.
+      (Das Verzeichnis, incl. Inhalt, wird gelöscht oder in das
+      @{"DELDIR" LINK USAGE 30} Verzeichnis verschoben.)
+
+  · erzeugt im Zielverzeichnis alle die Unterverzeichnisse, die es im
+    Quellverzeichnis, nicht jedoch im Zielverzeichnis gibt¹. Wenn im
+    Zielverzeichnis eine Datei mit dem Namen eines zu erzeugenden
+    Unterverzeichnisses existiert, wird diese Datei gelöscht, oder in
+    das @{"DELDIR" LINK USAGE 30} Verzeichnis verschoben.
+
+  · entfernt aus dem Zielverzeichnis alle die Dateien und Unterver-
+    zeichnisse¹, die es im Quellverzeichnis nicht (mehr) gibt. Diese
+    Dateien und Unterverzeichnisse (incl. Inhalt) werden gelöscht,
+    oder in das @{"DELDIR" LINK USAGE 30} Verzeichnis verschoben.
+
+  · setzt (wenn nötig) die Attribute von Dateien und Unterverzeich-
+    nissen¹ im Zielverzeichnis auf die gleichen Werte, wie sie die
+    entsprechenden Dateien und Unterverzeichnisse im Quellverzeichnis
+    haben.
+
+__________________________________________________________________________
+
+1) Unterverzeichnisse werden ignoriert, wenn das @{"ALL" LINK USAGE} Schlüsselwort nicht
+   angegeben wird.
+
+2) Der normale Copy Befehl (auch wenn er mit CLONE aufgerufen wird) setzt
+   @{i}nicht @{ui}die Attribute von Unterverzeichnissen, nur die von Dateien!
+   @{b}MirrorCopy@{ub} hingegen setzt alle Attribute korrekt, um eine @{i}exakte @{ui}Kopie
+   zu erzeugen!
+
+3) Um festzustellen, ob zwei Dateien mit gleichem Namen identisch sind,
+   werden deren Größe und Datum verglichen. Wenn beide Dateien die
+   gleiche Größe und das gleiche Datum (und natürlich den gleichen
+   Namen) haben, dann ist es @{b}sehr@{ub} wahrscheinlich, daß sie identisch
+   sind. Das ist natürlich nicht 100% sicher, aber unter normalen
+   Umständen sollte es eigentlich immer zutreffen. Der einzige Weg, es
+   ganz genau zu wissen wäre, den Inhalt der Dateien zu vergleichen,
+   aber dann wäre es schneller gleich alle Dateien zu kopieren.
+
+@ENDNODE
+
+**********************************************************************
+
+@NODE NEEDS "Anforderungen"
+@{u}Anforderungen@{uu}
+
+· AmigaOS 2.04 (oder neuer)
+
+@ENDNODE
+
+**********************************************************************
+
+@NODE LEGAL "Rechtliches"
+@{u}Rechtliches@{uu}
+
+    Diese Version von @{b}MirrorCopy@{ub} ist Freeware. Eine Weitergabe von
+     @{b}MirrorCopy@{ub} ist nur unverändert und mit allen Dateien erlaubt.
+      Durch die Weitergabe darf kein Gewinn gemacht werden. Eine
+   Veröffentlichung auf CD-ROM ist nur erlaubt, wenn diese maximal
+   15 Euro kostet. Eine Veröffentlichung auf Coverdisks und Cover-
+      CD-ROMs ist nur nach vorheriger Absprache mit @{"mir" LINK AUTHOR} erlaubt.
+
+       @{b}MirrorCopy ist © Copyright 1998-2000 Jan Hendrik Schulz@{ub}
+
+     Die Benutzung von @{b}MirrorCopy@{ub} erfolgt auf eigenes Risiko. Ich
+  übernehme keine Haftung für Schäden oder Datenverluste, die durch
+   die Benutzung oder die Unmöglichkeit der Benutzung, direkt oder
+      indirekt entstehen könnten oder bereits entstanden sind.
+
+@ENDNODE
+
+**********************************************************************
+
+@NODE INSTALL "Installieren"
+@{u}Installieren@{uu}
+
+Das Installieren ist sehr einfach. Es muß lediglich das Programm in ein
+geeignetes Verzeichnis (z.B. 'C:') kopiert werden.
+
+Desweiteren ist es wohl nicht verkehrt, diese Anleitung irgendwo hin zu
+kopieren, wo sie leicht verfügbar ist, falls Fragen auftauchen.
+
+@ENDNODE
+
+**********************************************************************
+
+@NODE USAGE "Benutzung"
+@{u}Benutzung@{uu}
+
+@{b}MirrorCopy@{ub} muß von der Shell aus aufgerufen werden. Die folgenden
+Shell-Argumente sind vorhanden:
+
+@{b}FROM@{ub}=F/A
+	Das Quellverzeichnis mit den Dateien, die gespiegelt werden
+	sollen. Es muß ein Verzeichnis angegeben werden, nicht der
+	Name einer einzelnen Datei und auch kein Namensmuster.
+
+	Der Inhalt dieses Verzeichnisses wird in keiner Weise verändert.
+
+@{b}TO@{ub}/A
+	Das Zielverzeichnis, in dem die Dateien gespiegelt werden sollen.
+
+	Der Inhalt dieses Verzeichnisses wird wie in der @{"Einleitung" LINK INTRO}
+	beschrieben verändert.
+
+@{b}ALL@{ub}=A/S
+	Wird @{b}MirrorCopy@{ub} ohne dieses Argument aufgerufen, dann werden
+	Unterverzeichnisse ignoriert und nur Dateien kopiert/gelöscht,
+	die sich direkt im FROM/TO Verzeichnis befinden.
+
+@{b}BUF@{ub}=B/K/N
+	Mit BUF kann die Größe des Speicherbereichs geändert werden, der
+	beim Kopieren zur Datenpufferung verwendet wird. Ein größerer
+	Puffer kann die Kopiergeschwindigkeit erhöhen. Die Größe wird in
+	KBytes angegeben und der Default-Wert ist 64 KBytes (BUF=64).
+
+@{b}DELDIR@{ub}=DD/K
+	Die Dateien und Verzeichnisse, die @{b}MirrorCopy@{ub} normalerweise aus
+	dem TO Verzeichnis löschen würde, können mit diesem Argument
+	gerettet werden. Hier kann ein Verzeichnis angegeben werden, in
+	das diese Dateien und Verzeichnisse stattdessen verschoben werden
+	sollen.
+
+	@{b}MirrorCopy@{ub} erzeugt in diesem Verzeichnis die nötigen Unter-
+	Verzeichnisse, um die geretteten Dateien und Verzeichnisse mit
+	den gleichen (relativen) Pfaden zu speichern, die sie zuvor auch
+	relativ zum TO Verzeichnis hatten.
+
+	Zur Zeit muß dieses Verzeichnis auf dem gleichen Volume liegen,
+	wie das TO Verzeichnis, da die Dateien und Verzeichnisse aus
+	Geschwindigkeitsgründen durch "Rename" (Umbennenen) an die neue
+	Position verschoben werden, und das funktioniert nicht Volume
+	übergreifend.
+
+@{b}OLDDIR@{ub}=OD/K
+	Wie DELDIR, aber für die alten Versionen der Dateien, die durch
+	neue ersetzt (überschrieben) werden würden.
+
+	Es kann das selbe Verzeichnis für DELDIR und OLDDIR verwendet
+	werden. Wird für DELDIR oder OLDDIR "and" angegeben, verwendet
+	dieses das gleiche Verzeichnis wie das andere. Somit ist es
+        möglich, einfach folgendes zu schreiben:
+		DELDIR @{b}and@{ub} OLDDIR=name/of/the/dir
+
+@{b}DATE@{ub}=D/S
+	Dieses Argument ist nur in Verbindung mit DELDIR und/oder OLDDIR
+	sinnvoll. Es veranlaßt @{b}MirrorCopy@{ub} ein Unterverzeichnis mit dem
+	aktuellen Datum als Namen im DELDIR/OLDDIR Verzeichnis anzulegen
+	und dann dieses Unterverzeichnis als DELDIR/OLDDIR Verzeichnis
+	zu verwenden. Dadurch können Dateien verschiedener @{b}MirrorCopy@{ub}
+	Aufrufe getrennt gesichert werden - das ist besonders nützlich,
+	wenn es Dateien gibt, die sich häufig ändern.
+
+	Der Name dieses Unterverzeichnisses sieht wie folgt aus: jjjj-mm-tt_Xxx
+	mit:
+		jjjj	vierstellige Jahreszahl
+		mm	zweistelliger Monat
+		tt	zweistelliger Tag
+		Xxx	die ersten drei Zeichen vom Namen des Tages
+
+	Auf diese Weise sind die Verzeichnisse auch dann nach Datum
+	sortiert, wenn sie nur nach dem Namen sortiert angezeigt werden.
+
+@{b}NODEL@{ub}=ND/S
+	Wenn angegeben, werden Dateien und Verzeichnisse im Zielverzeichnis,
+	die im Quellverzeichnis nicht existieren, nicht gelöscht (oder ins
+	DELDIR verschoben). Dennoch kann es passieren, daß eine Datei oder
+	ein Verzeichnis gelöscht (oder ins DELDIR verschoben) wird, und
+	zwar dann, wenn im Quellverzeichnis ein gleichnamiges Objekt vom
+	jeweils anderen Typ (Datei <-> Verzeichnis) existiert, das sonst
+	nicht ins Zielverzeichnis kopiert werden könnte!
+
+@{b}FILEPAT@{ub}=FP/K
+	Wird hiermit ein AmigaDOS Muster angegeben, werden alle Dateien
+	von @{b}MirrorCopy@{ub} irgnoriert, die nicht zu dem Muster passen. Mit
+	einer Ausnahme: Dateien im Zielverzeichnis, die nicht zu diesem
+	Muster passen werden trotzdem gelöscht, wenn keine gleichnamige
+	Datei im Quellverzeichnis existiert (und wenn die NODEL Option
+	nicht angegeben wurde)!
+	
+@{b}DIRPAT@{ub}=DP/K
+	Wie FILEPAT, aber für die (Namen der) Unterverzeichnisse.
+
+@{b}VERBOSE@{ub}=V/S
+	Aktiviert zusätzliche Textausgaben über die Aktivitäten von
+	@{b}MirrorCopy@{ub}.
+
+@{b}STAT@{ub}=S/S
+	Aktiviert die Ausgabe einer Statistik am Ende, wieviele Dateien
+	und Verzeichnisse kopiert/gelöscht/erzeugt/etc. wurden.
+
+@{b}QUIET@{ub}=Q/S
+	Deativiert die Shell-Textausgaben, außer Fehlermedungen und
+	alles was durch VERBOSE und STAT, falls angegeben, erzeugt wird.
+
+@ENDNODE
+
+**********************************************************************
+
+@NODE BUGS "Bekannte Fehler"
+@{u}Bekannte Fehler@{uu}
+
+· Links (Hard- und Softlinks) werden nicht unterstützt, sie werden als
+  normale Dateien oder Verzeichnisse kopiert. Die korrekte und sinnvolle
+  Unterstützung von Links ist nicht ganz einfach, daher kann ich nicht
+  sagen, ob ich jemals die Zeit finde, dies zu ändern... :-(
+
+Wenn @{b}Du@{ub} einen weiteren Fehler finden solltest, dann sende @{"mir" LINK AUTHOR} bitte
+einen Bug-Report! (Vertraue nicht darauf, daß das schon jemand anderes
+machen wird! Danke!)
+
+@ENDNODE
+
+**********************************************************************
+
+@NODE HISTORY "Geschichte"
+@{u}Geschichte@{uu}
+
+@{b}Version 1.6 (22.12.2000)@{ub}
+· Bugfix: Wenn eine Datei im Zielverzeichnis durch eine neuere Version
+  ersetzt werden sollte, die Datei aber löschgeschützt war ('D' Flag
+  nicht gesetzt) hat @{b}MirrorCopy@{ub} die Datei nicht ersetzt, sondern hat
+  die Ausführung mit einer Fehlermeldung abgebrochen.
+
+@{b}Version 1.5 (1.11.1999)@{ub}
+· Neue Shell-Argumente FILEPAT und DIRPAT, über die AmigaDOS Muster
+  für Dateien und Verzeichnisse angegeben werden können.
+· Für die meisten Shell-Argumente stehen jetzt auch Abkürzungen zur
+  Verfügung, wie etwa Q für QUIET oder V für VERBOSE.
+
+@{b}Version 1.4 (21.9.1999)@{ub}
+· Neues NODEL Shell-Argument, um das Löschen von Dateien und Verzeich-
+  nissen im Zielverzeichnis zu unterbinden.
+
+@{b}Version 1.3 (18.9.1999)@{ub}
+· DELDIR/OLDDIR Handling verbessert:
+  - Es ist jetzt möglich, Verzeichnisse zu verwenden, die @{b}im@{ub} Ziel-
+    verzeichnis liegen.
+  - Es wird überprüft, ob die angegebenen Verzeichnisse den Anforderungen
+    entsprechen.
+  - Das gleiche Verzeichnis für DELDIR und OLDDIR zu verwenden geht
+    jetzt einfach mit: DELDIR @{b}and@{ub} OLDDIR=name/of/the/dir
+                 oder: OLDDIR @{b}and@{ub} DELDIR=name/of/the/dir
+    
+· QUIET und VERBOSE Shell-Argumente leicht geändert und STAT Argument
+  hinzugefügt, um die Textausgaben besser kontrollieren zu können.
+
+· Korrekte Shell-Fehlercodes werden jetzt zurückgegeben, um etwa die
+  Verwendung in Script-Dateien mit Fehlerbehandlung zu ermöglichen.
+
+· Ein paar kleine interne Änderungen.
+
+@{b}Version 1.2 (1.6.1999)@{ub}
+· Enforcer/CyberGuard Hits entfernt.
+
+@{b}Version 1.1 (5.5.1999)@{ub}
+· Kleiner Bug beseitigt.
+
+@{b}Version 1.0 (3.3.1999)@{ub}
+· Erste veröffentlichte Version.
+
+@ENDNODE
+
+**********************************************************************
+
+@NODE FUTURE "Zukunft"
+@{u}Zukunft@{uu}
+
+Vorschläge für Verbesserungen nehme @{"ich" LINK AUTHOR} gerne entgegen!
+
+@ENDNODE
+
+**********************************************************************
+
+@NODE AUTHOR "Autor"
+@{u}Autor@{uu}
+
+Normale Post:	Jan Hendrik Schulz
+		Elsässer Straße 19
+		22049 Hamburg
+		Deutschland
+
+EMail:		jhschulz@gmx.de
+
+@{b}WICHTIGER HINWEIS:@{ub}
+  Wer eine Antwort per normaler Post erwartet, der sollte mir
+  ausreichend Geld oder (deutsche!) Briefmarken zukommen lassen!
+
+@ENDNODE
+
+**********************************************************************
+
+@NODE THANKS "Danksagungen"
+@{u}Danksagungen@{uu}
+
+Ich bedanke mich bei den folgenden Personen für ihre EMails, Bug-
+Reports, Ideen und Vorschläge:
+
+    Jean-Claude Gueudet
+    Cyrille Guillaume
+    Jernej Pecjak
+    Ed Vishoot
+    David Zaroski
+
+und bei Wouter van Oortmerssen für AmigaE.
+
+@ENDNODE
+
+***ENDE***ENDE***ENDE***ENDE***ENDE***ENDE***ENDE***ENDE***ENDE***ENDE
+

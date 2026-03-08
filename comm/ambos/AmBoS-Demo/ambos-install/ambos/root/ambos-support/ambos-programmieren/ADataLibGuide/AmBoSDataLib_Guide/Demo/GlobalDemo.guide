@@ -1,0 +1,128 @@
+@database AmigaGuide.guide
+@master Guide für die Demos zur Library
+
+@node "GlobalDemo" "GlobalDemo"
+
+
+/*-------------------------------------*/
+/* Programm: Global Daten              */
+/*-------------------------------------*/
+/* Funktion: Ausgabe der Globalen Box  */
+/*           Box Daten                 */
+/*-------------------------------------*/
+
+/*-------- Standart Includes ----------*/
+
+#include <exec/exec.h>
+#include <utility/tagitem.h>
+#include <dos/dos.h>
+
+#include <clib/exec_protos.h>
+#include <clib/dos_protos.h>
+#include <pragmas/exec_pragmas.h>
+#include <pragmas/dos_pragmas.h>
+/*-------------------------------------*/
+
+/*----- AmBoSDataLibrary Includes -----*/
+
+#include <clib/AmBoSData_protos.h>
+#include <libraries/AmBoSTags.h>
+
+/*-------------------------------------*/
+
+/* für die Dos.Library             */
+/* kommt von der c.o  ;-)) bei SAS */
+
+extern struct Library *DOSBase;
+
+/* Festlegung der Variablen */
+
+char BoxName[128],Sysop[40];
+ULONG GesAnrufe,HAnrufe,OnlineZeit;
+
+/* AmBoSDataLibrary öffnen */
+
+struct Library *ADL_Open(void)
+{
+  AmBoSDataBase = OpenLibrary("ambosdata.library",0L);
+  return (AmBoSDataBase);
+}
+
+/* AmBoSDataLibrary schließen */
+
+void ADL_Close(void)
+{
+  if(AmBoSDataBase)
+    CloseLibrary(AmBoSDataBase);
+}
+/*-------------------------------------*/
+/*   Ausgabe der Globalen Box Daten    */
+/*-------------------------------------*/
+/* Parameter: Keine                    */
+/* Rückgabe :                          */
+/*            Immer Null               */
+/*-------------------------------------*/
+
+int main (void)
+{
+APTR Glob;  /* Für das Global Objekt */
+
+  if(! ADL_Open())  /* Eigene Öffnungs-Routine */
+  {
+    /* Falls das Öffnen fehlschlug */
+
+    FPuts(Output()," Hallo, hallo, Irgenwas lupt hier nicht !\\n");
+    FPuts(Output()," AmBoS muß laufen und die AmBoSDataLibrary\\n");
+    FPuts(Output()," muß ebenfalls Installiert sein !\\n");
+    return 0;
+  }
+    /*---------------------------------*/
+    /* Das Objekt für Globalen Zugriff */
+    /*---------------------------------*/
+
+    Glob = ADataSetTag(DATASET_First,DATATYPE_Global,TAG_DONE);
+    if(Glob)
+    {
+      /* Globaler Zugriff OK ! */
+
+        /* Daten holen */
+      if(AGetAttrTag(Glob,GLOBAL_BoxName,BoxName,GLOBAL_SysopName,Sysop,
+                      GLOBAL_AnrufeGesammt, &GesAnrufe,GLOBAL_AnrufeHeute,
+                      &HAnrufe,GLOBAL_OnlineMinuten,&OnlineZeit,TAG_DONE)
+                      != FALSE)
+      {
+
+        /* Daten erhalten, nun ausgeben */
+
+        FPuts(Output(), "\\nBoxName       :");
+        FPuts(Output(), BoxName);
+
+        FPuts(Output(), "\\nSysop Name    :");
+        FPuts(Output(), Sysop);
+
+        FPuts(Output(), "\\nGesamt Anrufe :");
+        VFPrintf(Output(),"%lu",&GesAnrufe);
+
+        FPuts(Output(), "\\nAnrufe Heute  :");
+        VFPrintf(Output(),"%lu",&HAnrufe);
+
+        FPuts(Output(), "\\nOnline Zeit   :");
+        VFPrintf(Output(),"%lu",&OnlineZeit);
+
+        FPuts(Output(), "\\nDas waren sie, die Box Daten!\\n");
+      }
+      /* Global Objekt wieder freigeben */
+
+      ADataSetTag(DATASET_Free,Glob);
+    }
+
+    /* AmBoSData.Library wieder schließen */
+
+    ADL_Close();
+}
+
+			@{"Hauptmenü" link "AmBoSDataLibrary.guide/main" 0}
+	@{"Wollen wir mal das Demo Starten ?" system "run >NIL: Demo/GlobalDemo >CON:0/0/635/150/Global_Demo_(Schließen_mit_CTRL&\\)/WAIT/CLOSE"}
+
+@{fg fill}@{bg shine} Bitte klicken Sie auf Zurück, um Weiter zu machen !@{fg text}@{bg back}
+@endnode

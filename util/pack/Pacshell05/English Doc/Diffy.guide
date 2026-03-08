@@ -1,0 +1,471 @@
+@database "Documentation foru Diffy and Patchy"
+@author "Christian Wempe"
+@(c) "1996 Christian Wempe"
+@$VER: Diffy.guide 1.00 (June 1996)
+
+@node MAIN "Documentation for Diffy and Patchy Version 2.0"
+
+    1. @{" Introduction " Link "Einführung"}
+
+    2. @{" Commands and Options " Link "Aufruf von Diffy"}
+
+    3. @{" Patchy " Link "Das Minimalprogramm Patchy"}
+
+    4. @{" Important Notes " Link "Wichtige Hinweise"}
+
+    5. @{" How to use Diffy " Link "Wie benutze ich Diffy"}
+
+    6. @{" Legal stuff " Link "Rechtliches"}
+
+@endnode
+
+
+@node "Einführung" "Introduction"
+    Diffy is a small tool, that can find differences between two
+    versions of a file and put them into an archive. Then, you can use
+    this archive, to do a patch on that file, by using the patch
+    function of Diffy or @{" Patchy " Link "Das Minimalprogramm Patchy"}.
+
+    In developement, it was more important to get small diff-files
+    than to get a fast execution time, that means as many of the new
+    file should be found in the old file. But with a very simple
+    algorithm, this is really too slow. So we used the fact, that the
+    to files must be similar to some degree and therefore, there must
+    be long blocks which are in both files. The more of such blocks
+    there are and the longer they are, the quicker they are found. By
+    this, execution time gets longer, the more different the files
+    are.
+    Furthermore, it is neccessary, that both files are held in memory.
+
+    Diffy creates an archive, that contains patch data of one ore more
+    pairs of files.
+
+@endnode
+
+
+@node "Aufruf von Diffy" "Commands and Options"
+    Diffy supports five commands and several options:
+
+    @{" Adding Patches to an archive " Link "Aktion ADD"}
+
+    @{" Deleting from an archive " Link "Aktion DELETE"}
+
+    @{" Listing archive contents " Link "Aktion LIST"}
+
+    @{" Patching with an archive " Link "Aktion PATCH"}
+
+    @{" Testing, if a patch can be done " Link "Aktion TEST"}
+
+    Options: @{"  -b<n>   " Link "Option -b"} @{" -o<name> " Link "Option -o"} @{"    -q    " Link "Option -q"} @{"    -r    " Link "Option -r"} @{"    -x    " Link "Option -x"}
+	     @{"    -c    " Link "Option -c"} @{"    -e    " Link "Option -e"} @{"    -h    " Link "Option -h"} @{"    -n    " Link "Option -n"} @{" -z<path> " Link "Option -z"}
+
+@endnode
+
+
+@node "Aktion ADD" "Adding Patches to an archive"
+    Files are added to an archive with the command option -a. This
+    option is default and must not be specified. There are two
+    possible command schemes, one for files and one for directories:
+
+    1. Diffy [-a] [-oArcName] [-bN] [-q] [-c] [-h] file.old file.new
+
+    A patch from file.old to file.new is created and put into the
+    archive ArcName. If no archive name is specified, it will be
+    file.dfy.
+
+    2. Diffy [-a] [-oArcName] [-bN] [-q] [-r] [-x] [-c] [-e] [-h] [-n]
+	     dir.old [(file|dir).new1 (file|dir).new2 ...]
+
+    Here, the old files are searched in dir.old. If no further
+    directory or file is specified, all files in the current directory
+    are taken as new files. If one or more further directories are
+    specified, all files there in are taken. Specified files are
+    searched directly (without path) in dir.old. You can specify as
+    many files and directories as you want in any order. But typically
+    this is one directory or a list of files.
+    If option -n is specified, all files that are not found in dir.old
+    are added completely to the archive.
+    If in addition to dir.old more than one directory is specified,
+    the option -e will be disabled after the first directory is
+    scanned, becuase otherwise would be obsolete, if they are not in
+    ALL other directories.
+    Unless you specify the option -r, all directories are scanned
+    recursively with all subdirectories.
+
+@endnode
+
+
+@node "Aktion DELETE" "Deleting from an archive"
+    Patches are deleted from an archive with the command option -d
+
+    Diffy -d [-q] [-x] -oArcName pmod1 pmod2 ...	or
+    Diffy -d [-q] [-x] ArcName pmod1 pmod2 ...
+
+    This two calls are equivalent and the modules pmod1, pmod2 and so
+    on are removed from the archive ArcName. If the option -x is
+    specified, pathnames are used to find the modules in ArcName.
+
+    There can be more than one module with the same name in the
+    archive and as many as specified in the commandline are removed.
+    Example:
+		Diffy -d ArcName test test
+
+    Removes the first two modules named test.
+
+@endnode
+
+
+@node "Aktion LIST" "Listing archive contents"
+    Archive contents are listed withe the command option -l
+
+    Diffy -l [-q] [-o]ArcName file1 file2 ...
+
+    Lists file1, file2, ... from archive ArcName. If no filename is
+    specified, all files are listed.
+
+    The following information is displayed:
+
+    Datalen	The length of the data part of the module. This are
+		bytes, that haven't been found in the old file and
+		that come from the new file.
+
+
+    Codelen	The legth of the code part of the module. This is the
+		encoded information, that denotes, which bytes can be
+		taken from the old file and which are new.
+
+    Total	Total length: Datalen + Codelen
+
+    CRC 	CRC from the old file. It is used, to determine, if
+		the old file is the correct file to be patched. (Only
+		displayed with old headers)
+
+    Attrib	File attributes (only available in new headers)
+
+    Date	New date of the file (only available in new headers)
+
+    Time	New time of the file (only available in new headers)
+
+    Name	Name of the module
+
+    Here, the option -q only surpresses the copyright notice.
+
+@endnode
+
+
+@node "Aktion PATCH" "Patching with an archive"
+    Patches are executed with the command option -p
+
+    Diffy -p [-q] [-x] [-z<path>] -oArcName [pmod1 pmod2 ...]	 or
+    Diffy -p [-q] [-x] [-z<path>] ArcName [pmod1 pmod2 ...]
+
+    Patches the files pmod1, pmod2 and so on with the patch data from
+    the archive ArcName. If no filenames are specified, all files from
+    the archive, that can be found,  are patched.
+
+    If the option -x is specified, pathnames are used to find modules
+    in the archive.
+    The full pathname is always used to find files on disk.
+
+@endnode
+
+
+@node "Aktion TEST" "Testing, if a patch can be done"
+    It is possible to test if a patch will work, or if something could
+    fail, with the command option -t
+
+    Diffy -t [-x] [-z<path>] -oArcName [pmod1 pmod2 ...]	  or
+    Diffy -t [-x] [-z<path>] ArcName [pmod1 pmod2 ...]
+
+    This tests, if the patches pmod1, pmod2 and so on can be done. If
+    something could fail, it is displayed.
+    If no module name is specified, everything in the archive is
+    tested.
+    If the option -x is specified, pathnames are used to find the
+    modules in the archive.
+
+@endnode
+
+
+@node "Option -b"
+    With the option -b, the size (in a limited way) can be selected,
+    which blocks must have, that diffy searches them in the whole
+    (old) file. This search is done for blocks that are left, when
+    diffy has finished to find blocks in the right order. Possible
+    values are 0...9.
+    This extended search often takes most of the time diffy needs to
+    compare two files. With this option, you can choose, if as much as
+    possible (-b9 default) is searched or only greater blocks or
+    nothing (-b0).
+
+    Example:  Diffy -b0 prog.old prog.new
+
+@endnode
+
+
+@node "Option -o"
+    You can use the option -o to specify the name of the archive. If
+    no archive name is specified, the archive name is created from the
+    first new file or directory that is processed.
+
+    Examples:
+    Diffy -o archive.dfy prog.old prog.new   Archive name = archiv.dfy
+    Diffy prog.old prog.new		     Archive name = prog.dfy
+
+    When files are patched (-p), tested (-t), listed (-l) or deleted
+    (-d) it is not neccessary to specifiy the archive with this
+    option, instead the first argument, that is not an option, is
+    used.
+
+@endnode
+
+
+@node "Option -q"
+    The option -q tells diffy, to be quiet. That means, most of the
+    output is surpressed. But this has no effect on error messages and
+    the list command.
+    If it is neccessary that diffy is really quiet, you can double the
+    option and really nothing is output.
+    A really useless call:  diffy -l -qq archive.dfy
+
+@endnode
+
+
+@node "Option -r"
+    With the option -r you can avoid, that Diffy recurses into
+    subdirectories, when two directories are compared. By defalult,
+    this is done.
+
+@endnode
+
+
+@node "Option -x"
+    By default, pathnames are only used, when subdirectories are
+    scanned. If you specify the option -x, pathnames are always used.
+    Drive names are always ignored.
+
+	diffy -xn drive:project/diffy/diffy.guide
+
+    Adds this file with the name project/diffy/diffy.guide to the
+    archive drive:project/diffy/diffy.dfy
+
+@endnode
+
+
+@node "Option -c"
+    By default, for every pair of files that are compared, it is
+    checked, if the new file has a newer file date. If this is not the
+    case, Diffy assumes that the new file really is the old one and
+    swaps the to files. If this behavior is not wanted, you can
+    specify the option -c and Diffy will ignore the file dates.
+
+@endnode
+
+
+@node "Option -e"
+    By using the option -e, you can add files to an archive, that are
+    deleted, when the patch is done.
+
+    If this option is used with a list of filenames, all of this files
+    are added to be deleted.
+
+	diffy -e -otest.dfy file1 file2 file3
+
+    The files file1, file2 and file3 are added to be deleted to
+    test.dfy.
+    It is not neccessary, that the files really exist.
+
+    If the contents of two directories are compared, all files that
+    are in old dir and not in new dir are added to the archive in this
+    way.
+
+
+@endnode
+
+
+@node "Option -h"
+    Diffy can create headers in two different formats. The first is
+    very short and contains only the information that is really
+    neccessary. The first version of diffy was only able to create
+    this headers. This new version can created a @{" new header format " Link "Das neue Headerformat"},
+    that is longer and contains more information lile date/time and
+    file attributes. This headers are now default, but with the
+    option -h you can still create the old headers, perhaps if file
+    size is very important.
+    All headers in an archive must have the same format and if files
+    are added to an existing archive, then diffy will always use the
+    headers, that are found there.
+
+@endnode
+
+
+@node "Option -n"
+    With the option -n it is possible, to add whole files to an
+    archive, if there is no old version of them.
+
+    If this option is used with a list of filenames, all of this files
+    are added to the archive:
+
+	diffy -n -otest.dfy file1 file2 file3
+
+    The files file1, file2 and file3 are added to the archive.
+
+    The option -e would be ignored, if specified.
+
+    If two directories are compared, all files that exist in new dir
+    and not in old dir are added completely to the archive.
+
+    If a directory and a list of files is specified, all files that
+    doesn't exist in the directory are added completely.
+
+@endnode
+
+
+@node "Option -z"
+    When patching or testing, you can specify a destination path for
+    these operations with the option -z. If this option is not used,
+    the current directory is taken.
+
+@endnode
+
+
+@node "Das Minimalprogramm Patchy" "Patchy"
+    This program is something like an UnDiffy. It can only process a
+    list of archives created by diffy and apply all patches from them:
+
+	Patchy <archiv1> [<archiv2> ... ]
+
+    Selective patching is not possible with Patchy.
+
+    All old files are backed up in directory "PatchBak", that is
+    created in the current directory, if it doesn't exist already.
+    Subdirectories are not created in this directory.
+
+    See also: @{" Patching with Diffy " Link "Aktion PATCH"}
+
+@endnode
+
+
+@node "Wichtige Hinweise" "Important Notes"
+    You should take care of the following things, if you use Diffy:
+
+    Diffy is not a real archiver
+    ----------------------------
+    There can be more than one module with the same name and all
+    further modules are appended at the end of an archive. Typically
+    an archive is created with a single call and then never changed.
+
+    Diffy is slow, when files are very different
+    --------------------------------------------
+    This is a property of the used algorithm, because the assumption
+    was made, that only files are compared, that are equivalent to a
+    typic degree.
+
+    You should not compare compressed files
+    ---------------------------------------
+    Especially, when a file is Huffman coded, the results are very
+    bad. Even small changes in the uncompressed file, result in a
+    totally different compressed data. In the first version, Diffy
+    also took a very long time in comparing such files, but this
+    version is really much faster here.
+    On the other hand, archives created by diffy can be compressed
+    fairly good, depending on how much data from new files they
+    contain.
+
+@endnode
+
+
+@node "Rechtliches" "Legal stuff"
+
+    Diffy V1.0 stays Freeware as it was. You can use it as much as you
+    want, without paying for it.
+
+    With the Version 2.0 I changed the state to Fairware.
+
+    Use Diffy and Patchy at your own risk. No warranty is made for
+    damaged caused by the use of this programs and for errors, that
+    still could be left.
+
+    Authors:	Christian Wempe 	    Holger Weets
+		St. Antoniort 28	    Tangastr. 45
+		49610 Quakenbrueck	    26121 Oldenburg
+					    (Atari Version)
+
+    Please send E-Mail to Holger:   Holger_Weets@OL.maus.de
+
+    --Christian
+
+@endnode
+
+
+@node "Wie benutze ich Diffy" "How to use Diffy"
+    First: Diffy is best used within a packer shell and if you use
+    one, e.g. my PacShell for Amiga or Holger's for Atari, then use
+    diffy with this shell.
+
+    The Amiga version of Diffy is a pure CLI tool and can only be
+    used from workbench with the 'execute command' function.
+    On an Atari, no differences are made in this way, and files can be
+    processed by dragging them onto Diffy. The only problem is, that
+    you cannot make assumptions about the order, the files are passed.
+    Therefore, Diffy, by default, uses the file date to find out which
+    file is old and which is new.
+
+    To use diffy, it is absolutly neccessary, that you keep an old
+    version of your files. You should also take care of which version
+    the person has, that will apply the patch, because this must be
+    exactly the same files.
+
+    The first typical application of diffy is to create a patch for
+    only one pair of files, an old one, that can be patched to the new
+    one. If you kept the old version by renaming it to 'file.old' and
+    the new version has the name 'file', then you can do this by
+    executing the command 'diffy file.olf file', that creates an
+    archive, named 'file.dfy'.
+
+    The second typical application of Diffy is, to compare two
+    directory structures. For this, the you should copy the whole
+    directory tree and keep it. Then you can use this as a reference
+    and create a patch that will transform it to the new structure.
+    (Option -c not neccessary but recommended)
+
+	diffy -c -oarchive.dfy dir.old dir
+
+    This creates a patch by comparing all files that are found in both
+    directories. If you created new files in 'dir', you should use the
+    option -n:
+
+	diffy -c -n -oarchive.dfy dir.old dir
+
+    This also adds files to the archive, which are new in 'dir'. If
+    you deleted one or more files in 'dir', you should use the
+    option -e:
+
+	diffy -c -e -oarchive.dfy dir.old dir
+
+    A complete diff can always be created with the following command:
+
+	diffy -c -e -n -oarchive.dfy dir.old dir
+
+@endnode
+
+
+@node "Das neue Headerformat"
+    Features of the new header format:
+
+    It is possible, to create new header types, which are ignored by
+    older versions of Diffy.
+
+    There is a CRC for the new file and Diffy or Patchy checks, if the
+    patched file is correct.
+
+    There is a a header checksum and most errors inside the header can
+    be detected.
+
+    The date and time of the new file is stored and applied to the
+    patched file.
+
+    File attributes of the new file are stored and applied to the
+    patched file.
+
+@endnode

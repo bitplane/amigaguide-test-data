@@ -1,0 +1,483 @@
+@database Print Spooler
+@$VER: PSpool v1.0
+@remark What are you doing in my guide - get out!
+@index Index
+
+@node main "PSpool v1.0"
+
+                               @{fg shine}PSpool v1.0@{fg text}
+
+                             @{fg shine}by Robert Wilson@{fg text}
+
+
+ ---------------------------------------------------------------------------
+
+     @{"  " link "Introduction" 0}  Introduction      -  What's this all about then?      
+
+     @{"  " link "Requirements" 0}  Requirements      -  What you need.
+
+     @{"  " link "Operation" 0}  Operation         -  How does it work then?
+
+     @{"  " link "Installation" 0}  Installation      -  What to copy to where.   
+
+     @{"  " link "BOptions" 0}  Basic options     -  Single networked printer.
+
+     @{"  " link "AOptions" 0}  Advanced options  -  Lots of printers ;-)
+
+     @{"  " link "Usage" 0}  Usage             -  How to start pspool.rexx.
+
+     @{"  " link "Disclaimer" 0}  Disclaimer        -  Don't come running to me!  
+
+     @{"  " link "Copyright" 0}  Copyright         -  Remember who wrote this!        
+
+     @{"  " link "Contact" 0}  Contact           -  Thanks, bugs, flames and all that welcome ;-)
+
+     @{"  " link "Bugs" 0}  Bugs              -  Known bugs and limitations.
+
+     @{"  " link "Future" 0}  Future            -  What's next?
+
+ ---------------------------------------------------------------------------
+
+  
+                          @{fg shine}© 1999 Robert Wilson@{fg text}
+
+  To make the most of this guide, please install NetLinks, beta 1 release 3
+
+              http://www.dynamix.f9.co.uk/files/netlinks.lzx
+
+@endnode
+
+@node "Introduction" "Introduction"
+
+ Introduction
+ ~~~~~~~~~~~~
+
+ I was tempted to call PSpool, SPS v2.0. In fact pspool.rexx is the result
+ of many modifications to sps.rexx, but it does so much more than its
+ predecessor that I felt it was not right to give it the same name. The
+ name does not even begin to describe its functionality. In the docs for
+ SPS I said that;
+ 
+ "Samba Print Spooler (SPS from here onwards) is an ARexx script which
+ automates the process of sending print jobs from an Amiga running Samba to
+ a SMB print server - for example a PC running Windows 95/98/NT."
+
+ However PSpool is able to spool any file from any directory to another
+ local directory (either fixed or set "on the fly" via a reqtools file
+ requester), to a networked share (file) or a networked printer.
+
+ Unlike SPS which could only handle one printer, when combined with
+ PSwitch, PSpool can spool files to an unlimited number of printers or 
+ directories. Even if you only have one printer you can use PSwitch to
+ create different profiles, all of which can be switched between within
+ seconds thanks to the MUI graphical user interface. 
+
+ I have successfully tested PSpool using a wide selection of standard
+ Workbench drivers and TurboPrint versions 5 and 7. To my knowledge there
+ are no known incompatibilities.
+
+@endnode
+
+@node "Requirements" "Requirements"
+
+ Requirements
+ ~~~~~~~~~~~~
+
+ PSpool requires the following items;
+
+  * For networked printing you will need a working installation of Samba
+    (this requires a TCP/IP stack such as MiamiDx or Genesis). If you
+    need any help installing Samba then please take a look at my web site.
+
+  * rexxtricks.library
+
+  * reqtools.library
+
+  * rexxreqtools.library
+
+  * rexxsupport.library
+
+  * rexxmast
+
+  * An Amiga driver for the printer (selected in 'sys:prefs/printer' or
+    'turboprint:turboprefs')
+
+  * CMD (normally found in your sys:utilities directory)
+
+  * The AmigaDOS "delete" command in C:
+
+  * The AmigaDOS "copy" command in C:
+
+  * For multiple device/profile support you must also install PSwitch
+    (included in this archive). Read the PSwitch docs, for PSwitch's
+    requirements.
+
+@endnode
+
+@node "Operation" "Operation"
+
+ Operation
+ ~~~~~~~~~
+
+ PSpool utilises CMD to "grab" the print data sent to the parallel port and
+ then send it to a file. This file is written in a directory that is checked
+ every 10 seconds by PSpool. When PSpool finds a file in this directory, it
+ checks to see if it can get an exclusive lock on the file. If it can't get
+ a lock then the script assumes that the print data is still being spooled
+ to the file and therefore waits another 10 seconds before checking again.
+
+ When the script gets a lock on the file it is spooled to the local
+ directory, networked file share or networked printer.
+
+ Spooling to a local directory is done using the AmigaDOS "copy" command.
+
+ Spooling to a networked file share is done using "smbclient". The following
+ command is issued;
+
+   amitcp:samba/bin/smbclient \\\\server\\fileshare -P -U username%password
+
+ Once connected the following command is issued;
+
+   put "spoolfile" "spoolfile"
+
+ Spooling to a networked printer is done using "smbclient". The following
+ command is issued;
+
+   amitcp:samba/bin/smbclient \\\\server\\printer -P -U username%password
+
+ Once connected the following commands are issued;
+
+   setmode graphics
+   print "spoolfile"
+
+ Note that "graphics" print mode isn't just for graphics, but for any binary
+ data. Therefore all files which have been "printed" to a file with the
+ Amiga printer driver will be sent as "graphics".
+
+@endnode
+
+@node "Installation" "Installation"
+
+ Installation
+ ~~~~~~~~~~~~
+
+ 1) Check that rexxmast is installed/running.
+
+ 2) Copy pspool.rexx to somewhere (rexx: would be good).
+
+ 3) Install rexxtricks.library, reqtools.library, rexxreqtools.library and
+    rexxsupport.library in libs:
+
+ 4) To enable the 'auto retry' feature install autoclose.rexx. Read the
+    docs for autoclose.rexx that are in the script header. Load the script
+    into your favorite text editor/reader.
+
+ 5) Set the options found in pspool.rexx's header. Load the script into your
+    favorite text editor.
+
+@endnode
+
+@node "BOptions" "Basic options"
+
+ Basic options
+ ~~~~~~~~~~~~~
+
+ For simple usage, printing to a single networked printer leave all settings
+ between "START SET DEFAULTS" and "END SET DEFAULTS" alone.
+
+ printers = 1
+
+ Set to the number of printers on your network that you want to use. Leave
+ this set to 1.
+
+ cmdpath = 'sys:utilities/cmd'
+
+ Where can PSpool find CMD? This setting is used by both 'setcmd' and
+ 'runcmd'.
+
+ runcmd = 1
+
+ It is preferable to let PSpool start CMD. Setting this to 1 will allow
+ PSpool to start CMD for you. This is highly recommended. When PSpool 
+ starts CMD all parameters are set via CLI arguments.
+
+ setcmd = 0
+
+ Set to 1 if you want PSpool to set CMD's tooltypes. It is not required to
+ set this option if "runcmd" is set to 1. If you are running CMD from
+ WBStartup then pspool.rexx should be started before 'loadwb' in your
+ startup-sequence or user-startup. However 'rexxmast' must obviously be
+ running before that. You don't have to do this, but if you don't then
+ PSpool will change the settings after CMD has been run and therefore will
+ have no effect until a reboot. Save yourself lots of hassle and just set
+ "runcmd" to 1 and leave/move CMD in/to sys:utilities/.
+
+ pubscreen = 'Workbench'
+
+ The name of the public screen where all requesters should open on. Do not
+ set this to '' otherwise PSpool will fail! 
+
+ username. = 'username'
+
+ Set this to your username on the print server. If not required (e.g. on a
+ Win95/98 server set to ''
+
+ password. = 'password'
+
+ Set this to your password on the print server. If not required (e.g. on a
+ Win95/98 server set to ''
+
+ spooldir.1 = 'Data:spool/'
+
+ Set this to your spool folder. This dir/drive/assign name MUST end in ":"
+ or "/". Also the set path MUST be dedicated to the function of spooling
+ files to the printer as ANYTHING found in this folder will be sent to the
+ printer!
+
+ Note that the spool folders path must NOT contain spaces. This is a
+ limitation of rexxtricks GETDIR() function.
+
+ printer.1 = '\\\\dynamix\\DESKJET'
+
+ The printer name in the form of '\\\\server\\printer'. Note that on Windows
+ (95/98/NT) servers the printer name is ALWAYS UPPER CASE.
+
+@endnode
+
+@node "AOptions" "Advanced options"
+
+ Advanced options
+ ~~~~~~~~~~~~~~~~
+ 
+ Advanced usage is not that advanced. However to show first time users all
+ these options I thought that it might scare them off - hence the "Basic
+ options" section.
+
+ DEFAULT SETTINGS:
+
+ All the settings in this section set the default settings for ALL
+ spooldirs. Exceptions to these defaults must be defined with each printers
+ settings. The default settings must be defined before the individual
+ printers.
+
+ exclude. = 0
+
+ When set to 1 this option tells PSpool to exclude (not check for files) ALL
+ spooldirs. Probably best left as 0. To exclude a specific spooldir (for
+ example printer.3) set "exclude.3 = 1"
+
+ extension. = ''
+
+ This option has no effect when printing to a printer. By this I mean, not a
+ local or networked directory. See "service." for an explanation of this
+ options usage.
+
+ pattern. = '~(#?.info)'
+
+ This is the default AmigaDOS pattern used when scanning spooldirs. As you
+ probably know this means - "anything but files which end in .info". Lets
+ say you only want printer.2 to spool files that start with "Fred" then set
+ "pattern.2 = 'Fred~(#?.info)'". I'm not sure quite what use this option is,
+ however it seemed like a good idea at the time ;-)
+
+ purge. = 0
+
+ When set to 1 PSpool will purge (delete) ALL files in all spooldirs on
+ startup. Use this with caution! Don't set your spooldir to "sys:" otherwise
+ you'll be in for a shock! This option was added to remove icons (.info)
+ from spooldirs that have been spooled to using something other than CMD
+ (CMD doesn't create icons), such as printing as a Postscript file (direct
+ to the spooldir) using Final Writer. I suggest you leave this as 0 and
+ purge specific spooldirs. For example to purge printer.4, set "purge.4 = 1".
+
+ service. = 'printer'
+
+ Sets the default networked (this option has no effect on local services)
+ service type (printer or file share) to 'printer'. To copy print data to a
+ networked file share set to 'file'. For example, "service.5 = 'file'".
+
+ When a service is set as 'file' or the printer is a local directory then
+ the "extension.n" (where 'n' is the printer number) setting is checked by
+ PSpool. If "extension.n = ''" then the file is always renamed with a unique
+ filename (extension of ".prn") during spooling to prevent duplicates.
+
+ However lets suppose that "extension.n = 'ps'". In this case all files that
+ DON'T have the "ps" extension will be renamed with a unique filename and
+ given an extension of ".ps". All files that DO have the "ps" extension
+ will be spooled without renaming.
+
+ subdir. = ''
+
+ This option is only checked when "service.n = 'file'". Set this to the sub
+ directory on the specified file share (printer.n) where files should be
+ spooled to. For example "subdir.5 = 'data\\distiller\\in'"
+
+ GLOBAL SETTINGS:
+
+ printers = 3
+
+ Set to the number of printers on your network that you want to use. Spool
+ dirs are checked in order from 1 to 'x'. If you want to exclude a specific
+ spooldir for checking then use "exclude.n".
+
+ cmdpath = 'sys:utilities/cmd'
+
+ Where can PSpool find CMD? When using more that 1 printer, PSpool does not
+ start CMD, but still passes this setting to PSwitch.
+
+ For PSwitch to work correctly then it must have total control over the
+ starting of CMD and therefore when printers > 1 the "runcmd" and "setcmd"
+ settings are ignored.
+
+ pubscreen = 'Workbench'
+
+ The name of the public screen where all requesters should open on. Do not
+ set this to '' otherwise PSpool will fail! 
+
+ username. = 'username'
+
+ Set this to your default username on the network. If not required (e.g. on
+ a Win95/98 server set to ''. If a specific printer requires a different
+ username then simply set "username.n = 'different_username'".
+
+ password. = 'password'
+
+ Set this to your default password on the network. If not required (e.g. on a
+ Win95/98 server set to ''. If a specific printer requires a different
+ password then simply set "username.n = 'different_password'".
+
+ PRINTER SETTINGS:
+
+ The following settings are required for each printer, where 'n' is 1, 2, 3,
+ 4, etc....
+
+ spooldir.n = 'Data:spool/'
+
+ Set this to your spool folder. This dir/drive/assign name MUST end in ":"
+ or "/". Also the set path MUST be dedicated to the function of spooling
+ files to the printer as ANYTHING found in this folder will be sent to the
+ printer!
+
+ Each printer MUST have it's OWN spooldir! This is very important. Ensure
+ that the spool dir exists as PSpool will not create it for you.
+
+ Note that the spool folders path must NOT contain spaces. This is a
+ limitation of rexxtricks GETDIR() function.
+
+ printer.n = '\\\\dynamix\\DESKJET'
+
+ The printer name in the form of '\\\\server\\printer'. Note that on Windows
+ (95/98/NT) servers the printer name is ALWAYS UPPER CASE.
+
+ To spool files to another local folder then simply set printer.n as the
+ path (ending in ':' or '/'). For example "printer.2 = 'ps:'". 
+ If running GhostScript on the Amiga you could share spooldir.2 as a file
+ share on the network and PSpool will then spool all files copied to this
+ share to the PS: device ;-) Useful eh!?
+
+ If printer.n = '?' then a reqtools file requester will open asking you
+ where to save the print data. This is useful if you want to create a
+ printer profile in PSwitch that prints to FILE: - useful if you've got a
+ nice colour laser at work ;-)
+
+@endnode
+
+@node "Usage" "Usage"
+
+ Usage
+ ~~~~~
+
+ From the shell type "rx pspool" (without the quotes). This is assuming that
+ pspool.rexx is installed in rexx:. Otherwise you will need to specify the
+ path, e.g. "rx network:rexx/pspool".
+
+ Once you know it works (as if it won't eh!?) add the command to your
+ user-startup, startup-sequence, "startnet" script or just start from the
+ shell etc as required. Hey, this is the Amiga you can do it however you
+ like ;-)
+
+ If starting from a script remember that PSpool doesn't detach itself and
+ therefore probably should be started something like;
+
+   run <>nil: sys:rexxc/rx rexx:pspool.rexx
+
+@endnode
+
+@node "Disclaimer" "Disclaimer"
+
+ Disclaimer
+ ~~~~~~~~~~
+
+ It works for me, it should work for you, but if it doesn't then it's not my
+ fault. Use it at your own risk!
+
+@endnode
+
+@node "Copyright" "Copyright"
+
+ Copyright
+ ~~~~~~~~~
+
+ PSpool is (C) 1999 Robert Wilson. The script is released as Freeware ;-)
+
+@endnode
+
+@node "Contact" "Contact"
+
+ Contact
+ ~~~~~~~
+
+ Okay, as you've probably already read my name is Robert Wilson.
+
+ To contact me about PSpool please use any of the following methods;
+
+  * e-mail  -   @{"robert@dynamix.f9.co.uk" system "run >nil: sys:rexxc/rx NetLinks MAIL robert@dynamix.f9.co.uk*PSpool"}
+
+  * ICQ     -   @{"27523124" system "run >nil: sys:rexxc/rx NetLinks WEB http://wwp.mirabilis.com/27523124"}
+
+  * Phone   -   +44 (0)860 245212 (voice or SMS)
+
+  * SMS     -   @{"thelamp@genie.co.uk" system "run >nil: sys:rexxc/rx NetLinks MAIL thelamp@genie.co.uk"}
+               
+
+ For more info about these and other contact methods, please take a look at
+ my web site;
+
+  * @{"http://www.dynamix.f9.co.uk" system "run >nil: sys:rexxc/rx NetLinks WEB http://www.dynamix.f9.co.uk"}
+
+@endnode
+
+@node "Bugs" "Bugs"
+
+ Bugs
+ ~~~~
+
+ TurboPrint (tested with v5 and v7):
+
+ When using TurboPrint, rather than using CMD I thought that it would be
+ better (it's certainly quicker) to print directly to a file. However
+ TurboPrint doesn't seem to lock the file when writing and this causes
+ problems. I have to set TurboPrint to print to the parallel device (not
+ TurboPar) and capture this with CMD.
+
+
+ Studio II:
+
+ None know ATM, but then I haven't tested PSpool with Studio II so I don't
+ know! Does anyone know if Studio II is still available?
+
+@endnode
+
+@node "Future" "Future"
+
+ Future
+ ~~~~~~
+ 
+  * Allow spaces in path/file names. Low priority, stupid idea IMHO!
+
+  * Combined GUI prefs editor for PSpool/PSwitch
+
+  All updates/changes are reliant on users feedback and requests!
+
+@endnode
+

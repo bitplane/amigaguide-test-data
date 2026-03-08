@@ -1,0 +1,920 @@
+@database xpkdisk.guide
+
+@Master xpkdisk.texi
+
+@Width 72
+
+
+This is the AmigaGuide® file xpkdisk.guide, produced by Makeinfo-1.55 from 
+the input file xpkdisk.texi.
+
+
+@Node Main "xpkdisk.guide"
+
+xpkdisk.device
+**************
+
+   This file documents xpkdisk.device 37.8.
+
+   Copyright (C) 1993, 1994, 1995 by Olaf 'Rhialto' Seibert.
+
+   Permission is granted to copy the whole package, in accordance with
+the @{"GNU General Public License" Link "COPYING/MAIN"}, and some additional restrictions.
+
+
+ @{" Overview " Link "Overview"}             What is in the package?
+ @{" Requirements " Link "Requirements"}         What else do you need?
+ @{" Usage " Link "Usage"}                How do you use it?
+ @{" Limitations " Link "Limitations"}          What does it not do?
+ @{" Implementation " Link "Implementation"}       Interesting things to know.
+ @{" License " Link "License"}              What you may do with it.
+ @{" Index " Link "Index"}                Where to find what in this manual.
+
+
+@EndNode
+
+@Node "Overview" "xpkdisk.guide/Overview"
+@Next "Requirements"
+@Prev "Main"
+@Toc "Main"
+
+Overview
+********
+
+   @{b}xpkdisk.device@{ub} is an exec-style device that looks like
+trackdisk.device and similar disks. The difference is that it compresses
+its data and stores it in multiple files in an existing filesystem.
+
+   @{b}*@{ub} Version 37.8 works around a horrible bug that is really caused by
+     XPK when track files are not compressible.  Look in the source
+     file @{"devio.c" Link "devio.c/MAIN"} for details, near the symbol XPKBUG.
+
+     The bug was pointed out to me by Ulrik Jensen <uj2001@hdc.hha.dk>.
+
+   @{b}*@{ub} Fixes a bug in xdClear which assumed that all partitions started
+     at track 0.
+
+     The bug was pointed out to me by Michael Barsoom
+     <mbars@bluejay.creighton.edu>.
+
+   @{b}*@{ub} You can now change the XPKD: assign on the fly, if you're @{"careful" Link "Implementation"}.
+
+   @{b}*@{ub} xdClear now works with the fake scsi.device, which does not seem to
+     know about ETD_* commands.
+
+   @{b}*@{ub} Now keeps the old track file while writing a new one. The old
+     track file is only deleted after successfully writing the new one.
+     You have more control about what to do in such situations.
+
+   @{b}*@{ub} Now includes a utility to reclaim space from deleted files.
+
+   @{b}*@{ub} Now uses a hierarchical track naming scheme for faster access!
+     See @{"Upgrade" Link "Upgrade"} on what to do if you are upgrading from the old naming
+     scheme.
+
+   @{b}*@{ub} Now behaves better in case of threatening lack of disk space.
+
+   @{b}*@{ub} Now handles read-only media.
+
+   It uses the XPK (eXternal PacKer) standard to do the actual
+compression.  This has many advantages:
+
+   @{b}*@{ub} You can choose which compression is most effective for your
+     purpose. For one disk, you might want a very tight compression
+     that is slow, for another you may prefer a faster but less
+     efficient compression.
+
+   @{b}*@{ub} As soon as another XPK library is released, you can use it for your
+     compressed disk(s).
+
+   @{b}*@{ub} Because each track is a standard XPK-compressed file, you can use
+     the normal XPK utilities to uncompress your data, should you wish
+     to do so.
+
+   @{b}*@{ub} You can change the compression type of a disk on-the-fly. All
+     already compressed data remains perfectly usable, but upon
+     re-compression your new choice will be used.
+
+   @{b}*@{ub} You can even manually decompress and recompress your disk (when
+     xpkdisk is not accessing it, of course) with another compression
+     method.
+
+
+@EndNode
+
+@Node "Requirements" "xpkdisk.guide/Requirements"
+@Next "Usage"
+@Prev "Overview"
+@Toc "Main"
+
+Requirements
+************
+
+   What you further need is the XPK user package. At the time of this
+writing, version 2.5 is current, and can be found (at least) on aminet
+ftp sites under the name @{b}Xpk25Usr.lha@{ub}. This package contains the
+necessary libraries for using the programs.
+
+   Running @{b}xpkdisk.device@{ub} probably needs lots of processor cycles and a
+hard disk to be enjoyable in any real sense. If you only have an
+unaccellerated Amiga, you should probably stick to the faster (and thus
+less-efficient) compressing methods.
+
+   @{b}xpkdisk.device@{ub} runs under Kickstart versions 1.2 and higher, but the
+fancy preferences program xdPrefs and xdClear require 2.04 or higher.
+Some other features are also non-functional under 1.2/1.3.
+
+   If you want to recompile the source, you also need the XPK
+developer's package, named @{b}Xpk25Dev.lha@{ub}.
+
+
+@EndNode
+
+@Node "Usage" "xpkdisk.guide/Usage"
+@Next "Limitations"
+@Prev "Requirements"
+@Toc "Main"
+
+Usage
+*****
+
+
+ @{" Installation " Link "Installation"}         Where to put what.
+ @{" Preferences " Link "Preferences"}          How to tune the operation of xpkdisk.device.
+ @{" General Usage " Link "General Usage"}        Some usage info.
+ @{" Upgrade " Link "Upgrade"}              How to upgrade from a previous release.
+ @{" Disk Optimizers " Link "Disk Optimizers"}      Hints when you wish to optimize the disk
+                        structure.
+ @{" Free Space Recovery " Link "Free Space Recovery"}  How to recover space from deleted files.
+ @{" Partitioning " Link "Partitioning"}         How to partition an XpkDisk.
+
+
+@EndNode
+
+@Node "Installation" "xpkdisk.guide/Installation"
+@Next "Preferences"
+@Toc "Usage"
+
+Installation
+============
+
+   Installation can be performed by the Installer, or you can do it by
+hand.  In that case, you must carry out the following steps.
+
+  1. First, you need to copy @{b}xpkdisk.device@{ub} to your DEVS: directory. On
+     my system, I would keep it in LOCAL:devs, and DEVS: is a
+     multi-assign pointing to SYS:devs and LOCAL:devs.
+
+  2. Then, you need to create a @{"Mountlist" Link "Mountlist"} entry and add it to your
+     @{b}DEVS:Mountlist@{ub} file. An example in the 1.3 style is given.
+
+  3. Finally, you need to make an assignment XPKD: to a directory where
+     you want the compressed disk to be stored. @{b}xpkdisk.device@{ub} will
+     create subdirectories as necessary.
+
+  4. Before the first use you must format the disk. The following
+     options are recommended, as far as they are available in your
+     system version:
+
+     Format drive XD0: name Compress0 QUICK FFS DIRCACHE
+
+
+@EndNode
+
+@Node "Mountlist" "xpkdisk.guide/Mountlist"
+@Toc "Installation"
+
+Mountlist
+---------
+
+     /*
+      *  XpkDisk Partition: Unit 0, Size 1 Mb
+      */
+     XD0:
+             Device = xpkdisk.device
+             Unit   = 0
+             Flags  = 0
+             Surfaces  = 1
+             BlocksPerTrack = 64
+             Reserved = 2
+             Interleave = 0
+             LowCyl = 0  ;  HighCyl = 31
+             Buffers = 20
+             BufMemType = 1
+             DosType = 0x444F5301
+             Mount = 0
+     #
+
+   The important parameters are:
+
+@{b}Unit@{ub}
+     This is your choice of the xpkdisk unit. Since there are 8 units,
+     you can use values from 0 to 7.
+
+@{b}BlocksPerTrack@{ub}
+     This is used by @{b}xpkdisk.device@{ub} to determine how large the chunks of
+     compression should be. So in this example with 64 blocks per
+     track, the disk is compressed in chunks of 32 kilobytes each.
+
+@{b}LowCyl, HighCyl@{ub}
+     This determines the size of your compressed disk. It is not
+     necessary that LowCyl equals 0. The disk size in bytes can be
+     calculated with @{b}Size = 512 * BlocksPerTrack * Surfaces * (HighCyl
+     - LowCyl + 1)@{ub}.
+
+@{b}DosType@{ub}
+     A DosType value of 0x444F5301 specifies FFS. If you have it, DCFS
+     is probably better.
+
+   The other parameters are simply the same values that would be used
+for "normal" disks.
+
+
+@EndNode
+
+@Node "Preferences" "xpkdisk.guide/Preferences"
+@Next "General Usage"
+@Prev "Installation"
+@Toc "Usage"
+
+Preferences
+===========
+
+   Unlike xpkdisk.device, the preferences program (@{b}xdPrefs@{ub}) requires at
+least system 2.04.
+
+
+ @{" xdPrefs " Link "xdPrefs"}              Nice user-interface.
+ @{" File Format " Link "File Format"}          How to set your preferences "by hand".
+
+
+@EndNode
+
+@Node "xdPrefs" "xpkdisk.guide/xdPrefs"
+@Next "File Format"
+@Toc "Preferences"
+
+@{b}xdPrefs@{ub}
+-------
+
+   The @{b}xdPrefs@{ub} program (1) opens a window when started from either the
+Workbench or the Shell. No special Workbench processing takes place, so
+ToolTypes have no effect.
+
+   All settings that can be changed with @{b}xdPrefs@{ub} may be changed at any
+time during operation of xpkdisk.device.
+
+   There are several gadgets and menus available.
+
+Unit
+     This slider determines which unit you are seeing and setting. If
+     you drag it before clicking on either Save or Use, your settings
+     will be lost.
+
+Save
+     Saves the currently visible settings in the permanent settings
+     file. This file is located in the XPKD: directory. It also implies
+     "Use". It does not quit the program.
+
+Use
+     Saves the currently visible settings in a temporary settings file.
+     This file is located in the ENV: directory. The unit is notified
+     that it should re-read its internal settings. It does @{i}not@{ui} quit the
+     program.
+
+Quit
+     This button @{i}does@{ui} quit the program (and so will the close gadget).
+
+     The reason that these three functions are separate is that I hate
+     the fact that usually "Save" and "Use" imply "Quit". Especially
+     here, when you may want to change the settings of several units in
+     one go.
+
+Compression
+     This string gadget allows you to specify the compression you'd
+     like to use.  This string should be in the standard XPK format of
+     ABCD(.nnn): a four letter name, optionally followed by a period
+     and a number from 0 to 100 to specify the efficiency.
+
+     Watch out: it allows you to specify compression methods that are
+     not (currently) available. In that case, no compression will be
+     used.  You will get annoying requesters about XPK errors -15
+     (XPKERR_MISSINGLIB).
+
+Timeout required
+     This item is the first of the 3 gadgets relating to
+     xpkdisk.device's behaviour when faced with the option of
+     compression its internal buffers.  Every time a modification is
+     made to the internal buffers, a timeout is restarted. When the
+     timeout expires, it is examined whether it is appropriate to do
+     the compression.
+
+     Checking this option means that the compression will not be done
+     unless the timeout has expired.
+
+Time
+     This slider determines the time used for the timeout of the
+     previous gadget.  The actual timeout will be between this value
+     and half this value, depending on the actual sequence of events.
+
+CMD_UPDATE required
+     Normally, a filesystem sends @{b}CMD_UPDATE@{ub} commands to xpkdisk.device
+     if it has completed its current operations. Every time such a
+     command is received, it is examined whether it is appropriate to
+     do the compression.
+
+     Checking this option means that the compression will not be done
+     unless this command has been received.
+
+     There are several combinations possible of @{b}Timeout@{ub} and @{b}CMD_UPDATE@{ub}.
+
+    None checked
+          Compression will be done every time a @{b}CMD_UPDATE@{ub} command is
+          received, and every time the timeout expires. In this case it
+          is probably best to take a long timeout, unless the overlying
+          program is lax about sending the @{b}CMD_UPDATE@{ub} commands.
+
+    Only @{b}Timeout@{ub} checked
+          Compression will be done every time the timeout expires.
+          @{b}CMD_UPDATE@{ub} commands are effectively ignored, since the
+          occurrence of the timeout leaves no work to do for the
+          @{b}CMD_UPDATE@{ub}.
+
+    Only @{b}CMD_UPDATE@{ub} checked
+          Compression will be done every time a @{b}CMD_UPDATE@{ub} command is
+          received.  Timeouts are effectively ignored, since the
+          occurrence of the command leaves no work to do for the
+          timeout.
+
+    Both @{b}Timeout@{ub} and @{b}CMD_UPDATE@{ub} checked
+          This is the default case. It means that even when a @{b}CMD_UPDATE@{ub}
+          command is received, compression is delayed until the timeout
+          expires.  Not usually, the timeout could expire first, in
+          which case the @{b}CMD_UPDATE@{ub} command will be waited for.
+
+          This is convenient in case new disk operations occur soon
+          afterwards, which is often the case.
+
+     To recapitulate: There are two occasions at which compression is
+     considered: after a timeout, and upon receiving a @{b}CMD_UPDATE@{ub}. Both
+     events are noted, and then it is determined whether all required
+     events have happened. If so, compression takes place (and the
+     events are cleared).  If not, no further action is taken at that
+     time.
+
+Safe write
+     This enables the use of the ripcord (see @{"General Usage" Link "General Usage"}).
+
+Cache size
+     This is the highest number of tracks that xpkdisk.device will keep
+     in memory.  Setting this to a higher value usally increases speed,
+     but at the cost of (by default) 32 kilobytes of memory per track.
+     If there are already the maximum number of tracks in memory, and
+     access to another track is requested, one of the current tracks is
+     selected to be replaced, compressing and writing it to disk if
+     necessary.
+
+   ---------- Footnotes ----------
+
+   (1)  @{b}xdPrefs@{ub} requires system 2.04 or newer.
+
+
+@EndNode
+
+@Node "File Format" "xpkdisk.guide/File Format"
+@Prev "xdPrefs"
+@Toc "Preferences"
+
+File Format
+-----------
+
+   The file @{b}XPKD:XpkDisk<unit>.prefs@{ub} that is produced by the preferences
+program looks like
+
+     CMDUPDATE=1,DELAY=1,SAFE=0,CACHE=8,TIME=5,METHOD=BLZW.100
+
+   These are the default settings, and correspond to the settings of the
+gadgets with similar indications.
+
+   It must be a single line of text, with the items separated by a
+comma.
+
+   The order in which the settings are given is not important, but the
+full name is: no abbreviations are possible.
+
+   Refer to the previous section for a detailed explanation of all
+items.
+
+
+@EndNode
+
+@Node "General Usage" "xpkdisk.guide/General Usage"
+@Next "Upgrade"
+@Prev "Preferences"
+@Toc "Usage"
+
+General Usage Information
+=========================
+
+   Once you have mounted your compressed disk, you can use it as a
+normal AmigaDOS harddisk.
+
+Disk-full handling
+------------------
+
+   There is a provision for disk-full conditions of the underlying file
+system, but this can't be perfect. This means that disasters may still
+happen if you make your compressed disk too large for the space that is
+actually available. This is only functional if you checked "Safe write"
+in the xdPrefs program.
+
+   If for any currently in-use unit the "Safe write" option is checked,
+@{b}xpddisk.device@{ub} creates a "ripcord" file (@{b}XPKD:Ripcord@{ub}) that has at
+least the size of two uncompressed tracks. Every time a track is
+written out, the available size on @{b}XPKD:@{ub} is checked. If it falls below
+the same threshold (two uncompressed tracks), a warning requester is
+put up @{i}if you are running 2.04+@{ui}. It gives you the following options:
+
+Rip Cord
+     The file @{b}XPKD:Ripcord@{ub} is deleted, in order to make space, and the
+     operation proceeds. This option is always chosen under 1.2/1.3.
+
+Try Anyway
+     The operation proceeds regardless of the little available space.
+     This may cause the write to fail.
+
+Abort
+     The operation is aborted: the track is not written out.
+
+   When the track is not written, or when an error occurs while trying
+to write it, the track is kept in memory, even if this means that huge
+amounts of memory will be used. It is also remembered that it needs to
+be written, so that retries will occur.
+
+   Also, xpkdisk will report a write error to the upper file system.
+Hopefully, this will only affect the file you are currently writing, but
+you may have a stroke of bad luck.
+
+   This means that as soon as you get the requester, you should abort
+whatever program is writing to the compressed disk. The spare space
+from the ripcord @{i}should@{ui} allow the file system to keep its directory
+information consistent, but if you let the writing continue there will
+not even be space for that and you may end up with a corrupted file
+system anyway.
+
+   If aborting the writing program won't work, or not quick enough, the
+following strategy @{i}may@{ui} limit the damage done. The first few times,
+click on the "Abort" button. This will (hopefully) propagate an error
+condition from @{b}xpkdisk.device@{ub}, through the file system, to the
+application. When the application aborts, and the file system is
+cleaning up, click on "Try Anyway" or "Rip Cord".
+
+   If you are using 1.3, the choice "Rip Cord" is always made for you.
+
+Trackfile write errors
+----------------------
+
+   Regardless of the above, if there is an error detected when writing a
+compressed track, two corrective actions are taken. First, it is tried
+to write the track uncompressed. If for instance the disk is full, this
+is not likely to help, but it might be useful when you are low on
+memory. If this still does not work, a requester is put up, offering a
+choice between "Retry", "Revert to old" and "Abort". As long as you keep
+selecting Retry the process is started again. This allows you to free up
+memory and/or disk space to enable the writing to proceed successfully.
+
+   If you select "Cancel", then the old version of the trackfile is
+left, with an extension of ".old", because the new one is most likely
+unusable.
+
+   If you select "Revert to old", the old trackfile is left with its
+original name.
+
+Read-only disks
+---------------
+
+   If the underlying filesystem is read-only, then the compressed disk
+will also be read-only. If the read-only status changes, you may need
+to give a DiskChange command for the compressed disk, so that the file
+system will re-examine the disk.
+
+Compressed floppies
+-------------------
+
+   Compressed floppy disks are currently not very practical, but they
+may be possible if you use a non-binding Assign for XPKD:, i.e.
+
+   Assign PATH XPKD: DF0:
+
+   However, you can then use only one unit, and you have to be @{i}very@{ui}
+careful to do a @{b}DiskChange XD0:@{ub} every time you swap floppies.
+
+
+@EndNode
+
+@Node "Upgrade" "xpkdisk.guide/Upgrade"
+@Next "Disk Optimizers"
+@Prev "General Usage"
+@Toc "Usage"
+
+Upgrading from a previous release
+=================================
+
+   If you want to upgrade from a previous release that didn't have the
+hierarchical track naming scheme yet, the program @{b}xdName@{ub} will be useful
+to you.
+
+   First, determine the highest track number that needs to be converted.
+To be on the safe side, use the value of @{b}HighCyl@{ub} from the Mountlist,
+but you can also use the highest number that is actually in use.
+
+   Then, in the Shell, use the command
+
+     xdName track >script
+
+where "track" is the track number you determined. This will create a
+script that will create the necessary new directories and rename all
+tracks.  Then execute this script to do the actual conversion. You
+don't need to keep the script around:
+
+     execute script
+     delete script
+
+   Should you wish to convert back, use the @{b}-r@{ub} flag. If you just want
+to know the file for a certain track, use @{b}xdName -n track@{ub}.
+
+
+@EndNode
+
+@Node "Disk Optimizers" "xpkdisk.guide/Disk Optimizers"
+@Next "Free Space Recovery"
+@Prev "Upgrade"
+@Toc "Usage"
+
+Disk Optimizers
+===============
+
+   If you wish to use a disk optimizer (also called defragmenter), you
+can do this if you take a few precautions. I have personally used ReOrg
+with success, so the hints below are biased for ReOrg.
+
+   @{b}*@{ub} Set the number of cached tracks very low, such as 1 or 2. The
+     reorganizer will usually have a cache that is more effective for
+     its specific purposes.
+
+   @{b}*@{ub} The reorganizer should have a setting that keeps it from using all
+     system memory. Set this amount to 300 - 400 kilobytes more than the
+     normally recommended setting. This is because many of the xpk
+     compressors use relatively a lot of memory. You should consult the
+     compressor libraries documentation to check its memory usage if
+     you want a lower setting.
+
+   @{b}*@{ub} If the reorganizer is of the "safe" type (that moves only a few
+     blocks at a time to keep a consistent disk structure), then it
+     will not use all system memory for itself. In that case you can
+     allow a larger xpkdisk cache. In fact you'll probably have to do
+     this to prevent trashing.
+
+   @{b}*@{ub} If there is still not enough memory to compress, you will get an
+     alarming requester with xpk error messages. In this case the track
+     will already be written uncompressed, so there is usually no real
+     danger to ignore the situation. However, you should verify this
+     from another Shell window or the Workbench. Also, if you
+     reorganize your whole disk this way it will be decompressed
+     entirely, which is probably not what you want.
+
+   @{b}*@{ub} Don't set any option to clear unused blocks. It is usually better
+     to use xdClear for that purpose afterwards.
+
+   @{b}*@{ub} During compression the compressed disk may take more space than
+     before or afterwards, especially if the reorganizer decides to
+     move lots of blocks to previously unused tracks. The worst case (a
+     half full disk being moved completely) could temporarily take
+     twice as much space as before.
+
+   @{b}*@{ub} A time-remaining indication by the reorganizer will not be very
+     reliable at first since decompressing tends to be much faster than
+     compressing for most methods.
+
+
+@EndNode
+
+@Node "Free Space Recovery" "xpkdisk.guide/Free Space Recovery"
+@Next "Partitioning"
+@Prev "Disk Optimizers"
+@Toc "Usage"
+
+Free Space Recovery
+===================
+
+   or, On A Clear Disk You Can Seek Forever...
+
+   The normal Amiga filesystem does nothing special with files that you
+delete. The only thing it does is unlink the file from the directory
+structure. The advantage is that you can recover the file if nothing
+new has been written over it.
+
+   The disadvantage of this is that if you delete a file, your disk
+does not shrink.
+
+   To overcome this little problem, I have written a program, called
+@{b}xdClear@{ub} (1), that fills all unused sectors on the disk with zeros. The
+theory is that whole lots of zeroes would be very compressible and
+therefore reduce actual disk space usage to a minimum. Additionally, if
+it is used on an xpkdisk, if a whole track is not in use it deletes the
+file containing it, thereby eliminating all disk usage for that track.
+@{b}xdClear@{ub} only works if you are using the normal Amiga filesystem.
+
+Usage: xdClear <devicename>
+
+for example @{b}xdClear XD0@{ub}. You must give the device name, not the volume
+name. It does not matter if you include the colon (@{b}:@{ub}) in the name.
+
+   @{b}xdClear@{ub} checks the bootblock for a value of "DOS\?", where \? may be
+anything, it calculates which block is supposed to be the file system
+root block, checks if its type is correct, checks the checksum, and
+finally sees if the bitmap is indicated as "valid".
+
+   @{b}xdClear@{ub} scans the bitmap present on the indicated device, one track
+at a time. If a whole track is being unused, and the device is
+@{b}xpkdisk.device@{ub}, then the the track file is deleted. Otherwise, the
+unused sectors are filled with zeroes. This is only written back to the
+disk if the sector wasn't all zeroes to begin with. This should save a
+lot of compression effort in case the disk was relatively clean already.
+
+   Since the @{"format of the bitmap" Link "format of the bitmap"} should be, but isn't, documented in
+the AmigaDOS manual, I had to reverse engineer this. I have tested this
+with the most complex bitmap structure possible according to what is
+being documented with a 10000-track (312 M) compressed disk.  After I
+did this I compared my results with Ralph Babel's excellent "The Amiga
+Guru Book", and fortunately they matched.
+
+   ---------- Footnotes ----------
+
+   (1)  @{b}xdClear@{ub} requires system 2.04 or newer.
+
+
+@EndNode
+
+@Node "format of the bitmap" "xpkdisk.guide/format of the bitmap"
+@Toc "Free Space Recovery"
+
+Format of the bitmap
+--------------------
+
+   This is an addition to the information on pages 336-338 of the 3rd
+edition of "The AmigaDOS Manual".
+
+                            "Bitmap Block"
+
+
+             0: Balance to 0 checksum
+     1..SIZE-1: Longwords of flags indicating "available" (1),
+                or "in use" (0) for each block.
+                The bit for block #n is in longword 1 + n/32,
+                bit number n mod 32 (bit 0 is the lsb).
+
+   The first 25 bitmap blocks are recorded in the root block, at
+longwords SIZE-49 .. SIZE-25. With the FFS, if more bitmap blocks are
+needed, they are recorded in a "bitmap extension block". The key of the
+first bitmap extension block is stored in rootblock longword SIZE-24.
+
+                       "Bitmap Extension Block"
+
+
+     0..SIZE-2: Sector numbers (i.e. keys) of bitmap blocks,
+                or 0 if nonexistent.
+        SIZE-1: Sector number of next bitmap extension block,
+                or 0 if nonexistent.
+     
+     Note that bitmap extension blocks don't have a checksum.
+
+
+@EndNode
+
+@Node "Partitioning" "xpkdisk.guide/Partitioning"
+@Prev "Free Space Recovery"
+@Toc "Usage"
+
+Partitioning
+============
+
+   You can, if you wish, put multiple "partitions" on a single XpkDisk
+unit. This might be useful if you think that 8 units isn't sufficient
+for your needs. Of course, all option settings will be the same for all
+partitions.
+
+   Basically, the same rules apply as for partitioning real disks, with
+the following extra rule:
+
+   @{b}*@{ub} For real disks you can usually cheat with the disk geometry. As
+     long as you make sure partitions don't overlap you can claim
+     different values for @{"BlocksPerTrack" Link "Mountlist"} and @{"Surfaces" Link "Mountlist"} for different
+     partitions. Not so for XpkDisk. All partitions on a single unit
+     @{i}must @{ui}have the same values for these parameters.
+
+   There is not even a reason why you should start your first partition
+with track 0, apart from the disk usage of unused "Group_????_??"
+directories.
+
+
+@EndNode
+
+@Node "Limitations" "xpkdisk.guide/Limitations"
+@Next "Implementation"
+@Prev "Usage"
+@Toc "Main"
+
+Limitations
+***********
+
+   @{b}*@{ub} There is a provision for disk-full conditions of the underlying
+     file system, but this can't be perfect. This means that disasters
+     may still happen if you make your compressed disk too large for
+     the space that is actually available. This is only functional if
+     you checked "Safe write" in the xdPrefs program. (See
+     @{"General Usage" Link "General Usage"} and @{"xdPrefs" Link "xdPrefs"}.)
+
+   @{b}*@{ub} There are only 8 units available. Since each unit in general
+     requires a lot of cache memory, this should be plenty. However,
+     nobody keeps you from using multiple @{"partitions" Link "Partitioning"} per device. Keep in
+     mind then, that you need to have the same track size
+     (BlocksPerTrack) for all partitions.
+
+   @{b}*@{ub} When a unit of @{b}xpkdisk.device@{ub} is opened, it scans the list of
+     mounted devices to find out its track size. It just looks for its
+     name and unit number and uses the first match. If not found, the
+     track size defaults to 64 blocks. This means that if you @{i}ever@{ui}
+     intend to use a different track length for a unit, it must @{i}always@{ui}
+     be mounted before accessing it.
+
+     This is not so bad as it seems, because specifying @{b}Mount = 0@{ub} costs
+     almost no memory.
+
+
+@EndNode
+
+@Node "Implementation" "xpkdisk.guide/Implementation"
+@Next "License"
+@Prev "Limitations"
+@Toc "Main"
+
+Implementation
+**************
+
+How are all the tracks stored?
+==============================
+
+   Since version 37.3, each track of xpkdisk.device is stored in a file
+with a name like @{b}XPKD:Unit1/Group_0000_HL/Track_001d_KE@{ub}.
+
+   Why such a funny name? That is simple: names like these minimise the
+number of disk accesses needed to find the file. For example, the file
+header of this file can be retrieved in exactly 3 disk accesses.  The
+same is true for all other tracks (as long as you have at most 72 * 72
+= 5184 tracks; this equals 162 megabytes of uncompressed disk space).
+This works as follows.
+
+   Each unit of xpkdisk.device changes it current directory to
+@{b}XPKD:Unit<number>@{ub}. Then, when this track is requested, AmigaDOS looks
+up directory @{b}Group_0000_HL@{ub}. These directories each group (at most) 72
+tracks, and as long as there are at most 72 directories, all
+directories have the a unique "hash value". Each directory block can
+store 72 pointers to contained files or directories, and the hash value
+determines in which of these slots the pointer should go. So if each
+track hashes uniquely, this means that the directory block can be found
+in a single disk access. (If the file or directory found at the
+location in the hash table is not the desired one, a chain is followed
+which means more disk accesses are needed.)
+
+   The number in the directory name is the hexadecimal representation of
+the first track in it.
+
+   The same is true in each directory: the names of the tracks are
+constructed such that each has a different hash value. In fact, the
+hash values in each directory neatly range from 0 for the lowest track
+to 71 for the highest track.
+
+   Compare this with the old situation (in version 37.2), where all
+tracks were stored in a single directory. Even if you have a modest
+disk of 20 megabytes, this means there are 640 tracks. On average, this
+would mean that 640 / 72 = 9 tracks would hash to the same hash table
+entry, which in turn would mean 1 + 4.5 (average) accesses to find a
+track, and 1 + 9 accesses worst case.
+
+   In reality the worst case was even worse, since the hash values were
+not evenly distributed. The longest hash chain would be 13, and the
+shortest 4.  This makes the worst-case number of accesses 14, which is
+pretty bad.
+
+   This improvement in access speed comes at a small price: one extra
+disk block per 72 tracks: 9 extra blocks in the example 20 M case.
+
+A note on track size
+====================
+
+   Since file header blocks can store pointers to at most 72 data
+blocks, it is recommended that you make tracks not larger than 71
+blocks.  This leaves one block for expansion of uncompressible tracks.
+
+CMD_RESET
+=========
+
+   The CMD_RESET standard device command is used by the preferences
+program to let the device know to re-initialise the settings.
+Additionally, the current directory (XPKD:Unit0-7) is re-established,
+so you can change the location of your tracks on the fly. For this to
+work, the cached tracks are pushed first.  It is highly recommended
+that you perform a DiskChange command both before and after such a
+trick.
+
+
+@EndNode
+
+@Node "License" "xpkdisk.guide/License"
+@Next "Index"
+@Prev "Implementation"
+@Toc "Main"
+
+License
+*******
+
+   Xpkdisk.device is Copyright (C) 1993, 1994, 1995 by Olaf Seibert.
+All rights reserved.
+
+   This program is free software; you can redistribute it and/or modify
+it under the terms of the @{"GNU General Public License" Link "COPYING/MAIN"}, as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+   This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software Foundation,
+Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+   The Licence (see @{"the file COPYING" Link "COPYING/MAIN"}) does not specify limitations on
+copying fees; the specification shall be that xpkdisk.device may not be
+distributed in a commercial package of any kind, including disks sold
+by pd/freeware/shareware resellers charging more than $6 or DM 10 per
+disk, without my written permission.
+
+
+@EndNode
+
+@Node "Index" "xpkdisk.guide/Index"
+@Prev "License"
+@Toc "Main"
+
+Index
+*****
+
+@Index "Index"
+
+
+
+ @{" bitmap, Format of the " Link "format of the bitmap"}                format of the bitmap
+ @{" BlocksPerTrack " Link "Mountlist"}                       Mountlist
+ @{" Cache size " Link "xdPrefs"}                           xdPrefs
+ @{" CMD_UPDATE required " Link "xdPrefs"}                  xdPrefs
+ @{" Compression " Link "xdPrefs"}                          xdPrefs
+ @{" Copying " Link "License"}                              License
+ @{" Disk Optimizers " Link "Disk Optimizers"}                      Disk Optimizers
+ @{" Distribution " Link "License"}                         License
+ @{" DosType " Link "Mountlist"}                              Mountlist
+ @{" File Format " Link "File Format"}                          File Format
+ @{" Format of the bitmap " Link "format of the bitmap"}                 format of the bitmap
+ @{" General Public License " Link "License"}               License
+ @{" GNU General Public License " Link "License"}           License
+ @{" HighCyl " Link "Mountlist"}                              Mountlist
+ @{" Implementation " Link "Implementation"}                       Implementation
+ @{" Index " Link "Index"}                                Index
+ @{" Installation " Link "Installation"}                         Installation
+ @{" License " Link "License"}                              License
+ @{" Limitations " Link "Limitations"}                          Limitations
+ @{" LowCyl " Link "Mountlist"}                               Mountlist
+ @{" Modification " Link "License"}                         License
+ @{" Mountlist " Link "Mountlist"}                            Mountlist
+ @{" Overiew " Link "Overview"}                              Overview
+ @{" Partitioning " Link "Partitioning"}                         Partitioning
+ @{" Preferences " Link "Preferences"}                          Preferences
+ @{" Recovery of Free Space " Link "Free Space Recovery"}               Free Space Recovery
+ @{" ReOrg " Link "Disk Optimizers"}                                Disk Optimizers
+ @{" Requirements " Link "Requirements"}                         Requirements
+ @{" Ripcord " Link "General Usage"}                              General Usage
+ @{" Time " Link "xdPrefs"}                                 xdPrefs
+ @{" Timeout required " Link "xdPrefs"}                     xdPrefs
+ @{" Unit " Link "Mountlist"}                                 Mountlist
+ @{" Upgrade " Link "Upgrade"}                              Upgrade
+ @{" Usage " Link "General Usage"}                                General Usage
+ @{" xdClear " Link "Free Space Recovery"}                              Free Space Recovery
+ @{" xdName " Link "Upgrade"}                               Upgrade
+ @{" xdPrefs " Link "xdPrefs"}                              xdPrefs
+ @{" Xpk25Dev.lha " Link "Requirements"}                         Requirements
+ @{" Xpk25Usr.lha " Link "Requirements"}                         Requirements
+
+@EndNode
+

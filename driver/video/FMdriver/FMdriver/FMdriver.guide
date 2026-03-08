@@ -1,0 +1,962 @@
+@database FM
+@remark $VER: FM.guide 1.25 (01.09.1999)
+
+@node MAIN
+@title "FMTV, FMBaseConfig guide Version 1.25"
+
+ @{b}FMBaseConfig, FMTV, FMRecorder, FMRecord, FMRecordDec, FMGrab, FMInit@{ub}
+
+           a new driver system for the electronic-design
+                   FrameMachine video card
+
+
+
+ @{"  Introduction           " link INTRODUCTION              }   What is it?
+
+ @{"  Requirements           " link REQUIREMENTS              }   Hard-/Software-Requirements
+
+ @{"  OCS, ECS, AGA          " link OLDAMIGA                  }   Read this, if you have no Gfx-Board!
+
+ @{"  Installation           " link INSTALLATION              }   How to install...
+
+
+
+ @{"  FMBaseConfig           " link FMBaseConfig              }   FrameMachine Settings
+
+ @{"  FMTV & Grabbing Center " link FMTV                      }   Watch TV and grab pictures on your WB!
+
+ @{"  FMRecorder             " link FMRECORDER                }   Record anims to HardDrive!
+
+ @{"  FMInit                 " link FMINIT                    }   Initalizes the FM
+
+ @{"  FMGrab                 " link FMGRAB                    }   Grabs images (Shell)
+
+ @{"  FMRecord               " link FMRecord                  }   Records anims to HD (Shell)
+
+ @{"  FMRecordDec            " link FMRecordDec               }   Converts FMMovie-Anims into images
+
+
+
+ @{"  Speed                  " link SPEED                     }   How fast is it?
+
+ @{"  Bugs, Limitations      " link BUGSLIMITS                }   Known problems...
+
+ @{"  History                " link HISTORY                   }   Program history
+
+ @{"  Credits                " link CREDITS                   }   Thanks to...
+
+
+ @{"  Registration           " link REGISTRATION              }   GIFTWARE
+
+ @{"  Disclaimer             " link DISCLAIMER                }   Warranty
+
+ @{"  Author                 " link AUTHOR                    }   Contact information
+
+@endnode
+
+@node INTRODUCTION "Introduction - What is it?"
+
+  @{b}Introduction@{ub}
+  @{b}------------@{ub}
+
+  About a halve year ago I wanted to have a fame-grabber with good
+  image-quality and the ability to grab a image in realtime out of
+  a running video.
+  First, I wanted to develop my own video-digitzer, but as I had not
+  enough time, I decided to buy one. But I wanted to have a hardware
+  with programmer docs, so that I can write my own software for and
+  with it.
+  First, I wanted the VLab from MacroSystems, but MS didn't want to
+  give me the needed programmer docs.
+  Then, I decided to choose the FrameMachine from electronic-design.
+  This card is old, but has some nice features, one of them is the
+  Prism24 video buffer.
+  The only problem of the FM is, that the original driver, the
+  framemachine.library has several bugs which makes it almost
+  impossible to use the card on new hardware, because it has timing-
+  problems (I2C-Bus overclocked by software.) Because of this, I
+  wanted to make my own drivers.
+  As I contacted ED, they told me, that they do not support the
+  FrameMachine anymore, but they wanted to help me to get the needed
+  docs... well, several phone calls and weeks later I spoke with
+  the software developers of this card (D. Swertz and R. Steffen)
+  and they both said Ok that I can have the sources of the original
+  framemachine.library.
+
+  Well, some days after these phone calls I got the sources and
+  started immediately to program a new driver.
+  The result is a @{i}not@{ui} "framemachine.library"-compatible
+  driver, this old library is in my opinion not very powerful.
+  I made a much more flexible C++ class which takes over control over
+  the FrameMachine hardware.
+  Since version 1.25, the FMdriver package comes with my own proprietary
+  newframemachine.library, this library is not for open use, only
+  the FMdriver applications do have access to it.
+  If you want to use the FrameMachine from other applications, please
+  use my FrameMachineVHI-driver (which also does use the
+  newframemachine.library).
+
+  I removed the timing-problems of the oroginal version in a system-
+  friendly way and added also some features.
+
+  The result is a @{i}very@{ui} stable and @{i}fast@{ui} driver which
+  should also run on the fastest machines.
+  I even made PPC-versions of the driver which allows to do the
+  YUV-to-RGB conversion in pure realtime.
+
+@endnode
+
+
+@node REQUIREMENTS "Requirements - Hard-/Software-Requirements"
+
+  @{b}Requirements@{ub}
+  @{b}------------@{ub}
+
+  * FrameMachine video card, with or without Prism24 add-on
+  * AmigaOS3.x (tested with 3.9)
+  * About 2MB free RAM
+  * 68020(+)
+  * OCS, ECS or AGA (runs from 2 to 256 colors (!!) )
+
+  @{fg shine}> For full image quality and speed you should have running
+  > with CGX V3/V4 or Piccasso96 in 15 Bit or more@{fg text}
+
+
+  Additionally you need for the PPC-Versions:
+
+  * a PPC 603e/604e PowerPC accelerator board
+  * WarpOS V3 or better
+
+
+
+
+  @{u}Testconfiguration@{uu}
+
+  Amiga3000, OS3.9, PAL machine
+  CyberStorm 604e/200 & 68040/40, 144MB RAM
+  CyberVisionPPC, FrameMachine, AriadneII, HyperComZ3
+  9.1GB and 4.5GB UW-SCSI-HD, Plextor UltraPlex32 CDROM,
+  Yamaha CDRW 4x CD-Writer, SyQuest270
+
+@endnode
+
+
+@node OLDAMIGA "OCS, ECS, AGA  - Read this, if you have no Gfx-Board!"
+
+  @{b}OCS, ECS, AGA@{ub}
+  @{b}-------------@{ub}
+
+  The FMdriver applications since release 1.10 support all possible workbench-
+  displaymodes, also OCS, ECS and AGA graphics.
+  But you should know, that there is a (major) loss of speed (of course also
+  a major quality-loss!!), if you don't use a Gfx-Board because the software
+  has to re-render the image to your Workbench palette for every frame.
+
+  The programs use a algorithm which searches for the closest matching of a
+  color. If the palette changes during operation, it is possible, that the
+  display gets silly. In this case, close and reopen the program. It then
+  re-creates the colortables to provide optimum display-quality.
+  I have to admit that this is not a very fine way, but to reach maximum
+  display speed on non-gfx-board systems, this was the best way.
+
+@endnode
+
+
+@node INSTALLATION "Installation - How to install"
+
+  @{b}Installation@{ub}
+  @{b}------------@{ub}
+
+
+  Just double-click the "Install Software" icon and follow the
+  installation steps displayed by the install-script.
+
+
+
+
+
+
+  --- Only if you want to do it by hand, do the following ---
+               (not recommended and needed)
+
+  1. Copy the two files
+       "devs/XILINX"
+     and
+       "devs/XILINX.PRISMA"
+     to DEVS:
+
+  2. Copy the "libs/wizard.library" and
+     "libs/newframemachine.library" to libs:
+
+  3. Copy the documentation, catalogs and program files to
+     a drawer were you want to have the software located.
+
+  4. Thats it!
+
+@endnode
+
+
+@node FMBaseConfig "FMBaseConfig - FrameMachine Settings     "
+
+  @{b}FMBaseConfig@{ub}
+  @{b}------------@{ub}
+
+  FMBaseConfig is the global configuration program for the new
+  FrameMachine driver. If you start it, there will open a window
+  with a lot of sliders in it.
+
+  If you are a NTSC-user, I think you have to do some
+  adjustments to have a perfect picture, I had unfortunately no
+  possiblity to do this on my own.
+  So if you have better settings, please send them to @{" me " link AUTHOR}.
+
+
+  @{b}Active Configuration@{ub}
+  FMBaseConfig/FMdriver can store and handle several different configurations
+  for you. The "Active Configuration" is the configurations you edit.
+  You can rename it by entering a new name in the input gadget below the cycle
+  gadget. The other buttons are self-explanory, I think.
+  Configurations are very nice if you want to have several settings for example
+  for digitizing 16:9 and 4:3 video or from several different video sources.
+  Everytime you can have other image border settings so that you don't see any
+  black borders; this also speeds up digitizing! ;-)
+
+
+  @{b}The page "Prism24 Window"@{ub}
+  @{b}-------------------------@{ub}
+
+  This page allows you to control all parameters like dimensions and
+  position of the video image coming from the Prism24 video module.
+
+  (You should set the Mode (->"Prism24 Modes" to "Prism Key"
+   to have all possibilities enabled!)
+
+   leftskip: how much should be cut of from the image on
+             the left side (black-border removement)
+
+  rightskip: like leftskip, but for the right side of the image
+
+    topskip: how many image-lines shall be skipped on the top
+             of the image (video-text-border removement)
+
+         x1: start-X-position of the image displayed by Prism24
+         x2: end-X-position of the image
+
+         y1: start-Y-position
+         y2: stop-Y-position
+
+         @{b}(x2 - x1) has to be the width of the display!!@{ub}
+
+         for example: DisplaySize: 720x570 -> width=720
+                      if x1 is 122 then x2 has to be 842:
+                      width=x2-x1 -> x2=width-x1 -> 842=720-122
+
+    xoffset: X-position of the image
+    yoffset: Y-position of the image
+
+    @{fg shine}@{i}=> You should always set xoffset and yoffset to zero and
+       adjust every DisplaySize so that it is exactly centered
+       on the screen.
+       The xoffset and yoffset controls the offset from the
+       centered position. This can be directly be influenced
+       by an application using this new driver.@{fg text}@{ui}
+
+
+  @{b}The page "Prism24 Image"@{ub}
+  @{b}------------------------@{ub}
+
+  The sliders available in this section control the output' image
+  of Prism24. You can change brightness, saturation, contrast, red,
+  green and blue.
+  Change the sliders until it best fits your equipment and save it.
+  These settings will be used as default by other applications.
+
+
+  @{b}The page "Prism24 Modes"@{ub}
+  @{b}------------------------@{ub}
+
+  The gadgets on this page let you set the display mode and keymode
+  for this configuration.
+
+
+  @{b}The page "Digitizer Border"@{ub}
+  @{b}---------------------------@{ub}
+
+  Every setting on this page directly influences the digitized
+  images by the FrameMachine driver.
+  You can specify leftskip, rightskip, topskip and height of
+  the image.
+  These changes are useful to avoid black borders or the upper
+  video-text lines.
+  If you are on this page, on the right-side of this window opens
+  a real-time preview of the settings.
+  @{i}@{fg shine}Change the settings for every DisplaySize, so that the
+  applications using the new driver have the best image without
+  any irritating borders.@{fg text}@{ui}
+
+
+  @{b}The page "Digitizer Image"@{ub}
+  @{b}--------------------------@{ub}
+
+  The settings on this page influence the image parameters like brightness,
+  gamma, contrast, etc.
+  The settings are saved for the current active configuration.
+
+  If you have finished all adjustments, just close the program or create
+  a further configuration.
+  The settings for Size, Input Type, Video Input and Video Format by the
+  way are also saved in the current configuration; they will be used as
+  @{i}default@{ui} in all applications using it.
+
+
+  @{b}Now you are ready to use this FrameMachine driver package!@{ub}
+
+
+@endnode
+@node FMTV "FMTV & Grabbing Center - Watch TV and grab pictures on your WB!"
+
+  @{b}FMTV@{ub}
+  @{b}----@{ub}
+
+  The FMTV program is for watching TV in a small window on your Workbench and
+  for grabbing images.
+
+
+  If you click on the tv-window with the left mouse button, the
+  image is paused.
+  A right click on this window opens the TVControl-window, if you
+  click again with the right button, the TVControl-window is closed.
+
+  In the TVControl window you have several options to adjust the
+  displayed image to your needs.
+
+  @{b}@{u}The gadgets:@{uu}@{ub}
+
+    @{b}Interlaced:@{ub}  o No Lace:
+                   Only the halve-frames are digitized and displayed
+                   (full image width, but halve image height)
+                 o NoLace Scaled:
+                   Only the halve-frames are digitizedm but to have
+                   full image-height the image is doubled in height
+                   using the GFX-card drivers function ScalePixelArray().
+                 o Interlaced:
+                   The full image (combined halve frames) is digitized.
+                   This is the best image-quality but slower because
+                   the hardware has to transfer more data.
+
+          @{b}Size:@{ub}  Here you can specify how big you want to have the
+                 video picture on the WB and on the Prism24.
+
+       @{b}Display:@{ub}  o Window:
+                   The image is displayed only in a window on the WB.
+                 o Window&Prism24:
+                   The image is both displayed on the WB and on Prism24.
+                   Restriction: flickering display on Prism24 because
+                   FrameMachine has to transmit the image-data.
+                 o Prism24:
+                   The image is displayed only on the Prism24, the
+                   WB-TV-window closes automatically.
+
+          @{b}Mode:@{ub}  (only of use when using Display: Window)
+                 Here you can specify if you want a color or grayscale
+                 image in the TV-window.
+
+   @{b}FPS Counter:@{ub}  If this checkbox is checked, a small FPS-counter is
+                 activated which shows the frames-per-second.
+                 (only available if DisplayMode is "Window")
+
+   @{b}Video Input:@{ub}  o CVBS: the cinch (FBAS, VHS) input is used
+                 o  Y/C: the Mini-DIN (SVHS) input is used
+
+    @{b}Input Type:@{ub}  o Video: video as source, very stable image (TBC)
+                 o    TV: high-quality source, unstable if bad image
+
+  @{b}Video Format:@{ub}  PAL, NTSC -> specifies the type of the input
+                 video format
+
+ @{b}Configuration:@{ub}  This is the currently used configuration created with
+                 @{" FMBaseConfig " link FMBaseConfig } - the stored settings
+                 are temporarily overwritten by the gadgets above.
+
+   @{b}Corrections:@{ub}  These sliders control the brightness, gamma,
+                 contrast, red green and blue levels of the images taken from
+                 the FrameMachine. Negative makes a negative image effect.
+                 If you want to get maximum speed, set all sliders to zero and
+                 deactivate the negative-checkbox.
+
+
+  @{b}FMTV's Grabbing Center@{ub}
+  @{b}----------------------@{ub}
+
+  This window is available over the prefswindow's and tvwindow's menu.
+  The Grabbing Center is a nice sub-tool of FMTV which lets you easily grab and
+  save images from the running video. You even don't need to have the TV-window
+  opened when grabbing images. This is helpful when you want to grab full-sized
+  images, the system performance really goes remarkable down as it has to handle
+  much image data for each frame.
+
+  @{b}@{u}The gadgets:@{uu}@{ub} (from left to right)
+
+                    @{b}Grab:@{ub} Grabs (takes) an image and saves it into the
+                          image list.
+
+              @{b}Select All:@{ub} Selects all images in the image list.
+
+            @{b}Deselect All:@{ub} Deselects every image in the image list.
+
+        @{b}Toggle Selection:@{ub} Selects unselected and deselects selected
+                          images. The selection state is toggled.
+
+             @{b}DeInterlace:@{ub} Add two more pictures to the image list.
+                          The first one is halve-frame A and the second halve
+                          frame B of the selected image.
+
+
+    @{b}DeInterlace & Double:@{ub} Same as "DeInterlace", but the halve-frames
+                          get vertically doubled (with a filter algorithm) to
+                          get the correct aspect-ratio, again.
+
+                  @{b}Delete:@{ub} Delete all selected images.
+
+                    @{b}Save:@{ub} Saves all selected images with the path and
+                          image base-name entered in the Imagebasename-input
+                          the gadgets.
+
+                   @{b}Prefs:@{ub} Opens the @{" FMTV " link FMTV }-Prefs window.
+
+
+@endnode
+
+@node FMRECORDER "FMRecorder - Record anims to HardDrive!"
+
+  @{b}FMRecorder@{ub}
+  @{b}----------@{ub}
+
+  FMRecorder is for digitizing movies to harddisk.
+  The anims are stored in the FMMovie fileformat, this a proprietary fileformat
+  and only used in the FMdriver applications for saving the FrameMachine video
+  streams in the fastest possible way.
+  You have the possibility to playback the recorded anims with a built-in
+  player and can convert the anims into single images for using them in other
+  video applications (like MPEG video encoders).
+
+
+  If you run FMRecorder, the GUI provides the following options:
+
+  On the bottom of the window:
+
+    @{b}FMMovie-Anim:@{ub}  Specify here the filename for the FMMovie animation to
+                   record. (the file-button on the right side opens a
+                   filerequester)
+
+
+  @{b}@{u}Section "Record/Play Anim":@{uu}@{ub}
+
+     @{b}Record Anim:@{ub} Starts the recording of the anim
+
+            @{b}Stop:@{ub} Stops recording (FMRecorder automatically stops, if
+                  the harddrive is full...) :)
+
+           @{b}Pause:@{ub} Pauses anim playback; lets you also use the slider above to
+
+      @{b}Play Anim:@{ub} Plays a recorded animation. The movie is always played once.
+
+           @{b}Mode:@{ub} This cycle-gadget let you switch between full speed and time
+                 lapse-recordings. In the case of time-lapse, you have also to
+                 enter the number of seconds between each frame is taken.
+
+  
+  @{b}@{u}Section "Convert Anim":@{uu}@{ub}
+
+  If you click @{b}Start Conversion@{ub}, FMRecorder will start to convert the anim into
+  single frames. The fileformat can be chosen by the @{b}Output Format@{ub} cycle-gadget
+  on the top of the window.
+  Currently there is support for the following filetypes:
+
+    o PPM    (24Bit color)
+    o PGM    (8Bit grayscale)
+    o IFF24  (24Bit color)
+    o IFF8   (8Bit grayscale)
+    o IFF24c (24Bit compressed)
+    o IFF8c  (8Bit compressed)
+
+
+  @{b}Filename style:@{ub}  Here you can specify how the saved images are named.
+                   Just look at the labels of this cycle gadget and choose
+                   the name style you want to have. The labels are an example
+                   for image number 12.
+
+  You have to specify the basename of the saved images in the @{b}Output@{ub} text input
+  gadget (the button on the right side opens a filerequester).
+
+
+
+  @{b}@{u}Section "Image Settings":@{uu}@{ub}
+
+  See @{" FMTV's Prefs Window" link FMTV } for more information.
+
+
+
+
+  @{b}@{u}Example@{uu}@{ub} You want to create a MPEG movie out of your recorded anim:
+
+  1. Select a basename for your images (for example: "dh2:images/Pic")
+  2. Select the Output Format "PPM"
+  3. Select the Filename style "Pic0012.ppm"
+  4. Now click "Start Conversion" and wait until all images are converted
+  5. Load a MPEG video encoder and let it convert the images.
+
+     As example, CreateMPEG from Phase5 (PPC: runs great with
+     Frank Willes ppclibemu): (opened GUI from CreateMPEG)
+
+        Source: dh2:images/Pic.%04ld
+        Target: dhe:movie.mpg
+        Format: PPM
+        Frames: (your frame number)
+     1st frame: 0
+
+     Now click "Start" and after a while, the mpeg movie should be
+     successfully generated.
+
+  Thats it!! ;)
+
+@endnode
+
+@node FMINIT "FMInit - Initializes the FM"
+
+  @{b}FMInit@{ub}
+  @{b}------@{ub}
+
+  FMInit is a small tool which allows to initialize the FrameMachine to user-
+  selectable settings. You can run it from WB using Tooltypes and also
+  from shell.
+
+  I recommend to copy FMInit in your WBStartup drawer of your System to have
+  after every reboot a perfect configured FrameMachine. This is especially
+  useful, if you have a video monitor connected to the Prism24 output and
+  watch often TV over it.
+
+
+
+  @{b}@{u}The following tooltypes/arguments are supported:@{uu}@{ub}
+
+  @{b}CONFIG:@{ub}  Name of the FMdriver configuration to use
+
+    @{b}MODE:@{ub}  Specifies the DisplayMode of Prism24:
+           o AMIGA (Amiga only display)
+           o PRISM (Prism24 only display)
+           o PRISMKEY (Genlock mode Prism24 and Amiga)
+
+    @{b}SIZE:@{ub}  Specifies the display size of Prism24:
+           o 720 (full image)
+           o 360
+           o 240
+           o 180
+           o 120
+           o  90
+
+ @{b}KEYMODE:@{ub}  Specifies the Keymode of Prism24, if MODE=PRISMKEY is activated.
+           For a complete description of the keymodes, please read the
+           FrameMachine docs.
+
+    @{b}TYPE:@{ub}  Specifies the video input type
+           o VCR (more stable image, should be your default)
+           o TV
+
+   @{b}INPUT:@{ub}  Specifies which video input of the FrameMachine is used:
+           o FBAS the cinch input
+           o CVBS (like FBAS)
+           o SVHS the mini-din input
+           o YC   (like SVHS)
+
+  @{b}FORMAT:@{ub}  Specifies which video type you have on your input.
+           o PAL
+           o NTSC
+
+@endnode
+
+@node FMGRAB "FMGrab - Grabs images (Shell)"
+
+  @{b}FMGrab@{ub}
+  @{b}------@{ub}
+
+  FMGrab is a small shell tool which allows to grab single images from the video
+  input and save them to a file. The program is very useful if you want to make
+  a WEBCam with your FrameMachine... ;)
+
+     @{u}Usage:@{uu} FMGrab FILEMAME/M,FILETYPE/K,CONFIG/K,SIZE/N,NOLACE/S,TYPE/K,INPUT/K,FORMAT/K
+
+  @{b}FILENAME:@{ub} Name of the PPM/PGM file to save
+
+  @{b}FILETYPE:@{ub} PPM, PGM, (IFF24), IFF8, IFF24c, IFF8c
+
+    @{b}CONFIG:@{ub} Name of the FMdriver configuration to use
+
+      @{b}SIZE:@{ub} (720), 360, 240, 180, 120 or 90
+
+    @{b}NOLACE:@{ub} (switch)
+
+ @{b}GRAYSCALE:@{ub} (switch)
+
+      @{b}TYPE:@{ub} TV or (VCR)
+
+     @{b}INPUT:@{ub} (FBAS,CVBS) / SVHS,YC
+
+    @{b}FORMAT:@{ub} (PAL) or NTSC
+
+  default-values: last used FMdriver configuration + IFF24
+
+
+  @{b}@{u}Example:@{uu}@{ub}
+  You want to grab a image from your SVHS (YC) input in the size 360x285 to
+  the compressed iff8-file "dh2:image.iff":
+
+  @{fg shine}fmgrab filetype=iff8c size=360 input=svhs dh2:image.ppm@{fg text}
+
+@endnode
+
+@node FMRECORD "FMRecord - Records anims to HD (Shell)"
+
+  @{b}FMRecord@{ub}
+  @{b}--------@{ub}
+
+  FMRecord is a small shell tool which allows to record FMMovie anims to
+  your harddrive.
+  Normally you will use @{" FMRecorder " link FMRECORDER}, the Workbench version of this.
+
+
+     @{u}Usage:@{uu} FMRecord FILEMAME/M,CONFIG/K,FRAMES/N,SIZE/N,NOLACE/S,
+                     TYPE/K,INPUT/K,FORMAT/K
+
+  @{b}FILENAME:@{ub} Name of the PPM/PGM file to save
+
+    @{b}CONFIG:@{ub} Name of the FMdriver configuration to use
+
+    @{b}FRAMES:@{ub} How many frames to record
+
+      @{b}SIZE:@{ub} (720), 360, 240, 180, 120 or 90
+
+    @{b}NOLACE:@{ub} (switch)
+
+      @{b}TYPE:@{ub} TV or (VCR)
+
+     @{b}INPUT:@{ub} (FBAS,CVBS) / SVHS,YC
+
+    @{b}FORMAT:@{ub} (PAL) or NTSC
+
+  default-values: last used FMdriver configuration + IFF24
+
+  
+  @{b}@{u}Example:@{uu}@{ub}
+  You want to record 77 images to a FMMovie anim "dh2:anim.fmm" from your
+  SVHS (YC) input in the size 360x285:
+
+  @{fg shine}fmrecord size=360 frames=77 input=svhs dh2:anim.fmm@{fg text}
+
+@endnode
+
+@node FMRECORDDEC "FMRecordDec - Converts FMMovie-Anims into images"
+
+  @{b}FMRecordDec@{ub}
+  @{b}-----------@{ub}
+
+  FMRecordDec is a small shell tool which allows to convert FMMovie anims to
+  single images.
+  Normally you will use @{" FMRecorder " link FMRECORDER}, the Workbench version of this.
+
+     @{u}Usage:@{uu} FMRecordDec FMFILE BASENAME/M/A,PGM/S
+
+    @{b}FMFILE:@{ub} name of the FMMovie-file
+
+  @{b}BASENAME:@{ub} base-filename of the PPM-pictures to save
+
+  @{b}FILETYPE:@{ub} PPM, PGM, (IFF24), IFF8, IFF24c, IFF8c
+
+  (values in brackets are the default-values)
+
+
+  @{b}@{u}Example:@{uu}@{ub}
+  You want to decode the anim "dh2:anim.fmm" to single
+  PPM images "dh2:images/Pic.0000", "dh2:images/Pic.0001"...
+
+  @{fg shine}fmrecorddec filetype=ppm dh2:anim.fmm dh2:images/Pic.@{fg text}
+
+
+
+@endnode
+
+
+
+
+
+
+@node SPEED "Speed - How fast is it?"
+
+  @{b}Speed@{ub}
+  @{b}-----@{ub}
+
+  The speed is very dependant from bus-transfer-rate to the
+  Gfx-board (mine is an CyberVisionPPC) and from the speed
+  of the used display-driver.
+
+  All values are FPS (frames per second).
+
+
+  @{b}PPC-Version, using CyberStormPPC, 604e/200 and 68040/40MHz@{ub}
+
+               Interlaced     NoLace-Scaled      NoLace
+
+  Resolution   Color  Gray    Color  Gray      Color  Gray
+   720x570      1.1    1.3     1.6    1.4       1.9    2.3
+   360x285      4.8    6.7     5.0    4.2       5.4    6.2
+   240x192     10.4   13.5     8.3    6.3       8.3    8.3
+   180x144     16.7   25.0     8.3   10.9       8.6    8.3
+   120x 96     25.0   25.0    12.5   12.5      12.5   12.5
+    88x 70     25.0   25.0    12.5   12.5      12.5   12.5
+
+
+As you can see is the 240x192 in the NoLaceScaled and Interlaced
+modes suitable for watching TV on the Workbench.
+I think the speed should be much higher on a system equipped with
+an 68060 and a better Gfx-board on-board...
+
+The reason for the "slow" 12.5 FPS values in small resolutions is,
+that the FrameMachine uses double buffered recording, which speeds
+up a lot. But if a frame is dropped, you immediately also only have
+the half framerate. But I think this is not very important, though.
+
+The interlaced modes are  usually much faster as the FrameMachine
+has the optimal double buffer design for capturing interlaced video.
+
+@{" I " link AUTHOR} would be glad to get your speed results... :)
+
+
+@endnode
+
+
+@node BUGSLIMITS "Bugs, Limitations - known problems"
+
+  @{b}Bugs, limitations or known problems@{ub}
+  @{b}-----------------------------------@{ub}
+
+  The FrameMachine driver should work on any system.
+  The only problem which could exist is, that the settings
+  for NTSC modes and NTSC machines could not be correct.
+
+  So if you encounter display problems, the solution is not
+  very problematic:
+
+  Just run FMBaseConfig and change the settings until the
+  displayed picture is Ok. Then just click "Save" and your
+  settings will then be used in future.
+  What to change, is described @{" here " link FMBaseConfig}.
+  If you have adjusted your hardware, please send the
+  DEVS: FrameMachine.settings to @{" me " link AUTHOR}, so that
+  I can include these settings in the next release.
+
+  What is impossible with this version is to upload an image
+  to the Prism24 hardware. If you want to have this feature,
+  please contact @{" me " link AUTHOR}.
+
+@endnode
+
+
+@node HISTORY "History - Program history"
+
+  @{b}History@{ub}
+  @{b}-------@{ub}
+
+  V1.00: (15.08.1999)
+         ** first public release **
+
+  V1.01  (20.08.1999)
+         - fixed a small bug in the install-script
+
+  V1.10  (29.08.1999)
+         ** 2. public release **
+         - added global support for non-gfx-board Amigas (!!)
+         - added the programs FMInit, FMGrab, FMRecord,
+           FMRecordDec and FMRecorder
+
+  V1.12  (01.09.1999)
+         ** 3. public release **
+         - added the gadget "Filename style" to FMRecorder for
+           more filename styles
+           Thanks Lemmink, for this idea!
+         - added a status requester (frames/fps) to FMRecorder
+           for playback and recording
+         - FMTV now closes the TVControl window, if you close
+           with the right mouse button into the TV window
+         - removed a "flicker-problem" in small resolutions
+           (this caused also strange lines on some machines)
+           Thanks to Rolf Wiessner and Ingo Nehls for reporting
+           this problem!
+         - added global support for the following image
+           filetypes: PPM, PGM, IFF24, IFF8, IFF24c, IFF8c
+         - The FMdriver was unable to work without a attached
+           Prism24 board... sorry, hadn't tested this until
+           Gernod Schomberg reported this... Thanks Gernod!!
+
+  V.13   (16.01.2000)
+         - added the option "NoBorder" to FMTV to have only
+           the TV-picture on the WB
+         - added menus to FMTV
+         - introduced the double buffer mode of the FrameMachine
+           (brings *major* speed increases!!)
+         - added Brightness, Contrast, Gamma, Red, Green, Blue
+           correction functions to FMTV
+         - added the "GrabbingCenter" to FMTV! Now there it is
+           really easy to grab images out of videos!
+         - added a lot of shortcuts to FMTV
+         - FMRecorder now has anim-controls (pause, seek, ...)
+           to have much better access to the recorded video
+         - FMRecorder profits of the double buffer mode of the
+           FrameMachine very much, too!
+
+  V1.14ß (21.12.2000)
+         ** 4. public release **
+         - made some smaller fixes over a long time period
+         - now, my FrameMachine driver resides in a new
+           library "newframemachine.library". Now there is no
+           more need to use different versions for 68k and PPC!
+
+  V1.25  (07.04.2001)
+         ** 5. public release **
+         => changed _a_ _lot_, so perhaps I forgot something to mention here:
+         - cleaned up the newframemachine.library a bit
+         - added a new feature: configurations, now you can save and
+           recall several different configurations you can create with
+           FMBaseConfig; added this feature to all FMdriver applications
+         - the driver now always uses the last used config as default
+         - FMBaseConfig is now localized
+         - changed the structure of FMBaseConfig to have all the new
+           possibilities which became available with configurations
+           enabled
+         - the video-window of FMBaseConfig and FMRecorder always snaps
+           to the right border of the main window
+         - FMTV now is able to grab a picture from the tvwindow,
+           prefswindow and grabcenterwindow just by pressing <SPACE>
+           Thanks to Rolf Wiessner for this idea!
+         - fixed an enforcer hit of FMTV
+         - FMTV didn't use the filename for the image basename specified
+           by the filerequester in the grabbing center. fixed.
+           Thanks again, Rolf!
+         - from now on, every application in FMdriver will have the same
+           version number; this will help to ensure what version is installed...
+         - updated the complete guide documentation so that the new features
+           are also covered... hmm... writing documentation really needs
+           *very* much time... :(
+         - FMRecorder is now also able to make time-lapse animations
+         - almost rewrote the documentations
+
+@endnode
+
+
+@NODE CREDITS "Credits - Thank you"
+@TOC "MAIN"
+
+  @{b}Thanks to:@{ub}
+  @{b}----------@{ub}
+
+
+  - electronic-design for the support
+
+  - Daniel Swertz and Rainer Steffen for providing
+    the sources
+
+  - Gerd Frank for providing the hardware and good ideas
+
+  - Haage&Partner for StormC and WarpOS
+
+  - phase5 for producing the PowerPC-Boards and the
+    CyberVision64/CyberVisionPPC
+
+
+@ENDNODE
+
+@node REGISTRATION "Registration - GIFTWARE"
+
+  @{b}Registration@{ub}
+  @{b}------------@{ub}
+
+
+  The new FrameMachine drivers are @{b}GIFTWARE@{ub}.
+
+  If you use this software and want me to make
+
+  further updates, I would recommend, that you send
+
+  me a @{b}donation@{ub} of your choice (money or other
+
+  @{i}useful@{ui} things like hardware, etc.).
+
+
+
+  You can reach me @{" here " link AUTHOR}.
+
+@endnode
+
+
+@node DISCLAIMER "Disclaimer - Warranty"
+
+  @{b}Disclaimer@{ub}
+  @{b}----------@{ub}
+
+  No warranty, either express or implied, is made with
+  respect to the fitness or merchantability of this
+  software.
+
+  The FrameMachine driver and the programs using it
+  were tested intensively and there was no problem
+  encountered using it.
+
+  The software should also run on your system.
+
+  But I'm not responsible for @{i}any@{ui} damage which
+  could be - directly or indirectly - caused by using it.
+
+  @{fg shine}The user of this software use it at his or her own risk!@{fg text}
+
+
+@endnode
+
+
+@node AUTHOR "Author - contact information"
+
+  @{b}Author@{ub}
+  @{b}------@{ub}
+
+
+  Stefan Robl
+  Marktredwitzer Str. 23
+  95689 Fuchsmühl
+  Germany
+
+  eMail: @{b}stefan@qdev.de@{ub}
+
+
+  Improvements, bugreports, suggestions etc. are welcome.
+
+  @{b}The FMdriver package is GIFTWARE!@{ub}
+
+  @{fg shine}If you like my work, I would be very
+  happy to receive a donation of your choice from you!@{fg text}
+
+  Please also read the page @{" Registration " link REGISTRATION}.
+
+
+  And don't forget to visit my homepage: @{b}http://www.qdev.de@{ub}
+
+  You can get there the latest updates, additional information and
+  much other interesting software...
+
+@endnode
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,337 @@
+@database 074f7418-0
+@master REXX:VIO.guide
+@$VER: 1.04
+@width 99
+@remark Created with Heddley v1.20ß © Edd Dumbill 1994-5
+
+@node "Main" "VIO"
+Variable Input/Output Routines
+
+Included in this archive are routines that will allow you to use variables just as you would files.
+Although string manipulation is fairly comprehensive in ARexx, it can be difficult to perform some
+functions. After reading a moderately long file (up to 65535 characters) into a variable, these VIO
+routines will allow you to:
+
+  * Move a "pointer" forward or backwards through the variable-file
+  * Read a series of line-feed-terminated lines from the variable-file,
+    starting at the pointer location
+  * Use string manipulation functions (eg, Insert(), DelStr(), and Translate())
+    on the variable-file (not possible with a true file)
+
+The function calls and arguments mirror the file manipulation functions:
+
+  Open()    --> @{" OpenV()    " link "OpenV" 0}   : "Open" a variable for manipulation
+  Close()   --> @{" CloseV()   " link "CloseV" 0}  : "Close" the variable
+  Seek()    --> @{" SeekV()    " link "SeekV" 0}   : Reposition the variable's "pointer"
+  ReadCh()  --> @{" ReadVCh()  " link "ReadVCh" 0} : Read the next character(s) from the variable
+  ReadLn()  --> @{" ReadVLn()  " link "ReadVLn" 0} : Read the next LF-terminated line(s) from the variable
+  WriteCh() --> @{" WriteVCh() " link "WriteVCh" 0} : Write the specified character(s) to the variable
+  WriteLn() --> @{" WriteVLn() " link "WriteVLn" 0} : Write a LF-terminated line to the variable
+  EOF()     --> @{" EOFV()     " link "EOFV" 0}    : Determine when the end of the variable is reached
+
+  @{"Examples" link "Examples" 0}
+  @{"History " link "History" 0}
+@endnode
+
+@node "OpenV" "OpenV()"
+rv = OpenV(<variable>)
+     rv is a Boolean value
+
+Opens a variable with the name specified by <variable>, allowing it to be used by the other VIO
+functions.
+
+If the name of variable is to be entered directly, it must be in quotes:
+
+    OpenSuccess = OpenV('ConfigFile')
+
+The name of the variable may also be assigned to another variable, and that second, unquoted
+variable used in the function:
+
+    VarToOpen = 'ConfigFile'
+    OpenSuccess = OpenV(VarToOpen)
+
+Obviously this convention carries over to the other VIO functions as well
+
+This function flags the variable as opened and initializes the variable pointer to 1.
+
+  @{" Examples   " link "Examples" 0}
+
+  @{" CloseV()   " link "CloseV" 0}
+  @{" SeekV()    " link "SeekV" 0}
+  @{" ReadVCh()  " link "ReadVCh" 0}
+  @{" ReadVLn()  " link "ReadVLn" 0}
+  @{" WriteVCh() " link "WriteVCh" 0}
+  @{" WriteVLn() " link "WriteVLn" 0}
+  @{" EOFV()     " link "EOFV" 0}
+@endnode
+
+@node "CloseV" "CloseV()"
+rv = CLOSE(<variable>)
+     rv is a Boolean value
+
+Closes the specified <variable>. 0 will be returned if the variable had not been opened previously,
+otherwise 1 will be returned.
+
+<variable> is the case sensitive name of the variable of interest, the same variable used with the
+OpenV() function.
+
+This function flags the variable as closed, preventing any of the other VIO functions from being
+used on the variable.
+
+  @{" Examples   " link "Examples" 0}
+
+  @{" OpenV()    " link "OpenV" 0}
+  @{" SeekV()    " link "SeekV" 0}
+  @{" ReadVCh()  " link "ReadVCh" 0}
+  @{" ReadVLn()  " link "ReadVLn" 0}
+  @{" WriteVCh() " link "WriteVCh" 0}
+  @{" WriteVLn() " link "WriteVLn" 0}
+  @{" EOFV()     " link "EOFV" 0}
+@endnode
+
+@node "SeekV" "SeekV()"
+rv = SeekV(<variable>, <offset>, [<anchor>])
+     rv is a number
+
+Moves the pointer <offset> number of bytes from the <anchor> to a new position in the <variable>.
+The <anchor> may be 'BEGIN', 'CURRENT', or 'END' (only the first character need be used). The
+default <anchor> of 'C' will be used if nothing else is specified. <variable> must have been opened
+previously with a call to OpenV().
+
+The result is the new byte position relative to the beginning of the file.
+
+If 'E' is the anchor, then <offset> should be a negative number to move the pointer backwards by
+<offset> bytes.
+
+Specifying SeekV('ConfigFile', 1) on the ConfigFile variable just opened will cause the pointer to
+advance to the second character since the pointer initializes to the first character.
+
+  @{" Examples   " link "Examples" 0}
+
+  @{" OpenV()    " link "OpenV" 0}
+  @{" CloseV()   " link "CloseV" 0}
+  @{" ReadVCh()  " link "ReadVCh" 0}
+  @{" ReadVLn()  " link "ReadVLn" 0}
+  @{" WriteVCh() " link "WriteVCh" 0}
+  @{" WriteVLn() " link "WriteVLn" 0}
+  @{" EOFV()     " link "EOFV" 0}
+@endnode
+
+@node "ReadVCh" "ReadVCh()"
+rv = ReadVCh(<variable>, [<length>])
+     rv is the new string of read characters
+
+Returns the number of characters specified by <length> (the default is 1) from <variable>, which
+must have been opened with a prior call to OpenV().
+
+The function will read a maximum of 65535 characters from the variable, but since the variable
+could not have been more than 65535 characters long in the first place, this shouldn't present much
+of a concern. Specifying a longer <length> will not cause an error, but also will not return more
+than the 65535 characters.
+
+This sets the pointer to the character after the last one read, or to the end of the variable if
+<length> extends beyond the end of the variable
+
+  @{" Examples   " link "Examples" 0}
+
+  @{" OpenV()    " link "OpenV" 0}
+  @{" CloseV()   " link "CloseV" 0}
+  @{" SeekV()    " link "SeekV" 0}
+  @{" ReadVLn()  " link "ReadVLn" 0}
+  @{" WriteVCh() " link "WriteVCh" 0}
+  @{" WriteVLn() " link "WriteVLn" 0}
+  @{" EOFV()     " link "EOFV" 0}
+@endnode
+
+@node "ReadVLn" "ReadVLn()"
+rv = ReadVLn(<variable>, [<count>], [<sepchar>])
+     rv is a string
+
+Returns the number of line-feed-terminated lines specified by <count> (the default is 1) from
+<variable>, which must have been opened with a prior call to OpenV(). If <count> is greater than 1,
+then the lines will be separated by <sepchar> (which defaults to the line-feed character, '0a'x).
+
+This sets the pointer to the first character of the next line, or to the end of the variable if the
+number of lines read extends beyond the end of the variable.
+
+  @{" Examples   " link "Examples" 0}
+
+  @{" OpenV()    " link "OpenV" 0}
+  @{" CloseV()   " link "CloseV" 0}
+  @{" SeekV()    " link "SeekV" 0}
+  @{" ReadVCh()  " link "ReadVCh" 0}
+  @{" WriteVCh() " link "WriteVCh" 0}
+  @{" WriteVLn() " link "WriteVLn" 0}
+  @{" EOFV()     " link "EOFV" 0}
+@endnode
+
+@node "WriteVCh" "WriteVCh()"
+rv = WriteVCh(<variable>,<string>, [<option>])
+     rv is a number
+
+Writes the character(s) in <string> to <variable>, which must have been opened with a prior call to
+OpenV().
+
+The <option> may be 'BEGINNING', 'CURRENT', or 'END' (only the first character need be used) and
+tells where <string> will be added. The <option> 'E' (the default) will cause the characters to be
+appended to the end of the variable, 'B' will cause the original variable to be appended to the
+characters, and 'C' will cause the characters to be inserted into the original variable before the
+current position as indicated by the pointer.
+
+This function will not append a newline character to <string>.
+
+The return value from the function is a count of the characters written to the variable. If the
+function was successful, the number returned will be equal to the length of <string>. A return of 0
+indicates failure.
+
+The pointer will be set to the character immediately after <string>.
+
+  @{" Examples   " link "Examples" 0}
+
+  @{" OpenV()    " link "OpenV" 0}
+  @{" CloseV()   " link "CloseV" 0}
+  @{" SeekV()    " link "SeekV" 0}
+  @{" ReadVCh()  " link "ReadVCh" 0}
+  @{" ReadVLn()  " link "ReadVLn" 0}
+  @{" WriteVLn() " link "WriteVLn" 0}
+  @{" EOFV()     " link "EOFV" 0}
+@endnode
+
+@node "WriteVLn" "WriteVLn()"
+rv = WriteVLn(<variable>, <string>, [<option>])
+     rv is a number
+
+Writes <string> to <variable>, which must have been opened with a prior call to OpenV().
+
+The <option> may be 'BEGINNING', 'CURRENT', or 'END' (only the first character need be used) and
+tells where <string> will be added. The <option> 'E' (the default) will cause <string> to be
+appended to the end of the variable, 'B' will cause the variable to be appended to <string>, and
+'C' will cause <string> to be inserted into the variable before the current position as indicated
+by the pointer.
+
+This function appends a newline character to <string>.
+
+The return value from the function is a count of the characters written to the variable. If the
+function was successful, the number will be one more than the length of <string> since the function
+counts the new-line character that it adds. A return of 0 indicates failure.
+
+The pointer will be set to the character immediately after <string>.
+
+  @{" Examples   " link "Examples" 0}
+
+  @{" OpenV()    " link "OpenV" 0}
+  @{" CloseV()   " link "CloseV" 0}
+  @{" SeekV()    " link "SeekV" 0}
+  @{" ReadVCh()  " link "ReadVCh" 0}
+  @{" ReadVLn()  " link "ReadVLn" 0}
+  @{" WriteVCh() " link "WriteVCh" 0}
+  @{" EOFV()     " link "EOFV" 0}
+@endnode
+
+@node "EOFV" "EOFV()"
+rv = EOFV(<variable>)
+     rv is a Boolean value
+
+The EOFV() function returns a Boolean flag of 1 (TRUE) when the end of the <variable> has been
+reached; the result is FALSE (0) until the end of <variable> has been reached.
+
+  @{" Examples   " link "Examples" 0}
+
+  @{" OpenV()    " link "OpenV" 0}
+  @{" CloseV()   " link "CloseV" 0}
+  @{" SeekV()    " link "SeekV" 0}
+  @{" ReadVCh()  " link "ReadVCh" 0}
+  @{" ReadVLn()  " link "ReadVLn" 0}
+  @{" WriteVCh() " link "WriteVCh" 0}
+  @{" WriteVLn() " link "WriteVLn" 0}
+@endnode
+
+@node "Examples" "Examples"
+ a = 'This is the original string.':
+
+  1: say OpenV('a')
+  2:   say SeekV('a', 8)
+  3:   say WriteVCh('a', 'not ', 'C')
+  4:   say a
+  5:   say ReadVCh('a', 4)
+  6:   say ReadVLn('a')
+  7:   say SeekV('a', 0)
+  8: say CloseV('a')
+
+The results of the above code would be (note that the quotes are added for clarity only):
+  1) 1 is returned (pointer is initialized to 1st character)
+  2) 9 is returned (pointer is set to 9th character)
+     An equivalent command would be SeekV('a', 9, 'B')
+  3) 4 is returned (pointer is set to 13th character)
+  4) 'This is not the original string.' is returned, no change to pointer)
+  5) 'the ' is returned (pointer is set to 17th character)
+  6) 'original string.' is returned (pointer is set to 33)
+  7) 33 is returned (no change to pointer)
+  8) 1 is returned (variable is closed)
+
+==========================
+
+Env:ConfigFile consists of:
+
+  The
+  quick
+  brown
+  fox
+  jumps
+  over
+  the
+  lazy
+  doq.
+
+Ignoring the leading spaces used only for this example, the character counts of each line are 4, 6,
+6, 4, 6, 5, 4, 5, 5.
+
+  1: call open('Temp', 'Env:ConfigFile')
+  2: ConfigFile = ReadCh('Temp', 65535)
+  3: call close('Temp')
+
+  4: say OpenV('ConfigFile')
+  5:   do i = 1 to 3
+  6:     say ReadVLn('ConfigFile')
+  7:   end
+  8:   say ReadVLn('ConfigFile', 3)
+  9:   say SeekV('ConfigFile', -10, 'E')
+ 10:   say ReadVLn('ConfigFile', 3)
+ 11: say CloseV('ConfigFile')
+
+The results of the above code would be (note that the quotes are added for clarity only):
+  1) The text file is opened
+  2) The entire text file is read
+  3) The text file is closed
+  4) 1 is returned (pointer is initialized to 1st character) 5-7) 'The'
+     'quick'
+     'brown' is returned (the pointer is set to the beginning of 'fox')
+  8) 'fox'
+     'jumps'
+     'over' is returned (the pointer is set to the beginning of 'the')
+  9) 38 is returned (the pointer is set to the middle of the word 'lazy')
+ 10) 'zy'
+     'dog.' is returned (the pointer is set beyond the end of the variable)
+ 11) 1 is returned (variable is closed)
+
+  @{" OpenV()    " link "OpenV" 0}
+  @{" CloseV()   " link "CloseV" 0}
+  @{" SeekV()    " link "SeekV" 0}
+  @{" ReadVCh()  " link "ReadVCh" 0}
+  @{" ReadVLn()  " link "ReadVLn" 0}
+  @{" WriteVCh() " link "WriteVCh" 0}
+  @{" WriteVLn() " link "WriteVLn" 0}
+  @{" EOFV()     " link "EOFV" 0}
+@endnode
+
+@node "History" "History"
+History
+
+v 1.04  21 May 2000
+        Fixed a bug when reading the remainder of a file with READVCH('Variable', 65535)
+        Uninitialized variables are initialized when opened
+
+v 1.02  21 Oct 1999
+        Fixed a bug when using SEEKV() to go to the beginning of the file
+@endnode
+

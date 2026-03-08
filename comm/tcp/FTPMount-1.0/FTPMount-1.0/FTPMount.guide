@@ -1,0 +1,417 @@
+@database "FTPMount.guide"
+@master "DH0a:evan/ftpmount/FTPMount-1.0/FTPMount.guide"
+
+@Node Main "FTPMount"
+@{b}FTPMount@{ub} allows FTP sites to be mounted as part of an AmigaDOS file
+system.
+
+   @{" Introduction " Link "intro"}
+
+   @{" Installation " Link "install"}
+
+   @{" Usage " Link "usage"}
+   
+   @{" Options " Link "options"}
+   
+   @{" Restrictions " Link "restrictions"}
+
+   @{" Changes " Link "changes"}
+
+Except where noted, @{b}FTPMount@{ub} and its source code, are copyright 
+1995 and 1996 by Evan Scott, @{b}evan@ucc.gu.uwa.edu.au@{ub}.  All Rights 
+Reserved.
+Permission is granted for unlimited public distribution of the source,
+executable and documentation of FTPMount provided no fee over and 
+above reclamation of distribution costs is levied.
+
+The code for parsing Windows NT (TM) directory listings is copyright
+1996 by Ron Flory, All Rights Reserved.  My thanks to him for permission
+to include this in this distribution.
+
+FTPMOUNT SOFTWARE IS PROVIDED "AS-IS" AND SUBJECT TO CHANGE;
+NO WARRANTIES ARE MADE.  ALL USE IS AT YOUR OWN RISK.  NO LIABILITY
+OR RESPONSIBILITY IS ASSUMED.
+
+It is unclear what the status of the following is, however I guess 
+something like it should be included:
+
+@{b}Installer@{ub} and Installer project icon
+(c) Copyright 1991-93 Commodore-Amiga, Inc.  All Rights Reserved.
+Reproduced and distributed under license from Commodore.
+
+INSTALLER SOFTWARE IS PROVIDED "AS-IS" AND SUBJECT TO CHANGE;
+NO WARRANTIES ARE MADE.  ALL USE IS AT YOUR OWN RISK.  NO LIABILITY
+OR RESPONSIBILITY IS ASSUMED.
+@EndNode
+
+@Node "intro" "FTPMount - Introduction"
+After looking at the various options as far as which FTP utilities were 
+available, I came to the conclusion that there were no acceptable user
+interfaces as far as I was concerned.
+
+Instead of writing another FTP client, I decided to write an FTP file system.
+
+@{b}FTPMount@{ub} is the result.
+
+FTP sites appear as subdirectories of a file system device '@{b}FTP:@{ub}'.
+The root directory of FTP: is actually a mirror of a real directory somewhere
+else in the file system.  This allows common FTP sites to be permanently
+listed under FTP: (so they appear in file requesters etc), and, through the
+use of icon @{"tooltypes" Link "options"}, to support ftp site aliases and other options.
+
+@{b}FTPMount@{ub} supports both anonymous and private ftp sessions.  Mounted
+private ftp sessions can act as a poor-person's NFS mount.
+
+Due to the restrictive nature of the FTP protocol (RFC 959), there are some
+significant @{"limitations" Link "restrictions"} that apply to FTP: that prevent it from supporting all
+file system actions fully.
+
+@{b}FTPMount@{ub} is written for the @{b}AmiTCP@{ub} API, and requires AmiTCP 2.0 to actually
+do anything useful, although you can install and mount @{b}FTPMount@{ub} quite
+happily without it.
+@EndNode
+
+@Node "install" "FTPMount - Installation"
+I put complete faith in my (first ever!) install script :-).  If you are less
+trusting, @{"manual installation" Link "manual"} is not difficult.
+
+A few notes on the automatic installation:
+
+The DOSDriver entry referred to is a little text file passed to mount.  It is
+similar to the files in DEVS:DOSDrivers and SYS:Storage/DOSDrivers (eg. PIPE,
+AUX, PC0 etc).  In this case the DOSDriver entry is FTP and the installer will
+ask you where you want to put it.  Normally if you wanted FTP to be mounted
+automatically at boot time you would put it in DEVS:DOSDrivers.  Note that FTP
+@{b}needs @{ub}FTPMountDir: to be assigned when it is activated.  Due to the way
+Startup-Sequence and User-Startup are structured, the assign will be done 
+@{b}after@{ub} the DEVS:DOSDrivers are mounted.  Thus if you want FTP: to be
+mounted@{b} and @{ub}activated at boot time DEVS:DOSDrivers is not an advisable
+destination (if you feel like moving the assign from User-Startup to Startup-
+Sequence before the DOSDrivers mount, things will be fine).  The only safe
+alternative appears to be to put this entry in WBStartup.  This is a little
+unorthodox, and not really an ideal place from a categorization point of view.
+
+Speaking of whether you want the DOSDriver activated upon mounting ... when a
+handler is mounted it can either be activated (loaded) there and then, or it
+can be deferred.  If activation is deferred this simply means that the handler
+is not loaded until a reference to FTP: is made.  For CLI users there is 
+little point in forcing it to be activated when it is mounted since you can
+still refer to files within FTP: and not notice that it will be loaded upon
+the first such reference.  For Workbench users, however, there is a difference
+in that Workbench won't recognise FTP: until it is activated, and hence there
+won't be an icon for it until it is activated.  So if you want FTP: to appear
+on your Workbench desktop upon booting you will need to say "Yes" to the 
+"Do you want the DOSDriver activated upon mounting?" question.  The previous 
+point is relevant in this case, and the FTP DOSDriver entry should be put in
+WBStartup.
+
+The anonymous login identification string is composed from the environment 
+variables USER and HOST as USER@HOST.  If these variables are not set at the
+time of installation, the installer script will ask you to supply them and 
+will then copy them to ENVARC:USER and ENVARC:HOST respectively.  Please 
+supply USER and HOST so as to produce a valid email address USER@HOST.  I
+debated whether to have an EMAIL environment variable instead of using these
+two.  I'm still not sure which is a better solution - feedback would be 
+appreciated.
+@EndNode
+
+@Node "manual" "FTPMount - Manual Installation"
+FTPMount looks for all its files in a directory to which FTPMountDir: is 
+assigned.  So you will need to put an assign in your User-Startup for 
+FTPMountDir: to this directory.
+
+Make subdirectories FTPMountDir:Hosts and FTPMountDir:L, and if you want to
+install alternate catalogs, FTPMountDir:Catalogs.
+
+Copy L/FTPMount-Handler to FTPMountDir:L
+
+If you want the example sites directories:
+Copy Hosts all to FTPMountDir:Hosts
+
+Copy the relevant catalog directories that you are interested in, for example:
+Copy Catalogs/English to FTPMountDir:Catalogs/English all
+
+Now you need to put the mount entry somewhere, so copy DOSDrivers/FTP to
+DEVS:DOSDrivers, SYS:Storage/DOSDrivers, SYS:WBStartup or equivalent.
+
+If you want it activated upon mounting, change the tooltype for ACTIVATE to
+1 instead of 0.
+
+Remember to set USER and HOST environment variables as discussed in the main
+installation section.
+@EndNode
+
+@Node "usage" "FTPMount - Usage"
+The default operation of FTPMount is to take references to directories in the 
+root of FTP: as ftp site addresses.  Addresses can be dotted names or dotted
+numbers.
+
+If the address contains an '@', the string to the right of the '@' will be 
+taken as the address while that to the left is assumed to be a user name.
+If no '@' is present, an anonymous login is attempted with user 'ftp' and
+password of USER@HOST.
+
+If the connection is as a private (non-anonymous) ftp session, a requester
+asking for a password will be opened.
+
+Note that if the address @{b}begins@{ub} with an '@' then the requester will ask
+for both a user name and password.
+
+While a connection is being established, a requester will be on the screen
+indicating that a connection is being established, and containing a cancel
+button to abort the connection.
+
+Once the connection is established the FTP site will be accessable as normal
+files and subdirectories of the site's name.
+
+While there are any locks, or an open file, FTPMount will try to keep the 
+connection open.  If there are no locks and no open file, FTPMount will close 
+the connection after 2 minutes of idle time.
+
+Doing a directory of the root of FTP: gives the directory of 
+FTPMountDir:Hosts.  File operations on any file in the root of FTP: are 
+passed through to the equivalent files in FTPMountDir:Hosts.  Thus icons can
+be used to store information about the FTP sites; as well as the image of the
+icon and the drawer window size and position, the tooltypes control some 
+options which change the behaviour of the directory from the default behaviour
+described above.
+
+   @{" Tooltype Options " Link "options"}
+   
+   @{" Control of FTPMount " Link "control"}
+
+   @{" FileSystem Restrictions " Link "restrictions"}
+
+@EndNode
+
+@Node "options" "FTPMount - ToolType options"
+Note that setting tooltypes is best done on the original drawer icons in 
+FTPMountDir:Hosts rather than in FTP: itself.  While it is possible to set
+the tooltypes of the drawers in FTP: it is quite fiddly and difficult in some
+cases (since to get the Info on the drawer, Info locks the directory, and in
+so doing tries to make a connection to the site).  Also, the tooltypes are 
+only read once when a connection is first attempted.  To force FTPMount to
+reread the icon information, go to the Commodities Exchange and toggle the
+Active/Inactive button twice (this closes all connections and flushes all
+buffers).
+
+If there is no icon associated with a site, then the tooltypes are taken from
+the Default.info icon instead.
+
+ToolTypes that are recognized:
+
+  @{b} USER @{ub}       - an alternative to specifying the directory as user@site.
+                 NB: for a directory labelled user@site, the USER tooltype
+                     is ignored
+
+  @{b} PASSWORD @{ub}   - for private logins, you may put your password, in @{b}plain
+                 text@{ub}, here.  This means private logins can be done 
+                 completely automatically with no user/password requester.
+                 NB: obviously plain text passwords in a fairly accessable 
+                     place could easily be a security risk.  Only include
+                     your password here if you are@{b} sure @{ub}that your machine is
+                     secure both physically and from network users.  If you
+                     serve a public access FTP site from your Amiga I would 
+                     strongly suggest not using this feature.
+
+  @{b} HOST @{ub}       - used as the address of the site to connect to instead of the
+                 name of the directory.  This is useful for making abbreviated
+                 aliases for sites, or for accessing the same site in 
+                 different capacities (particularly in concert with the ROOT
+                 option).
+                 NB: because the HOST tooltype overrides the directory name,
+                     there is significant scope for potential confusion.
+                     
+  @{b} ROOT @{ub}       - specifies an alternate directory to use as the root of the
+                 site.  The parameter should be an absolute path name.  This
+                 is particularly useful in concert with the HOST option to
+                 access a particular archive (eg. a directory "aminet" with
+                 HOST pointing to your favourite aminet site, and ROOT set to
+                 /pub/aminet ... then all files on the aminet archive would
+                 be referenced as FTP:aminet/util/comm/FTPMount.lha etc).
+
+  @{b} STATUS @{ub}     - open the site's status window upon initial reference.
+  
+  @{b} QUICK @{ub}      - access the site in "Quick" mode.  In quick mode several
+  @{b} SLOW @{ub}         FTP commands may be issued at once.  This is safe for@{b} almost @{ub}
+                 all sites, and can significantly improve turnaround time to 
+                 sites with a badly lagged link.  Unfortunately some ftp
+                 servers cannot handle it (notably the FTPd I was using on my
+                 amiga as a test).  Note that QUICK mode is now the default.
+                 If the site starts acting up, notably locking up on directory
+                 listings or file opens, turn off QUICK mode, either by adding
+                 the tooltype QUICK=off, or by adding the tooltype SLOW.
+
+  @{b} CASE @{ub}       - all filenames are case sensitive (if the server is case
+                 sensitive).  The default is to be as case insensitive as 
+                 possible.  It is not possible to be completely case 
+                 insensitive, notably on references which include several 
+                 directory names (eg ftp:site/Fish/Frog/Womble/x.c).
+
+  @{b} MESSAGES @{ub}   - controls which messages will be displayed during connection
+                 to a site.  Possible values for this tooltype are ALL,
+                 ERROR and NONE.  The default is ALL.  Setting 
+                 MESSAGES=ERROR will only bring up a requester when the
+                 FTP connection has been unsuccessful.  Setting MESSAGES=
+                 NONE disables any requesters that require a response.  NB:
+                 This includes the User/Password requester.
+
+  @{b} PORT @{ub}       - sets the port number to connect to, this defaults to the
+                 FTP port number specified in AmiTCP:db/services, or if no
+                 entry is specified there, it defaults to 21.
+@EndNode
+
+@Node "control" "Controlling FTPMount"
+Due to the unreliable nature of the net, connections to FTP sites go up and 
+down, go really sllllooooowwwwly or other such filesystem anti-social
+behaviour.  In such cases your Workbench copy or directory operation may
+never complete, leaving Workbench stranded and useless.  In order to monitor
+and control your active connections, a control system was added based on 
+commodities.
+
+When FTPMount is activated, it becomes a commodity broker, and appears in the
+list of commodities in the commodity exchange.
+
+The standard command buttons work fairly much as you would expect.
+
+@{b}Active/Inactive @{ub}- When FTPMount goes inactive it closes all FTP connections
+   and refuses all file system requests (will display a "Please insert volume"
+   message) until it is made active again.
+   
+@{b}Remove @{ub}- FTPMount closes all connections and frees all its resources.
+   NB: while the volume is removed the DOS device node of FTP: can't be freed,
+   and will remain, but all requests will be refused.
+
+@{b}Show Interface @{ub}- displays a list of all currently active sites. Selecting
+   one of the sites will bring up the status window for that site.
+   NB: The hotkey brings up this same list-of-sites window.  The default
+   hotkey is ctrl-alt-f.
+
+Each site may have a status window open.  This status window shows what is
+happening (getting a directory listing, reading a file, etc), as well as
+providing two buttons -@{b} Abort @{ub}and@{b} Disconnect@{ub}.  Depending on what state the
+connection is in, one or both of these buttons may be disabled.
+
+@{b}Abort @{ub}attempts to interrupt the current operation without 
+disconnecting.  Unfortunately most of the time an abort causes a disconnect
+as well because by interrupting a system call FTPMount can no longer guarantee
+what state the connection is in.
+
+@{b}Disconnect @{ub}simply disconnects the FTP session brutally and suddenly.
+@EndNode
+
+@Node "restrictions" "FTPMount - Restrictions on FileSystem operations"
+FTP does not allow for all the filesystem operations which you would expect of
+a normal AmigaDOS filesystem.  These restrictions include:
+
+ · Only one file may be open at a time for a given site.  This is the big 
+   restriction.  In future this may be worked around by allowing multiple 
+   connections.  At the moment, however, this is a hard limit.  If you attempt
+   to open a file while another file is open, you will get an "Object in use"
+   error.  This restriction means that some simple file operations are not
+   possible, for example "copy file.c file.c.old".
+
+ · A file can only be open for reading or writing, not both.  If you attempt
+   this, you will get an "Object is write/read protected" error.
+
+ · Seeking is not generally possible.  A few limited cases are emulated to 
+   support, for example, those programs which seek to the end of the file just
+   to see how big the file is.  Seeking at the very start of a file is also 
+   supported.  Unfortunately this confuses 'more' somewhat - it does a small
+   seek at the beginning to see if the filesystem supports seeks, and if it
+   does it allows you to page backwards ... but this fails later dumping you
+   out.
+
+ · Case sensitivity is still a problem with full path names.  This is because
+   if a reference is made to /fish/Bing/FrogWomble/x.c, FTPMount will simply
+   try to CWD to /fish/Bing/FrogWomble and then get a directory listing.
+   Thus, /fish/Bing/FrogWomble must be the right case if the FTP server is 
+   case sensitive.  Leaf names are case insensitive (as long as you don't set
+   the CASE tooltype obviously).
+
+ · Directory listings are cached indefinitely.  There is basically no low
+   impact way of telling that files in the directory have been updated, and
+   I refuse to retrieve the directory listing every time you do anything in a
+   directory.  The directory is flushed when a file is opened for writing, so
+   if you need to update the directory you could do something like:
+      echo bing >flush.file
+      delete flush.file
+
+ · Unix soft links are always assumed to be directories.  This is because the
+   standard format for a LIST has the first character as either a 'd', a '-',
+   or an 'l'.  Thus if it's a link to a file it looks just like a link to a
+   directory.  This may be fixed (with much contortion) in future.  For now 
+   it is more generally useful to assume the link is to a directory.
+ 
+ · '.' and '..' are filtered out due to potential AmigaDOS confusion.
+
+ · FTPMount shouldn't be used on the Workbench if a utility such as DefIcons 
+   or Icon is running, since these attempt to determine the filetype by 
+   reading a portion of each file in a directory.  This takes many minutes, 
+   and is a bit net anti-social.
+
+ · Locks are no guarantee that the file won't be changed/removed/mangled 
+   underneath you.
+ 
+ · File notification is not supported, and is not supportable.
+
+ · Record locking is not supported, and is not supportable.
+ 
+ · Protection bits cannot be modified.
+ 
+ · Comments are not supported, and are not supportable.
+ 
+ · MakeLink is not supported, and is not supportable.
+ 
+@EndNode
+
+@Node "changes" "FTPMount - Release changes to 1.0"
+
+FTPMount1.0 is a (very) minor upgrade to 0.8.  It is mainly a consolidating
+release since 0.8 has been out there for a while and seems relatively stable.
+Only one bug fix has been included here, so many of the requests people have
+made are not in this release, and for this I apologise.
+
+Changes from 0.8 to 1.0:
+ · Soft links to directories will now be followed correctly.  Soft links
+   to files are still not supported.
+
+ · Windows NT (TM) directory listings are now supported.  Thanks go to
+   Ron Flory for this enhancement.
+
+Changes from 0.7 to 0.8:
+
+ · FTPMount no longer pretends to support the ExamineFH packet.  There was
+   a problem with ExamineFH which caused crashes related to the fact that
+   the file handle was not in the position in the packet that documentation
+   indicated that it was.  I couldn't work out what to do about this, so it
+   returns an ACTION_NOT_KNOWN error instead.  Most programs should be able
+   to cope transparently with this.
+
+ · "//" is legal at the beginning of an FTP: path (for pseudo-URL support),
+   thus FTP://ftp.netnet.net/pub/aminet/RECENT is a legitimate path name.
+
+ · Directory listings are stored in the same order they are retrieved, so 
+   for example, a copy with a wildcard will copy in standard sorting order
+   rather than reversed.
+
+ · Case insensitivity now picks an exact match over a case insensitive
+   match.  Thus if a site (eg Aminet/RECENT/recent ... Grrr) has two entries 
+   with the same name, but different cases, you can always distinguish 
+   the one you want by typing the name exactly.
+
+ · If there is no icon for a site, the tooltypes will be read from the
+   Default.info icon.  NB: this doesn't mean that the Default icon specifies 
+   the default value for tooltypes!
+
+ · The "MESSAGES" ToolType has been added to allow disabling of either
+   banner messages or all messages.  Please note that banner messages for public 
+   FTP sites are generally "Conditions of use" which should be read and 
+   understood by users, so I strongly recommend against putting "MESSAGES=ERROR" 
+   or "MESSAGES=NONE" in the Default icon, or in fact for any public ftp site.
+
+ · The "PORT" ToolType has been added to allow connection to ports other
+   than the standard FTP port (21).
+
+ · FTPMount now handles file names with spaces.
+@EndNode

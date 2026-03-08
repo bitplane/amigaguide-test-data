@@ -1,0 +1,1066 @@
+@database 077f9ad8-0
+@master rars:RARS_Tutorial.guide
+@$VER: 1.1
+@author "Marcel Offermans"
+@(c) "Marcel Offermans"
+@remark Created with Heddley v1.1 (c) Edd Dumbill 1994
+
+@node "Main" "Robot Auto Racing Simulation - Tutorial"
+
+                       Robot Auto Racing Simulation
+
+                                 Tutorial
+
+                       Written by Mitchell E. Timin
+                converted to AmigaGuide by Marcel Offermans
+
+  @{"  Introduction     " link "Introduction" 0}  Background information about this tutorial.
+  @{"  Tutorial 1       " link "Tutorial1" 0}  Introduction, accelerating and steering. 
+  @{"  Tutorial 2       " link "Tutorial2" 0}  Braking, avoiding cars, taking corners. 
+  @{"  Vector tutorial  " link "Tutorial_vectors" 0}  Vectors, forces, friction and power consumption.
+  @{"  Tutorial 3       " link "Tutorial3" 0}  A complete example driver.
+  @{"  Tutorial 4       " link "Tutorial4" 0}  More advanced braking for and in corners.
+  @{"  Tutorial 5       " link "Tutorial5" 0}  An advanced example driver.
+@endnode
+
+@node "Introduction" "Introduction"
+
+     @{u}Introduction@{uu}
+
+This tutorial has been posted on the mailinglist by the original author of
+RARS, Mitchell E. Timin. All credit must therefore go to him. Please note
+that the tutorial was written a while ago, which means that some things
+have changed. Most changes are enhancements though, and of course the ideas
+behind RARS are still the same.
+
+The purpose of this tutorial is not to explain how to write the perfect
+driver. On the other hand, it is quite possible that you will be developing
+better drivers than the examples in the tutorial. The main aim of the
+tutorial is to give a better insight in the physics behind RARS, the
+information you get as a driver and how to interpret it and convert it into
+meaningful actions.
+@endnode
+
+@node "Tutorial1" "Tutorial 1"
+
+     @{u}Tutorial 1@{uu}
+
+This is the first tutorial in the series. First, let me remind you that
+@{"CNTRL0.CPP" link "cntrl0.cpp/main" 0} was intended as a tutorial example of a robot driver. So study
+it, modify it, try to make it faster. Ask questions about it. What follows
+here today will be even simpler than CNTRL0.CPP: This article is short. I
+suggest you re-read it as many times as necessary if it is not clear the
+first time.
+
+When the robot "driver" function is called by the main program, his car may
+be anywhere on the track. It must determine whether it is on a curve or a
+straight, whether it needs to accelerate or slow down, whether it is going
+off the track to the left or right. The basic scheme is first to determine
+what's happening and then to choose or calculate the control outputs. The
+outputs of course are the tire speed, vc, and the drift angle, alpha. (more
+below) It should be clear that a racing car needs to accelerate at the
+beginning of a straightaway, slow down for a corner, and then go around the
+corner as fast as the traction permits. Beyond that, it should try to take
+a path that hugs the inside of the turns, or a better path than that, if
+you can find it. The outputs vc and alpha must always move the car towards
+its intended path and speed.
+
+Let's follow a car around the track from the beginning of the race. The
+robot doesn't have to know that the race is just starting; he looks at
+s.to_end and sees that it is almost as big as s.cur_len. Also, he sees that
+s.cur_rad is zero. From those things he knows that he is near the beginning
+of a straightaway, and therefore he should give it full throttle. (We are
+assuming that he is pointed in the right direction.) Now let's look in
+detail at these items:
+
+"s" is the drivers copy of the "situation" structure. The items we will
+talk about are:
+
+s.cur_rad is the radius of the track segment we are on. Zero means
+straight.
+
+s.cur_len is the length of the segment, in feet for a straightaway.
+
+s.to_end is the distance to the end of the segment, ft. for a straight.
+
+s.v is the car's current speed in feet per second, fps.
+
+Here is possible code to implement the above logic:
+
+     if(s.cur_rad == 0.0)                // If we are on a straightaway,
+          if(s.to_end > .4 * s.cur_len)  // if we are far from the end,
+               vc = s.v + 50.0;          // pedal to the metal!
+
+The .4 could be replaced by the name of a constant, such as maybe
+LARGE_FRACTION, so that the second line of code tests to see if the car is
+a LARGE_FRACTION of the total length from the end of the straight. How do
+we know that .4 is right? We don't! LARGE_FRACTION is a parameter that must
+be determined by trial and error. The fact that we have this puzzling
+parameter is a clue that this algorithm is not the best, which we will talk
+more about later.
+
+The same could be said for the 50.0, except that here there is some theory
+to guide us. First, let me define vc: vc is the speed of the bottom of the
+tire relative to the car itself. It is what the car's speedometer would
+read if it were mechanically connected to the wheel. The 50.0 is the amount
+of wheel slip; we are asking the simulator to spin the wheels against the
+track at 50 fps. We know that the car doesn't have enough power to do that,
+but we also know that the simulation will figure out that we want full
+power, and it will calculate a new vc value that just gives us 100 %
+power.
+
+Why do we put 50.0 instead of 1,000,000? Well, that might work fine, I
+haven't tested it. It will slow down the simulation because it has to
+search for the correct value of vc, and starting with a ridiculous value
+will make the search take longer. However, we do have an excellent search
+method, so it might work OK.
+
+But you need to understand how tire force and power are related, so lets
+see how much wheel spin you can get with our car. In order for the next
+paragraph to make sense there are two items to emphasize: 1) Our car has an
+automatic transmission with an infinite number of gear ratios, so its
+maximum deliverable power is always 100,000 ft. lbs. per second, or 181
+horsepower. 2) The horizontal force of the track on the tire (traction
+force) is completely determined by the slip rate of tire sliding on the
+track. You must familiarize yourself with the friction() function; I
+strongly recommend that you draw a graph of coefficient of friction versus
+slip speed. The force goes up rapidly with small slip rates, but then
+levels off, approaching a maximum of MYU_MAX = 1.0 at high slip rates. High
+slip rates are much greater than 2.0 fps, at which point the coefficient of
+friction is .5.
+
+Mechanical power is equivalent to force times speed, if the force is
+pushing something along at that speed. In this case the tire is rubbing
+against the track with a force F, F being the frictional force of tire vs.
+track. The speed with which this force is being delivered is vc. Then P = F
+* vc is the power delivered to the tire. The main thing to notice from this
+relation is that force must decrease with speed, and the greatest force you
+can get would be at the slowest vc. Now if you look at our friction model
+in CARZ.CPP, you can see that the largest coefficient of friction we can
+get is a little less than MYU_MAX, which has the value of 1.0. Hence the
+largest force is about equal to the weight of the car, which is 80 * 32.2 =
+2576 lb. (See the beginning of CARZ.CPP.) P is 100,000 ft. lb. per second,
+so if P were being delivered with that force the tire speed would be: vc =
+P/F = 100,000/2576 = 38.8 fps. Since spinning the wheel rapidly will
+generate 2576 pounds of friction force, we don't have enough power for vc
+to exceed 38.8 fps, when the car is stationary. As the car picks up speed
+vc can increase, but it can't increase as rapidly as s.v, because the force
+will go down. A smaller force means a much smaller slip rate, i.e. vc
+closer to s.v. Therefore, the formula vc = s.v + 50.0 is always a request
+for more power than the car has, and is equivalent to full throttle.
+
+What about steering? The car might have entered this straightaway from the
+preceding turn, and not be moving straight down the track. We must output a
+reasonable value of vc and alpha no matter what situation the car is in. If
+we find the car too far to the right or left we must steer it away from the
+nearby rail. Those conditions are detected by examining s.to_lft and
+s.to_rgt. More important is the direction of motion, since it doesn't
+matter if the car is almost touching the rail if it is not moving toward
+the rail. The direction of motion is given by s.vn, or perhaps by the ratio
+of s.vn to s.v, since the angle between the cars path and the track is the
+angle whose sine is s.vn/s.v. First some definitions:
+
+s.vn is the component of the cars velocity normal to the track direction,
+fps. It is positive if the car is moving to the left.
+
+s.to_lft and s.to_rgt are the distance in feet to the track rails. Their
+sum will be a constant, the track width.
+
+alpha is the drift angle of the car; the angle between the car's centerline
+and its velocity vector. At high speed a very small drift angle causes a
+large lateral force. At low speed a large angle produces only a moderate
+lateral force. We measure the angle in radians. By a small angle I mean
+near .01, by a large angle I mean more than .15. If the car is moving at
+constant speed, but changing its direction, the slip rate will be vc *
+sine(alpha). The slip rate in turn determines the lateral force. (In this
+particular situation all of the slippage is directly sideways.)
+
+One easy way to steer the car, which has been used in most of the cars so
+far, is to pick a distance from one wall, and then set up a "servo" to
+always go back to that distance. Suppose we let the variable "lane" be that
+desired distance from the left wall. Then when s.to_lft == lane things are
+just the way we want them. We can then set up a formula to always try to
+reach this condition like so:
+
+     alpha = STEER_GAIN * (s.to_lft - lane);
+
+Notice that when s.to_lft is equal to lane then alpha will be zero, which
+is what we want. Also, when s.to_left is greater than lane, alpha will be
+positive, which causes a force to the left, again what we want. The
+STEER_GAIN factor will have to be determined by trial and error. You might
+want to make it smaller at higher speeds.
+
+This is not quite good enough by itself. Servos have a tendency to
+oscillate, and are usually provided with damping. This is easily
+accomplished by putting in a term proportional to s.vn, since s.vn is a
+measure of how rapidly s.to_lft is changing. Our complete servo-steering
+formula is then:
+
+     alpha = STEER_GAIN * (s.to_lft - lane) - DAMP_GAIN * s.vn;
+
+This just says that if the car is moving rapidly toward the left, then you
+slide with the car pointing to the right of its direction of motion.
+DAMP_GAIN must be found by trial and error; it also might depend on s.v. On
+straightaways the damping term is more important than the lane-holding
+term, because as long as s.v is held near zero, it may not be important
+where you are on the track.
+
+Next time we will see what to do when s.to_end is not so big anymore.
+@endnode
+
+@node "Tutorial2" "Tutorial 2"
+
+     @{u}Tutorial 2@{uu}
+
+In the previous tutorial we showed how you might accelerate at full
+throttle as long as s.to_end exceeds some LARGE_FRACTION of s.cur_len.
+(This applies to any straightaway.)
+
+When the car passes that point, you might as well put on the brakes. You
+should have accelerated as long as possible, and now you have to slow down
+for the turn. You can lock the wheels, like this:
+
+     vc = 0.0;
+
+Which will give you maximum deceleration. As long as the wheels are locked
+it won't matter how alpha is set; you will continue in a straight line in
+whatever direction you were heading. If you need to steer, then you better
+let the wheels roll. For instance, suppose you checked the dead_ahead flag
+at this time. (when s.dead_ahead is non-zero, then another car is
+approximately right in front of you.) In order to do some kind of steering,
+to avoid hitting it, but still slow down rapidly, you could use this:
+
+     vc = .95 * s.v;
+
+The wheel is now sliding at 5 percent of the cars speed, which will give
+plenty of deceleration. (see the friction() function) But it is also
+rolling at 95 percent of the cars speed, so it will still function well for
+steering. Again, this value of .95 might be better set at .91 or .98; that
+will probably only make a very small difference. Eventually, when your car
+is very competitive, very small differences can become very important.
+Racing is like that!
+
+How should you steer if dead_ahead is non-zero? One way is to change the
+value of "lane", assuming you are using the steering method outlined in
+tutorial 1. A change of one or two car widths may be enough; you might pick
+the direction at random, or choose where there is more room.
+
+Now you are nearing the turn. You must have some idea of how fast to take
+the turn. This could be obtained by trial and error, but we can get a
+pretty good idea using some high school physics. This will give us the
+three relations that:
+
+     centripetal acceleration = speed squared / radius of curvature
+
+     centripetal force = Mass * centripetal acceleration
+
+     traction force = Mass * g * coefficient of friction
+
+A little simple algebra leads to the very practical result that:
+
+     speed = the square root of (coef. of friction * radius * g)
+
+If the radius is in feet and we use g =32.2 ft/(sec*sec) this will give us
+the speed in ft/sec. This relation gives us the theoretical maximum
+cornering speed if we know the radius and the coef. of friction. We can
+take the radius to be a little larger than the inner radius of the turn, or
+maybe a lot larger if you can figure out a really good path. We can assume
+a value a little less than 1.0 for the coef. of friction, because, as was
+stated in tutorial 1, the slip rate will be vc * sine(alpha). (That is only
+true if there is not much tangential acceleration, i.e you are going around
+the corner at more-or-less constant speed.) vc will be close to s.v in this
+case, and only a few degrees of alpha will give enough slippage to generate
+over .9 for the coef. of friction, as long as s.v is not very slow.
+
+The result of all that is the following very useful function:
+
+     double corn_spd(double radius) // returns maximum cornering speed,
+                                    // fps
+     {
+          double rad;                          // abs. value of the radius
+          rad = radius < 0 ? -radius : radius; // make radius positive 
+          return sqrt(rad * 32.2 * CORN_MYU);  // compute the speed
+     }
+
+Here, CORN_MYU is your estimate of the coefficient of friction due to
+cornering traction. (BTW, RARS version 0.5 can show this value on the
+screen in real time, along with some other numbers.) .95 is a decent value
+for CORN_MYU.
+
+Now, when we are coming toward a turn, we can use s.nex_rad, which is its
+inner radius, to call the corn_spd() function. Then we will know how fast
+we are supposed to enter the turn. With that data we can compare our speed,
+s.v, to the cornering speed. As long as s.v exceeds the cornering speed, we
+continue braking. When we reach the point where s.v is less than the
+cornering speed, then we need to accelerate again, or at least maintain
+speed. Putting this all together, this is what we do from the point where
+we begin braking until we enter the turn:
+
+     speed = corn_spd(s.nex_rad + DIST_FROM_INSIDE) // compute target
+                                                    // speed
+     if(s.v > speed)
+          vc = .95 * s.v;           // braking
+     else
+          vc = 1.05 * s.v;          // accelerating when below speed
+     if(s.dead_ahead)               // Change the lane a little if
+          if(s.to_lft > s.to_rgt)   // someone's in your way.
+               lane -= DELTA_LANE;  // lane must be a static variable
+          else
+               lane += DELTA_LANE;         
+
+This will slow us down until we hit cornering speed, and then keep us at
+that speed. It will also attempt to steer away from a car in our path as we
+approach the corner, assuming we are using the steering method described in
+tutorial 1.
+
+The above algorithm suffers from rather drastic acceleration oscillations
+once the desired speed is reached, since the tire never approaches the
+speed of the track; it is always going 5% faster or 5% slower. Nothing
+terrible happens as a result of this, except that steering suffers. This is
+not good if passing is required. A smoother way is:
+   
+     if(s.v > 1.02 * speed)         // if we're 2% too fast,
+          vc = .95 * s.v;           // brake hard.
+     else if(s.v < .98 * speed)     // if we're 2% too slow,
+          vc = 1.05 * speed;        // accelerate hard.
+     else                           // if we are very close to speed,
+          vc = .5 * (s.v + speed);  // approach the speed gently.
+
+The last formula, which computes vc as the arithmetic mean of s.v and the
+target speed, makes the wheel slip approach zero as s.v approaches the
+target speed. Furthermore the slip always has the correct sign to bring s.v
+closer to the target speed. At very high speeds, air drag will cause s.v to
+remain a little below the target speed.
+
+Once we reach the end of the straight, and enter the corner, we should be
+traveling at about the right speed, and we only need to maintain a circular
+path. The speed should be maintained at "speed". We can maintain the speed
+using the same formula as above, except that the resulting vc should be
+divided by the cosine of alpha to account for vector effects. There exists
+a separate writeup of the vector relations between alpha, s.v, vc, tire
+slip, and the traction force vector. I can send that to those interested.
+Also, the implementation can be found in CARZ.Z, function move_car(),
+beginning with the label VC: and ending with tan_a = (Ft * temp - D) / M;
+
+The same steering servo algorithm that was described in tutorial 1 can
+continue to be used throughout the curve, but two modifications are very
+desirable. First, a value should be chosen for lane. For long curves you
+usually want to keep to the inside, although it might be even better to
+make lane a function of s.to_end. A simple way is to set lane to a certain
+fraction of the width from the inside, i.e.:
+
+     width = s.to_lft + s.to_rgt;
+     if(s.cur_rad > 0.0)       // turning left
+          lane = .2 * width;
+     else if(s.cur_rad < 0.0)  // turning right
+          lane = .8 * width;
+
+s.cur_rad is the radius of the inner rail of the curve we are on. A
+negative sign is used to indicate a right turn.
+
+The second important addition to the steering servo is a bias term. This is
+an estimate of the required alpha value, or, the alpha that you get when
+s.vn is zero and s.to_left == lane. The bias is positive for left turns,
+negative for right turns. Furthermore, it is small for high speed turns but
+has large magnitude for low speed turns. A reasonable formula for the alpha
+bias is:
+
+     bias = atan(BIG_SLIP / speed);
+
+Where BIG_SLIP is a slip rate large enough to get the desired lateral
+force. A good value for BIG_SLIP might be in the range of 12.0 to 20.0. The
+atan() is theoretically correct, but in practice just BIG_SLIP / speed is
+close enough; there won't be much difference. Without the bias added to
+alpha, the car will drift far from the desired lane value.
+
+In tutorial 3 we will put all of the code from the first two tutorials
+together into a complete robot.
+@endnode
+
+@node "Tutorial_vectors" "Tutorial on the vectors that move the car"
+
+     @{u}Tutorial on the vectors that move the car@{uu}
+
+Here is a description of the model of traction force and skidding, etc.,
+that is implemented in move_car(). Click @{"here" alink "Tutorial_vectors.iff/main" 0} for a useful accompanying
+sketch. Note that P is used here for a vector, not for power. Also note
+that we use F for a vector here and f for its magnitude. In the computer
+program F was used for the magnitude. (There are no vectors directly
+represented in the program.)
+
+We begin by erecting an x-y coordinate system with the positive x direction
+along the car's velocity vector, and the y axis to the driver's approximate
+left.
+
+Let:
+     V = car's velocity vector, given
+     P = car's pointing vector, unit vector in direction car is pointing
+         (these two are separated by the angle alpha, given)
+     W = velocity vector of tire bottom surface wrt car
+         (this equals -P * vc, where vc is "velocity commanded", given)
+     L = slip vector, velocity of tire bottom wrt track surface.
+     F = force vector pushing the car; this is in direction opposite to L.
+     Ft = x-component of F  (t for tangential to path)
+     Fn = y-component of F  (n for normal to path)
+     Lt = x-component of L
+     Ln = y-component of L
+
+A fundamental vector relation is:
+
+                    L = V + W
+
+Which just says that the tire velocity wrt track is the tire velocity wrt
+car plus the car velocity wrt track. By simple substitution, this becomes:
+
+                    L = V - vc * P
+
+Since the components of P and V are known, we can write:
+
+       Lt = v - vc * cosine(alpha);
+       Ln = - vc * sine(alpha_;
+
+We will use lowercase letters for magnitudes of the vectors, so the sliding
+speed of the tire is l, and the force is f. The force is determined by the
+friction model. We assume that this force depends only on l, the slip
+speed.
+
+     f = u(l)  where u(l) is the friction function, given. hence:
+
+          F = - u(l) * L / l
+
+Because the F and L vectors are parallel, the components of F are in the
+same proportion as the components of L. Hence:
+
+          Ft = -f * Lt/l
+          Fn = -f * Ln/l
+
+The power consumed is equal to the component of F parallel to P, times vc.
+We compute this by treating the normal and tangential components of F as
+two separate forces. The tangential component of force has the angle alpha
+wrt the P vector, hence its contribution to the power is Ft *
+cosine(alpha). The normal component, being at right angles to the
+tangential component, has contribution Fn * sine(alpha). This gives us:
+
+      pwr = vc * (Ft * cosine(alpha) + Fn * sine(alpha))
+
+That is the procedure currently used to calculate the force vector and the
+power consumption. It would be convenient if there was a practical way to
+start with power or force as a given, and compute vc and the force and slip
+vectors; unfortunately the only known solution, due to Matt Timmermans,
+required solution of a fourth order polynomial equation. I actually
+implemented a search procedure to find vc when power is given, because the
+solution sent by Matt was extremely complicated. (So is the search
+procedure, but it was already available as a C function, needing relatively
+minor changes.)
+
+The friction function currently used is of the form:
+
+     u(l) = FMAX * l / (K + l), where FMAX and K are given constants.
+
+Any function that rises steeply from the origin and then levels out and
+approaches a maximum might be used. It might be piecewise linear with only
+two or three pieces, for example.
+
+In order to have a model that more accurately simulates the real world,
+especially paved surfaces, it will be necessary for the traction force
+function to depend on more than just the slip speed, I believe.
+@endnode
+
+@node "Tutorial3" "Tutorial 3"
+
+     @{u}Tutorial 3@{uu}
+
+/*************************************************************************
+
+     TUT3.CPP - yet another RARS 'bot, by M. Timin, April '95
+
+This file is the third in our tutorial series. It is also a working robot.
+The robot function name, and its displayed name, is "TutorMan". This file
+may be compiled an linked just as any other RARS driver. It has been
+tested, and it runs quite well on some of the tracks. It crashes on the
+other tracks because it is not smart enough for certain trick sequences of
+curves. Of the tracks that I tried, it runs best on SPEED2.TRK and
+OVAL2.TRK. In the fourth tutorial we will improve the robot so that he
+rarely crashes and drives faster as well!
+
+This code is closely based on the first two tutorials. I will try to
+explain where and why it differs in the comments of the code.
+
+There is one major change in part of the steering servo algorithm, the
+"bias" formula. I stated without much explanation that the bias could be
+computed by "bias = atan(BIG_SLIP / speed)". I'll now explain how that
+formula is arrived at: In move_car(), where it calculates the tire slip
+vector, we find this line:
+
+     Ln = -vc * sine;
+     Lt = v - vc * cosine;    // vector sum to compute slip vector
+
+Now if the car is in equilibrium rounding the turn, then Lt will be zero,
+so that v == vc * cos(alpha) and therefore vc == v/cos(alpha). Substituting
+that result, we get that Ln == -v * tan(alpha), or tan(alpha) == -Ln/v. In
+our robot code v is s.v, and -Ln is the slip speed, which I call BIG_SLIP,
+because a high speed turn is a high g turn and that means a high traction
+force, which requires a fairly large slip speed. That is the derivation.
+
+Upon first running the new robot, with the above formula, It was soon
+obvious that a very bad value for bias was frequently being chosen. The
+reason for this is that the above derivation assumed that the car was
+moving at the correct speed so that the traction force was balanced by the
+so-called "centrifugal force". Frequently the car is moving at a different
+speed, and needs to accelerate or decelerate. If the car is moving at less
+than equilibrium speed, then alpha should be lower so that the lateral
+component of traction force is lower. Therefore I added a "fudge factor" to
+the formula. I have not carefully derived this, I just knew that
+"centrifugal force" is proportional to the square of the speed, so I just
+multiplied our bias formula by the square of the ratio of actual speed to
+target speed. This has the desired affect of reducing alpha when the car is
+accelerating in a turn, while still maintaining the same bias when the car
+reaches it full cornering speed.
+
+*************************************************************************/
+
+ #include <string.h>
+ #include <stdlib.h>
+ #include <math.h>
+ #include "car.h"
+
+ extern char * glob_name;              // The name string, below,
+                                       // will be copied here
+
+ // parameters to tinker with:
+ const double DELTA_LANE = 2.0;        // when car "dead_ahead,
+                                       // change "lane" this much
+ const double CORN_MYU   = .95;        // lateral g's expected when
+                                       // cornering
+ const double ACCEL_FRACTION = .2;     // fraction of straightaway for
+                                       // braking
+ const double DIST_FROM_INSIDE = 12.0; // target distance from curve's
+                                       // inner rail
+ const double STEER_GAIN = .5;         // gain of steering servo loop
+ const double  DAMP_GAIN = 2.0;        // damping of steering servo loop
+ const double  BIG_SLIP  = 14.0;       // affects the bias of steering
+                                       // servo loop
+ 
+ double corn_spd(double radius)        // returns maximum cornering
+                                       // speed, fps
+ {
+      double rad;                          // absolute value of the radius
+      rad = radius < 0 ? -radius : radius; // make radius positive 
+      return sqrt(rad * 32.2 * CORN_MYU);  // compute the speed
+ }
+ 
+ con_vec TutorMan(situation s)
+ {
+    const char name[] = "TutorMan";  // This is the robot driver's name!
+    static int init_flag = 1;        // cleared by first call
+    con_vec result;                  // This is what is returned.
+    double alpha, vc;                // components of result
+    static double lane = -10000;     // an absurd value to show not
+                                     // initialized
+    double bias, speed, width;
+ 
+    if(init_flag == 1)  {            // first time only, copy name:
+       strcpy(glob_name, name);
+       init_flag = 0;
+       result.alpha = result.vc = 0;
+       return result;
+    }
+ 
+    // service routine in the host software to handle getting unstuck from
+    // from crashes and pileups:
+    if(stuck(s.backward, s.v,s.vn, s.to_lft,s.to_rgt,
+                                                &result.alpha,&result.vc))
+       return result;
+ 
+    width = s.to_lft + s.to_rgt;   // compute width of track
+ 
+    // This is a little trick so that the car will not try to change lanes
+    // during the "dragout" at the start of the race.  We set "lane" to 
+    // whatever position we have been placed by the host.
+    if(lane < -9000)               // will be true only once
+       lane = s.to_lft;            // better not to change lanes at the
+                                   // start
+ 
+    // Set "lane" during curves.  This robot sets "lane" during curves to
+    // try to maintain a fixed distance to the inner rail.
+    // For straightaways, we leave "lane" unchanged until later.
+    if(s.cur_rad > 0.0)            // turning left
+       lane = DIST_FROM_INSIDE;
+    else if(s.cur_rad < 0.0)       // turning right
+       lane = width - DIST_FROM_INSIDE;
+ 
+    // set the bias:
+    // Bias is an additive term in the steering servo, so that the servo
+    // doesn't have to "hunt" much for the correct alpha value.  It is an
+    // estimate of the alpha value that would be found by the servo if
+    // there was plenty of settling time.  It is zero for straightaways.
+    // Also, for convenience, we call the corn_spd() function here.  On
+    // the straightaway, we call it to find out the correct speed for the 
+    // corner ahead, using s.nex_rad for the radius.  In the curve we of
+    // course use the radius of the curve we are in.
+    if(s.cur_rad == 0.0) {
+       bias = 0.0;
+       speed = corn_spd(s.nex_rad + DIST_FROM_INSIDE); 
+    }
+    else {
+       speed = corn_spd(s.cur_rad + DIST_FROM_INSIDE);
+       // See initial paragraphs for discussion of this formula.
+       bias = (s.v*s.v/(speed*speed)) * atan(BIG_SLIP / speed);  
+       if(s.cur_rad < 0.0)   // bias must be negative for right turn
+          bias = -bias;
+    }
+ 
+    // set alpha:  (This line is the complete steering servo.)
+    alpha = STEER_GAIN * (s.to_lft - lane)/width -
+                                  DAMP_GAIN * s.vn/s.v + bias;
+ 
+    // set vc: When nearing end of straight, change "lane" for the
+    // turn, also.
+    if(s.cur_rad == 0.0) {                        // If we are on a
+                                                  // straightaway,
+       if(s.to_end > ACCEL_FRACTION * s.cur_len)  // if we are far from
+                                                  // the end,
+          vc = s.v + 50.0;                        // pedal to the metal!
+       else  {                                    // otherwise, adjust
+                                                  // speed for
+                                                  // the coming turn:
+          if(s.v > 1.02 * speed)                  // if we're 2% too fast,
+             vc = .95 * s.v;                      // brake hard.
+          else if(s.v < .98 * speed)              // if we're 2% too slow,
+             vc = 1.05 * speed;                   // accelerate hard.
+          else                                    // if we are very close
+                                                  // to speed, approach
+             vc = .5 * (s.v + speed);             // the speed gently.
+          // approach the lane you want for the turn:
+          if(s.nex_rad > 0.0)
+             lane = DIST_FROM_INSIDE;
+          else
+             lane = width - DIST_FROM_INSIDE;
+       }
+    }
+    else  {                                 // This is when we are in a
+                                            // curve: (seek correct speed)
+      vc = .5 * (s.v + speed)/cos(alpha);   // to maintain speed in corner
+    }
+ 
+    // During the acceleration portion of a straightaway, the lane
+    // variable is not changed by the code above.  Hence the code below
+    // changes it a little at a time until there is no car dead_ahead.
+    // This code here has no affect at all in the turns, nor in the
+    // braking portion of the straight.
+    if(s.dead_ahead)           // Change the lane a little if someone's
+      if(s.to_lft > s.to_rgt)  // in your way.
+         lane -= DELTA_LANE;   // lane must be a static variable
+      else
+         lane += DELTA_LANE;
+ 
+    result.vc = vc;
+    result.alpha = alpha;
+    return result;
+ }
+@endnode
+
+@node "Tutorial4" "Tutorial 4"
+
+     @{u}Tutorial 4@{uu}
+
+In this, the fourth in the tutorial series, we will improve the performance
+of the robot driver that was presented in the previous tutorial. TutorMan
+had good performance on two out of the six tracks that will be used for the
+April races. On the other four, he was not able to complete the course. The
+main thing to do first is to get him to stay on the track!
+
+If you observe TutorMan try to negotiate various tracks, you will see that
+he runs off the track consistently if a tight turn follows a large radius
+turn. He also runs off the track if a tight turn follows a short
+straightaway where the straightaway is entered at a high speed.
+
+Both of these observations are easy to explain. When the car is in a large
+radius turn, it naturally is going at a high rate of speed. Our corn_spd()
+function gives us a target speed proportional to the square root of the
+radius, like it should. However, if the high speed curve is followed by a
+sharp corner, the car will enter the sharp corner at a speed appropriate to
+the high speed curve! There is nothing in TutorMan's code to cause him to
+slow down for the corner. You can observe this behavior on V03.TRK;
+Tutorman always goes off the track after the long, gradual right hand
+curve.
+
+On every straightaway, we have code to slow down for the corner. The
+problem here is that the length of the part of the track where braking
+takes place is always equal to a fixed fraction of the length of the
+straightaway. If it is a short straightaway, we will have a short braking
+section. Since the acceleration section is also short, this would be OK if
+we entered the straightaway at a low speed. But it often happens that the
+short straight is entered at a high speed, in which case it will still be
+going at a high speed when it reaches the braking section. Again, the sharp
+curve will be entered at too high a speed, resulting in going off the track
+to the outside. You can observe this behavior on ZANDVORT.TRK; Tutorman
+always goes off the track in the second turn.
+
+What we need is a more realistic way of deciding when to brake for the
+corner, and we also need to apply that rule on curves as well as
+straightaways. The distance actually required to slow the car down for the
+curve depends on three things: 1) How fast we are traveling, 2) What speed
+we must have when we arrive at the corner, and 3) Our rate of negative
+acceleration during braking. Notice that the length of the straightaway has
+no direct influence here; our former rule was totally inadequate! What we
+need is a function that looks like this:
+
+     // returns the minimum distance in which the speed can be changed 
+     // from v0 to v1 with acceleration limited to a_max.
+     double crit_dist(double v0, double v1, double a_max);  
+
+Once we have such a function, then we can compare our current distance from
+the next curve with this critical distance. As long as we are farther than
+this distance from the next turn, we do not have to slow down. Otherwise,
+we must brake to adjust our speed for the next turn.
+
+There is a well known formula for the distance traveled by a body with
+uniform acceleration during time T. (Due, I believe, to Isaac Newton!)
+Using the symbols chosen for our crit_dist() function, the formula is:
+
+     dist = v0 * T + .5 * a_max * T * T
+      Now by the definition of uniform acceleration, and using dv to mean
+the total change in speed during time T:
+
+     dv = a_max * T       (where dv = v1 - v0)
+
+T can be eliminated from those two equations by simply solving the second
+for T, and substituting this for T in the first. The result is:
+
+     dist = v0 * dv / a_max + .5 * dv * dv / a_max;
+
+which we can calculate as:
+
+     dist = (v0 + .5 * dv) * dv / a_max;
+
+That is our desired formula for the required distance. Our complete
+function can be written like this:
+
+     // calculates the critical distance necessary to bring a car from
+     // speed v0 to speed v1 when the braking acceleration is a_max,
+     // in ft per sec^2 Speeds are in fps. (a_max should be negative
+     // and v0 > v1)
+     double crit_dist(double v0, double v1, double a_max)
+     {
+          double dv;
+
+          dv = v1 - v0;
+          if (dv > 0.0)   // this saves having such a test in the caller
+               return(0.0);  
+          return (v0 + .5 * dv) * dv / a_max;
+     }
+
+
+Now to apply this to our robot. For the straightaways, instead of comparing
+s.to_end with some fraction of s.cur_len, we first compute this crit_dist()
+function, and compare s.to_end with that. The first argument is s.v, our
+current speed. The second is "speed", already computed, which is the target
+speed for the curve ahead. The third argument will be another const
+parameter, which will replace ACCEL_FRACTION, which will no longer be used.
+This is what we wind up with:
+
+     const double BRAKE_ACCEL = -31.0;   // acceleration when
+                                         // braking, ft/sec^2
+            .
+            .
+            .
+     speed = corn_spd(s.nex_rad + DIST_FROM_INSIDE);  // target speed for
+                                                      // next turn
+            .
+            .
+            .
+     if (s.cur_rad == 0.0) {             // If we are on a straightaway,
+          if (s.to_end > crit_dist(s.v, speed, BRAKE_ACCEL)) // if far
+                                                             // from the
+                                                             // end,
+               vc = s.v + 50.0;                              // pedal to
+                                                             // the metal!
+          else {           // otherwise, adjust speed for the coming turn:
+            .
+            .
+            .
+
+BRAKE_ACCEL could exceed 32.2 at high speed, due to air drag. At low speed
+it could be less than 30.0. This is one more parameter to experiment with.
+(Yes, it could be made a function of s.v. You could even calculate the true
+value by saving s.v from the previous call and seeing how much it
+changed.)
+
+A number of other complexities arise when applying this approach to braking
+during curves. The basic idea is still the same, we compare our distance to
+the end of the curve with a critical distance based on our current speed
+and the speed we must have at the end of the curve. If the curve is
+followed by a straightaway, or a curve of larger radius, we'll assume we
+don't have to slow down. We are already using our cornering speed function
+to calculate a value for "speed", representing a target value for the curve
+we are in. It will be necessary to also calculate the cornering speed for
+the next segment. We will need another variable name, say "speed_next".
+Furthermore, since the next segment may be a straightaway, we need to
+consider that, and give speed_next a large value in that case.
+
+The next problem is: what should the braking acceleration be? We are
+talking about braking during a high speed turn in order to slow down for
+another, sharper turn. Clearly, we can't usually brake as hard as we would
+on a straightaway; we need to maintain some steering ability. Our traction
+force vector is going to be used both for braking and centripetal
+acceleration. The truth is that an optimal solution would require a much
+more sophisticated analysis. What we will do is pick another const
+parameter for the braking acceleration during curves, and also another
+parameter for the amount of reduction in wheel speed that we use to cause
+braking.
+
+One last thing to handle is that s.to_end is not a linear distance when the
+car is in a curve. It is the angle in radians. It can be converted to a
+curvilinear distance by multiplying it by the current radius. We will
+assume that the current radius is s.cur_rad + DIST_FROM_INSIDE. Putting
+everything together, We wind up with this:
+
+     const double BRK_CRV_ACC = -22.0;  // acceleration when braking
+                                        // in curve
+     const double BRK_CRV_SLIP = 4.0;   // tire slip for braking in curve
+            .
+            .
+            .
+     // Modified cornering speed function - returns 250.0 if called for
+     // a straightaway, assuming that DIST_FROM_INSIDE has been added to
+     // radius. 250.0 is approximately the car's top speed.
+     double corn_spd(double radius)    // returns maximum cornering
+                                       // speed, fps
+     {
+          double rad;                  // absolute value of the radius
+
+          if (radius == DIST_FROM_INSIDE)   // if called for straight,
+                                            // return top speed
+               return 250.0;
+                                                               
+          rad = radius < 0 ? -radius : radius;  // make radius positive
+          return sqrt(rad * 32.2 * CORN_MYU);   // compute the speed
+     }
+            .
+            .
+            .
+     double to_end;                // distance to end of curve, feet
+            .
+            .
+            .
+     if (s.cur_rad == 0.0) {
+          bias = 0.0;
+          speed = corn_spd(s.nex_rad + DIST_FROM_INSIDE);
+     }
+     else {     
+          speed = corn_spd(s.cur_rad + DIST_FROM_INSIDE);
+          speed_next = corn_spd(s.nex_rad + DIST_FROM_INSIDE);
+            .
+            .
+            .
+     if (s.cur_rad != 0.0)  {       // If we are in a curve,
+          // calculate vc to maintain speed in corner 
+          vc = .5 * (s.v + speed)/cos(alpha);  
+          // calculate distance to end of curve:
+          if(s.cur_rad > 0.0)
+               to_end = s.to_end * (s.cur_rad + DIST_FROM_INSIDE);
+          else
+               to_end = -s.to_end * (s.cur_rad - DIST_FROM_INSIDE);
+          // compute required braking distance and compare:
+          if(to_end <= crit_dist(s.v, speed_next, BRAKE_CURVE))
+               vc -= BRK_CRV_SLP;
+     }
+
+With those changes incorporated into our robot it should be able to get
+around almost any track. The next tutorial will consist of another
+compilable robot program, incorporating all of the above.
+@endnode
+
+@node "Tutorial5" "Tutorial 5"
+
+     @{u}Tutorial 5@{uu}
+
+/*************************************************************************
+
+     TUT5.CPP - yet another RARS 'bot, by M. Timin, April '95
+
+This file is the fifth in our tutorial series. It is also a working robot.
+The robot function name, and its displayed name, is "TutManTu". This file
+may be compiled and linked just as any other RARS driver. It has been
+tested, and it runs very well on almost all tracks.
+
+This code is closely based on the first four tutorials. I will try to
+explain where and why it differs in the comments of the code.
+
+The file CNTRL0.CPP is still useful as a reference for some details of
+robot code that are not explained below.
+
+*************************************************************************/
+
+ #include <string.h>
+ #include <stdlib.h>
+ #include <math.h>
+ #include "car.h"
+
+ extern char * glob_name;              // The name string, below, will be
+                                       // copied here
+ // parameters to tinker with:
+ const double DELTA_LANE = 1.5;        // when car "dead_ahead, change
+                                       // "lane" this much
+ const double CORN_MYU   = .97;        // lateral g's expected when
+                                       // cornering
+ const double BRAKE_ACCEL = -28.0;     // acceleration when braking on
+                                       // straight
+ const double BRAKE_RATIO = .92;       // tire speed ratio when braking
+ const double BRK_CRV_ACC = -26.5;     // acceleration when braking in
+                                       // curve
+ const double BRK_CRV_SLIP = 5.0;      // tire slip for braking in curve
+ const double DIST_FROM_INSIDE = 10.0; // target distance from curve's
+                                       // inner rail
+ const double STEER_GAIN = .7;         // gain of steering servo loop
+ const double  DAMP_GAIN = 2.0;        // damping of steering servo loop
+ const double  BIG_SLIP  = 17.0;       // affects the bias of steering
+                                       // servo loop
+
+ double corn_spd(double radius)        // returns maximum cornering
+                                       // speed, fps
+ {
+     double rad;                       // absolute value of the radius
+
+     if(radius == DIST_FROM_INSIDE)    // if called for a straight,
+                                       // return top speed
+          return 250.0;
+                                                               
+     rad = radius < 0 ? -radius : radius;    // make radius positive
+
+     return sqrt(rad * 32.2 * CORN_MYU);     // compute the speed
+ }
+
+ // Calculates the critical distance necessary to bring a car from speed
+ // v0 to speed v1 when the braking acceleration is "a", ft per sec^2.
+ // Speeds are in fps. ("a" should be negative)
+ double crit_dist(double v0, double v1, double a)
+ {
+     double dv;
+
+     dv = v1 - v0;
+     if(dv > 0.0)       // this saves having such a test in the caller
+          return(0.0);  
+     return (v0 + .5 * dv) * dv / a;
+ }
+
+ con_vec TutManTu(situation s)
+ {
+     const char name[] = "TutManTu";    // This is the robot driver's name
+     static int init_flag = 1;          // cleared by first call
+     con_vec result;                    // This is what is returned.
+     double alpha, vc;                  // components of result
+     static double lane = -10000;       // an absurd value to show not
+                                        // initialized
+     double bias, speed, speed_next, width, to_end;
+
+     if (init_flag == 1) {              // first time only, copy name
+          strcpy(glob_name, name);
+          init_flag = 0;
+          result.alpha = result.vc = 0;
+          return result;
+     }
+
+     // service routine in the host software to handle getting unstuck
+     // from crashes and pileups
+     if (stuck(s.backward, s.v,s.vn, s.to_lft,s.to_rgt,
+                                        &result.alpha, &result.vc))
+          return result;
+
+     width = s.to_lft + s.to_rgt;  // compute width of track
+
+     // This is a little trick so that the car will not try to change
+     // lanes during the "dragout" at the start of the race. We set
+     // "lane" to whatever position we have been placed by the host.
+     if(lane < -9000)              // will be true only once
+          lane = s.to_lft;         // better not to change lanes at
+                                   // the start
+
+     // Set "lane" during curves.  This robot sets "lane" during curves
+     // to try to maintain a fixed distance to the inner rail.
+     // For straightaways, we leave "lane" unchanged until later.
+     if (s.cur_rad > 0.0)                // turning left
+          lane = DIST_FROM_INSIDE;
+     else if (s.cur_rad < 0.0)           // turning right
+          lane = width - DIST_FROM_INSIDE;
+
+     // set the bias:
+     // Bias is an additive term in the steering servo, so that the servo
+     // doesn't have to "hunt" much for the correct alpha value. It is an
+     // estimate of the alpha value that would be found by the servo if
+     // there was plenty of settling time. It is zero for straightaways.
+     // Also, for convenience, we call the corn_spd() function here. On
+     // the straightaway, we call it to find out the correct speed for the
+     // corner ahead, using s.nex_rad for the radius. In the curve we of
+     // course use the radius of the curve we are in. But also, we call it
+     // for the next segment, to find out our target speed for the end of
+     // the current segment, which we call speed_next.
+     if (s.cur_rad == 0.0) {
+          bias = 0.0;
+          speed = corn_spd(s.nex_rad + DIST_FROM_INSIDE);
+     }
+     else {
+          speed_next = corn_spd(s.nex_rad + DIST_FROM_INSIDE);
+          speed = corn_spd(s.cur_rad + DIST_FROM_INSIDE);
+          bias = (s.v * s.v / (speed * speed)) * atan(BIG_SLIP / speed);
+          if(s.cur_rad < 0.0)   // bias must be negative for right turn
+               bias = -bias;
+     }
+
+     // set alpha:  (This line is the complete steering servo)
+     alpha = STEER_GAIN * (s.to_lft - lane) / width -
+                                             DAMP_GAIN * s.vn/s.v + bias;
+
+     // set vc:  When nearing end of straight, change "lane" for the
+     // turn, also.
+     if(s.cur_rad == 0.0) {             // If we are on a straightaway,
+                                        // if we are far from the end,
+          if(s.to_end > crit_dist(s.v, speed, BRAKE_ACCEL))
+               vc = s.v + 50.0;         // pedal to the metal!
+          else  {                       // otherwise, adjust speed for
+                                        // the coming turn:
+               if(s.v > 1.02 * speed)        // if we're 2% too fast,
+                    vc = BRAKE_RATIO * s.v;  // brake hard.
+               else if(s.v < .98 * speed)    // if we're 2% too slow,
+                    vc = 1.1 * speed;        // accelerate hard.
+               else                          // if we are very close to
+                    vc = .5 * (s.v + speed); // speed, approach the speed
+                                             // gently.
+          // approach the lane you want for the turn:
+          if(s.nex_rad > 0.0)
+               lane = DIST_FROM_INSIDE;
+          else
+               lane = width - DIST_FROM_INSIDE;
+          }
+     }
+     else {  // This is when we are in a curve: (seek correct speed)
+          // calculate vc to maintain speed in corner
+          vc = .5 * (s.v + speed)/cos(alpha);
+          // calculate distance to end of curve:
+          if(s.cur_rad > 0.0)
+               to_end = s.to_end * (s.cur_rad + DIST_FROM_INSIDE);
+          else
+               to_end = -s.to_end * (s.cur_rad - DIST_FROM_INSIDE);
+          // compute required braking distance and compare:
+          if(to_end <= crit_dist(s.v, speed_next, BRK_CRV_ACC))  {
+               vc = s.v - BRK_CRV_SLIP;
+          }
+     }
+
+     // During the acceleration portion of a straightaway, the lane
+     // variable is not changed by the code above. Hence the code below
+     // changes it a little at a time until there is no car dead_ahead.
+     // This code here has no affect at all in the turns, nor in the
+     // braking portion of the straight.
+     if(s.dead_ahead)              // Change the lane a little if
+          if(s.to_lft > s.to_rgt)  // someone's in your way.
+               lane -= DELTA_LANE; // lane must be a static variable
+          else
+               lane += DELTA_LANE;
+
+     result.vc = vc;   result.alpha = alpha;
+     return result;
+ }
+@endnode
+

@@ -1,0 +1,598 @@
+@DATABASE
+@WIDTH 76
+@AUTHOR Jaca/Dreamolers-CAPS & Georg Steger
+@TOC "Main"
+
+@NODE "Main" "ReqAttack Tools"
+
+  ReqAttack Tools - (C) 2001 by Jaca/Dreamolers-CAPS & Georg Steger
+
+    @{" ReqOFF patch       " LINK "ReqOFF"}
+
+    @{" RAIM_Convert       " LINK "RAIM_Convert"}
+    @{" RAIM_SetAttributes " LINK "RAIM_SetAttributes"}
+    @{" RAIM_GetInfo       " LINK "RAIM_GetInfo"}
+    @{" RAIM_Anim2Brush    " LINK "RAIM_Anim2Brush"}
+    @{" RAIM_Brush2Anim    " LINK "RAIM_Brush2Anim"}
+    @{" RAIM_Anim2IFF      " LINK "RAIM_Anim2IFF"}
+
+    @{" WinInfo            " LINK "WinInfo"}
+    @{" CyReq              " LINK "CyReq"}
+    @{" QuitReqAttack      " LINK "QuitReqAttack"}
+
+  NOTE: This guide is  almost the same as the one from RA 1.1  archive.  The
+  only things that changed are in ReqOFF and RAIM_Convert parts.
+@ENDNODE
+
+@NODE "ReqOFF" "ReqOFF patch"
+@TOC "Main"
+
+  ReqOFF was designed to switch off some requesters that are always replied
+the same way. Since this release this was an external program, but now all
+features of ReqOFF are external features of ReqAttack - this saves memory
+and is much safer.
+
+  @{b}Usage@{ub}
+
+  To turn off a requester switch the ReqOFF function in SUBREQ's
+environment and specify the button number. The leftmost (OK) button
+is 1 and the rightmost (CANCEL) is 0, middle buttons are 2,3,4...
+(numbers grow from left to right of course).
+
+  The requester can be specified with any of CHILD's specs. This is
+new for ReqOFF 1.5!
+
+  @{b}Usage of ReqOFF exec@{ub}
+
+  It's possible to replace requesters with your own scripts/programs.
+Here you should type the path to your program/script. NOTE: 1. ReqOFF
+will return the value returned by this program to the software that
+created the requester and not the value configured in RAPrefsMUI.
+2. Scripts should have the S bit set or you should execute them with
+dos command (ex: execute s:some_requester.script).
+  Please look at the supplied e sources if you want to write your own
+requester replacers. (there's also a C include file)
+
+  All Requester Replacers are launched with an adress of requester data
+structure as the last argument. The adress is in hexadecimal format,
+preceded by '0x'. The structure contains everything you need to know
+to redisplay the ReqOFF'ed requester -> this means an EasyStruct with
+es_TextFormat preprocessed with RawDoFmt() (!)
+
+  "your_program params" will be executed as "your_program params 0x664C8748"
+(that's of course an example - exepect different adresses in this format).
+
+  @{b}History@{ub}
+
+    @{b}VERSION:@{ub}   0.4beta   ReqAttackUpd release 2
+    @{b}INFO@{ub}       1st public version of patcher, buggy and not safe to use
+
+    @{b}VERSION:@{ub}   0.7beta   ReqAttackUpd release 3
+    @{b}INFO@{ub}       also checkes for SUBREQ's TEXT (hie hie... ;),
+               possibility to use a Requester Replacer
+
+    @{b}VERSION:@{ub}   1.0       ReqAttackUpd release 4
+    @{b}INFO@{ub}       added semaphore protection system, no more requesters
+               without titles, some fixes (thx to Michael Jaccoud)
+
+    @{b}VERSION:@{ub}   1.2       ReqAttackUpd release 5
+    @{b}INFO@{ub}       updates changes of reqattack.prefs, gets messages from
+               RAPrefsMUI, quits when runned twice, QuitReqOFF program,
+               parts of prefs procedures rewritten (thx to Michael)
+
+    @{b}VERSION:@{ub}   1.5       ReqAttack 1.5 Packet
+    @{b}INFO@{ub}       emulates RtEZRequest of reqtools
+               internal part of ReqAttack - no external patches :)
+
+  @{b}Limitations@{ub}
+
+    * Asynchronous reqtools requesters can't be emulated.
+      But this shouldn't be a problem because they're rare.
+
+    * Emulated requesters doesn't reflect to some RT tags :((
+      (like RT_LockWindow)
+
+  @{b}Legal stuff@{ub}
+
+  ReqOFF is ©2001 by Jaca/Dreamolers-Clever Amigants Polish Society
+                     (jacadcaps@poczta.onet.pl)
+@endnode
+
+@node r1 "KernelChange"
+
+  @{b}PROGRAM:@{ub} KernelChange
+  @{b}AUTHOR:@{ub}  Jacek Piszczek (Jaca/Dreamolers-CAPS)
+  @{b}STATUS:@{ub}  Public Domain
+
+  @{b}1.0 What's KernelChange@{ub}
+
+  As a BlizzardPPC owner I have typical problems with PowerUp termination
+when I want to use WarpUP software. Sometimes after I terminate Phase5
+software I forgot that I'm using WarpOS and try to run an ELF program.
+Of course I've got ppclibemu installed, but some programs hate this emu-
+lation of ppc.library and all PPC software hangs :((
+  While developing ReqOFF I had an idea: it's possible to replace the
+WarpOS Terinator requester with my own program which will set a variable
+to "WarpUP" when I press "Terminate"...
+
+  @{b}NOTE:@{ub} Especially when WarpOS powerpc.library is opened not by typical
+tasks (ex: libraries,drivers) the Termination function likes to hang before
+opening the requester - it's not my fault. I've tested it without ReqOFF
+installed and I had the same problem :( (maybe it's the stack overflow?)
+
+  NOTE: Look at the KernelChange.e - it's so simple!
+
+  @{b}NOTE:@{ub} With KernelChange it's possible to use different setting for AmigaAMP
+or some other programs which use both PowerUP and WarpUP kernels. In my case
+AmigaAMP is always started after a script like that:
+
+  @{i}IF $kernel EQ "PowerUP"
+  Copy sys:prefs/presets/powerup-amigaamp.prefs env:amigaamp.prefs >NIL:
+  ELSE
+  Copy sys:prefs/presets/warpup-amigaamp.prefs env:amigaamp.prefs >NIL:
+  ENDIF@{ui}
+
+
+  @{b}2.0 Installation/Usage@{ub}
+
+   * Copy KernelChange to C:
+
+   * Create a variable called kernel which will be a string "PowerUP".
+     Save it in ENVARC:
+
+     @{i} >setenv kernel PowerUP
+      >copy env:kernel envarc:@{ui}
+
+   * Now configure your titlebar text (DOpus/MCP) by adding sth like this:
+     Kernel: %evkernel% (DOpus, similar in MCP).
+
+   * Add a requester in RAPrefsMUI (child of DEFAULT) specified with
+     TITLE="#?WarpOS#?warning#?", switch on the ReqOFF patch for this
+     requester and type "c:kernelchange" (without quota) in ReqOFF exec.
+
+   * Save prefs.
+@endnode
+
+@node r2 "Reqlog"
+
+  @{b}PROGRAM:@{ub} Reqlog
+  @{b}AUTHOR:@{ub}  Jacek Piszczek (Jaca/Dreamolers-CAPS)
+  @{b}STATUS:@{ub}  Public Domain
+
+  @{b}1.0 What's Reqlog@{ub}
+
+  This is a very simple program which can be used to write requests log files.
+It opens the wanted requester and then saves it's title, text, button text and
+user's choice.
+
+Modify it's source if you want to use it - add the time/date info saving, etc...
+
+  @{b}2.0 Installation/Usage@{ub}
+
+   * Copy Reqlog to C:
+
+   * Add a requester in RAPrefsMUI (child of DEFAULT) specified with
+     TITLE="#?" (for use with all requesters), swith on the ReqOFF patch
+     for this requester and type 'c:reqlog @{i}"file_to_save_logs"@{ui}' in
+     ReqOFF exec.
+
+   * Save prefs.
+@ENDNODE
+
+@NODE "RAIM_Convert" "RAIM_Convert"
+@TOC "Main"
+
+NOTE: In this release there's two RAIM_Convert utilities. The new one,  cal-
+led RAIM_Convert2 has a GUI (start it like 'RAIM_Convert "" "" GUI'  and can
+create images in chunky  format which is much faster to display,  especially
+on CGX. Picture datatypes v43 work a bit strange with RAIM_Convert!! This is
+because of a bug in picture DT and not RA!
+
+With RAIM_Convert you can convert an IFF image or any other image format for
+which you have installed the corresponding Datatype to ReqAttack's own image
+format which is the only format supported by ReqAttack. The program can only
+be started from Shell and has the following argument template:
+
+    @{FG SHINE}SOURCE/A,DEST/A,FRAMEWIDTH=FW/N/K,FRAMEHEIGHT=FH/N/K,FRAMES=F/N/K,
+    FRAMESPERROW=FPR/N/K,ANIMSPEED=AS/N/K,NOTRANSP=NT/S,DONTPACK=DP/S,
+    PINGPONG=PP/S@{FG TEXT}
+
+Main arguments which are required for both brushes and animbrushes:
+
+@{FG SHINE}SOURCE@{FG TEXT}: Name of source image file.
+
+@{FG SHINE}DEST  @{FG TEXT}: Name of destination image file.
+
+
+Arguments which are additionally required  to create an animbrush. Note that
+The source image must have  all frames grouped together  in a way like this:
+
+    +---+---+---+---+---+
+    ! A | B | C | D | E |
+    +---+---+---+---+---+
+    ! F | G | H | I | J |
+    +---+---+---+---+---+
+    ! K | L | M | N | O |
+    +---+---+---+---+---+
+    ! P | Q |
+    +---+---+
+
+The first frame  (A) must start at  pixel position  (0,0). There must not be
+any space between the frames.
+
+
+@{FG SHINE}FRAMEWIDTH  @{FG TEXT}: Width of one frame in pixels.
+
+@{FG SHINE}FRAMEHEIGHT @{FG TEXT}: Height of one frame in pixels.
+
+@{FG SHINE}FRAMES      @{FG TEXT}: Total number of  frames. In the above  example we have a total
+              number of 17 frames.
+
+@{FG SHINE}FRAMESPERROW@{FG TEXT}: Number  of frames in one row. In  the above example  we have 5
+              frames per row. (The last row does not matter).
+
+@{FG SHINE}ANIMSPEED   @{FG TEXT}: Delay in  1/50 seconds  between frames.  Can be later  changed
+              with RAIM_SetAttributes utility.
+
+
+The following arguments are optional:
+
+@{FG SHINE}NOTRANSP@{FG TEXT}: Switch transparency  of color 0 off.  Color 0 usually  will not be
+          remapped. By specifying NOTRANSP it will be remapped. For more in-
+          formation see RAIM_SetAttributes doc.
+
+@{FG SHINE}PINGPONG@{FG TEXT}: Usually after  having displayed  the last frame  of an  animation,
+          playback will  resume from the first frame.  With this  option the
+          playback direction is set to  backwards when the last frame of the
+          animation has been  displayed and reset to  forward when the first
+          frame of the  animation has been reached  again. For more informa-
+          tion see RAIM_SetAttributes doc.
+
+@{FG SHINE}DONTPACK@{FG TEXT}: By default  RAIM_Convert compresses  the image data  with a rather
+          primitive  and  not very  effective compression  algorithm  called
+          ByteRun1, that  is the same  used by  the IFF ILBM format. In some
+          cases it may happen that the image files gets bigger with the com-
+          pression than without,  but RAIM_Convert does  not autocheck this.
+          With this option compression is turned off.
+
+@ENDNODE
+
+@NODE "RAIM_SetAttributes" "RAIM_SetAttributes"
+@TOC "Main"
+
+With RAIM_SetAttributes  you can change  some attributes  of a [R]eq[A]ttack
+[Im]age file. The program can only be started from Shell and has the follow-
+ing argument template:
+
+    @{FG SHINE}FILE/A,TRANSP=TR/S,NOTRANSP=NOTR/S,PINGPONG=PP/S,NOPINGPONG=NOPP/S,
+    ANIMSPEED=AS/N/K@{FG TEXT}
+
+@{FG SHINE}FILE      @{FG TEXT}: Name of the image file.
+
+@{FG SHINE}TRANSP    @{FG TEXT}: Switches transparency  of color 0 on.  This means that no matter
+            what palette color 0 has, it will not be remapped. So if for ex-
+            ample the palette  (RGB value) of color 0  of the image is black
+            and the palette of color 0 on  the screen on which the requester
+            appears is  gray then the parts  of the image  which are painted
+            with color 0 will appear gray.
+
+@{FG SHINE}NOTRANSP  @{FG TEXT}: Switches transparency of color 0 off. Parts of the image painted
+            with color 0 will be remapped with the color of the screen whose
+            palette matches best the image's color 0 palette.
+
+@{FG SHINE}PINGPONG  @{FG TEXT}: Switches ping pong animation on.  If for example you have a Req-
+            Attack AnimBrush  with 10 frames  the animation  will  be played
+            like this:
+
+            1 2 3 4 5 6 7 8 9 10 9 8 7 6 5 4 3 2 1 2 3 4 5 6 7 8 9 10 9 8 7
+
+@{FG SHINE}NOPINGPONG@{FG TEXT}: Switches ping pong animation off.  After the last frame is shown
+            the animation will restart from frame 1:
+            
+            1 2 3 4 5 6 7 8 9 10 1 2 3 4 5 6 7 8 9 10 1 2 3 4 5 6 7 8 9 10 1
+
+@{FG SHINE}ANIMSPEED @{FG TEXT}: Delay in 1/50 seconds between frames.
+
+@ENDNODE
+
+@NODE "RAIM_GetInfo" "RAIM_GetInfo"
+@TOC "Main"
+
+This utility can be  used to get some  information about  the specified Req-
+Attack image file.  The program can  only be started  from Shell and has the
+following argument template:
+
+    @{FG SHINE}FILE/A,WIDTH=W/S,HEIGHT=H/S,FRAMEWIDTH=FW/S,FRAMEHEIGHT=FH/S,
+    FRAMES=FR/S,COLORS=CO/S,PLANES=PL/S,ANIMSPEED=AS/S,FLAGS=FL/S,
+    ANIMFLAGS=AF/S@{FG TEXT}
+
+If only the FILE argument is specified all information will be printed!
+
+@{FG SHINE}FILE       @{FG TEXT}: Name of the image file
+
+@{FG SHINE}WIDTH      @{FG TEXT}: Prints the width  of the image.  For ReqAttack  AnimBruhes this
+             is equivalent to FRAMEWIDTH x FRAMES!
+
+@{FG SHINE}HEIGHT     @{FG TEXT}: Prints the height of the image.
+
+@{FG SHINE}FRAMEWIDTH @{FG TEXT}: Prints the width of one frame.  If the image file is not a Req-
+             Attack AnimBrush but  a ReqAttack Brush  then the image's width
+             is returned.
+
+@{FG SHINE}FRAMEHEIGHT@{FG TEXT}: Prints the height  of one frame.  This is always  equivalent to
+             HEIGHT.
+
+@{FG SHINE}FRAMES     @{FG TEXT}: Prints the number  of frames if  the file is  a ReqAttack Anim-
+             Brush or "1" if the file is a ReqAttack Brush.
+
+@{FG SHINE}COLORS     @{FG TEXT}: Prints the number of colors of the image file.
+
+@{FG SHINE}PLANES     @{FG TEXT}: Prints the number of planes (bits per color) of the image file.
+
+@{FG SHINE}ANIMSPEED  @{FG TEXT}: Prints the animspeed (unit is 1/50 secs) or 0 if the image file
+             is a ReqAttack Brush and not a ReqAttack AnimBrush.
+
+@{FG SHINE}FLAGS      @{FG TEXT}: Prints image flags (PACKED, NOTRANSPARENCY).
+
+@{FG SHINE}ANIMFLAGS  @{FG TEXT}: Prints anim flags (PINGPONG).
+
+@ENDNODE
+
+@NODE "RAIM_Anim2Brush" "RAIM_Anim2Brush"
+@TOC "Main"
+
+With this  utility you  can convert  a ReqAttack  AnimBrush  to a  ReqAttack
+Brush. The brush will have all frames grouped together in one row. This pro-
+gram can only be  used from Shell  and has the following  argument template:
+
+    @{FG SHINE}FILE/A@{FG TEXT}
+
+@{FG SHINE}FILE@{FG TEXT}: Name of the image file.
+
+You probably will  never need this program as  the ReqAttack AnimBrush Data-
+type has a special feature which allows you to disable it on the fly and let
+the ReqAttack Brush Datatype  handle everything. All  you need to do is hold
+down LEFT ALT + LEFT SHIFT + CONTROL while the image is loaded (by MultiView
+or some other program which uses  DataTypes to load pictures). Unfortunately
+this will not work  from a Shell because of it's  special behaviour when the
+qualifiers (keys) mentioned above are hold down while pressing RETURN.
+
+With programs which only load picture DataTypes you should not have any pro-
+blems at all anyway as such  programs (should) ignore anim Datatypes automa-
+tically unless they first check the datatypes GID (group ID).
+
+@ENDNODE
+
+@NODE "RAIM_Brush2Anim" "RAIM_Brush2Anim"
+@TOC "Main"
+
+With this utility you can  convert a ReqAttack  image file which was earlier
+converted from a ReqAttack AnimBrush  to a ReqAttack Brush (with the utility
+@{" RAIM_Anim2Brush " LINK "RAIM_Anim2Brush"}) back to a ReqAttack AnimBrush.  This program can only be
+used from Shell and has the following argument template:
+
+    @{FG SHINE}FILE/A@{FG TEXT}
+    
+@{FG SHINE}FILE@{FG TEXT}: Name of the image file.
+
+@ENDNODE
+
+@NODE "RAIM_Anim2IFF" "RAIM_Anim2IFF"
+@TOC "Main"
+
+With this utility you can either  convert single frames of a ReqAttack Anim-
+Brush to IFF images or all frames of the ReqAttack AnimBrush to one IFF con-
+taining all frames. This program can  only be started from Shell and has the
+following argument template:
+
+    @{FG SHINE}SOURCE/A,DEST/A,FRAMESPERROW=FPR/N/K,STARTFRAME=SF/N/K,ENDFRAME=EF/N/K,
+    FRAME=FR/N/K,ALLFRAMES=AF/S,VERBOSE=V/S@{FG TEXT}
+
+@{FG SHINE}SOURCE      @{FG TEXT}: Name of the ReqAttack AnimBrush file.
+
+@{FG SHINE}DEST        @{FG TEXT}: Name of destination IFF file(s)  to be created. If you want to
+              convert several  frames into single  IFF files you  must write
+              "%ld" somewhere in the filename.  This will be replaced by the
+              corresponding  frame number.  For example  "Frame%ld.iff" will
+              result in the following filenames:
+
+                  "Frame1.iff"
+                  "Frame2.iff"
+                  "Frame3.iff"
+                  ...
+                  "Frame10.iff"
+                  "Frame11.iff"
+                  ...
+
+              Instead of "%ld" you can also write "%02ld", "%03ld", "%04ld",
+              ... to get leading zeros:
+
+                  "Frame%02ld.iff" | "Frame%03ld.iff" | "Frame%04ld.iff"
+                  -----------------+------------------+--------------------
+                  "Frame01.iff"    | "Frame001,iff"   | "Frame0001.iff"
+                  "Frame02.iff"    | "Frame002.iff"   | "Frame0002.iff"
+                  "Frame03.iff"    | "Frame003.iff"   | "Frame0003.iff"
+                  ...              | ...              | ...
+                  "Frame10.iff"    | "Frame010.iff"   | "Frame0010.iff"
+                  ...              | ...              | ...
+
+
+@{FG SHINE}FRAMESPERROW@{FG TEXT}: If you want to  convert the ReqAttack  AnimBrush into  one IFF
+              image  containing all  frames  you can  specify the  number of
+              frames you want to have per row in the IFF image with this op-
+              tion.  By default  RAIM_Anim2IFF tries  to  calculate a "good"
+              FRAMESPERROW value, that is  a value that gives about the same
+              number of frames per row and frames per column.
+
+@{FG SHINE}STARTFRAME  @{FG TEXT}: If you want to  convert single frames  into IFF files use this
+              option to specify the start frame (default = 1 = first frame).
+
+@{FG SHINE}ENDFRAME    @{FG TEXT}: With this option you can  specify the last frame to be conver-
+              ted into an IFF file (default = last frame).
+
+@{FG SHINE}FRAME       @{FG TEXT}: Same as specifying the same value for STARTFRAME end ENDFRAME.
+
+@{FG SHINE}ALLFRAMES   @{FG TEXT}: Same as specifying 1 for STARTFRAME and <NUMBER OF FRAMES> for
+              ENDFRAME.
+
+@{FG SHINE}VERBOSE     @{FG TEXT}: Verbose output after each converted frame.
+
+
+By specifying any of STARTFRAME, ENDFRAME, FRAME or ALLFRAMES the utility is
+switched into  "single frame mode",  that is one IFF file  per frame will be
+generated. If you don't specify any of this options the program will convert
+all frames into one IFF file. Examples:
+
+    MyImage is a ReqAttack AnimBrush with 10 frames.
+
+    @{FG SHINE}RAIM_Anim2IFF@{FG TEXT} MyImage MyImage.iff
+       @{I}... groups together all 10 frames in the IFF image "MyImage.iff".@{UI}
+
+    @{FG SHINE}RAIM_Anim2IFF@{FG TEXT} MyImage MyImage%ld.iff @{FG SHINE}ALLFRAMES@{FG TEXT}
+       @{I}... creates 10 IFF images (one per frame) called "MyImage1.iff",
+       "MyImage2.iff", ..., "MyImage10.iff".@{UI}
+
+    @{FG SHINE}RAIM_Anim2IFF@{FG TEXT} MyImage MyImage%ld.iff @{FG SHINE}STARTFRAME@{FG TEXT} 5 @{FG SHINE}ENDFRAME@{FG TEXT} 8
+       @{I}... creates 4 IFF images from the frames 5 - 8 called "MyImage5.iff",
+       "MyImage6.iff", "MyImage7.iff", "MyImage8.iff".@{UI}
+
+    @{FG SHINE}RAIM_Anim2IFF@{FG TEXT} MyImage MyImage.iff @{FG SHINE}STARTFRAME@{FG TEXT} 6 @{FG SHINE}ENDFRAME@{FG TEXT} 6
+       @{I}... creates an IFF image called "MyImage.iff" from the frame number
+       6.@{UI}
+
+    @{FG SHINE}RAIM_Anim2IFF@{FG TEXT} MyImage MyImage.iff @{FG SHINE}FRAME@{FG TEXT} 6
+       @{I}... does exactly the same.@{UI}
+
+    @{FG SHINE}RAIM_Anim2IFF@{FG TEXT} MyImage MyImage%ld.iff @{FG SHINE}ENDFRAME@{FG TEXT} 3
+       @{I}... creates 3 IFF images from the frames 1 - 3 called "MyImage1.iff",
+       "MyImage2.iff", "MyImage3.iff".@{UI}
+
+    @{FG SHINE}RAIM_Anim2IFF@{FG TEXT} MyImage MyImage%02ld.iff @{FG SHINE}STARTFRAME@{FG TEXT} 8
+       @{I}... creates 3 IFF images from the frames 8 - 10 called 
+       "MyImage08.iff", "MyImage09.iff", "MyImage10.iff".@{UI}
+
+@ENDNODE
+
+@NODE "WinInfo" "WinInfo"
+@TOC "Main"
+
+With this tool you can find out which task/process a certain window (for in-
+stance a requester)  belongs to. In most cases this  equals the task/process
+that opened the window. However there are some hacks/commodities that change
+the UserPort of some windows.  Then it could be, that the task/process names
+shown by WinInfo  look strange.  For example WinInfo will  say "ToolsDaemon"
+for Workbench Windows instead of  "Workbench" if ToolsDaemon is running. An-
+other problem is  windows that do not  have a userport,  because they do not
+want to get any IDCMP messages. Then WinInfo can't find out to whom the win-
+dow belongs. Anyway, with requester  windows these problems do not exist and
+therefore WinInfo can be of big help if for example you want to give reques-
+ters of certain programs a special look by using according conditions in the
+ReqAttack configuration file.
+
+Although it is possible to start WinInfo directly from a Shell, it is better
+to use a commodity which allows  starting external programs through function
+keys or hotkeys. Once started you can move the mouse over any window and the
+window will be hilighted by a scolling rectangle. An Info Box will appear as
+well. To quit WinInfo it is enough to press the left mouse button. The argu-
+ment template of WinInfo looks like this:
+
+    @{FG SHINE}FPS/N/K,HIDDENAREA=HA/N/K,LINEPATTERN1=LP1/K,LINEPATTERN2=LP2/K,
+    LINECOL1=LC1/K,LINECOL2=LC2/K,HLINECOL1=HLC1/K,HLINECOL2=HLC2/K,
+    INFOBGCOL1=IBGC1/K,INFOBGCOL2=IBGC2/K,LABELCOL=LC/K,TEXTCOL=TC/K,
+    INFOBORCOL=IBC/K,INFOTITLECOL=ITK/K@{FG TEXT}
+
+@{FG SHINE}FPS         @{FG TEXT}: Speed in frames per second at which the rectangle line pattern
+              will be scrolled.
+
+@{FG SHINE}HIDDENAREA  @{FG TEXT}: Look of the scrolling rectangle  in hidden areas of the window
+              under the mouse pointer.
+              
+                  0: Invisible
+                  1: Visible
+                  2: Visible but with alternative colors/line pattern
+
+@{FG SHINE}LINEPATTERN1@{FG TEXT}: Normale 16 pixel line pattern (0xFF00 = 1111111100000000).
+
+@{FG SHINE}LINEPATTERN2@{FG TEXT}: Alternative 16 pixel line pattern (for hidden areas).
+
+@{FG SHINE}LINECOL1    @{FG TEXT}: Color 1 in normal line pattern (where bits are set).
+
+@{FG SHINE}LINECOL2    @{FG TEXT}: Color 2 in normal line pattern (where bits are cleared).
+
+@{FG SHINE}HLINECOL1   @{FG TEXT}: Color 1 in alternative line pattern.
+
+@{FG SHINE}HLINECOL2   @{FG TEXT}: Color 2 in alternative line pattern.
+
+@{FG SHINE}INFOBGCOL1  @{FG TEXT}: Background color 1 of the info box.
+
+@{FG SHINE}INFOBGCOL2  @{FG TEXT}: Background color 2 of the info box.
+
+@{FG SHINE}LABELCOL    @{FG TEXT}: Color of the label texts.
+
+@{FG SHINE}TEXTCOL     @{FG TEXT}: Color of task/process names.
+
+@{FG SHINE}INFOBORCOL  @{FG TEXT}: Color of the info box border.
+
+@{FG SHINE}INFOTITLECOL@{FG TEXT}: Color of the info box title.
+
+For arguments which expect a color you can either specify a 24 Bit RGB value
+(best in HEX format,  for example 0xFFFF00 = yellow)  or a DrawInfo pen name
+(SHINEPEN, SHADOWPEN, FILLPEN, FILLTEXTPEN, TEXTPEN, ...).
+
+@ENDNODE
+
+
+@NODE "CyReq" "CyReq"
+@TOC "Main"
+
+CyReq redirects EasyRequestArgs() to:
+
+	BuildEasyRequestArgs()
+	SysReqHandler()
+	FreeSysRequest()
+
+and AutoRequest() to:
+
+	BuildSysRequest()
+	SysReqHandler()
+	FreeSysRequest()
+
+This is done because of EasyRequestArgs() and AutoRequest() calling FreeSys-
+Request() directly  instead of using  the LVO.  Therefore  one cannot  catch
+calls to FreeSysRequest  (which calls  CloseWindow(), etc.).  With CyReq you
+can.
+
+It is possible to  build the CyReq  functionality into  the patching program
+(ReqAttack, PowerWindows)  but then there's  the problem that  certain other
+programs which replace or improve requester won't work anymore, unless these
+programs install  their patches  (usually a  EasyRequestArgs() patch)  after
+ReqAttack, PowerWindows, ...
+
+By putting CyReq into the Startup-Sequence somewhere soon after the SetPatch
+line the redirection patches are done there and don't need to be done by the
+other programs (ReqAttack, PowerWindows) which either detect CyReq automati-
+cally (ReqAttack) or are instructed  to avoid installing the requester redi-
+rection patches a second time by a startup option.
+
+Once CyReq is installed it  should not matter  when ReqAttack, PowerWindows,
+... are started.  AssignWedge and  similiar programs should  keep working no
+matter if started before or after ReqAttack, PowerWindows, ...
+
+It is strongly suggested to install CyReq, also because of CyReq using stack
+swapping in it's  EasyRequestArgs() patch which  should prevent crashes that
+on some systems happen after replying "Please insert volume XYZ ..." reques-
+ters. For more info see @{" ReqAttack History " LINK "ReqAttack.guide/History"} of V 1.0!
+
+CyReq can be installed with the ReqAttack installation script.
+
+@ENDNODE
+
+@NODE "QuitReqAttack" "QuitReqAttack"
+@NEXT "Main"
+@TOC "Main"
+
+Sends ReqAttack a CONTROL C break,  which tells ReqAttack  to (try to) quit.
+If ReqAttack is not  running this Shell program  returns WARN (5) as primary
+result code ($RC).
+
+@ENDNODE
