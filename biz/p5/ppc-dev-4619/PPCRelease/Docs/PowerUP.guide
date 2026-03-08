@@ -1,0 +1,1166 @@
+@database PowerUP.guide
+
+@Width 72
+
+This is the AmigaGuide® file PowerUP.guide
+
+   This file describes the PowerUP board and API.
+
+@Node Main "PowerUP.guide"
+@Next "Main"
+@Prev "Main"
+
+
+
+                              PowerUP 0.0
+
+                    A 060/PowerPC Accelerator board
+
+                     Copyright (c) 1996-97 Phase5
+
+                             - Commercial -
+
+
+Chapter for @{b}all@{ub} users...
+
+ @{" Copyright " Link "BI_CRIGHT"}			Your rights.
+
+Introduction...
+
+ @{" Hardware needs " Link "IN_SYSR"}		On which hardware does all this work ?
+ @{" Installation " Link "IN_INST"}			How to install the PowerUP software.
+
+Usage...
+
+ @{" Running PPC Programs " Link "US_RUN"}		How to run a PPC program from the shell.
+ @{" Tools " Link "US_TOOLS"}			Provided PPC AmigaOS Tools
+
+Development...
+
+ @{" Hardware " Link "DE_HARDWARE"}			How does the Hardware work.
+ @{" Caches " Link "DE_CACHES"}			Cache problems.
+ @{" System V.4 EABI " Link "DE_ABI"}		GCC PowerPC ABI.
+ @{" The ADE system " Link "DE_ADE"}		The Amiga Development Enviroment.
+ @{" GCC Example " Link "DE_GCC"}			A small example how to compile a PowerUP program.
+ @{" GCC Problems " Link "DE_GCCPROBLEMS"}			VERY IMPORTANT INFORMATIONS about GCC Problems
+ @{" PowerUP API " Link "DE_POWERUPAPI"}		The PowerUP API
+ @{" FD2InlinePPCLib" Link "DE_FD2INLINE"}		AmigaOS library function converter
+ @{" M68k->PowerPC" Link "DE_M68kPPC_0"}		M68k to PPC Task Argument passing
+
+Other Topics...
+
+ @{" Updates " Link "OT_UPD"}			Where can I get new versions.
+ @{" Support " Link "OT_SUP"}			How you can contact the support.
+ @{" History " Link "OT_HIST"}			History of PowerUP
+ @{" Future " Link "OT_FUT"}			Future of the AmigaOS PowerUP API
+ @{" Thanks " Link "OT_ACK"}			Who I wanna thank...
+
+
+@EndNode
+
+@Node "BI_CRIGHT" "PowerUP.guide/BI_CRIGHT"
+@Next "IN_SYSR"
+@Prev "BI_CRIGHT"
+@Toc "Main"
+
+ Under construction
+
+@EndNode
+
+@Node "IN_SYSR" "PowerUP.guide/IN_SYSR"
+@Next "US_RUN"
+@Prev "BI_CRIGHT"
+@Toc "Main"
+
+ Under construction
+
+@EndNode
+
+
+@Node "US_RUN" "PowerUP.guide/US_RUN"
+@Next "US_TOOLS"
+@Prev "IN_SYSR"
+@Toc "Main"
+
+Tools/PPCLoad <ELFProgram>
+
+loads and executes an ELF Program. It works like
+a shell start of M68k programs. So if the ELF program
+can run standalone and doesn`t need a special interface
+it may work this way.
+
+@EndNode
+
+
+@Node "US_TOOLS" "PowerUP.guide/US_TOOLS"
+@Next "DE_HARDWARE"
+@Prev "US_RUN"
+@Toc "Main"
+
+The AmigaOS PPC Tools are in the directory <Tools/>
+
+ o PPCLoad <Name>
+   a simple PPC Elf program loader for PPC programs
+   which work without incoming data.
+
+ o PPCLoadTimer <Name>
+   a simple PPC Elf program loader for PPC programs
+   which work without incoming data.
+   It calculates how long a PPCRunObject() takes which
+   creates a synchron task.
+
+ o PPCInfos
+   a program which shows informations about the CPU type.
+
+ o PPCShowTasks
+   a program which shows informations about all PPC tasks.
+
+ o PPCSignalTask ID/K,Name,Signal/N,SignalMask/K
+   a program which sends a PPC Task a signal.
+   The name of the task has to be written in the correct way or
+   you can pass the TaskID if the Taskname occurs several times.
+   With SignalMask you can send several Signals by a SignalMask
+   long word.
+   (Like AmigaOS c:break)
+
+ o PPCDebug
+   the PPC Debugger. Learning by using is the goal here:-)
+
+ o SetDebugSpeed
+   small tool to change the amiga`s serial output speed. Helpful
+   if you think 9600 Baud is too slow.
+
+@EndNode
+
+
+
+
+
+
+@Node "DE_HARDWARE" "PowerUP.guide/DE_HARDWARE"
+@Next "DE_CACHES"
+@Prev "US_TOOLS"
+@Toc "Main"
+
+ o CyberStorm MK2 PPC603p addon board.
+
+   This board has a 32bit ram bus due to the MK2`s 32bit ram bus so
+   the ram performance isn`t very high.
+
+ o CyberStormPPC 060/PPC604p board.
+
+   This board has a 64bit memory bus with the following timings.
+
+   70ns SIMMs
+   M68k 32BIT Write takes 5-2-2-2 (50Mhz busclock)
+   M68k 32BIT  Read takes 5-2-2-2 (50Mhz busclock)
+   PPC  64BIT Write takes 5-3-3-3 (66Mhz busclock)
+   PPC  64BIT Write takes 5-3-3-3 (66Mhz busclock)
+
+   60ns SIMMs
+   M68k 32BIT Write takes 5-1-1-1 (50Mhz busclock)
+   M68k 32BIT  Read takes 5-1-1-1 (50Mhz busclock)
+   PPC  64BIT Write takes 5-2-2-2 (66Mhz busclock)
+   PPC  64BIT Write takes 5-2-2-2 (66Mhz busclock)
+
+@EndNode
+
+@Node "DE_CACHES" "PowerUP.guide/DE_CACHES"
+@Next "DE_API"
+@Prev "DE_HARDWARE"
+@Toc "Main"
+
+
+ What is a CPU Cache ?
+
+ A CPU Cache is a method to get data faster to the cpu which is
+ accessed the most. A Cache is used where it`s too expensive to
+ use a fast memory system or where it`s impossible to speed up an
+ external memory interface to the speed of an internal CPU cache.
+
+ How does a modern CPU Cache work ?
+
+ A modern cache is like a small database with the setsize of a
+ CPU Burst. A set is called cache line with a 4 Access Burst
+ means for the 68060 a cache line size of 16 Bytes(32Bit Memory Bus)
+ and for the PPC603/604 a cache line size of 32 Bytes(64Bit Memory Bus).
+
+ The cache would look like this:
+
+ 8KB Cache = 512 Cache lines with 16 Bytes.
+
+Line MemoryAddress   CacheLineNumber   Contents 0 - 3rd LONGWORD            Status
+
+0:    $1000             $100           aaaaaaaa bbbbbbbb cccccccc dddddddd  LOADED
+                                                                            (Not changed by the CPU)
+
+1:    $21234530         $2123453       eeeeeeee ffffffff gggggggg hhhhhhhh  DIRTY
+                                                                            (changed by the CPU)
+
+511:  ---------         --------       ???????? ???????? ???????? ????????  EMPTY
+
+ This is a nice method to speed up your accesses to normal memory but
+ not everything in a computer is normal random access memory. There
+ are also a lot I/O memory addresses.
+ The cache system above wouldn`t work for I/O addresses because the contents
+ of the I/O space isn`t controlled by the CPU so the CPU doesn`t know if
+ something changed there. Another reason the cache system above doesn`t work
+ for I/O space is that you can`t load or write a cache line from I/O space
+ because you may touch non existing memory or you read/write has a different
+ meaning for IO Addresses.
+ Therefore there are several cache modes and these cache modes are normally
+ controlled by the MMU which controlls the memspace in pages(Normally 4K).
+ So for each memory page you can set different cache modes which are
+ explained below:
+
+ o No Cache
+   the cache is off, so a READ and WRITE go directly to
+   the memory. But the cpu buscontroller can still optimize
+   the writes. It could optimize 4 close writes into a
+   Burst write by reordering the 4 writes into a line for example.
+   The writes/reads aren`t in precise mode.
+
+ o No Cache Serialized
+   the cache is off, so a READ and WRITE go directly to
+   the memory and the accesses have to go out in precide order.
+   I/O space is mapped that way. For example the custom chipset area.
+
+
+ o Writethrough
+   the cache is active for reads but writes go directly to the memory.
+   So the memory and cache contents are always the same.
+   The cache is refilled in line bursts which are 16 Bytes on the 68060
+   and 32 Bytes on the PowerPC.
+
+ o Copyback
+   the cache is active for reads and writes. Cache Lines are read and
+   written in 16 Bytes bursts for the 68060 and 32Bytes for the PowerPC.
+   A cacheline can be dirty. This means data in that line was modified
+   and hasn`t been written back to memory yet.
+   So if you write something to an address which line hasn`t been loaded
+   to the cache yet the following happens.
+   If no empty cacheline is found an used line has to be replaced by
+   the cache line. If this used cache line is dirty it is first written
+   back to memory to update the memory with the current state.
+   Now the new cacheline is loaded and then the write operation changes
+   the data in the new cacheline while the Memory still contains the old
+   value.
+   Now imagine what happens if another device(DMA,CPU) accesses the
+   memory which lines are in the cache of the cpu.
+   Yes..the contents of the cache isn`t valid anymore but the processor
+   has no idea that certain cache lines aren`t valid anymore and goes on
+   using it.
+   The consequence is data corruption.
+
+ o The PPC has some additional modes that controll its cache protocoll.
+   The cache protocoll "MESI" is used to keep data valid between
+   several PPCs in an SMP system where memory is shared between processors.
+   (SMP=Symetrical Multi Processing)
+
+ o Current OS mechanism to avoid data corruption during DMA
+
+   o Chipram is generally marked as "cache inhibited", so the blitter
+     can change the data without the cpu keeping corrupt data
+     in the cache.
+
+   o GfxBoard Memory is marked as "cache inhibited serialized"
+     by the 68040 and 68060.library because it`s no used memory.
+     Therefore it is no problem if the gfxboard blitter changes data.
+     The Phase5 680xx libraries mark known gfxboard`s framebuffers
+     as nonserialized because a precise access order isn`t necessary
+     which only slows down the cpu.
+
+   o CachePreDMA() and CachePostDMA()
+     CachePreDMA() clears the cache and then marks the mmu
+     pages(4K) to "no cache" for the cache size. It also does
+     provide a nesting for pages if 2 CachePreDMA() share
+     a page.
+     After a transfer CachePostDMA tries to set back CopyBack
+     for that area but that depends on the nesting.
+     The design of CachePreDMA() was also to provide a virtual
+     memory system but that couldn`t work because of a serious
+     design fault.
+     (Device reentrance problem which would lead too far to
+      describe here)
+     Another problem you can`t avoid with CachePreDMA() is that
+     it has to mark pages as Not Cacheable that are only used by
+     1 Byte of the transfered area so all the code or data which
+     is only in that page takes a serious performance penality.
+
+   o The tricky version
+     1) CacheFlush
+     2) If DMA-READ(SCSI-WRITE), do normal DMA
+     3) If DMA-WRITE(SCSI-READ), do the following steps
+
+       o Check the Address and calculate the Bytes you have to
+         transfer without DMA into that memory area to reach the
+         next cacheline.
+
+       * poll these Bytes(maximal 15 Bytes) or DMA these into
+         the chipram and copy them back into the real destination.
+
+       o then start the real DMA(only in size of cache lines)
+
+       o check if there`s still something to transfer and repeat the *)
+         method.
+
+         Why is it that difficult ?
+         Look at this example:
+
+         0) Directly after the CacheFlush
+
+            Cache Line Offset    Cache Line Contents   Memory    Comment
+
+            0                    --------              aaaaaaaa  not in the cache because of cacheflush
+            4                    --------              bbbbbbbb  not in the cache because of cacheflush
+            8                    --------              cccccccc  DMA start address
+            12                   --------              dddddddd  DMA area
+
+         1) After the CacheFlush but before the DMA start..some other Task touched the cache line.
+            Maybe by going through the Memlist or whatever.
+
+            Cache Line Offset    Cache Line Contents   Memory    Comment
+
+            0                    aaaaaaaa              aaaaaaaa  Loaded because of the other Task
+            4                    bbbbbbbb              bbbbbbbb  Loaded because of the other Task
+            8                    cccccccc              cccccccc  Loaded because of the other Task(DMA start address)
+            12                   dddddddd              dddddddd  Loaded because of the other Task(DMA area)
+
+         2) Start DMA
+            Cache Line Offset    Cache Line Contents   Memory    Comment
+
+            0                    aaaaaaaa              aaaaaaaa  Loaded because of the other Task
+            4                    bbbbbbbb              bbbbbbbb  Loaded because of the other Task
+            8                    cccccccc              ????????  changed by the DMA in memory
+            12                   dddddddd              ????????  changed by the DMA in memory
+
+         3) Now you see that the line in the cache is invalid and if the data at offset 0 and 4 is
+            changed by the other task you get even a dirty cache line which is written back sometime later
+            and we would get this.
+
+            Cache Line Offset    Cache Line Contents   Memory    Comment
+
+            0                    xxxxxxxx              xxxxxxxx  Changed by the other Task
+            4                    yyyyyyyy              yyyyyyyy  Changed by the other Task
+            8                    cccccccc              cccccccc  Memory corrupt..dma image invalid
+            12                   dddddddd              cccccccc  Memory corrupt..dma image invalid
+
+ After you understand the basic issues of the cache problem let`s
+ see how all this looks with the PowerUP board where the problem
+ is even worse.
+ Instead of 1 copyback CPU(68060) and a nocache DMA unit we have 2
+ copyback CPUs so the problem is on both sides.
+ Both CPUs have a CopyBack cache which means that both processors load
+ cache lines into their caches, manipulate the data indepently and only
+ write back the lines when needed.
+ So now we have the problem that both processors don`t know about
+ the data the other processor changes and this can cause data
+ corruption if you`re not careful.
+ The easier way is to better avoid sharing memory between both
+ CPUs to avoid such problems.
+ If that isn`t possible the ppc.library has to cacheflush on the
+ PPC and on the 060 after an operation.
+ Another problem here is that if you use memory with the PPC the
+ PPC reads/writes this memory with his 32 byte cache lines and
+ the 68060 has only a 16byte cache line. So if both cache lines
+ share the same memory you may get data corruption after a writeback.
+ Therefore the ppc.library offers a Memory API for the ppc which
+ fixes at least the cache line problems.
+ This API allocates memory in 32byte aligned spaces instead of the
+ default 8 byte alignment that the exec memory routines use.
+ Let`s discuss this problem with the example of the PPC AmigaOS
+ interface.
+
+ 0) Internally the PPC has to tell the 68060 to execute
+    an AmigaOS function and give back the result to the PPC
+    program.
+    For normal/static parameters the ppc.library is using
+    a noncacheable memory area where it stores parameters and
+    results so the processor has to reload the data each time
+    it wants it reads it.
+    A very important law is that the PPC MUST NOT change a
+    structure the 68060 controlls.
+    Let`s go into detail.
+
+ 1) A PPC program which does the following:
+
+      PPCClose(File);
+
+    has to pass the static parameter File to the 68060 so
+    it can call PPCClose() with the parameter File.
+    This is a rather easy case. The PPC isn`t allowed to
+    read/write the memory which File points to.
+    So normally this call wouldn`t need any cacheflush on
+    both cpus.
+
+ 2) A PPC program which does the following:
+
+      PPCOpen(FileName,MODE);
+
+    On first look this call looks like PPCClose(File) but there
+    is an important difference. The static parameter Filename
+    points to a memory which is in the cache of the PPC and
+    this memory is used by the PPCOpen() call on the 68060.
+    So here we need a cacheflush by the PPC before the 68060
+    is notified about the new job and then the M68k needs a
+    cacheflush after the operations is done so the FileName
+    memory is removed from the cache. Because the M68k doesn`t
+    change the Filename cache lines in the cache a cacheflush
+    doesn`t write back this line so it`s safe to use stack/static
+    memory on the PPC side for the FileName array.
+
+ 3) A PPC program which does the following:
+
+      PPCRead(File,Buffer,Size);
+
+    Here the M68k changes the Buffer the PPC controlls. This
+    needs a CacheFlush on the PPC and then afterwards on the
+    M68k to get a valid Buffer.
+    You MUST use PPCAllocMem on the PPC to allocate Buffer otherwise
+    you may get cache line problems.
+
+
+ 4) The final rule is that you aren`t allowed to shared memory
+    between PPC tasks which is used by the M68k bridge.
+    This means that you must be VERY careful in situations like
+    this.
+
+    struct TaskAFrame
+    {
+      ULONG	Semaphore;	/* shared between Task A and B */
+      char	Buffer[256];	/* Filename Buffer */
+    }
+
+    PPCOpen(TaskAFrame->FileName,MODE);
+
+    because of the cacheline problems this may cause a lot problems
+    so you better allocate M68k bridge memory by PPCAllocMem()
+    to avoid sharing the same cache lines with different PPC tasks.
+
+ PS. People which think the 060 snooping and PPC MESI protocol would
+     solve these problems should take a look at the 68060 snooping mode
+     which makes it impossible to have a valid shared copyback cache
+     for both cpus.
+
+@EndNode
+
+@Node "DE_ABI" "PowerUP.guide/DE_ABI"
+@Next "DE_ADE"
+@Prev "DE_CACHES"
+@Toc "Main"
+
+The word ABI means Architecture Binary Interface and it defines
+the meaning of the usermode register usage so there`s a standard
+for all compilers and for calling functions.
+
+Small example with the AmigaOS M68k ABI:
+
+A0..A1	volatile
+A2..A5  saved
+A6      saved, used as the Library Base Ptr in OS Calls
+A7      stack pointer
+D0..D1  volatile
+D2..D6  saved
+ccr     volatile
+
+to give something you can compare the following informations with.
+The real new thing to the M68k is the usage of the stack.
+
+1) There`s only some general register used with the meaning of
+   the stack.
+2) Under the AmigaOS M68k ABI the stack was simply used like a FILO
+   where you put arguments after another on the stack in some linear
+   way. The PPC caller stackframe works completely different to
+   optimize memory accesses. The include stdarg.h should give you
+   more understandable informations how "..." stack parameters are
+   accessed (first stored in registers, afterwards on the stack)
+
+
+The ABI PowerUP uses is the System V.4 ABI which is used by
+GCC, Linux PPC, NetBSD and probably a lot more PPC systems.
+
+
+   The System V.4 ABI stack frame looks like:
+
+	SP---->	+---------------------------------------+
+		| back chain to caller			| 0
+		+---------------------------------------+
+		| saved LR				| 4
+		+---------------------------------------+
+		| Parameter save area (P)		| 8
+		+---------------------------------------+
+		| Alloca space (A)			| 8+P
+		+---------------------------------------+
+		| Local variable space (L)		| 8+P+A
+		+---------------------------------------+
+		| saved CR (C)				| 8+P+A+L
+		+---------------------------------------+
+		| Save area for GP registers (G)	| 8+P+A+L+C
+		+---------------------------------------+
+		| Save area for FP registers (F)	| 8+P+A+L+C+G
+		+---------------------------------------+
+	old SP->| back chain to caller's caller		|
+		+---------------------------------------+
+
+   The registers are used as follows (volatile means that a function does not
+have to preserve its value when it returns, saved means that a function must
+restore its value before returnning):
+
+    r0		volatile, may be used by function linkage
+    r1		stack pointer
+    r2		reserved for system
+    r3	.. r4	volatile, pass 1st - 2nd int args, return 1st - 2nd ints
+    r5  .. r10	volatile, pass 3rd - 8th int args
+    r11	.. r12	volatile, may be used by function linkage
+    r13		small data area pointer
+    r14 .. r31	saved
+    f0		volatile
+    f1		volatile, pass 1st float arg, return 1st float
+    f2  .. f8	volatile, pass 2nd - 8th float args
+    f9  .. f13	volatile
+    f14 .. f30	saved
+    f31		saved, static chain if needed.
+    lr		volatile, return address
+    ctr		volatile
+    xer		volatile
+    fpscr	volatile*
+    cr0		volatile
+    cr1		volatile**
+    cr2 .. cr4	saved
+    cr5 .. cr7	volatile
+
+* The VE, OE, UE, ZE, XE, NI, and RN (rounding mode) bits of the FPSCR may be
+changed only by a called function such as fpsetround that has the documented
+effect of changing them, the rest of the FPSCR is volatile.
+
+** Bit 6 of the CR (CR1 floating point invalid exception bit) is set to 1 if a
+variable argument function is passed floating point arguments in registers.
+
+   When alloca is executed, the back chain to the caller's stack frame and the
+link register save area must be updated.
+
+   The parameter save area does not contain space to store the 8 integer
+arguments.  If it is desired that they be stored, the callee must allocate
+space to save it in the local variable area of the stack.  Structures and
+unions are copied into temporary slots and an address of the temporary slot is
+passed as the argument.
+
+   Variable argument functions must store the registers used for passing
+arguments that aren't used for fixed arguments into a 96 word area on the stack
+in the local variable section.  If bit 6 of the CR is not 1, it doesn't have to
+save the floating point registers.  The va_list type is defined as follows:
+
+	typedef struct {
+	    char gpr;			/* index to next saved gp register */
+	    char fpr;			/* index to next saved fp register */
+	    char *overflow_arg_area;	/* ptr to next overflow argument */
+	    char *reg_save_area;	/* ptr to reg save area */
+	} va_list[1];
+
+
+
+
+@EndNode
+
+@Node "DE_ADE" "PowerUP.guide/DE_ADE"
+@Next "DE_GCC"
+@Prev "DE_API"
+@Toc "Main"
+
+The compiler we use to compile PowerUP programs is the PowerPC GCC crosscompiler
+you can find in the ADE distribution which is maintained by Fred Fish.
+The GEEK Gadgets CD(produced by Fred Fish) contains the whole ADE enviroment with
+the M68k and PPC compiler.
+The following files and directories are important for PowerUP programmers.
+
+bin/
+    ppc-amigaos-ar
+
+     The PPC GNU link lib creator
+     (=ppc-amigaos-ranlib)
+
+    ppc-amigaos-as
+
+     The PPC GNU assembler
+     (=ppc-amigaos-gas)
+
+    ppc-amigaos-c++
+
+     The PPC GNU C++ compiler frontend which starts the compiler,assembler and linker
+     (=ppc-amigaos-g++)
+
+    ppc-amigaos-c++filt
+
+     The PPC GNU C++ symbols decoder
+
+    ppc-amigaos-g++
+
+     The PPC GNU C++ compiler frontend which starts the compiler,assembler and linker
+     (=ppc-amigaos-c++)
+
+    ppc-amigaos-gas
+
+     The PPC GNU assembler
+     (=ppc-amigaos-as)
+
+    ppc-amigaos-gasp
+
+     The PPC GNU macroassembler frontend
+
+    ppc-amigaos-gcc
+
+     The PPC GNU C compiler frontend which starts the compiler,assembler and linker
+
+    ppc-amigaos-ld
+
+     The PPC GNU linker
+
+    ppc-amigaos-nm
+    ppc-amigaos-objcopy
+
+     The PPC GNU ELF->xyz object format converter
+
+    ppc-amigaos-objdump
+
+     The PPC GNU ELF object viewer which shows the contents of an object.
+     (Disassembler,Data,symbols,relocs,sections,...)
+
+    ppc-amigaos-ranlib
+
+     The PPC GNU link lib creator
+     (=ppc-amigaos-ar)
+
+    ppc-amigaos-size
+
+     The PPC GNU object section size viewer
+
+    ppc-amigaos-strings
+
+     The PPC GNU object context sensitive string search program
+
+    ppc-amigaos-strip
+
+     The PPC GNU object file cleanup program which deletes all unnecessary informations
+     from the object file.
+
+guide/
+    All kinds of Amiga Guide formated GNU documentation.
+
+man/
+    All GNU information in man format.
+    (man -c gcc)
+
+
+ppc-amigaos/
+    bin/
+    include/
+     The PPC PowerUP system includes are supposed to be here when a basic
+     ANSI stdio link lib exists.
+
+    lib/
+     The PPC PowerUP link libraries are supposed to be here.
+
+
+@EndNode
+
+
+@Node "DE_GCC" "PowerUP.guide/DE_GCC"
+@Next "DE_GCCPROBLEMS"
+@Prev "DE_ADE"
+@Toc "Main"
+
+How to compile file.c to powerpc assembler ?
+
+ o ppc-amigaos-gcc -O3 -S -v -o file.s file.c
+   @{"C Source" Link "DE_GCC_C"}
+
+How to link file.o to file.elf ?
+
+ o ppc-amigaos-gas -o file.o file.c
+
+ppc-amigaos-ld -r file.o -o file.elf
+   @{"ASM Source" Link "DE_GCC_ASM"}
+
+-r IS A MUST. It tells the linker to generate relocatable code.
+But it has also an important disadvantage that it doesn`t output
+errors when the file.elf has still unresolved references.
+(This problem on one of my lists to be fixed for ADE)
+
+How can i take a look at the file.c contents ?
+
+ppc-amigaos-objdump --section-headers --all-headers --reloc --disassemble-all --syms --line-numbers file.elf
+   @{"ObjDump" Link "DE_GCC_OBJ"}
+
+If you look for *UND* symbol entries you see that the file hasn`t been linked
+correctly.
+
+@EndNode
+
+@Node "DE_GCCPROBLEMS" "PowerUP.guide/DE_GCCPROBLEMS"
+@Next "DE_GCC_C"
+@Prev "DE_GCC"
+@Toc "Main"
+
+GCC PPC doesn`t have the same structure alignment rules like the Amiga M68k
+compilers which leads to incompatible structures.
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!! ATTENTION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!                                                                   !
+! o You MUST be careful with alignment of Bytes used in SAS         !
+!   and on the PPC. The GCC does a long alignment for a long        !
+!   instead of a word alignment                                     !
+!   Example:                                                        !
+!                                                                   !
+!     SAS            GCC                                            !
+!   0  ln_Succ   0 ln_Succ                                          !
+!   4  ln_Pred   4 ln_Pred                                          !
+!   8  ln_Type   8 ln_Type                                          !
+!   9  ln_Pri    9 ln_Pri                                           !
+!   10 ln_Name   12 ln_Name                                         !
+!   the ln_Name Entry because before that there ln_Pri/ln_Type      !
+!   Bytes.                                                          !
+!                                                                   !
+!   This is a serious problem. And we plan to fix this with         !
+!   a GCC enhancement                                               !
+!                                                                   !
+! o You MUST be careful with alignment of DOUBLE floats used in SAS !
+!   and on the PPC. The PPC needs an alignment of LONG for DOUBLE.  !
+!   SAS only aligns on word border so it`s your business to add     !
+!   pad words if necessary.                                         !
+!                                                                   !
+!!!!!!!!!!!!!!!!!!!!!!!!!!!! ATTENTION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Temporary solution to this problem:
+
+struct Node
+{
+	struct Node	*ln_Succ;
+	struct Node	*ln_Pred;
+	UBYTE		ln_Type;
+	UBYTE		ln_Pri;
+	char		*ln_Name __attribute((packed));  /* Word alignment */
+} __attribute((packed)); /* Word alignment */
+
+struct List
+{
+	struct Node	*lh_Head;
+	struct Node	*lh_Tail;
+	struct Node	*lh_TailPred;
+	UBYTE		lh_Type;
+	UBYTE		lh_pad __attribute((packed)); /* Word alignment */
+}__attribute((packed)); /* Word alignment */
+
+@EndNode
+
+@Node "DE_GCC_C" "PowerUP.guide/DE_GCC_C"
+@Next "DE_GCC_ASM"
+@Prev "DE_GCCPROBLEMS"
+@Toc "Main"
+
+;/*
+delete hello.s 
+ppc-amigaos-gcc -Iinclude: -O2 -S hello.c
+delete hello.o
+ppc-amigaos-gas  hello.s -o hello.o
+ppc-amigaos-ld -r hello.o -o hello
+ppc-amigaos-objdump --section-headers --full-contents --all-headers --disassemble-all hello >hello.dump
+quit
+*/
+
+#define ANZ 200
+
+int array[ANZ];
+
+int value=0x12345678;
+
+
+int main(void)
+{
+int i;
+
+  for (;;)
+  {
+    for (i = 0 ; i < 200 ; i++)
+    {
+      array[i] = value;
+    }
+  }
+  return(0x11223344);
+}
+
+@EndNode
+
+@Node "DE_GCC_ASM" "PowerUP.guide/DE_GCC_ASM"
+@Next "DE_GCC_OBJ"
+@Prev "DE_GCC_C"
+@Toc "Main"
+
+
+ # GNU C 2.7.2.1
+ # -O2 -fdefer-pop -fomit-frame-pointer -fcse-follow-jumps -fcse-skip-blocks
+ # -fexpensive-optimizations -fthread-jumps -fstrength-reduce -fpeephole
+ # -fforce-mem -ffunction-cse -finline -fcaller-saves -fpcc-struct-return
+ # -frerun-cse-after-loop -fschedule-insns -fschedule-insns2 -fcommon
+ # -fgnu-linker -mpowerpc -mnew-mnemonics
+
+	.file	"hello.c"
+gcc2_compiled.:
+	.globl value
+	.section	".data"
+	.align 2
+	.type	 value,@object
+	.size	 value,4
+value:
+	.long 305419896
+	.section	".text"
+	.align 2
+	.globl main
+	.type	 main,@function
+	.long 0x4008
+main:
+	stwu 1,-16(1)
+	addis 9,0,array@ha
+	addi 10,9,array@l
+	addis 9,0,value@ha
+	lwz 11,value@l(9)
+.L2:
+	li 9,199
+	li 0,796
+.L8:
+	addic. 9,9,-1
+	stwx 11,10,0
+	addic 0,0,-4
+	bc 4,0,.L8
+	b .L2
+.Lfe1:
+	.size	 main,.Lfe1-main
+	.comm	array,800,4
+	.ident	"GCC: (GNU) 2.7.2.1"
+
+@EndNode
+
+@Node "DE_GCC_OBJ" "PowerUP.guide/DE_GCC_OBJ"
+@Next "DE_GCC"
+@Prev "DE_GCC_ASM"
+@Toc "Main"
+
+
+hello:     file format elf32-powerpc
+hello
+architecture: powerpc:common, flags 0x00000011:
+HAS_RELOC, HAS_SYMS
+start address 0x00000000
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .text         00000034  00000000  00000000  00000034  2**2
+                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, CODE
+  1 .data         00000004  00000000  00000000  00000068  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  2 .bss          00000000  00000000  00000000  0000006c  2**0
+                  ALLOC
+  3 .comment      00000014  00000000  00000000  0000006c  2**0
+                  CONTENTS, READONLY
+SYMBOL TABLE:
+00000000 l    d  .text	00000000 
+00000000 l    d  *ABS*	00000000 
+00000000 l    d  .data	00000000 
+00000000 l    d  .bss	00000000 
+00000000 l    d  .comment	00000000 
+00000000 l    d  *ABS*	00000000 
+00000000 l    d  *ABS*	00000000 
+00000000 l    d  *ABS*	00000000 
+00000000 l    df *ABS*	00000000 hello.c
+00000000 l     O .text	00000000 gcc2_compiled.
+00000004 g     F .text	00000030 main
+00000320       O *COM*	00000004 array
+00000000 g     O .data	00000004 value
+
+
+Contents of section .text:
+ 0000 00004008 9421fff0 3d200000 39490000  ..@..!..= ..9I..
+ 0010 3d200000 81690000 392000c7 3800031c  = ...i..9 ..8...
+ 0020 3529ffff 7d6a012e 3000fffc 4080fff4  5)..}j..0...@...
+ 0030 4bffffe8                             K...            
+Contents of section .data:
+ 0000 12345678                             .4Vx            
+Contents of section .comment:
+ 0000 00474343 3a202847 4e552920 322e372e  .GCC: (GNU) 2.7.
+ 0010 322e3100                             2.1.            
+Disassembly of section .text:
+00000000 <gcc2_compiled.> .long 0x4008
+00000004 <main> stwu	r1,-16(r1)
+00000008 <main+4> lis	r9,0
+		RELOC: 0000000a R_PPC_ADDR16_HA array
+0000000c <main+8> addi	r10,r9,0
+		RELOC: 0000000e R_PPC_ADDR16_LO array
+00000010 <main+c> lis	r9,0
+		RELOC: 00000012 R_PPC_ADDR16_HA .data
+00000014 <main+10> lwz	r11,0(r9)
+		RELOC: 00000016 R_PPC_ADDR16_LO .data
+00000018 <main+14> li	r9,199
+0000001c <main+18> li	r0,796
+00000020 <main+1c> addic.	r9,r9,-1
+00000024 <main+20> stwx	r11,r10,r0
+00000028 <main+24> addic	r0,r0,-4
+0000002c <main+28> bge	00000020 <main+1c>
+00000030 <main+2c> b	00000018 <main+14>
+Disassembly of section .data:
+00000000 <value> .long 0x12345678
+
+@EndNode
+
+
+@Node "DE_POWERUPAPI" "PowerUP.guide/DE_POWERUPAPI"
+@Next "OT_UPD"
+@Prev "DE_GCC"
+@Toc "Main"
+
+The ppc.library controlls the communication between M68k and
+the PowerUP board.
+On the M68k side it`s a normal amiga library which offers an
+API for loading PPC Elf objects, creating PPC Tasks, PPC Memory
+allocation to avoid @{"Cache Line" Link "DE_CACHES"} problems,
+PPC Exception handling(PPC Enforcer) and very important the
+communication to the PPC.
+
+To run a PPC Task you have to load the PPC program somehow into
+the system memory. The PPC program itself must provide relocation
+informations and resolve informations so the loader can built up
+a correct image of the PPC Program.
+We chose ELF as the PPC object format standard because it`s the
+most used and supported object format in the world. It supports
+runtime linking, relocations, shared libraries, custom sections
+and so on.
+
+A PPC program image in memory is created by PPCLoadObject() which
+returns a Handle called ElfObject. This handle is needed to start
+a PPC Task or to get symbol, reloc and section informations about
+the ELF itself.
+All loaded ELFObjects are inserted into an internal database to
+support an automatic @{"Segtracker" Link MO_SEGTRACKER} like feature.
+When PPCCreateTask() is called with the ElfObject it creates the
+PPCTask`s AmigaOS M68k message task in which context all PowerUP`s
+AmigaOS functions run.
+For example if a PPCTask demands memory the memory allocation
+works inside this message task.
+The name of the Msg Task is "PPC:MsgHandler "+TaskName which is
+normally the name of the ElfObject.
+
+On the PowerPC side runs a small Multitasking kernel that
+keeps controll over the PPC Tasks, PPC IPC, memory management
+and communication to the M68k side.
+It also offers some little support functions like protected and
+not protected list management functions based on the AmigaOS
+list functions.
+How the PowerUP kernel can be accessed is NOT defined anywhere
+and can change randomly to avoid any problems when the PowerUP
+API is ported to another OS.
+So you simply call your PowerUP functions like extern functions
+in C or assembler. The ppc.library`s Elf Loader resolves these
+symbols and creates the code so the Elf program can call PowerUP
+Kernel functions.
+
+***Currently*** the PowerUP kernel functions linked with the ELF
+program are internal System Call stubs, if it`s a real System Call
+or direct link to the function, if it`s a simple support function like strlen().
+Example:
+
+;bl=Branch with link register(Return Address) register is the usual
+;way to call external functions
+	bl	ExternalFunction
+;The ELF Loader now sees a not resolved function and replaces this
+;with
+	bla	AbsoluteAddress
+;where ba=Branch Absolut with link register(Return Address)
+
+
+The PowerUP Task Scheduler uses the normal Amiga Round Robin system
+and it depends on the AmigaOS VBlank interrupt like the Exec Scheduler,
+so if you disable() that interrupt the PowerPC still runs but can`t
+switch a task. The ppc.library`s VBlank Inthandler simply interrupts
+the PPC to do a schedule.
+There`s no significant speed difference to the PPC using the internal
+timer.
+
+The M68k ppc.library API is decribed in @{"ppc.doc" Link /autodocs/ppc.doc/main}.
+The PPC API is decribed in @{"powerup.doc" Link /autodocs/powerup.doc/main}.
+
+The needed includes can be found in:
+
+ o powerup/clib
+    The ppcdiss.library protos
+    @{"powerup/clib/ppcdiss_protos.h" Link /include/powerup/clib/ppcdiss_protos.h/main}
+    The ppc.library protos
+    @{"powerup/clib/ppc_protos.h" Link /include/powerup/clib/ppc_protos.h/main}
+
+ o powerup/gcclib
+    The PPC Kernel protos
+    @{"powerup/gcclib/powerup_protos.h" Link /include/powerup/gcclib/powerup_protos.h/main}
+
+ o powerup/lvo
+    The AmigaOS library LVOs. Useful for own PPCCallOS usage.
+
+ o powerup/ppcdisslib
+    The PPCDiss library includes
+    @{"powerup/ppcdisslib/ppcdiss.h" Link /include/powerup/ppcdisslib/ppcdiss.h/main}
+
+ o powerup/ppclib
+    Global ppc.library and lowlevel includes
+    @{"powerup/PPCLib/ppc.h" Link /include/powerup/PPCLib/ppc.h/main}
+
+    AmigaOS - PPC function interface includes
+    @{"powerup/PPCLib/interface.h" Link /include/powerup/PPCLib/interface.h/main}
+
+    AmigaOS - PPC message interface includes
+    @{"powerup/PPCLib/message.h" Link /include/powerup/PPCLib/message.h/main}
+
+    PowerUP memory system includes
+    @{"powerup/PPCLib/memory.h" Link /include/powerup/PPCLib/memory.h/main}
+
+    PowerUP Task includes
+    @{"powerup/PPCLib/tasks.h" Link /include/powerup/PPCLib/tasks.h/main}
+
+    PowerUP Semaphore includes
+    @{"powerup/PPCLib/semaphore.h" Link /include/powerup/PPCLib/semaphore.h/main}
+
+    PowerUP ELF interface includes
+    @{"powerup/PPCLib/object.h" Link /include/powerup/PPCLib/object.h/main}
+
+ o powerup/pragmas
+    The ppcdiss.library pragma
+    @{"powerup/pragmas/ppcdiss_pragmas.h" Link /include/powerup/clib/ppcdiss_pragmas.h/main}
+    The ppc.library pragma
+    @{"powerup/pragmas/ppc_pragmas.h" Link /include/powerup/clib/ppc_pragmas.h/main}
+
+ o powerup/proto
+    The ppcdiss.library proto
+    @{"powerup/proto/ppcdiss.h" Link /include/powerup/clib/ppcdiss.h/main}
+    The ppc.library proto
+    @{"powerup/proto/ppc.h" Link /include/powerup/clib/ppc.h/main}
+
+ o powerup/ppcinline
+    The GCC PPC AmigaOS Inlines
+
+ o powerup/ppcpragmas
+    The SAS/GCC C PPC AmigaOS Pragmas
+
+ o powerup/ppcproto
+    The SAS/GCC PPC AmigaOS proto
+
+
+@EndNode
+
+@Node "DE_FD2INLINE" "PowerUP.guide/DE_FD2INLINE"
+@Next "DE_M68kPPC_0"
+@Prev "DE_POWERUPAPI_1"
+@Toc "Main"
+
+fd2inline converts Amiga FD and proto files into a
+CallOS libstub. The default CacheMode is IF_CACHEFLUSHALL
+so there`s a possibility to optimize a call to your
+needs.
+
+@EndNode
+
+
+@Node "DE_M68kPPC_0" "PowerUP.guide/DE_M68kPPC_0"
+@Next "OT_UPD"
+@Prev "DE_FD2INLINE"
+@Toc "Main"
+
+To pass argument parameters from M68k to the PPC in a PPCCreateTask
+call use the following Tags from @{"PowerUP/PPCLib/tasks.h" Link /include/PowerUP/PPCLib/tasks.h/main}
+
+o PPCTASKTAG_ARG1,Arg1
+o PPCTASKTAG_ARG2,Arg2
+o PPCTASKTAG_ARG3,Arg3
+o PPCTASKTAG_ARG4,Arg4
+o PPCTASKTAG_ARG5,Arg5
+o PPCTASKTAG_ARG6,Arg6
+o PPCTASKTAG_ARG7,Arg7
+o PPCTASKTAG_ARG8,Arg8
+
+and on the PPC Side
+
+int	Start(Arg1,Arg2,Arg3,Arg4,Arg5,Arg6,Arg7,Arg8)
+
+@EndNode
+
+
+@Node "OT_UPD" "PowerUP.guide/OT_UPD"
+@Next "OT_SUP"
+@Prev "Main"
+@Toc "Main"
+
+ftp://ftp.phase5.de/pub/phase5/
+http://www.vgr.com/
+
+@EndNode
+
+@Node "OT_SUP" "PowerUP.guide/OT_SUP"
+@Next "OT_HIST"
+@Prev "OT_UPD"
+@Toc "Main"
+
+ support@phase5.de
+
+@EndNode
+
+
+@Node "OT_HIST" "PowerUP.guide/OT_HIST"
+@Next "OT_FUT"
+@Prev "OT_SUP"
+@Toc "Main"
+
+ Under construction
+
+@EndNode
+
+@Node "OT_FUT" "PowerUP.guide/OT_FUT"
+@Next "OT_ACK"
+@Prev "OT_HIST"
+@Toc "Main"
+
+o Stdlib
+o Dynamic Shared Libraries
+
+@EndNode
+
+
+@Node "OT_ACK" "PowerUP.guide/OT_ACK"
+@Prev "OT_FUT"
+@Toc "Main"
+
+ Frank Mariak for ideas, debugging help and some PPC application tests
+              and moral support.
+
+ Andre Osterhues for ideas, debugging help and some PPC examples and applications.
+
+ Stefan Burstrom for several design ideas which are part of the kernel.
+
+ Steve Krueger and Jamie Cooper for their SAS support and expecially for
+ their work on the PPC SAS.
+
+ Dirk Leschner and Arne Meyer for being my best friends.
+
+ Matthias Scheler for general support:-)
+
+ Ken Dyke, Bill Coldwell , Chris Wolf, Jamie Cooper, Oleg, Scott Ellis,
+ Boodah, Andrew Denton and all my other friends from #grapevine.
+
+ Ignatios for being helpful with random problems
+
+ Bernhard Moellemann and Veego.
+
+@EndNode
+
+
+@Node "MO_SEGTRACKER" "PowerUP.guide/Main"
+@Toc "Main"
+
+Segtracker is an AmigaOS program which tracks hunks of loaded
+programs so debugger tools can show which address belongs to which
+program. Can be found in the Enforcer archive.
+
+@EndNode

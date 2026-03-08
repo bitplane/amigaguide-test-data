@@ -1,0 +1,425 @@
+@database "Professional File System 2 documentation"
+@author "Michiel Pelt"
+@(c) "Copyright 1998 by Great Effects Development"
+@$VER: pfs3tools.guide 1.0 (19/05/98)
+@master pfs3tools.guide
+
+@rem --------------------------------------------------------------------
+@node "Main" "Outils de PFS3"
+
+@{jcenter}@{b}Outils de PFS3@{ub}
+
+Outils pour fichiers de roulement (Rollover files)
+@{"MakeRollover" link makerollover}
+@{"PFSDoctor" link pfsdoctor}
+@{"SetRollover" link setrollover}
+
+Outils divers
+@{"Makelink" link makelink}
+@{"RemoveDirEntry" link removedirentry}
+
+AFS2LS, PFSDoctor et DiskValid
+@{"PFSLS" link pfsls.guide/main}
+@{"DiskValid" link diskvalid.guide/main}
+@{"PFSFormat" link format}
+@{"SetFnSize" link setfnsize}
+@{"SetDeldir" link setdeldir}
+
+Voir la
+@{"Documentation de PFS3" link pfs3.guide/main}
+
+@endnode
+@rem --------------------------------------------------------------------
+@node "MakeRollover" "MakeRollover"
+
+@{jcenter}@{b}MakeRollover@{ub}
+Version 1.1
+Copyright (c) 1998 GREat Effects Development
+@{jleft}
+
+Grâce à MakeRollover, vous pouvez créer des @{"fichiers de roulement (rollover files)" Link pfs3.guide/rollover}
+
+La syntaxe pour utiliser Makerollover est:
+
+Syntaxe:    Makerollover <fichier> <taille>
+Modèle:     FILE/A,SIZE/N/A
+
+Options:
+<fichier>   Le nom du nouveau fichier de roulement.
+<taille>    La 'taille de roulement' (rollover size) de ce nouveau fichier en blocs.
+
+Initialement le fichier de roulement est vide. Sa taille est 0.
+La taille de roulement est la taille maximale que ce fichier est
+autorisé à atteindre. C'est toujours un multiple de blocs moins
+un octet pour le marqueur de fin du fichier.
+
+Exemple:
+1.Workbench:> Makerollover mylogfile 2
+
+créera un fichier de roulement nommé 'mylogfile' avec une taille de roulement
+de 2*512-1 = 1023 octets.
+
+Makerollover ne crée que des fichiers nouveaux. Il ne peut transformer un
+fichier existant en 'rollover file'. Pour transformer un fichier normal
+en un fichier de roulement, vous devez créer d'abord le fichier de roulement
+puis y copier le fichier que vous souhaitez transformer.
+
+Exemple: Transformer 'mybiglog' en un fichier de roulement de 1023 octets :
+
+1.Workbench:> rename mybiglog temp
+1.Workbench:> makerollover mybiglog 2
+1.Workbench:> copy temp mybiglog
+1.Workbench:> delete temp
+
+MakeRollover est spécifique à PFS3 et ne fonctionne que sur des volumes PFS3 ou AFS.
+
+@endnode
+@rem --------------------------------------------------------------------
+@node "SetRollover" "SetRollover"
+
+@{jcenter}@{b}SetRollover@{ub}
+Version 1.1
+Copyright (c) 1998 by GREat Effects Development
+@{jleft}
+
+SetRollover est un outil pour la manipulation des @{"'rollover files'" Link pfs3.guide/rollover}.
+Cet outil est réservé à l'usage des utilisateurs expérimentés.
+
+La syntaxe pour utiliser SetRollover est:
+
+Syntaxe:    SetRollover <rolloverfile> [SET]
+            [REALSIZE <realsize>] [VIRTUALSIZE <virtualsize>]
+            [ROLLPOINTER] <rollpointer>
+
+Modèle:     ROLLOVERFILE/A,SET/S,REALSIZE/K/N,VIRTUALSIZE/K/N,ROLLPOINTER/K/N
+
+Options:
+
+SET         Si activée les valeurs 'realsize', 'virtual size' et 'rollpointer'
+            spécifiées seront appliquées . Dans le cas contraire, elles sont
+            seulement lues pour information.
+
+REALSIZE    La place occupée par le fichier en octets. C'est la taille de
+            roulement + 1 . Ce doit être un multiple de la taille bloc sinon
+            ce sera arrondi à la valeur valide inférieure. Modifier cette
+            valeur effacera les valeurs 'virtual size' et 'rollpointer' sauf
+            si indication contraire.
+
+VIRTUALSIZE La taille virtuelle 'virtualsize' est le nombre d'octets en usage.
+            La taille virtuelle maximale est la taille de roulement. Modifier
+            cette valeur efface la valeur de 'rollpointer' sauf indication
+            contraire.
+
+ROLLPOINTER La valeur de pointeur de roulement 'rollpointer' indique  l'"offset"
+            du début de fichier. Modifier celle-ci efface la valeur de taille
+            virtuelle sauf indication contraire.
+
+
+Exemples:
+
+1.Workbench:> setrollover foo    ( affiche les valeurs courantes pour 'foo' )
+real size = 1024
+virtual size = 400
+rollpointer = 12
+
+1.Workbench:> setrollover foo set virtualsize 200 rollpointer 220
+real size = 1024
+virtual size = 200
+rollpointer = 220
+
+1.Workbench:> setrollover foo set realsize = 512
+real size = 512
+virtual size = 0
+rollpointer = 0
+
+SetRollover est un outil spécifique à PFS3 et ne fonctionne que sur les volumes
+PFS3 et AFS.
+
+@endnode
+@rem --------------------------------------------------------------------
+@node "Makelink" "Makelink"
+
+@{jcenter}@{b}Makelink@{ub}
+Version 1.2
+Copyright (c) 1998 Great Effects Development
+@{jleft}
+
+Makelink est un remplacement de la commande makelink livrée en standard avec
+le workbench et qui a des problèmes pour établir des 'softlinks'. Utilisez
+de préférence notre version.
+
+La syntaxe pour utiliser Makelink est:
+
+Syntaxe:    Makelink <from> <to> [SOFT] [HARD] [FORCE]
+Modèle:     FROM/A,TO/A,SOFT/S,HARD/S,FORCE/S
+
+Makelink établit une liaison du fichier <from> vers le fichier <to>
+ce qui signifie que si un programme charge le fichier <from>, il
+chargera en fait le fichier <to>.
+
+Options:
+
+SOFT        Crée un 'soft link' ( lien logiciel ou symbolique = Lien entre fichiers
+            se trouvant sur des volumes différents ).
+
+HARD        Crée un 'hard link' (par défaut) ( Lien matériel =  entre fichiers sur
+            un même volume )
+
+FORCE       Normalement makelink refuse de créer des liens d'un répertoire
+            à un autre. Avec l'option 'FORCE', vous pouvez néanmoins contraindre
+            le système de fichiers à créer cette liaison.
+
+Reportez vous au manuel de l'AmigaDos pour plus de détails. Makelink fonctionnera
+avec tout système de fichier qui reconnaît cette fonction de liaison ce qui inclus
+FFS et PFS3.
+
+@endnode
+@rem --------------------------------------------------------------------
+@node "RemoveDirEntry" "RemoveDirEntry"
+
+@{jcenter}@{b}RemoveDirEntry@{ub}
+Version 1.0
+Copyright (c) 1998 Great Effects Development
+@{jleft}
+
+Removedirentry est un outil pour contraindre l'effacement d'un fichier. Il peut
+être utilisé lorsque la commande normale 'delete' échoue.
+
+Syntaxe:    Removedirentry <file>
+Modèle:     FILE/A
+
+Le fichier ou le répertoire indiqué sont effacés. PFS3 ne fait aucune vérification
+de validité et l'espace disque correspondant n'est pas libéré.
+
+ATTENTION: L'espace disque alloué aux fichiers effacés par 'RemoveDirEntry'
+           N'EST PAS libéré et s'en trouve donc perdu indéfiniment. Il ne peut
+           être récupéré qu'avec DiskValid ou en reformatant le volume.
+
+'RemoveDirEntry' est spécifique à PFS3 et ne fonctionne que sur les volumes PFS3 et AFS.
+
+@endnode
+@rem --------------------------------------------------------------------
+@node "Format" "Format"
+
+@{jcenter}@{b}PFSFormat@{ub}
+Version 1.1
+Copyright (c) 1999 par GREat Effects Development
+@{jleft}
+
+PFSFormat est un remplacement pour la commande AmigaDos standard 'format'.
+Elle peut être utilisée pour formater tout volume PFS. Elle offre la
+capacité de formater les partitions et disques de grande taille (>4 Go)
+et reconnaît les spécificités de PFS que sont la taille du deldir et la
+longueur des noms de fichiers.
+
+
+La syntaxe à utiliser pour éxecuter PFSFormat est:
+
+
+Syntaxe:       PFSFormat DEVICE <devicename> NAME <name>
+               [NOICONS] [QUICK] [DELDIRBLOCKS <deldirsize>]
+               [FILENAMESIZE <filenamesize>] [VERIFY]
+
+Modèle:        DEVICE=DRIVE/K/A,NAME/K/A,NOICONS/S,QUICK/S,DELDIRBLOCKS=DD/K/N,
+               FILENAMESIZE=FNSIZE/K/N,VERIFY/S
+
+Options:
+
+
+DEVICE         Nom (matériel) de l'unité à formater (ex: dh1:, QH2:, etc..)
+
+NAME           Nom (logique) du nouveau volume (ex: system, work, etc..)
+
+NOICONS        Par défaut, le répertoire poubelle et les icônes disk.info et
+               trashcan.info sont créés. Activer ce drapeau permet d'éviter
+               cela.
+
+QUICK          Formatage rapide. Le disque est directement réinitialisé, sans
+               effacement ou vérification préalables.
+
+DELDIRBLOCKS   Le nombre de 'deldirblocks' à créer. Cette valeur doit être
+               comprise entre 0 et 32. Chaque 'deldirblock' contient 31
+               espaces réservés aux fichiers venant d'être effacés. Par suite,
+               si la valeur 31 est saisie, le répertoire d'effacement (deldir)
+               aura une capacité de 31*32 = 992 fichiers. Le deldir peut être
+               complètement désactivé en spécifiant la valeur 0. La valeur par
+               défaut est 2. Cette valeur peut aussi être modifiée sur une unité
+               déja formatée en utilisant la commande 'SetDelDir'.
+ 
+FILENAMESIZE   Longueur maximale des noms de fichiers. La valeur la plus grande
+               possible est 107.
+               Attention: Après formatage, la longueur de nom de fichier peut
+               seulement être augmentée. Il est impossible de la réduire. La
+               longueur par défaut est de 31 caractères.
+            
+
+VERIFY         Active la vérification lors d'un formatage long. Ne fonctionnera
+               pas si l'option QUICK est activée.
+
+
+@endnode
+@rem --------------------------------------------------------------------
+@node "SetFnSize" "SetFnSize"
+
+@{jcenter}@{b}SetFnSize@{ub}
+Version 1.1
+Copyright (c) 1999 par GREat Effects Development
+@{jleft}
+
+Avec SetFnSize, il est possible de régler la longueur maximale des noms
+de fichiers. La commande permet aussi de connaître la valeur courante.
+Utilisez cette commande avec précautions car la longueur de noms de fichiers
+peut seulement être augmentée sur une partition déja formatée. La seule
+façon de la ramener à 31 est de reformater le disque (ou la partition).
+
+
+La syntaxe pour éxecuter SetFnSize est:
+
+Syntaxe:    SetFnSize <volume> [<filenamesize>]
+
+Modèle:     VOLUME/A,FILENAMESIZE/N
+
+
+Options:
+
+
+VOLUME         Le volume sur lequel la longueur de noms de fichiers doit être
+               affichée ou modifiée.
+
+FILENAMESIZE   La nouvelle longueur de noms de fichiers. Doit être comprise
+               entre 31 et 107 et doit aussi être égale ou supérieure à la
+               valeur couramment active. Si cette valeur n'est pas fournie,
+               alors la valeur courante sera affichée.
+
+@endnode
+@rem --------------------------------------------------------------------
+@node "SetDeldir" "SetDeldir"
+
+@{jcenter}@{b}SetDeldir@{ub}
+Version 1.2
+Copyright (c) 1999 par GREat Effects Development
+@{jleft}
+
+
+Avec SetDelDir, la taille du répertoire d'effacement peut être réglée ou
+affichée. La taille du deldir peut être réglée de 0 à 32 'deldirblocks'.
+Chaque 'deldirblock' contenant 31 espaces attribués aux fichiers récemment
+effacés, la valeur maximale de 32 donnera un deldir pouvant contenir les
+992 derniers fichiers effacés. La valeur 0 désactivera le deldir.
+
+
+La syntaxe pour éxecuter SetDeldir est:
+
+Syntaxe:    SetDeldir <device> [<deldirsize>]
+
+Modèle:     DEVICE/A,DELDIRSIZE/N
+
+
+Options:
+
+DEVICE      L'unité sur laquelle on désire modifier ou afficher la taille du
+            deldir.
+
+DELDIRSIZE  La nouvelle taille du deldir en nombre de 'deldirblocks'. Doit
+            être située entre 0 (désactivé) et 32 (taille maxi=992 fichiers).
+            Si cette valeur n'est pas donnée, alors la valeur courante sera
+            affichée.
+
+@endnode
+@rem --------------------------------------------------------------------
+@node "PFSDoctor" "PFSDoctor"
+
+@{jcenter}@{b}PFSDoctor@{ub}
+Version 1.3
+Copyright (c) 1999 par GREat Effects Development
+@{jleft}
+
+
+PFSDoctor est le nouvel outil de réparation et de récupération pour les
+volumes formatés sous PFS. Il peut réparer presque tous les disques
+endommagés et peut même retrouver des partitions déplacées. Il est doté
+d'une interface graphique.
+
+
+@{b}Fenêtre de démarrage@{ub}
+
+Ici, vous pouvez choisir de réparer ou de vérifier une unité. En mode
+vérification, le disque sera protégé en écriture pendant l'examen de
+celui-ci donc les erreurs seront affichées mais ne seront pas réparées.
+En mode réparation, les erreurs seront traitées et réparées.
+
+
+@{b}Fenêtre de Volume/Unité@{ub}
+
+Ensuite, le volume ou l'unité à examiner doit être choisie. Le bouton
+'Back' vous fera revenir à la fenêtre de démarrage.
+
+
+@{b}Fenêtre d'options@{ub}
+
+La fenêtre des options vous permet de configurer certains réglages.
+
+Access Type  Sélectionne la méthode utilisée pour accéder à l'unité.
+             Utile seulement si l'unité est d'une capacité supérieure
+             à 4 Giga-Octets.
+
+-AUTO        Détection automatique. PFSDoctor reconnaîtra automatiquement
+             s'il doit utiliser le mode TD64 ou directSCSI. Recommandé pour
+             la plupart des situations.
+
+-TD64        PFSDoctor utilisera des commandes td64 ( trackdisk64 ).
+
+-Direct-SCSI PFSDoctor utilisera des commandes SCSI directes.
+
+Verbose      Active le mode 'verbose'. PFSDoctor indiquera tout ce qu'il
+             fait ce qui génèrera plus d'informations qu'en mode normal.
+             Nous recommandons de @{i}ne pas@{ui} utiliser cette option
+             sauf si les informations normales affichées par PFSDoctor
+             s'avèrent insuffisantes.
+
+Enable       Active un fichier d'activité. Le fichier spécifié contiendra
+Logfile      exactement tous les messages affichés dans la fenêtre de
+             réparation. PFSDoctor écrasera le fichier à chaque opération
+             donc prenez soin de ne pas choisir un fichier situé sur le
+             volume à réparer.
+
+Le processus de réparation/vérification est démarré en cliquant
+sur le bouton 'START'.
+
+@{b}Fenêtre de Vérification et de Réparation@{ub}
+
+La fenêtre de vérification et de réparation contient certains compteurs
+et barres d'état et une zone de messages. La taille de la zone de messages
+peut être ajustée grâce au 'gadget' situé dans le coin inférieur droit.
+Les différentes informations affichées sont:
+
+
+Pass         Chaque examen du disque est appelé 'pass' (passe). En général,
+             une passe est suffisante. Si d'autres passes sont nécessaires,
+             le nombre en sera indiqué à cet endroit.
+
+
+Barres       La barre supérieure indique l'état d'un processus de vérification.
+d'état.      L'unité faisant l'objet d'une vérification sera indiquée par dessus
+             cette jauge. La barre d'état inférieure n'est utilisée que lors
+             d'opérations spéciales de réparation et de récupération telles que
+             la recherche de blocs perdus.
+
+
+Checked      Le nombre de blocs déja vérifiés
+Errors       Le nombre d'erreurs déja trouvées
+Fixed        Le nombre d'erreurs déja réparées
+Files        Le nombre de fichiers déja trouvés
+Dirs         Le nombre de répertoires déja trouvés
+Hardl        Le nombre de liens matériels déja trouvés
+Softl        Le nombre de liens logiques déja trouvés
+Roll         Le nombre de fichiers de roulement déja trouvés
+
+Message      Dans cette zone de messages, les informations à propos
+Area         du processus de réparation, du disque ainsi que les erreurs
+             sont affichées.
+
+Quand la réparation sera terminée, une fenêtre de requête apparaîtra. Cliquez
+sur 'Ok'. Vous pouvez maintenant revenir à la fenêtre de démarrage en fermant
+la fenêtre de réparation ou quitter PFSDoctor en utilisant le menu.
+@endnode

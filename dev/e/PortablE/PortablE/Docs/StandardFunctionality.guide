@@ -1,0 +1,1188 @@
+@database "StandardFunctionality.guide"
+@wordwrap
+
+@node "main" "PortablE's standard functionality"
+@{fg shine}@{u}PortablE's standard functionality@{uu}@{fg text}
+  by Chris Handley
+  Last updated 27-November-2009.
+
+All the functionality listed here is completely portable (i.e. OS independant), unless specifically stated otherwise (which is extremely unusual).
+
+Please note that if you see "OWNS" as part of a variable's type, you can safely ignore it, because that is what PortablE currently does!  However, it is a hint that ownership (i.e.  deallocation responsibility) is being handed over. Thus an "OWNS" parameter shows that the procedure takes ownership, while an "OWNS" return value shows that the procedure passes ownership to the caller.
+
+@{fg shine}@{u}Contents@{uu}@{fg text}
+@{"1. Supported expressions" link "1_0"}
+@{"2. Supported statements" link "2_0"}
+@{"3. Built-in procedures" link "3_0"}
+ 3.1. I/O
+ 3.2. String
+ 3.3. Logical
+ 3.4. Maths
+ 3.5. Floating point
+ 3.6. Exceptions
+ 3.7. Memory blocks
+ 3.8. Arrays
+ 3.9. E-lists
+ 3.10. E-strings
+ 3.11. Endian & CHAR value
+ 3.12. Class type
+ 3.13. Peek & poke
+ 3.14. Miscellaneous
+@{"4. Built-in methods" link "4_0"}
+@{"5. AmigaE procedures that WERE built-in" link "5_0"}
+ 5.1. Dos, Exec, Graphics & Intuition procedures
+ 5.2. Graphics & Intuition helper procedures
+ 5.3. arg & wbmessage global variables
+ 5.4. Renamed procedures
+@{"6. MODULE 'std/cPath'" link "6_0"}
+ 6.1. CLASS cFile OF cPath
+ 6.2. CLASS cDir OF cPath
+ 6.3. CLASS cPath OF cExtra
+ 6.4. CLASS cExtra
+ 6.5. CLASS cDirEntryList
+ 6.6. CLASS cHostFile & cHostDir
+ 6.7. Path notes
+ 6.8. A quick start
+ 6.9. Reading & writing a file
+ 6.10. Date & time
+ 6.11. Exceptions
+ 6.12. Assignments on Windows
+ 6.13. All procedures
+ 6.14. All methods
+@{"7. MODULE 'std/pCallback'" link "7_0"}
+@{"8. MODULE 'std/pShell'" link "8_0"}
+@{"9. MODULE 'std/pShellParameters'" link "9_0"}
+ 9.1. Template guide
+@{"10. MODULE 'std/pStack'" link "10_0"}
+@{"11. MODULE 'std-alpha/functions'" link "11_0"}
+@{"12. MODULE 'std-alpha/pSemaphores'" link "12_0"}
+
+@endnode
+
+@node "1_0" "Supported expressions"
+@{fg shine}@{u}1. Supported expressions@{uu}@{fg text}
+This is a list of all expressions that can be performed:
+
+  storage := expr
+  ++ storage
+  -- storage
+  storage ++
+  storage --
+
+  expr !! type
+  expr AND expr
+  expr OR  expr
+  expr XOR expr
+  expr SHL expr
+  expr SHR expr
+  expr BUT expr
+  expr  = expr
+  expr >= expr
+  expr >  expr
+  expr <= expr
+  expr <> expr
+  expr <  expr
+  expr + expr
+  expr - expr
+  expr * expr
+  expr / expr
+
+  procedure(...)
+  SUPER procedure(...)
+  CALLBACK procedure()
+
+  NEW storage
+  NEW object.method(...)
+  object::objectType
+  object.member
+  object.method(...)
+  SUPER self.method(...)
+
+  IF expr THEN expr ELSE expr
+  NOT expr
+  SIZEOF type
+  TYPEOF objectType
+  NATIVE {native group} ... ENDNATIVE
+  EMPTY
+
+  array[expr]
+  - expr
+  ( expr )
+
+Please note that:
+* "expr" is an expression.
+* "storage" is a particular type of expression that allows values to be stored in it, such as a variable, object member, or array item.
+* "type" is any VALUE type, such as LONG, or PTR TO something.
+* "object" is an expression that evaluates to a PTR TO an object.
+* "array" is an expression that evaluates to an ARRAY OF something.
+* "..." are optional (comma separated) parameters.
+* "procedure" is a procedure name.
+* "method" is the name of an object method.
+* "member" is the name of an object member.
+* "objectType" is the name of an object.
+* "self" is literally the word "self".
+
+
+@endnode
+
+@node "2_0" "Supported statements"
+@{fg shine}@{u}2. Supported statements@{uu}@{fg text}
+This is a list of all statements that can be performed.  The full version of each statement is given, with optional parts enclosed in [square brackets]. Please note that [...] is used to indicate that the previous optional part may be repeated further.
+
+  expr
+  
+  
+  statement ; statement
+  
+  
+  IF expr THEN statement [ELSE statement]
+  
+  
+  IF expr
+  	statements
+  [ELSE IF expr
+  	statements]
+  [ELSE IF expr
+  	statements]
+  [...]
+  [ELSE
+  	statements]
+  ENDIF
+  
+  
+  END storage [,storage] [,storage] [...]
+  
+  
+  RETURN [ expr [,expr] [,expr] [...] ]
+  
+  
+  FOR storage := expr TO expr [STEP expr] DO statement
+  
+  
+  FOR storage := expr TO expr [STEP expr]
+  	statements
+  ENDFOR [IF expr]
+  
+  
+  LOOP
+  	statements
+  ENDLOOP
+  
+  
+  REPEAT
+  	statements
+  UNTIL expr
+  
+  
+  WHILE expr DO statement
+  
+  
+  WHILE expr
+  	statements
+  ENDWHILE [IF expr]
+  
+  
+  SELECT expr
+  [CASE expr ; statements]
+  [CASE expr ; statements]
+  [...]
+  [DEFAULT ; statement]
+  ENDSELECT
+  
+  
+  SELECT constant OF expr
+  [CASE constant [TO constant] [, constant] [...] ; statements]
+  [CASE constant [TO constant] [, constant] [...] ; statements]
+  [...]
+  [DEFAULT ; statement]
+  ENDSELECT
+
+
+@endnode
+
+@node "3_0" "Built-in procedures"
+@{fg shine}@{u}3. Built-in procedures@{uu}@{fg text}
+This is a list of all procedures that are built-in to PortablE.
+
+@{fg shine}@{u}3.1. I/O@{uu}@{fg text}
+  PROC Print(fmtString:ARRAY OF CHAR, arg1=0, ..., arg8=0)
+  PROC PrintFlush()
+  PROC Out(fileHandle:PTR, char:CHAR) RETURNS value
+  PROC Inp(fileHandle:PTR) RETURNS char:INT
+
+Print() outputs the formatted string "fmtString" to stdout, with any additional arguments being used by the relevant soft escape codes (such as '\\d').  Output may be buffered, and so may not appear immediately, especially if it does not end in a new line.
+
+PrintFlush() flushes the output buffer, so everything that was Print()ed is shown.
+
+Out() writes the supplied character "char" to the file handle, returning the number of characters actually written - so anything other than 1 is an error. The only file handle you are likely to use is "stdout".
+
+Inp() reads & returns one character from the supplied file handle.  An error is indicated by returning -1.  The only file handle you are likely to use is "stdin".
+
+@{fg shine}@{u}3.2. String@{uu}@{fg text}
+  PROC StrCmp(      first:ARRAY OF CHAR, second:ARRAY OF CHAR, len=ALL, firstOffset=0, secondOffset=0) RETURNS match:BOOL
+  PROC StrCmpNoCase(first:ARRAY OF CHAR, second:ARRAY OF CHAR, len=ALL, firstOffset=0, secondOffset=0) RETURNS match:BOOL
+  PROC StrLen(string:ARRAY OF CHAR) RETURNS length
+  PROC Val(string:ARRAY OF CHAR, addrRead=NILA:ARRAY OF LONG) RETURNS value, read:LONG   ->addrRead is depreciated
+  PROC InStr( haystack:ARRAY OF CHAR, needle:ARRAY OF CHAR, startPos=0) RETURNS foundPos
+  PROC TrimStr( string:ARRAY OF CHAR) RETURNS string:ARRAY OF CHAR
+  PROC UpperStr(string:ARRAY OF CHAR) RETURNS string:ARRAY OF CHAR
+  PROC LowerStr(string:ARRAY OF CHAR) RETURNS string:ARRAY OF CHAR
+  PROC AstrCopy(destination:ARRAY, source:ARRAY OF CHAR, destSize)
+  PROC OstrCmp(      string1:ARRAY OF CHAR, string2:ARRAY OF CHAR, max=ALL, string1Offset=0, string2Offset=0) RETURNS sign:BYTE
+  PROC OstrCmpNoCase(string1:ARRAY OF CHAR, string2:ARRAY OF CHAR, max=ALL, string1Offset=0, string2Offset=0) RETURNS sign:BYTE
+
+StrCmp() compares the "first" string against the "second", and returns TRUE if they matched.  "len" specifies how many characters to compare (from the beginning), with the special ALL constant meaning compare everything. "firstOffset" & "secondOffset" allow you to specify an offset into the first & second strings respectively (to avoid pointer arithmetic).
+
+StrCmpNoCase() is a case-insensitive version of StrCmp().  This procedure was not present in AmigaE.
+
+StrLen() returns the length of the supplied zero-terminated string.  It can be slow for very large strings.
+
+Val() parses the supplied string, and returns the value of the integer number. Leading spaces & tabs are skipped.  Hexadecimal & binary numbers are accepted if they are preceeded by "$" or "%" respectively.  A "-" minus sign will make the number negative.  "read" is used to return the number of characters read. "addrRead" is depreciated, but if it is supplied then the number of characters read is also written to the first item of that array.
+
+InStr() searches the "haystack" string for an occurance of "needle", optionally starting from a "startPos" position other than 0.  It returns the position/offset at which "needle" was found, or -1 if there was no match.
+
+TrimStr() returns a string pointing to the first non-empty character (not a tab, space, etc) in the supplied string.
+
+UpperStr() modifies the supplied string to be all uppercase.  It returns the supplied string for convenience.
+
+LowerStr() modifies the supplied string to be all lowercase.  It returns the supplied string for convenience.
+
+AstrCopy() stands for "Array STRing COPY", and copies the contents of the "source" string into the "destination" string.  "destSize" specifies the maximum number of characters that "destination" can hold.
+
+OstrCmp() performs an ordered string comparison between "string1" & "string2". Conceptually you can think of it as returning the Sign() of "string2 - string1". Thus it returns 0 if they are identical, 1 if string2 > string1, and -1 if string2 < string1.  "max" specifies how many characters to compare (from the beginning), with the special ALL constant meaning compare everything. "string1Offset" & "string2Offset" allow you to specify an offset into string1 & string2 respectively (to avoid pointer arithmetic).
+
+OstrCmpNoCase() is a case-insensitive version of OstrCmp().  This procedure was not present in AmigaE.
+
+@{fg shine}@{u}3.3. Logical@{uu}@{fg text}
+  PROC  And(a, b) RETURNS value   ->depreciated, instead use AND
+  PROC   Or(a, b) RETURNS value   ->depreciated, instead use OR
+  PROC  Xor(a, b) RETURNS value   ->depreciated, instead use XOR
+  PROC  Shl(a, b) RETURNS value
+  PROC  Shr(a, b) RETURNS value
+  PROC  Not(a)    RETURNS value   ->depreciated, instead use NOT
+
+And() returns a bit-wise And of the supplied values.  Depreciated in favour of "AND".
+
+Or() returns a bit-wise Or of the supplied values.  Depreciated in favour of "OR".
+
+Xor() returns a bit-wise Exclusive-Or of the supplied values.  Depreciated in favour of "XOR".
+
+Shl() returns "a" arithmetically shifted left by "b" bits.  Unlike SHL it accepts negative values for "b".
+
+Shr() returns "a" arithmetically shifted right by "b" bits.  Unlike SHR it accepts negative values for "b".
+
+Not(a) returns a bit-wise inversion of the supplied value.  Depreciated in favour of "NOT".
+
+@{fg shine}@{u}3.4. Maths@{uu}@{fg text}
+  PROC  Mul(a, b) RETURNS value   ->depreciated, instead use *
+  PROC  Div(a, b) RETURNS value   ->depreciated, instead use /
+  PROC  Min(a, b) RETURNS value
+  PROC  Max(a, b) RETURNS value
+  PROC  Odd(a)    RETURNS boolean:BOOL
+  PROC Even(a)    RETURNS boolean:BOOL
+  PROC  Rnd(max)  RETURNS num
+  PROC RndQ(seed) RETURNS num
+  PROC  Abs(a) RETURNS value
+  PROC Sign(a) RETURNS value:RANGE -1 TO 1
+  PROC Bounds(num, min, max) RETURNS value
+  PROC FastMod(a, b) RETURNS c
+  PROC Mod(a, b) RETURNS c, d
+  PROC Pow(a, b) RETURNS value
+
+Mul() returns "a" multiplied by "b".  Depreciated in favour of "*".
+
+Div() returns "a" divided by "b".  Depreciated in favour of "/".
+
+Min() returns the smaller of the two supplied values.
+
+Max() returns the larger of the two supplied values.
+
+Odd() returns TRUE if the supplied value is odd (not wholly divisible by 2).
+
+Even() returns TRUE if the supplied value is even (wholly divisible by 2).
+
+Rnd() returns a pseudo-random number in the range 0 to "max"-1.  To initialise the internal seed, call Rnd() with a negative number.  The returned value may be limited to the range of LONG.
+
+RndQ() returns a pseudo-random number quicker than Rnd() does, but the value covers the range of a whole VALUE (although it may be limited to the range of LONG for some targets).  The returned value should be used as the value of "seed" in the next call.
+
+Abs() returns the absolute (positive) version of the supplied value.
+
+Sign() returns -1 if the supplied value is negative, +1 if it is positive, and 0 if it is 0.
+
+Bounds() returns the number "num" bounded by the range "min" to "max".  It is equivalent to:
+  IF num < min THEN min ELSE IF num > max THEN max ELSE num
+
+FastMod() divides "a" by "b", returning ONLY the remainder "c".  It is roughly twice as fast as Mod().
+
+Mod() divides "a" by "b", returning the remainder "c" & the division result "d". Mathematically "c" is equivalent to "a modulo b", while "d" is "a / b".
+
+Pow() returns "a" raised to the power "b".  This procedure was not present in AmigaE.
+
+@{fg shine}@{u}3.5. Floating point@{uu}@{fg text}
+  PROC Fsin(a:FLOAT) RETURNS float:FLOAT
+  PROC Fcos(a:FLOAT) RETURNS float:FLOAT
+  PROC Ftan(a:FLOAT) RETURNS float:FLOAT
+  PROC Fasin(a:FLOAT) RETURNS float:FLOAT
+  PROC Facos(a:FLOAT) RETURNS float:FLOAT
+  PROC Fatan(a:FLOAT) RETURNS float:FLOAT
+  PROC Fsinh(a:FLOAT) RETURNS float:FLOAT
+  PROC Fcosh(a:FLOAT) RETURNS float:FLOAT
+  PROC Ftanh(a:FLOAT) RETURNS float:FLOAT
+  PROC Fabs( a:FLOAT)  RETURNS float:FLOAT
+  PROC Ffloor(a:FLOAT) RETURNS float:FLOAT
+  PROC Fceil( a:FLOAT) RETURNS float:FLOAT
+  PROC Fexp(  a:FLOAT) RETURNS float:FLOAT
+  PROC Flog(  a:FLOAT) RETURNS float:FLOAT
+  PROC Flog10(a:FLOAT) RETURNS float:FLOAT
+  PROC Fsqrt( a:FLOAT) RETURNS float:FLOAT
+  PROC Fpow(  a:FLOAT, b:FLOAT) RETURNS float:FLOAT
+  PROC RealVal(string:ARRAY OF CHAR) RETURNS value:FLOAT, read
+
+Fsin(), Fcos() & Ftan() perform floating-point Sine, Cosine & Tangent in radians.
+
+Fasin(), Facos() & Fatan() perform floating-point Arc Sine, Arc Cosine & Arc Tangent in radians.
+
+Fsinh(), Fcosh() & Ftanh() perform floating-point Hyperbolic Sine, Hyperbolic Cosine & Hyperbolic Tangent in radians.
+
+Fabs() performs a floating-point version of Abs()
+
+Ffloor() & Fceil() calculate the lowest & highest whole-number float of the supplied value.
+
+Fexp() calculates e raised to the supplied power.
+
+Flog() calculates the natural log of the supplied value.
+
+Flog10() calculates the log base 10 of the supplied value.
+
+Fsqrt() calculates the square root of the supplied value.
+
+Fpow() performs a floating-point version of Pow().  @{b}Please be warned that the order of the parameters is the opposite of that in AmigaE@{ub}.
+
+RealVal() performs a floating-point version of Val().
+
+@{fg shine}@{u}3.6. Exceptions@{uu}@{fg text}
+  PROC Raise(e:QUAD)   ->depreciated, instead use Throw()
+  PROC Throw(e:QUAD, i=NILA:ARRAY OF CHAR)
+  PROC ReThrow()
+
+Raise() throws exception "e", with exceptionInfo set to NILA.  This is depreciated in favour of Throw().
+
+Throw() throws exception "e", with exceptionInfo set to "i".
+
+ReThrow() throws the last exception again, if the global "exception" is not 0, otherwise it does nothing.  Hardly needed since PortablE automatically does this at the end of every FINALLY section.
+
+@{fg shine}@{u}3.7. Memory blocks@{uu}@{fg text}
+  PROC New( size, noClear=FALSE:BOOL) RETURNS mem:ARRAY
+  PROC NewR(size, noClear=FALSE:BOOL) RETURNS mem:ARRAY
+  PROC Dispose(mem:ARRAY) RETURNS NILA
+
+New() allocates & returns a memory block of "size" bytes.  Normally the memory is cleared (zeroed), but if "noClear" is TRUE then it isn't.  If allocation fails then it returns NILA.  Note that memory is automatically deallocated at the end of the program.
+
+NewR() is the same as New(), except that if allocation fails it raises the "MEM" exception.
+
+Dispose() deallocates the provided memory block, which must have been allocated with New() or NewR().  It allows "mem" to be NILA.  It returns NILA for convenience.
+
+  PROC FastNew(size, noClear=FALSE:BOOL) RETURNS mem:ARRAY
+  PROC FastDispose(mem:ARRAY, size) RETURNS NILA
+  PROC MemCopy(target:ARRAY, source:ARRAY, sizeInBytes, targetOffsetInBytes=0, sourceOffsetInBytes=0) RETURNS target:ARRAY
+
+FastNew() is like NewR(), except that for small allocations ("size" <= 256 bytes) it is much faster, and does not significantly fragment memory.
+
+FastDispose() is the Dispose() equivalent for FastNew(), but it needs to know the "size" of the block being deallocated.  Note that memory is not returned back to the OS, but rather is recycled (i.e. reused by the next FastNew() call).
+
+MemCopy() copies "sizeInBytes" bytes from the "source" memory block into the "target".  "targetOffsetInBytes" & "sourceOffsetInBytes" allow you to specify an offset into the target & source memory respectively (to avoid pointer arithmetic).  It returns the "target" array for convenience.  This procedure was not present in AmigaE, but it provides a portable alternative to AmigaOS's CopyMem().
+
+@{fg shine}@{u}3.8. Arrays@{uu}@{fg text}
+  PROC NewArray(sizeInItems, sizeOfItem:INT) RETURNS mem:PTR
+  PROC DisposeArray(array:ARRAY) RETURNS NILA
+  PROC ArrayCopy(target:PTR, source:ARRAY, sizeInItems, sizeOfItem:INT) RETURNS target:ARRAY
+
+NewArray() allocates & returns an array of "sizeInItems" items & "sizeOfItem" bytes per item.  Although it should return an ARRAY, it currently returns a PTR to force you to use OPT POINTER (since it may not be implementable for Java-like languages).
+
+DisposeArray() deallocates the provided array, which must have been allocated with NewArray().  It returns NILA for convenience.
+
+ArrayCopy() copies "sizeInItems" items of "sizeOfItem" bytes per item from the "source" array into the "target" array.  It returns the "target" array for convenience.  Although "target" should be an ARRAY, it is currently a PTR to force you to use OPT POINTER (since it may not be impementable for Java-like languages).
+
+@{fg shine}@{u}3.9. E-lists@{uu}@{fg text}
+  PROC NewList(maxLen) RETURNS list:LIST
+  PROC DisposeList(list:LIST) RETURNS NILL
+  PROC ListCopy(list: LIST, other:ILIST, len=ALL) RETURNS list:LIST
+  PROC ListAdd( list: LIST, other:ILIST, len=ALL) RETURNS list:LIST
+  PROC ListMax( list: LIST) RETURNS max:VALUE
+  PROC SetList( list: LIST, newLen)
+  PROC ListLen( list:ILIST) RETURNS len:VALUE
+  PROC ListCmp( list:ILIST, other:ILIST, len=ALL) RETURNS match:BOOL
+  PROC ListItem(list:ILIST, index) RETURNS value
+
+NewList() allocates & returns an e-list of "maxLen" items.
+
+DisposeList() deallocates the provided e-list.  It returns NILL for convenience.
+
+ListCopy() replaces the contents of the "list" with that from the "other" list. "len" specifies how many items to copy (from the beginning), with the special ALL constant meaning copy everything.  It returns the "list" for convenience.
+
+ListAdd() is similar to ListCopy(), except that the items are appended to the "list".
+
+ListMax() returns the maximum allowed length of the "list".
+
+SetList() changes the current length of the "list" to "newLen" items.
+
+ListLen() returns the current length of the "list".
+
+ListCmp() compares the "list" against the "other" list, and returns TRUE if they match.  "len" specifies how many items to compare (from the beginning), with the special ALL constant meaning compare everything.
+
+ListItem() returns item "index" from the "list".
+
+@{fg shine}@{u}3.10. E-strings@{uu}@{fg text}
+  PROC NewString(maxLen) RETURNS eString:STRING
+  PROC DisposeString(eString:STRING) RETURNS NILS
+  PROC StrCopy( eString:STRING, string:ARRAY OF CHAR, len=ALL, pos=0) RETURNS eString:STRING
+  PROC StrAdd(  eString:STRING, string:ARRAY OF CHAR, len=ALL, pos=0) RETURNS eString:STRING
+  PROC StrJoin(s1=NILA:ARRAY OF CHAR, ..., s19=NILA:ARRAY OF CHAR) RETURNS newString:STRING
+  PROC EstrLen( eString:STRING) RETURNS len:VALUE
+  PROC StrMax(  eString:STRING) RETURNS max:VALUE
+  PROC RightStr(eString:STRING, eString2:ARRAY OF CHAR, n) RETURNS eString:STRING
+  PROC MidStr(  eString:STRING, string:ARRAY OF CHAR, pos, len=ALL) RETURNS eString:STRING
+  PROC SetStr(  eString:STRING, newLen)
+  PROC StringF( eString:STRING, fmtString:ARRAY OF CHAR, arg1=0, ..., arg8=0) RETURNS eString:STRING, len
+  PROC RealF(   eString:STRING, value:FLOAT, decimalPlaces=8:BYTE) RETURNS eString:STRING
+  PROC ReadStr(fileHandle:PTR, eString:STRING) RETURNS fail:BOOL
+  PROC Link(    complex:STRING, tail:OWNS STRING) RETURNS complex:STRING
+  PROC Next(    complex:STRING) RETURNS tail:STRING
+  PROC Forward( complex:STRING, num) RETURNS tail:STRING
+
+NewString() allocates & returns an e-string of "maxLen" items.
+
+DisposeString() deallocates the provided e-string.  It returns NILS for convenience.
+
+StrCopy() replaces the contents of the "eString" with that from the "string". "len" specifies how many characters to copy (from the beginning), with the special ALL constant meaning copy everything.  It returns the "eString" for convenience.
+
+StrAdd() is similar to StrCopy(), except that the items are appended to the "eString".
+
+StrJoin() returns a new e-string which contains all of the supplied strings appended together.  If any supplied string is NILA, then it will simply be ignored.  This procedure was not present in AmigaE.
+
+EstrLen() returns the current length of the "eString".  This is much faster than StrLen().
+
+StrMax() returns the maximum allowed length of the "eString".
+
+RightStr() fills the "eString" with the last "n" characters of "eString2".  It returns the "eString" for convenience.
+
+MidStr() replaces the contents of the "eString" with the specified range from the "string".  "pos" specifies the start position in "string" (with 0 being the beginning), while "len" specifies how many characters to copy (from the start position), with the special ALL constant meaning copy everything.  It returns the "eString" for convenience.
+
+SetStr() changes the current length of the "eString" to "newLen" characters.
+
+StringF() is similar to Print(), except that output now goes to the "eString" instead of stdout.
+
+RealF() writes the float "value" into the "eString" as an ASCII representation, with "decimalPlaces" digits after the decimal point.  It returns the "eString" for convenience.
+
+ReadStr() reads a string (ending in ASCII 10) from the "fileHandle" into the "eString".  It returns TRUE if an error occured, or an EOF was reached.  The only file handle you are likely to use is "stdin".
+
+Link() puts the "tail" e-string into the "next" field of the "complex" e-string. It returns the "complex" e-string for convenience.  Note that the "complex" e-string now owns the "tail" e-string, and will deallocate it when it is deallocated.
+
+Next() returns the "next" field of the "complex" e-string.  Next(NILS) safely returns NILS.
+
+Forward() is similar to Next(), except that it goes forward "num" links instead of 1.  You may safely call Forward() with a "num" that is too large.
+
+@{fg shine}@{u}3.11. Endian & CHAR value@{uu}@{fg text}
+  PROC EndianSwapINT( in:INT ) RETURNS out:INT
+  PROC EndianSwapLONG(in:LONG) RETURNS out:LONG
+  PROC EndianSwapBIGVALUE(in:BIGVALUE) RETURNS out:BIGVALUE
+  PROC CharToUnsigned(char:CHAR) RETURNS value
+  PROC UnsignedToChar(pos) RETURNS char:CHAR
+
+EndianSwapINT(), EndianSwapLONG() & EndianSwapBIGVALUE() return a value with swapped endianness, when used on a Little Endian processor (like x86), while they do nothing to the value when used on a Big Endian processor (like 68k or PPC).  Thus PortablE has standardised on using Big Endian values, when endianness matters, such as when writing values larger than a BYTE to disk.
+
+CharToUnsigned() & UnsignedToChar() allow you to convert a CHAR to an unsigned value (typically between 0 & 255) & back again.  You need this when comparing a CHAR with an integer value, because CHAR has unknown signedness in PortablE.
+
+@{fg shine}@{u}3.12. Class type@{uu}@{fg text}
+  PROC HaveSameClassTypes(first:CLASSTYPE, second:CLASSTYPE) RETURNS same:BOOL
+
+HaveSameClassTypes() compares the "first" class type against the "second", and returns TRUE if they were the same.  For more information please see the "Run Time Type Information (RTTI)" subchapter of the "Object orientation" chapter in PortablE's main manual.
+
+@{fg shine}@{u}3.13. Peek & poke@{uu}@{fg text}
+  PROC GetBool( ptr:PTR TO BOOL ) RETURNS value:BOOL
+  PROC GetByte( ptr:PTR TO BYTE ) RETURNS value:BYTE
+  PROC GetChar( ptr:PTR TO CHAR ) RETURNS value:CHAR
+  PROC GetInt(  ptr:PTR TO INT  ) RETURNS value:INT
+  PROC GetLong( ptr:PTR TO LONG ) RETURNS value:LONG
+  PROC GetQuad( ptr:PTR TO QUAD ) RETURNS value:QUAD
+  PROC GetFloat(ptr:PTR TO FLOAT) RETURNS value:FLOAT
+  PROC GetPtr(  ptr:PTR TO PTR  ) RETURNS value:PTR
+  PROC GetArray(ptr:PTR TO ARRAY) RETURNS value:ARRAY
+  PROC GetValue(ptr:PTR TO VALUE) RETURNS value:VALUE
+
+These procedures peek the specified "ptr" address, and return a value of the requested type.
+
+  PROC PutBool( ptr:PTR TO BOOL , value:BOOL )
+  PROC PutByte( ptr:PTR TO BYTE , value:BYTE )
+  PROC PutChar( ptr:PTR TO CHAR , value:CHAR )
+  PROC PutInt(  ptr:PTR TO INT  , value:INT  )
+  PROC PutLong( ptr:PTR TO LONG , value:LONG )
+  PROC PutQuad( ptr:PTR TO QUAD , value:QUAD )
+  PROC PutFloat(ptr:PTR TO FLOAT, value:FLOAT)
+  PROC PutPtr(  ptr:PTR TO PTR  , value:PTR  )
+  PROC PutArray(ptr:PTR TO ARRAY, value:ARRAY)
+  PROC PutValue(ptr:PTR TO VALUE, value:VALUE)
+
+These procedures poke the provided "value" into the specified "ptr" address.
+
+@{fg shine}@{u}3.14. Miscellaneous@{uu}@{fg text}
+  PROC CleanUp(returnValue=0)
+  PROC FileLength(path:ARRAY OF CHAR) RETURNS size   ->depreciated
+  PROC KickVersion(version)   ->currently always returns TRUE
+
+CleanUp() exits the program at any point.  It was depreciated in AmigaE, but has been reinstated in PortablE by using the exception system.  It throws a negative exception value (which are reserved for use by E).
+
+FileLength() returns the length of the given file, but it's use is depreciated because (1) it is unnecessary due to the 'std/cPath' module, and (2) the path it takes is not truely portable.
+
+KickVersion() is supposed to check whether the current AmigaOS Kickstart version is >= the supplied "version", but currently it always returns TRUE.  If someone could tell me how to implement this procedure then it would likely be moved to the 'exec' module.
+
+
+@endnode
+
+@node "4_0" "Built-in methods"
+@{fg shine}@{u}4. Built-in methods@{uu}@{fg text}
+All classes have the following methods:
+  PROC InfoClassType() OF class RETURNS typeof:CLASSTYPE
+  PROC IsSameClassTypeAs(type:CLASSTYPE) OF class RETURNS isSame:BOOL
+  PROC IsOfClassType(parent:CLASSTYPE) OF class RETURNS isSubtype:BOOL
+
+For more information please see the "Run Time Type Information (RTTI)" subchapter of the "Object orientation" chapter in PortablE's main manual.
+
+
+@endnode
+
+@node "5_0" "AmigaE procedures that WERE built-in"
+@{fg shine}@{u}5. AmigaE procedures that WERE built-in@{uu}@{fg text}
+Some organisational changes have been made from AmigaE to ensure that PortablE is truely OS independant.
+
+@{fg shine}@{u}5.1. Dos, Exec, Graphics & Intuition procedures@{uu}@{fg text}
+Procedures for Dos, Exec, Graphics & Intuition are no-longer built-in, and must instead be requested using:
+  MODULE 'dos', 'exec', 'graphics', 'intuition'
+
+This happens automatically when the compatibility mode is enabled.
+
+@{fg shine}@{u}5.2. Graphics & Intuition helper procedures@{uu}@{fg text}
+AmigaE's built-in Graphics helper functions (like Plot() & TextF()) are not available, unless the AmigaOS 'graphics' module is used, or the compatibility mode is enabled.
+
+AmigaE's built-in Intuition helper functions (like OpenW() & Gadget()) are not available, unless the AmigaOS 'intuition' module is used, or the compatibility mode is enabled.
+
+At some point it is intended that @{b}portable@{ub} graphics & GUI modules will be provided, but nothing has been started yet, nor is there any definite schedule for when they might be available.  Although portable graphics functions may simply be provided by an SDL module, perhaps with some additional helper functions.
+
+@{fg shine}@{u}5.3. arg & wbmessage global variables@{uu}@{fg text}
+The "arg" variable is not available, unless the AmigaOS 'dos' module is used, or the compatibility mode is enabled.  It would be better to use the ShellArgs() procedure from the 'std/pShell' module.
+
+The "wbmessage" variable is not available, unless the AmigaOS 'wb' module is used, or the compatibility mode is enabled.
+
+@{fg shine}@{u}5.4. Renamed procedures@{uu}@{fg text}
+Please see the "Statements, expressions & functions" subchapter of the "Reversible changes from AmigaE" chapter in the main PortablE manual for a list of procedures that have been renamed.  Although if you look carefully in this documentation you should be able to find them anyway!
+
+Also note that the "exceptioninfo" variable has been renamed "exceptionInfo", unless the compatibility mode is enabled.
+
+
+@endnode
+
+@node "6_0" "MODULE 'std/cPath'"
+@{fg shine}@{u}6. MODULE 'std/cPath'@{uu}@{fg text}
+This module is a large set of procedures & classes that provides completely portable file & directory access.  This documentation is only a stop-gap measure, until something better can be written.
+
+The major classes are cFile, cDir & cPath.  The minor "helper" classes are cExtra & cDirEntryList.  In rare cases you may also want to use the cHostFile & cHostDir classes.  Note that the word "host" is used to mean "underlying target OS".
+
+Note that paths are represented in one particular way, which is the same whatever OS is being used.  Thus manipulation of path strings is portable (and also quite easy).  It is a real shame that Java does not do this...
+
+@{fg shine}@{u}6.1. CLASS cFile OF cPath@{uu}@{fg text}
+A class to handle files portably.  Usage notes:
+* In addition to the class, there are procedures to delete & check the existance of a file.
+
+* The nomenclature is: 'filepath' = 'subpath/filename' (though / is really part of subpath).
+
+* Read access is always shared (i.e. non-exclusive), even when a file is open for writing (if OS allows it).
+
+* Changes made to a file might not be seen by other programs (outside of the class) until the file is closed or a flush is performed.
+
+* Write access to a file is required to change the file @{b}at all@{ub}.  Even for renaming a file!
+
+* The constant "CP_MAXNAMELENGTH" defines the maximum filename length that the underlying OS properly supports (it may allow longer ones, but with undefined results).  This length is not enforced by the class.
+
+* Files have a date/time stamp.
+
+* The time of a file is updated to the present if the contents of a file is changed (by a write() or setSize() method call), but otherwise does not change.
+
+@{fg shine}@{u}6.2. CLASS cDir OF cPath@{uu}@{fg text}
+A class to handle directories portably.  Usage notes:
+* In addition to the class, there are procedures to delete & check the existance of a directory.
+
+* The nomenclature is: 'dirpath' = 'subpath/dirname/' (though / is really part of subpath, and of dirname.  Also subpath is really another dirpath).  Thus a directory name ALWAYS ends with a forward slash.
+
+* Read/Write access to a dir has the same restrictions as for a file.
+
+* The constant "CP_MAXNAMELENGTH" defines the maximum dirname length (ignoring end slash) that the underlying OS properly supports (it may allow longer ones, but with undefined results).  This length is not enforced by the class.
+
+* Directories have no time/date stamp.
+
+@{fg shine}@{u}6.3. CLASS cPath OF cExtra@{uu}@{fg text}
+This is the (abstact) root class of both cFile & cDir, which allows algorithms to perform certain operations on both files & directories - without needing to know whether a file or dir is being manipulated.
+
+Usage notes:
+* In addition to the class, there is a collection of procedures to handle manipulating file/dir path strings.
+
+* Nomenclature is: 'name' = 'filename' or 'dirname/'
+
+* Nomenclature is: 'path' = 'filepath' or 'dirpath/'
+
+* Nomenclature is: 'path' = 'subpath/name' (though / is really part of subpath)
+
+@{fg shine}@{u}6.4. CLASS cExtra@{uu}@{fg text}
+A class to represent all the host OS information that is not exposed by normal methods.  In AmigaOS's case this means file comments & certain protection flags.
+
+You specify which piece of information inside a cExtra you want to read or change using a "specific:QUAD" value.  Which "specific" are supported varies depending on the host OS.  For example "COMM" means comment, and is supported by AmigaOS but not Windows.  While "ATTR" means attribute, and covers all the attributes not supported by get/setAttributes().  "ATTR" is supported by both AmigaOS & Windows, but the meaning of their values depends upon the host OS. Thus cExtra are not completely portable, so care must be taken when using them.
+
+Note that cPath (hence cFile & cDir) inherit this class, so that the "extra" information of files & directories can be directly manipulated.  However, you can also get a copy of this extra information as a stand-alone object.
+
+@{fg shine}@{u}6.5. CLASS cDirEntryList@{uu}@{fg text}
+A class to store a sorted list of file & directory names that a directory may contain.  It can be manipulated by the user, for example combining two lists, and can also generate a "unique name" which is not present in the list.
+
+@{fg shine}@{u}6.6. CLASS cHostFile & cHostDir@{uu}@{fg text}
+These classes behave exactly like the cFile & cDir classes (respectively), except that they are mostly unbuffered (or in the worst case use a write-through cache).  Where-as the cFile & cDir classes always use a write-back cache (where possible).
+
+The only reasons for using these two unbuffered classes are:
+
+* To minimises memory usage (at the expense of speed).
+
+* The caching implementation is somehow undesirable; perhaps you have your own superior domain-specific cache.
+
+* Caching would cause sharing issues (between programs) that periodic flushing would not solve.
+
+
+Note that the simple read/write caching algorithm has been stress-tested, without any bugs being found.
+
+@{fg shine}@{u}6.7. Path notes@{uu}@{fg text}
+* A path uses /forward/ slashes to separate directories, the same as URLs, Unix & AmigaOS do, but contrary to MS-DOS & Windows.
+
+* If a forward slash may be legally present in a filename or dirname of the host OS, it will be converted to a back slash instead @{fg shadow}(this assumes the back slash is the seperator, which was thus converted to a forward slash - so that the back slash would NOT normally be present, and is thus unused/free)@{fg text}.
+
+* The device a path refers to is represented however the host OS does so, but any explicit device reference MUST be at the start of the path & it must end with a colon followed by a forward slash (to ensure it can be consistantly identified).
+
+* If a device reference of the host OS may legally contain more than one colon, then all but the final (terminating) colon will be converted into a non-legal character that will be decided when the class is ported to that OS. The constant "CP_COLONCHAR" will contain the chosen character, or be zero if there is no need for it.
+
+* If the colon may be legally present in a filename or dirname of the host OS, then the filepath or dirpath MUST start with a colon followed by a forward slash (signifying the 'current device') to ensure any colon present cannot be mistaken as the end of a device reference!
+
+
+Here are a some examples of valid paths:
+  'device:/subpath/filename'
+  'device:/subpath/dirname/'
+  'subpath/filename'
+
+@{fg shine}@{u}6.8. A quick start@{uu}@{fg text}
+The minimum code to open a file looks like this:
+
+  PROC example()
+  	DEF file:PTR TO cFile
+  	NEW file.new()
+  	IF file.open('path/name')
+  		/* do stuff here */
+  		file.close()
+  	ENDIF
+  FINALLY
+  	END file
+  ENDPROC
+
+
+Replace "file" with "dir" and "cFile" with "cDir" to do the same for a directory!  But remember that @{i}directory names always end with a forward slash@{ui}.
+
+If you wish to use standard OS paths, then you must use importFilePath() and importDirPath() to get an e-string containing the cPath representation.  And if you wish to get the OS path back from a cPath string, then use exportPath().
+
+After you close a file/dir, you can open another one immediately, using the same object.  This minimises (de)allocation, and is therefore very fast.
+
+If a method returns FALSE for success, then you can use infoFailureReason() to get a string stating the reason for the failure, and infoFailureOrigin() to get a string naming the method the failure originated in.
+
+
+In general you will get pairs of setX() and getX() methods.  If it is possible to read something, but not change it, then it will usually be an infoX() method instead.  But if that method would allocate & return something (be it an e-string or object), then it will be a makeX() method.  The one exception to this is the clone() method, which returns a duplicate object with the same file/dir open.
+
+Note that the available attribute constants are:
+  SET CPA_STRICT, CPA_READ, CPA_WRITE, CPA_DELETE, CPA_HIDE,
+      CPA_UNUSED1, CPA_UNUSED2, CPA_UNUSED3, CPA_UNUSED4
+
+@{fg shine}@{u}6.9. Reading & writing a file@{uu}@{fg text}
+When read()ing from or write()ing to a file, the start position is not changed, since you may not be reading/writing sequentially.  But in case you are, the next sequential position is returned - and can be set before the next read/write.  For example:
+
+  file.setPosition( file.read(buffer, length) )
+
+If you read beyond the end of a file, then the buffer will be filled with "pad bytes", which are 0 unless you have specified otherwise.  Similarly, if you write beyond the end of a file, then any gap between the end of the file & your start position will be filled with pad bytes.
+
+Also note that file positions are BIGVALUEs (which are typically 64-bit), although the host OS may not support values that exceed 32-bit values (such as AmigaOS3).
+
+@{fg shine}@{u}6.10. Date & time@{uu}@{fg text}
+Date & time is measured as the number of seconds since 0:00:00 (midnight) on 1st January 2000.  Dates before that are negative!  Values are BIGVALUEs, which are typically 64-bit, but may be 32-bit for some targets (such as AmigaE).
+
+@{fg shine}@{u}6.11. Exceptions@{uu}@{fg text}
+Here is a list of exceptions that are used:
+
+  exception   exceptionInfo   Reason
+  "FULL"      (description)   Error due to disk being full (no space); file left in previous state.
+  "FILE"      (description)   Error due to a serious filing system failure.
+  "BRK"       (description)   Received a break signal (Ctrl-C) during a lengthy operation.
+  
+  "EMU"       (description)   Error from Method Use (an inappropriate argument or use).
+  "EPU"       (description)   Error from Procedure Use (an inappropriate argument or use).
+  "BUG"       (description)   Error due to a bug being detected.
+  "MEM"       NILA            Error due to a lack of memory.
+
+@{fg shine}@{u}6.12. Assignments on Windows@{uu}@{fg text}
+As Windows does not support assignments (beyond single drive letters), there is support for 'faking' them, which only works for programs compiled by PortablE. They are stored in the text file "C:\\PortablE\\Assignments.txt", or alternatively in "C:\\Assignments.txt", and these can be added to (or over-ridden) by an "Assignments.txt" file in the current directory (not program directory!) when a program starts.
+
+As standard PortablE requires the "PEmodules:" assignment, which would look something like this in the text file:
+
+"PEmodules:  C:\\PortablE\\PEmodules"
+
+Each assignment is on a single line, with the assignment name ending in a colon, followed by some tabs or spaces, and then the target path (which must be absolute not relative).  The target path must NOT have any spaces after it, as they will be treated as part of the path.  Note that the target path can use previously declared assignments, as well as network paths.  Nonsensical lines will simply be ignored.
+
+Here's an example Assignments.txt file:
+
+  Code:      C:\\Users\\Chris\\Documents\\Code
+  PEmodules: Code:\\PEmodules
+
+@{fg shine}@{u}6.13. All procedures@{uu}@{fg text}
+  PROC IsFile(path:ARRAY OF CHAR) RETURNS isFile:BOOL
+  PROC IsDir( path:ARRAY OF CHAR) RETURNS  isDir:BOOL
+  PROC FastIsFile(path:STRING) RETURNS isFile:BOOL
+  PROC FastIsDir( path:STRING) RETURNS  isDir:BOOL
+  PROC InvalidFilePath(filePath:ARRAY OF CHAR) RETURNS invalid:BOOL
+  PROC InvalidFileName(fileName:ARRAY OF CHAR) RETURNS invalid:BOOL
+  PROC InvalidDirPath(  dirPath:ARRAY OF CHAR) RETURNS invalid:BOOL
+  PROC InvalidDirName(  dirName:ARRAY OF CHAR) RETURNS invalid:BOOL
+
+IsFile() & IsDir() check whether the specified path is for a file or dir, by checking whether it ends in a slash or not.
+
+FastIsFile() & FastIsDir() are faster versions of IsFile() & IsDir(), but they require that the specified path is an e-string.
+
+InvalidFilePath(), InvalidFileName(), InvalidDirPath() & InvalidDirName() check whether the specified path/name conforms to basic validity rules, such as ending with a slash or not.
+
+  PROC FindName(      path:ARRAY OF CHAR) RETURNS       name:ARRAY OF CHAR, nameLength
+  PROC ExtractName(   path:ARRAY OF CHAR) RETURNS       name:OWNS STRING
+  PROC ExtractDevice( path:ARRAY OF CHAR) RETURNS devicePath:OWNS STRING
+  PROC ExtractSubPath(path:ARRAY OF CHAR) RETURNS    subPath:OWNS STRING
+
+FindName() finds the name in a (file or directory) path, and returns a "name" array that points to it.  It also returns the name length as "nameLength".
+
+ExtractName() returns an e-string containing a copy of the name in a path.
+
+ExtractDevice() returns an e-string containing a copy of the device in a path (which will end in a ":/"), or an empty e-string if there is no device.
+
+ExtractSubPath() returns an e-string containing a copy of everything except the name in a path.
+
+  PROC CurrentTime() RETURNS time:BIGVALUE
+  PROC CurrentDirPath() RETURNS dirPath:OWNS STRING
+  PROC Exists(path:ARRAY OF CHAR, fileOrDir=FALSE:BOOL) RETURNS exists:BOOL
+  PROC Delete(      path:ARRAY OF CHAR, force=FALSE:BOOL, fileOrDir=FALSE:BOOL) RETURNS success:BOOL
+  PROC DeleteDir(dirPath:ARRAY OF CHAR, force=FALSE:BOOL) RETURNS success:BOOL
+  PROC ImportDirPath(  hostDirPath:ARRAY OF CHAR) RETURNS  dirPath:OWNS STRING
+  PROC ImportFilePath(hostFilePath:ARRAY OF CHAR) RETURNS filePath:OWNS STRING
+  PROC ExportPath(path:ARRAY OF CHAR) RETURNS hostPath:OWNS STRING
+  PROC ExpandPath(path:ARRAY OF CHAR) RETURNS expandedPath:OWNS STRING
+  PROC MakeUniquePath(file1dir2, path:ARRAY OF CHAR, base=NILA:ARRAY OF CHAR) RETURNS path:OWNS STRING
+  PROC CreateDirs(path:ARRAY OF CHAR, ignoreName=FALSE:BOOL) RETURNS success:BOOL
+  PROC RecurseDir(dirPath:ARRAY OF CHAR, funcFile:PTR TO funcRecurseFile, funcDir=NIL:PTR TO funcRecurseDir, funcDirFailure=NIL:PTR TO funcRecurseDirFailure)
+
+CurrentTime() returns the current date & time.
+
+CurrentDirPath() returns the program's current directory as an e-string.
+
+Exists() returns whether the specified file/dir exists.  If "fileOrDir" is TRUE then it will ignore whether the specified path is for a file or dir (since many filingsystems disallow files with the same names as directories).
+
+Delete() attempts to delete the specified file/dir, returning whether it succeeded or not.  It will fail if the directory is not empty.  If "force" is TRUE then it will unprotect the file/dir before attempting to delete it.  If "fileOrDir" is TRUE then it will ignore whether the specified path is for a file or dir (since many filingsystems disallow files with the same names as directories).
+
+DeleteDir() attempts to delete the specified dir, and everything it contains, including all sub-directories, returning whether it completely succeeded or not. If "force" is TRUE then it will unprotect any dirs before attempting to delete them.
+
+ImportFilePath() & ImportDirPath() converts a host OS file/directory path into the portable format, returning an e-string.
+
+ExportPath() converts a portable path into the host OS file/directory format, returning an e-string.
+
+ExpandPath() takes a portable path and makes it as full & unamiguous as possible.  Thus it replaces any aliases or links or assignments with the actual physical path, and ensures that the path is not relative to the current directory.  It returns an e-string.
+
+MakeUniquePath() creates an e-string path that does not yet exist.  For "file1dir2", supply 1 for a file path, or 2 for a dir path.  If "base" is not specified then it will default to 'TMP'.  The name of the created path will begin with "base".
+
+CreateDirs() ensures that all the dirs of a given path exist, creating them if necessary, and returning whether it succeeded or not.  If "ignoreName" is TRUE then the final file/dir at the end of the path is ignored.
+
+RecurseDir() recursively scans the "dirPath" directory (and sub-directories), calling the supplied "funcFile" function on every file it finds.  If the optional "funcDir" function is supplied, then it calls that on every sub-directory it finds, and only scans that directory if the function returns TRUE.  If the optional "funcDirFailure" function is supplied, then it calls that when opening a directory for scanning fails, and continues with further scans if the function returns TRUE.  All three functions are passed the path as a STRING, with funcDirFailure also being passed two strings explaining the failure's origin & reason.  Note that directory scanning is performed breadth-first & alphanumerically.  Thus skeleton functions look like this:
+
+  FUNC yourFuncFile(filePath:STRING) OF funcRecurseFile
+  ENDFUNC
+  
+  FUNC yourFuncDir(dirPath:STRING) OF funcRecurseDir RETURNS scanDir:BOOL
+     scanDir := TRUE
+  ENDFUNC
+  
+  FUNC yourFuncDirFailure(dirPath:STRING, failureOrigin=NILA:ARRAY OF CHAR, failureReason=NILA:ARRAY OF CHAR) OF funcRecurseDirFailure RETURNS continueScan:BOOL
+     continueScan := TRUE
+  ENDFUNC
+
+And RecurseDir() would use them like this:
+
+  RecurseDir('your dir', yourFuncFile, yourFuncDir, yourFuncDirFailure)
+
+
+But if you are feeling particularly clever, then you can combine the two directory functions into one, whose skeleton looks like this:
+
+  FUNC yourFuncDir2(dirPath:STRING, failureOrigin=NILA:ARRAY OF CHAR, failureReason=NILA:ARRAY OF CHAR) OF funcRecurseDirFailure RETURNS doScan:BOOL
+     IF failureOrigin
+        doScan := TRUE      ->equivalent to continueScan := TRUE
+     ELSE
+        doScan := TRUE      ->equivalent to scanDir := TRUE
+     ENDIF
+  ENDFUNC
+
+And you would use it like this:
+
+  RecurseDir('your dir', yourFuncFile, yourFuncDir2, yourFuncDir2)
+
+
+Alternatively, another clever thing you can do is combine the file & directory functions into one, whose sheleton looks like this:
+
+FUNC yourFuncFileDir(path:STRING) OF funcRecurseDir RETURNS scanDir:BOOL
+	IF FastIsFile(path)
+		->do file stuff
+	ELSE
+		->do dir stuff
+		scanDir := TRUE
+	ENDIF
+ENDFUNC
+
+And you would use it like this:
+
+  RecurseDir('your dir', yourFuncFileDir, yourFuncFileDir, yourFuncDirFailure)
+
+You could even combine this function with the "funcDirFailure" directory function, in a similar fashion to before, which is left as an exercise for the reader.
+
+@{fg shine}@{u}6.14. All methods@{uu}@{fg text}
+  /* Methods of cExtra */
+  METHOD cExtra.setExtra(extra:PTR TO cExtra) RETURNS success:BOOL
+  METHOD cExtra.getExtra()                    RETURNS extra:OWNS PTR TO cExtra
+  METHOD cExtra.changeExtra(specific:QUAD, value) RETURNS success:BOOL, unknown:BOOL
+  METHOD cExtra.queryExtra( specific:QUAD)        RETURNS value, unknown:BOOL
+
+(Note that "METHOD class.method()" is not legal syntax for PortablE, although that might change!)
+
+setExtra() makes the object have the same information as that stored by "extra". Returns FALSE if it could not set all of the information.
+
+getExtra() returns a new cExtra object, which contains a copy of all the current object's cExtra information.
+
+changeExtra() changes a particular piece of information (specified by "specific") in the object to the supplied value.  Returns whether it succeeded or not, and if it failed then whether that failure was due to "specific" being unknown.
+
+queryExtra() returns a particular piece of information (specified by "specific") in "value".  This will be 0 when "specific" is unknown, but for cases where this is a valid "value" you need to check "unknown".
+
+  /* Methods of cPath, which inherits cExtra */
+  METHOD cPath.open(path:ARRAY OF CHAR, readOnly=FALSE:BOOL, forceOpen=FALSE:BOOL) RETURNS success:BOOL
+  METHOD cPath.close()
+  METHOD cPath.flush()
+  METHOD cPath.clone(writeNotRead=FALSE:BOOL) RETURNS clone:OWNS PTR TO cPath
+  METHOD cPath.infoFailureReason() RETURNS reason:ARRAY OF CHAR
+  METHOD cPath.infoFailureOrigin() RETURNS origin:ARRAY OF CHAR
+  METHOD cPath.infoReadOnly() RETURNS readOnly:BOOL
+  METHOD cPath.infoIsOpen() RETURNS isOpen:BOOL
+  METHOD cPath.setAttributes(attr, mask=-1) RETURNS success:BOOL
+  METHOD cPath.getAttributes()              RETURNS attr
+  METHOD cPath.getAttributesSupported()     RETURNS mask
+  METHOD cPath.setSubPath(path:ARRAY OF CHAR) RETURNS success:BOOL
+  METHOD cPath.getSubPath()                   RETURNS path:OWNS STRING
+  METHOD cPath.setName(name:ARRAY OF CHAR)    RETURNS success:BOOL
+  METHOD cPath.getName()                      RETURNS name:ARRAY OF CHAR
+  METHOD cPath.makePath(expandPath=FALSE:BOOL) RETURNS path:OWNS STRING
+  ->plus methods inherited from cExtra:
+  ->METHOD cPath.setExtra(extra:PTR TO cExtra) RETURNS success:BOOL
+  ->METHOD cPath.getExtra()                    RETURNS extra:OWNS PTR TO cExtra
+  ->METHOD cPath.changeExtra(specific:QUAD, value) RETURNS success:BOOL, unknown:BOOL
+  ->METHOD cPath.queryExtra( specific:QUAD)        RETURNS value, unknown:BOOL
+
+open() must be used before any other method.  And if you wish to use any setX() methods, then "readOnly" must be FALSE.  If "forceOpen" is TRUE then it will clear any read or write protection, so that the file can be opened.  Be sure to check that TRUE is returned for "success", and if it isn't then you can use infoFailureReason()/etc just like for any other method that fails.
+
+close() thus must be used when you are finished with the file/dir, and before you use open() again.  In read-write mode, all cached changes are comitted to disk.
+
+flush() forces the cache to be emptied.  In read-only mode the cache will be refreshed with current information, while in read-write mode all cached changes will be comitted to disk.
+
+clone() creates another object with the same file/dir open, but in read-only mode unless "writeNotRead" is TRUE.  If it fails to open the file/dir, then it will return NIL.
+
+infoFailureReason() & infoFailureOrigin() return strings that describe the reason for the last failure & the method in which the failure originated.  No return codes are provided, because these would be inherantly non-portable.
+
+infoReadOnly() returns the "readOnly" value that open() was supplied with.
+
+infoIsOpen() returns whether anything is currently open.
+
+setAttribute() changes the attributes to "attr", but only affects the attributes specified by "mask".  Note that "CPA_STRICT" affects how the other attributes are interpreted, for example:  The FAT filing system combines the meaning of "CPA_WRITE" & "CPA_DELETE" into one flag.  Without "CPA_STRICT" you must clear both "CPA_WRITE" & "CPA_DELETE" before either of them is cleared.  But with "CPA_STRICT" you only need to clear either of "CPA_WRITE" or "CPA_DELETE" before both are cleared.
+
+getAttribute() returns the current attributes, such as "CPA_READ".  Note that "CPA_STRICT" has no meaning here.
+
+getAttributesSupported() returns a mask indicating which attributes are supported by the current host OS.
+
+setSubPath() & getSubPath() allow you to change & retrieve the subpath of the current file/dir.  Changing the subpath is equivalent to moving it.
+
+setName() & getName() allow you to change & retrieve the name of the current file/dir.  Changing the name is equivalent to renaming it.
+
+makePath() returns the complete path (subpath & name) of the current file/dir as an e-string.  If "expandPath" is TRUE then the returned path is already expanded.
+
+  /* Methods of cFile, which inherits cPath */
+  METHOD cFile.new(padByte=0:BYTE)
+  METHOD cFile.open(filePath:ARRAY OF CHAR, readOnly=FALSE:BOOL, forceOpen=FALSE:BOOL, atPastEndNotStart=FALSE:BOOL) RETURNS success:BOOL
+  METHOD cFile.write(buffer:ARRAY, lengthInBytes, offsetInBytes=0, noAutoExtend=FALSE:BOOL) RETURNS nextPos:BIGVALUE, numOfLostBytes
+  METHOD cFile.read( buffer:ARRAY, lengthInBytes, offsetInBytes=0, toByte=-1:INT)           RETURNS nextPos:BIGVALUE, numOfPadBytes
+  METHOD cFile.infoPadByte() RETURNS padByte:BYTE
+  METHOD cFile.setPosition(pos:BIGVALUE)
+  METHOD cFile.getPosition(fromEnd=FALSE:BOOL) RETURNS pos:BIGVALUE
+  METHOD cFile.setSize(sizeInBytes:BIGVALUE)
+  METHOD cFile.getSize() RETURNS sizeInBytes:BIGVALUE
+  METHOD cFile.setTime(time:BIGVALUE) RETURNS success:BOOL
+  METHOD cFile.getTime()              RETURNS time:BIGVALUE
+  METHOD cFile.makeCopy(path:ARRAY OF CHAR) RETURNS copy:OWNS PTR TO cFile
+  ->plus methods inherited from cPath
+
+new() is the object's constructor.  You can specify a pad byte other than "0" here.
+
+open() has the additional "atPastEndNotStart" parameter.  Normally the read/write position is at the start of a file, but if "atPastEndNotStart" is TRUE then it will be just past the end of the file.
+
+write() writes "lengthInBytes" bytes from the "buffer" to the current read/write position.  "offsetInBytes" is an offset into the buffer (to avoid pointer arithmetic).  Normally writing past the end of a file will cause it's size to grow as needed, but if "noAutoExtend" is TRUE then the file will NOT grow any larger (in which case "numOfLostBytes" will indicate how many bytes were not written).  Note that the current position is never changed, but it returns "nextPos" to indicate the next sequential position.
+
+read() reads "lengthInBytes" bytes into the "buffer" from the current read/write position.  "offsetInBytes" is an offset into the buffer (to avoid pointer arithmetic).  Pad bytes will appear if you read after the end of the file.  If "toByte" is specified then it will not read past the occurance of the first "toByte" byte, with the remainder of the buffer being filled with pad bytes.
+
+infoPadByte() returns the "padByte" value that new() was supplied with.
+
+setPosition() changes the current read/write position.  You may go beyond the end of the file without changing the file's size.  A negative pos indicates position from the end of the file (-1=after last byte, -2=last byte, etc).  Note that an error will be raised if you attempt to go before the beginning of the file.
+
+getPosition() retrieves the current read/write postion.  If "fromEnd" is TRUE then it returns a negative position as measured from the end of the file (see setPosition()).
+
+setSize() & getSize() allow you to change & retrieve the file's current size in bytes.
+
+setTime() & getTime() allow you to change & retrieve the file's current time.
+
+makeCopy() creates a precise copy of a file, including cExtra information, returning a file opened in write mode.  It will not overwrite an existing file. It will return NIL in the case of an error.
+
+  /* Methods of cDir, which inherits cPath */
+  METHOD cDir.new()
+  METHOD cDir.openParent(forceOpen=FALSE:BOOL) RETURNS success:BOOL
+  METHOD cDir.openChild(relativePath:ARRAY OF CHAR, forceOpen=FALSE:BOOL) RETURNS success:BOOL
+  METHOD cDir.makeEntryList() RETURNS list:OWNS PTR TO cDirEntryList
+  ->plus methods inherited from cPath
+
+new() is the object's constructor.
+
+openParent() closes the current dir & opens the parent dir.  If it fails then it will return FALSE for "success" & leave the original dir open. "forceOpen" has the same meaning as it does for the open() method.
+
+openChild() closes the current dir & opens the specified sub-dir, which must be a dirpath relative to the current dir.  If it fails then it will return FALSE for "success" & leave the original dir open.  "forceOpen" has the same meaning as it does for the open() method.
+
+makeEntryList() returns a cDirEntryList object containing the result of a scan of the current directory.
+
+  /* Methods of cDirEntryList */
+  METHOD cDirEntryList.clone() RETURNS clone:OWNS PTR TO cDirEntryList
+  METHOD cDirEntryList.gotoFirst(any0file1dir2=0) RETURNS exists:BOOL
+  METHOD cDirEntryList.gotoNext( any0file1dir2=0) RETURNS exists:BOOL
+  METHOD cDirEntryList.infoName() RETURNS path:ARRAY OF CHAR
+  METHOD cDirEntryList.findName(name:ARRAY OF CHAR, fileOrDir=FALSE:BOOL) RETURNS success:BOOL
+  METHOD cDirEntryList.remove()
+  METHOD cDirEntryList.add(name:ARRAY OF CHAR) RETURNS success:BOOL
+  METHOD cDirEntryList.addString(name:OWNS STRING) RETURNS success:BOOL
+  METHOD cDirEntryList.addList(list:PTR TO cDirEntryList) RETURNS numOfSameEntries
+  METHOD cDirEntryList.makeUniqueName(file1dir2, base=NILA:ARRAY OF CHAR) RETURNS name:OWNS STRING
+
+clone() allows you to create an exact copy of the current object.
+
+gotoFirst() changes the current position in the list to the first item.  If "any0file1dir2" is 1 then it goes to the first file in the list, while if it is 2 then it goes to the first directory in the list.  Returns whether the requested item exists, with FALSE implying that the list is empty.
+
+gotoNext() changes the current position in the list to the next item.  If "any0file1dir2" is 1 then it goes to the next file in the list, while if it is 2 then it goes to the next directory in the list.  Returns whether the requested item exists, with FALSE implying that the end of the list has been reached.
+
+infoName() returns the name of the current item.
+
+findName() searches from the start of the list for the specified name, returning whether it succeeded in finding a match.  If "fileOrDir" is TRUE then it will ignore whether the specified name is for a file or dir.  If TRUE is returned for "success" then the current position is the matched item.
+
+remove() destroys the current item, moving to the next one.
+
+add() creates an item with the given name, and add's it to the list such that it stays sorted.  Returns FALSE if there was already an item with that name, since duplicates are not allowed.
+
+addString() works like add(), but it uses the provided e-string for speed.  The list will now handle deallocation of the e-string, so you must NOT deallocate it yourself.  If it returns FALSE, then the e-string will be deallocated immediately.
+
+addList() creates copies of all items in the provided list, and adds them to the current list.  It returns the number of duplicates that were not added.
+
+makeUniqueName() creates an e-string name that does not yet exist in the list. For "file1dir2", supply 1 for a file path, or 2 for a dir path.  If "base" is not specified then it will default to 'TMP'.  The created name will begin with "base".
+
+@endnode
+
+@node "7_0" "MODULE 'std/pCallback'"
+@{fg shine}@{u}7. MODULE 'std/pCallback'@{uu}@{fg text}
+This module allows you to call function pointers that are obtained using CALLBACK.  It should be considered a hack, which will not be available for target languages like Java, and should be avoided except when porting existing AmigaE code.
+
+  PROC call0empty(func:PTR)
+  PROC call0     (func:PTR) RETURNS value
+  PROC call0many (func:PTR) RETURNS value, ret2, ret3, ret4, ret5
+  
+  PROC call1empty(func:PTR, p1)
+  PROC call1     (func:PTR, p1) RETURNS value
+  PROC call1many (func:PTR, p1) RETURNS value, ret2, ret3, ret4, ret5
+  
+  PROC call2empty(func:PTR, p1, p2)
+  PROC call2     (func:PTR, p1, p2) RETURNS value
+  PROC call2many (func:PTR, p1, p2) RETURNS value, ret2, ret3, ret4, ret5
+  
+  PROC call3empty(func:PTR, p1, p2, p3)
+  PROC call3     (func:PTR, p1, p2, p3) RETURNS value
+  PROC call3many (func:PTR, p1, p2, p3) RETURNS value, ret2, ret3, ret4, ret5
+  
+  PROC call4empty(func:PTR, p1, p2, p3, p4)
+  PROC call4     (func:PTR, p1, p2, p3, p4) RETURNS value
+  PROC call4many (func:PTR, p1, p2, p3, p4) RETURNS value, ret2, ret3, ret4, ret5
+  
+  PROC call5empty(func:PTR, p1, p2, p3, p4, p5)
+  PROC call5     (func:PTR, p1, p2, p3, p4, p5) RETURNS value
+  PROC call5many (func:PTR, p1, p2, p3, p4, p5) RETURNS value, ret2, ret3, ret4, ret5
+  
+  PROC call6empty(func:PTR, p1, p2, p3, p4, p5, p6)
+  PROC call6     (func:PTR, p1, p2, p3, p4, p5, p6) RETURNS value
+  PROC call6many (func:PTR, p1, p2, p3, p4, p5, p6) RETURNS value, ret2, ret3, ret4, ret5
+
+Hopefully it's use is fairly self-explanatory:
+* Use callNempty() to call a procedure with no return values & N parameters.
+* Use callN() to call a procedure with one return value & N parameters.
+* Use callNmany() to call a procedure with many return values & N parameters.
+
+
+@endnode
+
+@node "8_0" "MODULE 'std/pShell'"
+@{fg shine}@{u}8. MODULE 'std/pShell'@{uu}@{fg text}
+This module provides basic functionality that is usually needed for Shell programs.
+
+  PROC ExecuteCommand(command:ARRAY OF CHAR) RETURNS executed:BOOL
+  PROC ShellArgs() RETURNS shellArgs:ARRAY OF CHAR
+  PROC CtrlC() RETURNS pressed:BOOL
+
+ExecuteCommand() takes a Shell command, and executes it.  It returns TRUE if the command could be found & was executed, but this does @{b}not@{ub} indicate whether the command was successful or not.  Currently there is no portable way to determine the return value of a command.
+
+While ExecuteCommand() may be portable (i.e. OS independant), the Shell command provided to it is not.  Therefore you will need to check the pe_TargetOS variable with StrCmp() to decide what command should be executed.
+
+ShellArgs() returns a string containing the parameters passed to your Shell program.  This string may be empty if it was not executed as a Shell command. Beware that the spacing between words may not be exactly preserved, so for example several spaces may become just one.
+
+CtrlC() allows your program to determine whether the user has pressed Ctrl-C or not since the last CtrlC() call.
+
+  PROC HighlightOnString()  RETURNS  on:ARRAY OF CHAR
+  PROC HighlightOffString() RETURNS off:ARRAY OF CHAR
+
+HighlightOnString() returns a string that can be used to start highlighting (or at least mark) a section of Print()ed text.
+
+HighlightOffString() returns a string that can be used to stop highlighting (or at least mark) a section of Print()ed text.
+
+
+@endnode
+
+@node "9_0" "MODULE 'std/pShellParameters'"
+@{fg shine}@{u}9. MODULE 'std/pShellParameters'@{uu}@{fg text}
+This module provides AmigaOS-like Shell parameter parsing, but is completely OS independant, and is far less error prone than ReadArgs().
+
+  PROC ParseParams(template:ARRAY OF CHAR) RETURNS success:BOOL
+  PROC GetParam(index) RETURNS arg:ARRAY OF CHAR
+  PROC NumberOfParams() RETURNS numberOfParams
+
+ParseParams() uses the supplied "template" to parse the parameters provided to your Shell program.  It returns TRUE when the parameters were parsed without error.  It returns FALSE when parameters did not match the template, for which an error will have already been reported to the user, so your program should just quit silently.
+
+GetParam() allows you to retrieve one of the parameters supplied to your program.  The value of "index" specifies which parameter you want, with the first parameter being 0.  The retrieved parameter is always returned as a string, even if the parameter only accepts numbers.  If no such parameter was supplied, then it returns NILA.
+
+NumberOfParams() returns the number of parameters in the template.  It can be used to help emulate ReadArgs() if you wish.
+
+@{fg shine}@{u}9.1. Template guide@{uu}@{fg text}
+Templates are of the form:
+  'Parameter1, Parameter2/X, Parameter3=P3/Y'
+
+where P3 is an alternative name for Parameter3, and X & Y are flags.  Multiple flags may be used, but each one must have a forward slash before it.
+
+The template flags supported are:
+  /A = a required parameter
+  /K = the keyword is required
+  /S = the parameter is a switch
+  /N = the parameter is a number
+  /F = the parameter takes the rest of the line
+
+The user's supplied parameters are parsed according to the template. If the user ends their parameters with a question mark, then the template is shown, and the user can enter additional parameters.
+
+Read about AmigaDOS argument passing, which uses ReadArgs(), for a better idea how to use templates (which AmigaOS calls "keys").
+
+
+@endnode
+
+@node "10_0" "MODULE 'std/pStack'"
+@{fg shine}@{u}10. MODULE 'std/pStack'@{uu}@{fg text}
+This module allows you to check the stack at run-time.  These procedures are not currently supported by the Windows (POSIX) target, but it isn't needed in those cases anyway.
+
+  PROC FreeStack() RETURNS bytes
+  PROC StackSize() RETURNS bytes
+
+FreeStack() returns the approximate number of bytes free in the stack.
+
+StackSize() returns the total number of bytes allocated to the stack.
+
+
+@endnode
+
+@node "11_0" "MODULE 'std-alpha/functions'"
+@{fg shine}@{u}11. MODULE 'std-alpha/functions'@{uu}@{fg text}
+This module provides standard functions that your functions can inherit.  The aim is to allow functions written by one person to be used by algorithms written by another person.
+
+For example, LIST-based implementations of Fmap() & Freduce() are provided, and they will work with any functions that inherit the appropriate standard functions.
+
+  FUNC funcParam0empty()
+  FUNC funcParam0     () OF funcParam0empty RETURNS value
+
+  FUNC funcParam1empty(p1)
+  FUNC funcParam1     (p1) OF funcParam1empty RETURNS value
+
+  FUNC funcParam2empty(p1, p2)
+  FUNC funcParam2     (p1, p2) OF funcParam2empty RETURNS value
+
+  FUNC funcParam3empty(p1, p2, p3)
+  FUNC funcParam3     (p1, p2, p3) OF funcParam3empty RETURNS value
+
+  FUNC funcParam4empty(p1, p2, p3, p4)
+  FUNC funcParam4     (p1, p2, p3, p4) OF funcParam4empty RETURNS value
+
+  FUNC funcParam5empty(p1, p2, p3, p4, p5)
+  FUNC funcParam5     (p1, p2, p3, p4, p5) OF funcParam5empty RETURNS value
+
+  FUNC funcParam6empty(p1, p2, p3, p4, p5, p6)
+  FUNC funcParam6     (p1, p2, p3, p4, p5, p6) OF funcParam6empty RETURNS value
+
+  FUNC funcParam7empty(p1, p2, p3, p4, p5, p6, p7)
+  FUNC funcParam7     (p1, p2, p3, p4, p5, p6, p7) OF funcParam7empty RETURNS value
+
+  FUNC funcParam8empty(p1, p2, p3, p4, p5, p6, p7, p8)
+  FUNC funcParam8     (p1, p2, p3, p4, p5, p6, p7, p8) OF funcParam8empty RETURNS value
+
+  PROC Fmap(function:PTR TO funcParam1, list:LIST)
+  PROC Freduce(function:PTR TO funcParam2, list:ILIST, init)
+
+For more information please see the "Functional programming" chapter of the main PortablE manual.
+
+
+@{b}Be warned@{ub} that this module is still considered an "alpha" version, and therefore may change significantly (or may have major bugs).
+
+
+@endnode
+
+@node "12_0" "MODULE 'std-alpha/pSemaphores'"
+@{fg shine}@{u}12. MODULE 'std-alpha/pSemaphores'@{uu}@{fg text}
+This module provides portable semaphores.  These procedures are not currently supported by the Windows (POSIX) target, due to MinGW not supporting POSIX semaphores.
+
+  PROC NewSemaphore() RETURNS sem:SEMAPHORE
+  PROC DisposeSemaphore(sem:SEMAPHORE) RETURNS nil:SEMAPHORE
+  PROC SemLock(sem:SEMAPHORE)
+  PROC SemUnlock(sem:SEMAPHORE)
+  PROC SemTryLock(sem:SEMAPHORE) RETURNS success:BOOL
+
+NewSemaphore() allocates an e-semaphore.
+
+DisposeSemaphore() deallocates the provided e-semaphore.  It returns NIL for convenience.
+
+SemLock() attempts to obtain a lock on the provided "sem" e-semaphore, and blocks your program until it obtains it.
+
+SemUnlock() unlocks the provided "sem" e-semaphore.
+
+SemTryLock() is similar to SemLock(), except that it returns FALSE if it can't immediately obtain a lock (instead of blocking).
+
+
+@{b}WARNING:@{ub}  These functions literally do nothing, unless your program has OPT MULTITHREADED at the top.  This allows you to write modules that support multi-threading, without needing to suffer semaphore overhead in single-threaded programs.
+
+@{b}Be warned@{ub} that this module is still considered an "alpha" version, and therefore may change significantly (or may have major bugs). 
+@endnode

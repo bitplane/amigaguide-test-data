@@ -1,0 +1,1185 @@
+@DATABASE "Default"
+@REM $VER: RDBrecov.guide 1.8 (05.10.02)
+@NODE "main" "RDBrecov Guide"
+@TOC "main"
+
+Short:    Search lost PFS/SFS partitions on a harddisk
+Uploader: thomas-rapp@web.de (Thomas Rapp)
+Author:   thomas-rapp@web.de (Thomas Rapp)
+Type:     disk/salv
+Kurz:     PFS/SFS Partitionen auf einer Festplatte suchen
+Version:  1.8
+
+     Deutsch                                          English
+
+    @{" Einleitung               " LINK "d_intro"}                      @{" Introduction             " LINK "e_intro"}
+    @{" Installation             " LINK "d_install"}                      @{" Installation             " LINK "e_install"}
+    @{" Benutzung                " LINK "d_usage"}                      @{" Usage                    " LINK "e_usage"}
+    @{" Hinweis zu FFS           " LINK "d_ffshint"}                      @{" Hint for FFS Users       " LINK "e_ffshint"}
+    @{" Mountlist erstellen      " LINK "d_mountlist"}                      @{" Create a Mountlist       " LINK "e_mountlist"}
+    @{" Mountdatei erstellen     " LINK "d_mountfile"}                      @{" Create a Mountfile       " LINK "e_mountfile"}
+    @{" Parameter                " LINK "d_parms"}                      @{" Parameters               " LINK "e_parms"}
+    @{" Fehlermeldungen          " LINK "d_messages"}                      @{" Messages                 " LINK "e_messages"}
+    @{" Einschränkungen / Fehler " LINK "d_bugs"}                      @{" Restrictions / Bugs      " LINK "e_bugs"}
+    @{" Geschichte               " LINK "d_history"}                      @{" History                  " LINK "e_history"}
+
+
+WARNUNG: Dieses   Programm   wurde   nur   auf   WARNING: This program was only tested on
+         meinem     Rechner     und     meinen            my  machine with my  harddisks.
+         Festplatten   getestet.   Es  besteht            There is no  guarantee  that it
+         keine  Garantie,  dass  es  auch  auf            runs  on   others.  I  am   not
+         anderen  funktioniert.  Ich übernehme            responsible  for   any  damage.
+         keine Verantwortung  für irgendwelche            Use  it   on  your   own  risk.
+         Schäden. Benutzung auf eigene Gefahr.
+
+@ENDNODE
+@NODE "e_intro" "RDBrecov Guide english"
+@TOC "main"
+
+Introduction
+============
+
+Use RDBrecov if you lost the RDB (partitioning information) of your
+harddisk.
+
+RDBrecov searches an entire harddisk for partitions. It can handle PFS2,
+PFS3, AFS and SFS partitions.
+
+Since V0.6 it also finds FFS partitions. As FFS needs the partition size
+for calculating the rootblock position, first all possible FFS bootblocks
+are stored in a table and in a second pass the rootblock positions are
+calculated and checked. FFS handling can be switched off by an option.
+
+RDBrecov lists the partitions found into the Shell window and optionaly
+into a log file. With this information you can use HDtoolbox (or another
+partitioning tool) to reconstruct your partitions.
+
+Harddisks larger than 4GB can be accessed, if the device driver is
+either NSD or TD64 compatible. SCSI-Direct is not supported.
+
+@ENDNODE
+@NODE "e_install" "RDBrecov Guide english"
+@TOC "main"
+
+Installation
+============
+
+Copy the RDBrecov executable onto your Emergency Disk. If you have
+none, you can use the AmigaOS install disk.
+With OS3.5 there comes an option to create an Emergency Boot Disk.
+You should really use it. And make sure, your Emergency Disk works !
+
+Note that you need a partitioning tool (e.g. HDToolBox) too !
+
+As RDBrecov can only be started from Shell, be sure to have a Shell
+icon on your Emergency Disk. (IIRR the AmigaOS install disk has
+none).
+
+@ENDNODE
+@NODE "e_usage" "RDBrecov Guide english"
+@TOC "main"
+
+Usage
+=====
+
+Most important rule after a harddisk crash: DON'T FORMAT ANYTHING !!!
+Formatting will destroy data. Even if Quick-Format is used.
+
+Boot with your Emergency disk.
+
+First of all you have to verify some info about your Harddisk.
+
+You must know the device name of your harddisk driver. Amiga default is
+scsi.device. Other manufacturers use other names like cybscsi.device.
+
+Please start your favorite partitioning tool (e.g. HDToolBox). You
+should use the same tool that you used when the harddisk was first
+partitioned !
+Maybe you have to adjust some tooltypes to use the right device driver.
+
+Now choose your harddrive from the list. It should be shown as unknown
+in the list. Remember its Address, this is the unit number needed by
+RDBrecov. If it shows a LUN other than 0 you need to remember this, too.
+
+Now enter the install dialog (e.g. click on Install Drive). Ignore
+requesters stating that this would destroy all data. Let HDToolBox read
+the configuration from disk (e.g. click on Read Configuration).
+
+Now write down the data from the fields Cylinders, Blocks per Cylinder
+and Bytes per Block.
+
+Click on Cancel and leave HDToolbox.
+
+You should now have the following information (Example):
+
+              Device: scsi.device
+                Unit: 0
+           Cylinders: 7752
+Blocks per Cylinders: 1008
+     Bytes per Block:  512
+
+Now open a Shell window and start RDBrecov.
+
+Enter RDBrecov <device> <unit> s <bytes per blk> c <cyls> cs <blks per cyl>
+
+Example:        RDBrecov scsi.device 0 s 512 c 7752 cs 1008
+or with a LUN:  RDBrecov scsi.device 0 lun 1 s 512 c 7752 cs 1008
+
+You should get an output like that:
+
+Trying to open scsi.device unit 0
+SectorSize   = 512      (overridden by parameter: 512)
+Cylinders    = 7814016  (overridden by parameter: 7752)
+CylSectors   = 1        (overridden by parameter: 1008)
+PFS Bootblock found at cylinder    2: Size =  204 cyls DosType=50465301 Name="Workbench"
+PFS Bootblock found at cylinder  206: Size =  407 cyls DosType=50465301 Name="Prog"
+PFS Bootblock found at cylinder  613: Size =  417 cyls DosType=50465301 Name="Internet"
+PFS Bootblock found at cylinder 1030: Size =  894 cyls DosType=50465301 Name="Games"
+PFS Bootblock found at cylinder 1924: Size = 1016 cyls DosType=50465301 Name="Pictures"
+PFS Bootblock found at cylinder 2940: Size =  570 cyls DosType=50465301 Name="Graphic"
+PFS Bootblock found at cylinder 3510: Size =  976 cyls DosType=50465301 Name="Music"
+PFS Bootblock found at cylinder 4486: Size =  693 cyls DosType=50465301 Name="cache"
+PFS Bootblock found at cylinder 5179: Size = 1627 cyls DosType=50465301 Name="Work"
+PFS Bootblock found at cylinder 6806: Size =  611 cyls DosType=50465301 Name="Emulator"
+PFS Bootblock found at cylinder 7417: Size =  335 cyls DosType=50465301 Name="Temp"
+Reading cylinder  7752
+Complete.
+
+Now reenter HDToolBox and install your harddisk. Then use the Partition
+Drive dialog to recreate your partitions. You can enter the values from
+"at cylinder" and "Size" directly into the gadgets "Start Cyl" and
+"Total Cyl". Be sure not to define overlapping partitions !
+If you encounter overlappings, you'll have to decide which ranges are
+correct from your memory.
+If the "Size =" portion is 0, just subtract the "at cylinder" of this
+partition from that of the next one.
+(One trick is to start at the end of the list and only enter the "Start
+Cyl" value. The size then is calculated by HDToolBox. This assumes that
+you don't have unused space on the harddisk.)
+
+NOTE: as FFS partitions are recognized in a second pass, their infos are
+behind the others in the log file. You might want to sort the log file
+before starting to use HDToolBox.
+
+Please read the @{"hint for FFS users" LINK "e_ffshint"}.
+
+If you use PFS or SFS, first follow the instuctions in the corresponding
+manual in order to install your filesystem on the harddisk and determine
+which data has to be used for Mask, MaxTransfer, Block size  and DosType.
+Use the DosType listed by RDBrecov only if the DosType from the manual
+does not work !
+
+Now remove the emergency disk and reboot. Everything should magically be
+there again. If one ore more partitions don't work, verify if you have
+installed the right filesystem, DosType, partition borders etc.
+Again: DO NOT FORMAT ANYTHING !
+
+You may also experiment with the values for cylinders and blocks per
+cylinder. Different releases of HDtoolBox show different values here.
+You have to use the same values that were used when the harddisk was
+first partitioned.
+HINT: the first partition almost always starts at cylinder 2.
+
+Hint for freaks: if all partitions start on cylinder numbers which are
+divisible by 2, you can duplicate the CylSectors value and half the
+Cylinders value. By this the harddisk scan will be twice as fast.
+Remember to duplicate the cylinder numbers when using HDToolBox
+afterwards.
+
+If you encounter problems or mystic error messages you can try to mail
+me for assistance. But there is no guarantee that I can or want to help
+you.
+
+@ENDNODE
+@NODE "e_ffshint" "RDBrecov Guide english"
+@TOC "main"
+
+Hint for FFS users
+==================
+
+RDBrecov was not designed for finding FFS partitions. So there are
+some problems with FFS:
+
+- first of all, if there are gaps (unused cylinders) between partitions,
+  RDBrecov has no chance at all to find the partitions.
+
+  Hint: this is compensated by the DEEPFFS parameter since V1.4.
+
+- The way RDBrecov examines FFS partitions can lead to mistakes. Let's
+  look at this example:
+
+  FFS Bootblock found at cylinder 2: Size = 2 cyls DosType=444f5305 Name="part1"
+  FFS Bootblock found at cylinder 2: Size = 7 cyls DosType=444f5305 Name="part2"
+  FFS Bootblock found at cylinder 4: Size = 3 cyls DosType=444f5305 Name="part2"
+  FFS Bootblock found at cylinder 7: Size = 2 cyls DosType=444f5305 Name="part3"
+
+  You see that "part2" is found twice. The first "part2" starting at cylinder 2
+  and with the size of 7 cylinders spans the area of all three partitions. This
+  happens because the rootblock of part2 is both, in the middle of cyl 2 an 9 and
+  in the middle between cyl 4 and 7 (see the background section below).
+  You must not mount this partition or you will get checksum errors and even
+  data loss as FFS will try to validate this partition.
+
+  Hint: if you are somewhat freaky, you can mount this partition and use DiskSalv
+        with it. If you are lucky you'll get most files of all three partitions in
+        one directory called "Disksalv-Extras".
+
+  Hint: since Version 1.5 the Checksums of the root block and the first bitmap block
+        are checked. This eliminates most of the false partitions.
+
+
+Background
+----------
+
+The reason for all these problems is the place where FFS stores it's root
+block. (The root block is where the volume name is stored and where the
+root directory starts. RDBrecov has to use it in order to verify if the
+partition is valid.)
+
+PFS and SFS both store their root block just behind the boot block. So it
+is very easy to find it. They both even store the disk size in the root
+block.
+
+FFS is way different. FFS stores its boot block in the middle of the
+partition. Mybe this is a safe place when starting to format the partition
+by accident. But it is very hard to find because in order to calculate
+where the middle is, you need to know both, the start end the end of the
+partition. But the end is unknown yet. So the program has to remember
+where the next partition starts an will check each possible FFS partition
+in a second pass.
+
+For surely finding all FFS partitions, the whole disk must be read, block
+by block. But RDBrecov only reads the first few blocks of each cylinder.
+This is much faster and safe for SFS and PFS partitions. FFS partitions
+can be missed, if the end of a partition is not the beginning of another
+one.
+
+@ENDNODE
+@NODE "e_mountlist" "RDBrecov Guide english"
+@TOC "main"
+
+Starting with V1.3 RDBrecov is able to write a mountlist file. With this
+file you get access to the data of the harddisk without writing a new RDB.
+
+This feature has not been tested very well, so be careful !
+
+Start RDBrecov with the parameter MOUNTLIST <mountlistfile> in order to
+write the mountlist file.
+
+Example: RDBrecov scsi.device 0 s 512 c 7752 cs 1008 mountlist ram:ml
+
+The resulting mountlist will look like this (one entry for each partition) :
+
+RDBR0:
+    Device          = "scsi.device"
+    Unit            = 0
+    Flags           = 0x0
+    Surfaces        = 1
+    BlocksPerTrack  = 1008
+    BlockSize       = 512
+    SectorsPerBlock = 1
+    Reserved        = 2
+    LowCyl          = 2
+    HighCyl         = 205
+    Buffers         = 80
+    BufMemType      = 0
+    MaxTransfer     = 0x1FE00
+    Mask            = 0x7FFFFFFC
+    DosType         = 0x50465302
+    Mount           = 1
+#
+
+The partitions are named RDBR0, RDBR1, RDBR2 etc.
+
+There are a few things you must be very careful with:
+
+->> RDBrecov does not check if the partitions overlap. You must not mount
+    overlapping partitions or you can do harmful damage to the filesystem
+    structure if you write to the disk (automatic validation means writing,
+    too !)
+
+->> The values for BufMemType, MaxTransfer and Mask are hardcoded. You must
+    check manualy if they fit to your device driver.
+
+->> DosType for PFS/AFS disks is always set to 50465302 because it is not
+    stored on disk. You must fit this to your filesystem version.
+
+->> As the mountlist does not contain the filesystem name the filesystem is
+    identified by its DosType. This means the filesystem must already be
+    loaded by the OS. FastFilesystem is in ROM and is always loaded. PFS or
+    SFS must reside in the RDB of another harddisk. You can override this
+    by adding a line like 'FileSystem = "L:PFS3"' to each of the partitions
+    in the mount list.
+
+Now you can mount any partition with the Shell command
+
+mount <partitionname> from <mountlistfile>
+
+Example:
+
+mount RDBR0: from ram:ml
+
+@ENDNODE
+@NODE "e_mountfile" "RDBrecov Guide english"
+@TOC "main"
+
+Starting with V1.8 RDBrecov is able to write a mountfile compatible with
+HDToolBox V45 (AmigaOS 3.5 or better). 
+
+Start RDBrecov with the parameter MOUNTFILE <mountfile> in order to
+write the mountfile.
+
+Example: RDBrecov scsi.device 0 s 512 c 7752 cs 1008 mountfile ram:mf
+
+Now start HDToolBox, click on your hard drive and use the menu Project /
+Load mountfile.
+
+Please note:
+
+ -  all used file systems (e.g. FastFileSystem, pfs3, SmartFileSystem)
+    must be installed into L:. If HDToolBox cannot find a file system
+    it displays error number 233.
+
+ -  for PFS always the name pfs3 is used. If you only have PFS2 or AFS, or
+    you want to use the Direct-SCSI version, you must edit the mountfile.
+
+ -  After loading a mountfile you should click on another drive and then
+    again on the changed drive. You might get a requester telling you that
+    drives have been added or removed from the system. Click on Update.
+
+ -  there are lots of parameters for which defaults are assumed. You should
+    check everything several times before you leave HDToolBox.
+
+ -  Especialy the values for partition name, bootable and boot priority as
+    well as Mask and MaxTransfer have to be checked.
+
+ -  Please also read the @{"section about mountlists" LINK "e_mountlist"}. All restrictions apply
+    to mountfiles, too
+
+@ENDNODE
+@NODE "e_parms" "RDBrecov Guide english"
+@TOC "main"
+
+Parameters
+==========
+
+DEVICE/A           The device driver of your harddisk (e.g. scsi.device)
+
+UNIT/A/N           The unit of your harddisk (e.g. 0)
+
+LUN/K/N            If you have a device driver with multiple logical units
+                   per one address you can specifiy the LUN here. Use this
+                   if you have a PowerFlyer / FastATA with the split option
+                   turned on.
+
+FLAGS/N            Flags for OpenDevice. Usualy 0.
+
+INFO/S             If specified, RDBrecov only shows infos about the
+                   harddisk and does not search partitions.
+
+FILE=LOG/K         Filename of a log file. If specified RDBrecov also writes
+                   the partition data into this file.
+
+S=SECTORSIZE/N/K   Override infos of TD_GETGEOMETRY. May be necessary if
+C=CYLINDERS/N/K    TD_GETGEOMETRY supplies different infos than HDToolBox.
+CS=CYLSECTORS/N/K
+
+NODOS=NOFFS/S       Don't list FFS rootblocks.
+
+ONLYFFS/S           List only FFS rootblocks.
+
+MAXPART/N/K         Maximum number of partitions. Default is 100. Increase
+                    this if you see the message "More partitions than table
+                    entries !"
+
+START=STARTCYL/N/K  Start searching at this cylinder. Can be used if you
+                    interrupted the search with CRTL-C or if you have a
+                    very large partition and aproximately know where the
+                    next one starts.
+                    NOTE: you cannot restart RDBrecov if you need FFS
+                          partition information !
+
+
+NSD/S               Force using NSD style commands.
+
+TD64/S              Force using TD64 style commands.
+
+DEEPPFS/S           Only search for PFS partitions. Ignore the DosType and
+                    directly check the root block. Perhaps this could find
+                    more PFS or AFS partitions, especialy if the reserved
+                    area of the partition is overwritten. (The reserved
+                    area usualy only contains the DosType and is filled
+                    with zeros).
+                    NOTE: this option implies NOFFS and MAXPART=0.
+
+NOCHECK/S=NOFFSCHECKSUM
+                    Switches off checksum checking for FFS partitions. Use
+                    this only if DEEPFFS does not find your partitions.
+
+DEEPFFS/S           Make the second pass needed for FFS partitions more
+                    accurate. This is much slower as the normal mode but
+                    should find all partitions. You get progress bars to
+                    see what's going on.
+
+                    ATTENTION: This mode finds many more false partitions
+                               that overlap with others !! You should first
+                               run RDBrecov in normal mode and then run it
+                               again with DEEPFFS but restrict the search
+                               area with the START and CYLINDERS parameters
+                               to only one partition that was not found
+                               before at a time !
+
+
+MOUNTLIST=ML/K      Filename of a mountlist where all the partition data
+                    shall be stored in. You can use this to mount one or
+                    all partitions and copy the files from it to another
+                    place. Use this if you don't want to recover the RDB or
+                    if the RDB cannot be written because of a physical
+                    damage of the hard drive.
+
+                    ATTENTION: You must check the mountlist before using it !
+                               You must not mount overlapping partitions !!!
+                               You should check the values of BufMemType,
+                               MaxTransfer and Mask !
+
+MOUNTFILE=ML/K      File name of a mountfile. The mountfile can directly be 
+                    loaded into HDToolBox of OS 3.5 or better.
+
+                    ATTENTION: as with mountlists for many parameters default
+                               values are assumed. You must check all settings
+                               in HDToolBox.
+
+                    NOTE: the mountfile assumes every file system in L:. If
+                          you experience Error 233 when loading the mountfile
+                          check that all used file systems are stored in L:.
+
+PFSTYPE/K           DosType for PFS partitions in the mountlist. With this
+                    you can override the hardcoded default of 50465302.
+
+IGN=IGNOREERRORS/S  Ignore read errors. (Be sure you have specified the
+                    correct value for CYLINDERS, or RDBrecov could ignore
+                    errors for a long time !)
+
+@ENDNODE
+@NODE "e_messages" "RDBrecov Guide english"
+@TOC "main"
+
+Error messages
+==============
+
+OpenDevice failed
+
+        The specified device name / unit combination could not be
+        opened. Verify these values.
+
+
+cannot create IORequest
+cannot create reply port
+
+        Usualy too less memory. Reboot and retry.
+
+
+device does not support NSD or TD64 for harddisks >4GB
+
+        Seems that you use a device driver that is not ready for
+        Harddisks larger than 4GB but uses SCSI-Direct for them.
+        As I don't know about SCSI-Direct this is not implemented
+        (yet).
+        If you own OS3.5 or have NSDPatch installed, you can try
+        to make an entry for your device in Devs:NSDPatch.cfg.
+
+
+TD_READ Error = <n> (text)
+
+        Read error on the disk. <rc> is the code returned by the
+        DOS-device. If known, 'text' is a short description of the
+        error.
+
+
+TD_GETGEOMETRY Error = <n> (text)
+
+        The device does not support the TD_GETGEOMETRY command. <rc> is
+        the code returned by the device. If known, 'text' is a short
+        description of the error.
+
+        In order to process the hard disk anyway, you must specify all
+        three parameters SECTORSIZE, CYLINDERS and CYLSECTORS.
+
+
+not enough memory for buffers
+
+        RDBrecov needs memory for at least 3 disk blocks.
+
+
+More partitions than table entries !
+
+        Use the MAXPART parameter to increase the number of table entries
+        or use the NOFFS switch if you do not need FFS partitions.
+
+
+not enough memory for mountlist
+not enough memory for mountlist part
+
+        I cannot believe you have that few memory.
+
+
+cannot open mountlist file
+
+        You requested a mountlist but the named file cannot be opened for
+        output. Check the file name and retry.
+
+
+cannot open mountfile
+
+        You requested a mountfile but the named file cannot be opened for
+        output. Check the file name and retry.
+
+@ENDNODE
+@NODE "e_bugs" "RDBrecov Guide english"
+@TOC "main"
+
+Restrictions / Bugs
+===================
+
+- A FFS partition is only recognized if it is immediately followed by
+  another known partition. Otherwise the rootblock cannot be found.
+  (Although those partitions are not logged, the start cylinder is
+  written to the shell window as a possible FFS partition.)
+
+- To Do: expand the mountlist feature so the file can be used with
+  HDToolBox's function "Load Mount File"
+
+@ENDNODE
+@NODE "e_history" "RDBrecov Guide english"
+@TOC "main"
+
+History
+=======
+
+V1.8    Added support for mountfiles like used by HDToolBox V45.
+
+V1.7    Fixed: size for SFS partitions was displayed wrong if the partition
+        had an odd number of cylinders.
+
+V1.6    corrected missing comma in parameter list.
+
+        added LUN parameter.
+
+V1.5    Improved DEEPFFS processing. Does not produce lots of false partitions
+        any longer.
+
+V1.4    Introduced DEEPFFS parameter in order to find more FFS partitions.
+
+V1.3    Partition data can now be stored in a mountlist for immediate use.
+
+V1.2    Checksum for SFS rootblocks was calculated wrong and so some partitions
+        were not found.
+
+V1.1    German instructions !
+        Instructions converted to AmigaGuide.
+
+        FFS Partitions are checked even if there was a read error.
+
+V0.7    Errors using TD_GETGEOMETRY are now ignored when all size parameters
+        are given. (If you really follow the above instructions, they are
+        always given.)
+
+V0.6    RDBrecov can now handle FFS partitions too.
+
+V0.5    Fixed TD_GETGEOMETRY handling. Now using dg_TotalSectors instead
+        of dg_Cylinders.
+
+@ENDNODE
+@NODE "d_intro" "RDBrecov Guide deutsch"
+@TOC "main"
+
+Einleitung
+==========
+
+RDBrecov wird benutzt, wenn der RDB (die Partitionierungsinformationen)
+der Festplatte verloren gegangen ist.
+
+Es sucht die ganze Festplatte nach Partitionen ab. Dabei kommt es mit
+PFS2, PFS3, AFS und SFS Partitionen zurecht.
+
+Seit Version 0.6 kann es auch FFS Partitionen finden. Da FFS die Größe
+der Partition benötigt, um die Position des Root-Blocks zu berechen,
+werden zuerst alle potentiellen FFS Boot-Blocks in einer Tabelle
+gespeichert und in einem zweiten Durchgang die Root-Block-Positionen
+berechnet und überprüft. FFS-Unterstützung kann durch eine Option
+abgeschaltet werden.
+
+RDBrecov listet die gefundenen Partitionen in das Shell-Fenster und
+optional auch in eine Log-Datei. Mit diesen Informationen kann man
+HDToolBox (oder ein anderes Partitionierungsprogramm) benutzen, um die
+Partitionen zu rekonstuieren.
+
+Festplatten größer als 4GB können benutzt werden, wenn der Treiber
+entweder NSD- oder TD64-Befehle unterstützt. SCSI-Direct wird nicht
+unterstützt.
+
+@ENDNODE
+@NODE "d_install" "RDBrecov Guide deutsch"
+@TOC "main"
+
+Installation
+============
+
+Kopiere das RDBrecov-Programm auf deine Notfall-Diskette. Wenn du
+keine hast, kannst du die AmigaOS Installations-Diskette benutzen.
+Mit OS3.5 hat man die Möglichkeit, eine Notfall-Diskette automatisch
+zu erstellen. Du sollest davon gebrauch machen. Und versichere dich,
+dass die Notfall-Diskette funktioniert !
+
+Beachte, dass du auch ein Partitionierungs-Programm (z.B. HDToolBox)
+benötigst !
+
+Da RDBrecov nur aus einem Shell-Fenster gestartet werden kann, solltest
+du sicher sein, dass auf der Notfall-Diskette ein Shell-Icon vorhanden
+ist (Auf der AmigaOS Installations-Diskette ist soviel ich weiß, keins).
+
+@ENDNODE
+@NODE "d_usage" "RDBrecov Guide deutsch"
+@TOC "main"
+
+Benutzung
+=========
+
+Wichtigste Regel nach einem Festplatten-Crash: NICHTS FORMATIEREN !!!
+Formatieren zerstört Daten. Auch wenn Schnell-Formatierung benutzt
+wird.
+
+Starte den Rechner von deiner Notfall-Diskette.
+
+Zuerst musst du einige Daten deiner Festplatte ermitteln.
+
+Du musst den Device-Namen deines Festplattentreibers wissen. Amiga-
+Standard ist 'scsi.device'. Andere Hersteller benutzen andere Namen,
+wie 'cybscsi.device'.
+
+Bitte starte dein bevorzugtes Partitionierungs-Programm (z.B. HDToolBox).
+Du solltest dasselbe Programm benutzen, mit dem du die Festplatte vorher
+eingerichtet hast !
+Evtl. musst du einige Tooltypes korrigieren, damit der richtige Treiber
+benutzt wird.
+
+Jetzt wähle deine Festplatte aus der Liste. Sie sollte als 'unknown' oder
+'unbekannt' aufgeführt sein. Merke dir ihre Adresse, das ist die Unit-
+Nummer, die RDBrecov benötigt. Wenn ein LUN ungleich 0 angezeigt wird,
+musst du dir diese auch merken.
+
+Jetzt gehe in den Installations-Dialog (z.B. mit einem Klick auf
+'Festplatte installieren'). Ignoriere die Requester, die darauf hinweisen,
+dass dadurch alle Daten verloren gehen.
+Lasse die HDToolBox die Konfiguration von der Festplatte lesen (z.B. mit
+einem Klick auf 'Lese Konfiguration'.
+
+Notiere dir die Daten aus den Feldern 'Zylinder', 'Blöcke pro Zylinder'
+und 'Bytes pro Block'.
+
+Klicke auf 'Abbrechen' und beende die HDToolBox.
+
+Du solltest nun die folgenden Informationen haben (Beispiel):
+
+              Device: scsi.device
+                Unit: 0
+            Zylinder: 7752
+ Blöcke pro Zylinder: 1008
+     Bytes pro Block:  512
+
+Jetzt öffne ein Shell-Fenster und starte RDBrecov.
+
+Gib folgendes ein: RDBrecov <device> <unit> s <bytes pro blk> c <zyl> cs <blks pro zyl>
+
+Beispiel:      RDBrecov scsi.device 0 s 512 c 7752 cs 1008
+oder mit LUN:  RDBrecov scsi.device 0 lun 1 s 512 c 7752 cs 1008
+
+Du solltest etwa folgende Ausgaben bekommen:
+
+Trying to open scsi.device unit 0
+SectorSize   = 512      (overridden by parameter: 512)
+Cylinders    = 7814016  (overridden by parameter: 7752)
+CylSectors   = 1        (overridden by parameter: 1008)
+PFS Bootblock found at cylinder    2: Size =  204 cyls DosType=50465301 Name="Workbench"
+PFS Bootblock found at cylinder  206: Size =  407 cyls DosType=50465301 Name="Prog"
+PFS Bootblock found at cylinder  613: Size =  417 cyls DosType=50465301 Name="Internet"
+PFS Bootblock found at cylinder 1030: Size =  894 cyls DosType=50465301 Name="Games"
+PFS Bootblock found at cylinder 1924: Size = 1016 cyls DosType=50465301 Name="Pictures"
+PFS Bootblock found at cylinder 2940: Size =  570 cyls DosType=50465301 Name="Graphic"
+PFS Bootblock found at cylinder 3510: Size =  976 cyls DosType=50465301 Name="Music"
+PFS Bootblock found at cylinder 4486: Size =  693 cyls DosType=50465301 Name="cache"
+PFS Bootblock found at cylinder 5179: Size = 1627 cyls DosType=50465301 Name="Work"
+PFS Bootblock found at cylinder 6806: Size =  611 cyls DosType=50465301 Name="Emulator"
+PFS Bootblock found at cylinder 7417: Size =  335 cyls DosType=50465301 Name="Temp"
+Reading cylinder  7752
+Complete.
+
+Jetzt starte noch einmal die HDToolBox und installiere deine Festplatte.
+Dann benutze den Dialog 'Festplatte partitionieren', um die Partitionen
+neu zu erstellen. Du kannst die Werte von 'at cylinder' und 'Size' direkt
+in die Felder 'Erster Zyl.' und 'Summe Zyl.' eintragen. Versichere dich,
+dass du keine überlappenden Partitionen einrichtest !
+Wenn du Überlappungen hast, musst du aus dem Gedächtnis entscheiden, welche
+Bereiche korrekt sind.
+Wenn der Wert von 'Size =' 0 ist, subtrahiere einfach den Wert von 'at
+cylinder' von dem der nächsten Partition.
+(Ein Trick ist, am Ende der Liste zu starten und immer nur den Wert 'erster
+Zyl.' einzutragen. Die HDToolBox errechnet dann automatisch die Größe.
+Dabei wird angenommen, dass keine unbenutzen Stellen auf der Festplatte
+sind.)
+
+HINWEIS: da FFS-Partitionen in einem zweiten Durchgang ermittelt werden,
+stehen sie hinter den anderen im Log. Es ist sinnvoll, die Liste zu
+sortieren, bevor die HDToolbox gestartet wird.
+
+Bitte lies den @{"Hinweis für FFS Benutzer" LINK "d_ffshint"}.
+
+Wenn du PFS oder SFS benutzt, befolge bitte zuerst die entsprechenden
+Anleitungen zum Installieren des Filesystems auf der Festplatte und
+merke dir die richtigen Werte für 'Maske', 'MaxTransfer', 'Blockgröße'
+und 'Datei System'. Benutze den DosType, der von RDBrecov aufgelistet
+wird nur, wenn der aus der Anleitung nicht funktioniert !
+
+Jetzt nimm die Not-Diskette aus dem Laufwerk und starte den Rechner neu.
+Alles sollte auf wunderbare Weise wieder da sein. Falls eine oder mehrere
+Partitionen nicht arbeiten, überprüfe, ob du das richtige Filesystem,
+Dos-Typ, Partitionsgrenzen etc. installiert hast.
+Noch einmal: NICHTS FORMATIEREN !
+
+Du kannst auch mit den Werten für 'Zylinder' und 'Blocks pro Zylinder'
+experimentieren. Verschiedene Versionen der HDtoolbox zeigen unter-
+schiedliche Werte dafür an.
+Du musst dieselben Werte benutzen, wie sie bei der ersten Installation
+der Festplatte, vor dem Crash, benutzt wurden.
+TIPP: die erste Partition beginnt fast immer mit Zylinder 2.
+
+Hinweis für Freaks: wenn alle Partitionen auf geraden Zylindernummern
+beginnen, kann man die 'Blocks pro Zylinder' verdoppeln und die
+'Zylinder' halbieren. Dadurch wird die Festplatte doppelt so schnell
+durchsucht. Nicht vergessen, die Werte wieder zu verdoppeln, wenn sie
+in die HDToolbox eingetragen werden.
+
+Wenn du Probleme hast oder misteriöse Fehlermeldungen ausgegeben werden,
+kannst du mir eine Mail schreiben. Aber es gibt keine Garantie, dass ich
+dir helfen kann oder möchte.
+
+@ENDNODE
+@NODE "d_ffshint" "RDBrecov Guide deutsch"
+@TOC "main"
+
+Hinweis für FFS Benutzer
+========================
+
+RDBrecov ist ursprünglich nicht dafür geschrieben worden, um FFS
+Partitionen zu finden. Daraus ergeben sich einige Probleme:
+
+- zuerst mal, wenn zwischen einigen Partitionen Lücken sind (ungenutzte
+  Zylinder), dann hat RDBrecov überhaupt keine Chance, diese Partitionen
+  zu finden.
+
+  Hinweis: dies wird seit V1.4 durch den Parameter DEEPFFS kompensiert.
+
+- Die Art und Weise, wie RDBrecov FFS-Partitionen überprüft, kann zu
+  Fehlern führen. Schauen wir uns dieses Beispiel an:
+
+  FFS Bootblock found at cylinder 2: Size = 2 cyls DosType=444f5305 Name="part1"
+  FFS Bootblock found at cylinder 2: Size = 7 cyls DosType=444f5305 Name="part2"
+  FFS Bootblock found at cylinder 4: Size = 3 cyls DosType=444f5305 Name="part2"
+  FFS Bootblock found at cylinder 7: Size = 2 cyls DosType=444f5305 Name="part3"
+
+  Man sieht dass "part2" zweimal gefunden wurde. Die erste "part2", die bei
+  Zylinder 2 beginnt und 7 Zylinder groß ist, überspannt den Bereich von
+  allen drei Partitionen. Das passiert, weil der Rootblock von part2 sowohl
+  genau in der Mitte zwischen Zyl. 2 und 9 als auch zwischen Zylinder 4 und
+  7 ist (siehe auch den Abschnitt "Hintergrund" weiter unten).
+  Du darfst diese Partition nicht mounten, oder du bekommst Prüfsummenfehler
+  und evtl. sogar Datenverlust, wenn FFS versucht, die Partition zu validieren.
+
+  Hinweis: wenn du ein bisschen verrückt bist, kannst du diese Partition mounten
+           und DiskSalv darüber laufen lassen. Wenn du Glück hast, bekommst du
+           die meisten Dateien von allen drei Partitionen in ein Verzeichnis
+           namens "Disksalv-Extras".
+
+  Hinweis: seit Version 1.5 werden die Checksummen des Rooblocks und des ersten
+           Bitmap-Blocks geprüft. Dadurch werden die meisten falschen Partitionen
+           vermieden.
+
+
+Hintergrund
+-----------
+
+Der Grund für diese Probleme ist der Ort, wo FFS seinen Rootblock
+speichert. (Der Rootblock ist der Platz, an dem der Disk-Name gespeichert
+ist und wo das Hauptverzeichnis anfängt. RDBrecov muss ihn benutzen um zu
+überprüfen, ob die Partition gültig ist.)
+
+PFS und SFS speichern ihren Rootblock beide direkt hinter dem Bootblock.
+Deshalb ist er sehr einfach zu finden. Sie speichern beide sogar die
+Disk-Größe im Rootblock.
+
+FFS ist da ganz anders. FFS speichert seinen Rootblock in der Mitte der
+Partition. Kann sein, dass das ein sicherer Platz ist, wenn man ausversehen
+beginnt, die Partition zu formatieren. Aber es ist sehr schwierig ihn zu
+finden, weil man, die Mitte zu berechnen, sowohl den Anfang als auch das
+Ende der Partition kennen muss. Aber das Ende ist noch unbekannt. Also muss
+das Programm sich merken, wo die nächste Partition anfängt und jede
+mögliche FFS-Partition in einem zweiten Durchgang prüfen.
+
+Um alle FFS Partition sicher zu finden, muss man die ganze Festplatte Block
+für Block durchlesen. RDBrecov liest aber nur einige Sektoren am Anfang
+jedes Zylinders. Das ist sehr viel schneller und ausreichend sicher für
+PFS und SFS Partitionen. FFS Partitionen können übersehen werden, wenn das
+Ende der Partition nicht der Anfang einer anderen ist.
+
+@ENDNODE
+@NODE "d_mountlist" "RDBrecov Guide deutsch"
+@TOC "main"
+
+Seit Version 1.3 ist RDBrecov in der lage, eine Mountlist-Datei zu schreiben.
+Mit dieser Datei bekommst du Zugriff auf die Daten auf der Festplatte, ohne
+einen neuen RDB zu schreiben.
+
+Diese Funktion ist nicht sehr gut getestet, also sei vorsichtig !
+
+Starte RDBrecov mit dem Parameter MOUNTLIST <mountlistfile>, um die Mountlist-
+Datei zu schreiben.
+
+Beispiel: RDBrecov scsi.device 0 s 512 c 7752 cs 1008 mountlist ram:ml
+
+Die resultierende Mounlist wird so aussehen (ein Eintrag pro Partition) :
+
+RDBR0:
+    Device          = "scsi.device"
+    Unit            = 0
+    Flags           = 0x0
+    Surfaces        = 1
+    BlocksPerTrack  = 1008
+    BlockSize       = 512
+    SectorsPerBlock = 1
+    Reserved        = 2
+    LowCyl          = 2
+    HighCyl         = 205
+    Buffers         = 80
+    BufMemType      = 0
+    MaxTransfer     = 0x1FE00
+    Mask            = 0x7FFFFFFC
+    DosType         = 0x50465302
+    Mount           = 1
+#
+
+Die Partitionen werden RDBR0, RDBR1, RDBR2 etc. genannt.
+
+Es gibt einige Dinge, bei denen du sehr aufpassen musst:
+
+->> RDBrecov prüft nicht, ob die Partitionen sich überlappen. Du darfst keine
+    Überlappenden Partitionen mounten, oder es können böse Schäden in der
+    Dateistruktur auftreten, wenn du auf die Disk schreibst. (Automatisches
+    Validieren ist auch ein Schreibzugriff !)
+
+->> Die Werte für BufMemType, MaxTransfer und Mask sind fest vorgegeben. Du
+    musst sie manuell an deinen Device-Treiber anpassen.
+
+->> Der DosType für PFS/AFS Disks wird immer auf 50465302 gesetzt, weil er nicht
+    auf die Disk geschrieben wird. Du musst ihn an deine Filesystem-Version
+    anpassen.
+
+->> Da die Mountlist den Filesystem-Namen nicht enthält, wird das Filesystem
+    über seinen DosType identifiziert. Das bedeutet, dass das Filesystem bereits
+    vom OS geladen sein muss. Das FastFilesystem ist im ROM, also immer geladen.
+    PFS oder SFS müssen in einem RDB einer anderen Festplatte installiert sein.
+    Du kannst das ändern, indem du eine Zeile wie 'FileSystem = "L:PFS3"' zu
+    jeder Partition in der Mountlist hinzufügst.
+
+Jetzt kannst du jede Partition mounten mit dem Shell-Befehl
+
+mount <partitionname> from <mountlistfile>
+
+Beispiel:
+
+mount RDBR0: from ram:ml
+
+@ENDNODE
+@NODE "d_mountfile" "RDBrecov Guide deutsch"
+@TOC "main"
+
+Seit Version 1.8 kann RDBrecov eine Mountdatei erzeugen, die kompatibel
+mit der HDToolBox V45 ist (AmigaOS 3.5 oder besser).
+
+Starte RDBrecov mit dem parameter MOUNTFILE <dateiname> um eine Mountdatei
+zu erzeugen.
+
+Beispiel: RDBrecov scsi.device 0 s 512 c 7752 cs 1008 mountfile ram:mf
+
+Jetzt starte HDToolBox, klicke auf deine Festplatte und benutze das Menü
+Projekt / Mountdatei laden.
+
+Bitte beachte:
+
+ -  Alle benutzen Dateisysteme (z.B. FastFileSystem, pfs3, SmartFileSystem)
+    müssen in L: installiert sein. Wenn die HDToolBox ein Dateisystem nicht
+    finden kann, zeigt sie Fehler Nummer 233 an.
+
+ -  Für PFS wird immer der Name pfs3 benutzt. Wenn du nur PFS2 oder ADF hast
+    oder die Direct-SCSI-Version benutztn möchstest, mußt du die Mountdatei
+    anpassen.
+
+ -  Nach dem Laden einer Mountdatei solltest du auf eine andere Festplatte
+    klicken und danach wieder auf die geänderte. Wenn der Hinweis angezeigt
+    wird, daß eine Platte vom System entfernt oder hinzugefügt wurde, klicke
+    auf Update.
+
+ -  Die Mountdatei enthält eine Menge Parameter, für die RDBrecov nur
+    Standardwerte angenommen hat. Du solltest alles mehrere male prüfen,
+    bevor du die HDToolBox verläßt.
+
+ -  Speziell die werte für Partitionsname, bootbar und Boot-Priorität sowie
+    Mask und MaxTransfer müssen geprüft werden.
+
+ -  Bitte lies auch den @{"Abschnitt über Mountlisten" LINK "d_mountlist"}. Alle Einschränkungen
+    treffen auch auf Mountdateien zu.
+
+@ENDNODE
+@NODE "d_parms" "RDBrecov Guide deutsch"
+@TOC "main"
+
+Parameter
+=========
+
+DEVICE/A           Der Device-Name der Festplatte (z.B. scsi.device)
+
+UNIT/A/N           Die Unit-Nummer der Festplatte (z.B. 0)
+
+LUN/K/N            Wenn du einen Gerätetreiber hast, der mehrere logische
+                   Einheiten pro Adresse unterstützt, kannst du die LUN
+                   hier eingeben. Das ist z.B. für den PowerFlyer / FastATA
+                   notwendig, wenn die Split-Option eingeschaltet ist.
+
+FLAGS/N            Flags für OpenDevice. Normalerweise 0.
+
+INFO/S             Wenn angegeben, zeigt RDBrecov nur einige Informationen
+                   über die Festplatte an und sucht nicht nach Partitionen.
+
+FILE=LOG/K         Dateiname einer Log-Datei. Wenn angegeben, schreibt
+                   RDBrecov die Partitionsdaten auch in diese Datei.
+
+S=SECTORSIZE/N/K   Überschreiben der Daten von TD_GETGEOMETRY. Kann notwendig
+C=CYLINDERS/N/K    sein, wenn TD_GETGEOMETRY andere Informationen ausgibt, als
+CS=CYLSECTORS/N/K  die HDToolBox.
+
+
+NODOS=NOFFS/S       Keine FFS Partitionen listen.
+
+ONLYFFS/S           Nur FFS Partitionen listen.
+
+MAXPART/N/K         Maximale Anzahl Partitionen. Voreinstellung ist 100.
+                    Erhöhe diesen Wert, wenn die Meldung "More partitions
+                    than table entries !" ausgegeben wird.
+
+START=STARTCYL/N/K  Starte die Suche bei diesem Zylinder. Das ist nützlich,
+                    wenn man die Suche mit CTRL-C abgebrochen hat, oder wenn
+                    man sehr große Partitionen hat und ungefähr weiß, wo die
+                    nächste beginnt.
+                    HINWEIS: man kann RDBrecov nicht fortsetzen, wenn man
+                             Informationen über FFS-Partitionen benötigt.
+
+
+NSD/S               Die Benutzung von NSD-Befehlen erzwingen.
+
+TD64/S              Die Benutzung von TD64-Befehlen erzwingen.
+
+DEEPPFS/S           Suche nur nach PFS Partitionen. Ignoriere den DosType und
+                    untersuche direkt den Root-Block. Vielleicht findet man
+                    damit mehr PFS oder AFS Partitionen, besonders, wenn der
+                    "Reserved"-Bereich der Partition überschrieben wurde.
+                    (Der "Reserved"-Bereich enthält normalerweise nur den
+                    DosType und ist mit Nullen aufgefüllt).
+                    HINWEIS: diese Option impliziert NOFFS und MAXPART=0.
+
+NOCHECK/S=NOFFSCHECKSUM
+                    Schaltet Checksummen-Prüfung für FFS-Partitionen ab.
+                    Benutze dies nur, wenn DEEPFFS deine Partitionen nicht
+                    findet.
+
+DEEPFFS/S           Macht den zweiten Durchgang, der für FFS-Partitionen
+                    benötigt wird, genauer. Das ist viel langsamer als der
+                    normale Modus aber sollte alle Partitionen finden. Es
+                    werden Fortschrittsanzeigen ausgegeben, um zu sehen,
+                    was vor sich geht.
+
+                    ACHTUNG: Hiermit werden viel mehr falsche Partitionen
+                             gefunden, die sich mit anderen überlappen !!
+                             Du solltest RDBrecov zuerst im normalen Modus
+                             laufen lassen und dann noch einmal mit DEEPFFS,
+                             aber dann den Suchbereich mit den Parametern
+                             START und CYLINDERS so einschränken, dass immer
+                             nur eine Partition, die vorher nicht gefunden
+                             wurde, gesucht wird !
+
+MOUNTLIST=ML/K      Dateiname einer Mountlist, in die alle Daten der Partitionen
+                    gespeichert werden sollen. Du kannst sie benutzen, um eine
+                    oder alle Partitionen zu mounten und die Dateien auf eine
+                    andere Disk zu kopieren. Benutze dies, wenn du den RDB nicht
+                    wiederherstellen möchstest oder wenn der RDB aufgrund eines
+                    physischen Defekts nicht mehr geschrieben werden kann.
+
+                    ACHTUNG: Du musst die Mountlist vor der Benutzung überprüfen !
+                             Du darfst keine überlappenden Partitionen mounten !!!
+                             Du solltest die Werte für BufMemType, MaxTransfer
+                             und Mask prüfen !
+
+MOUNTFILE=ML/K      Dateiname einer Mountdatei. Die Mountdatei kann direkt in
+                    die HDToolBox von OS 3.5 oder besser eingeladen werden.
+
+                    ACHTUNG: genau wie bei Mountlisten werden für viele Parameter
+                             Standardwerte angenommen. Du mußt die Einstellungen
+                             in der HDToolBox alle prüfen !
+
+                    HINWEIS: die Mountdatei erwartet alle Dateisysteme in L:.
+                             Wenn du beim Einladen der Mountdatei den Fehler
+                             233 bekommst, prüfe ob alle Dateisysteme in L:
+                             gespeichert sind.
+
+PFSTYPE/K           DosType für PFS-Partitionen in der Mountlist. Damit kannst
+                    du den Default von 50465302 überschreiben.
+
+IGN=IGNOREERRORS/S  Ignoriere Lesefehler. (Du solltest sicherstellen, dass der Wert
+                    für CYLINDERS stimmt, oder RDBrecov wird für lange Zeit Fehler
+                    ignorieren.)
+
+@ENDNODE
+@NODE "d_messages" "RDBrecov Guide deutsch"
+@TOC "main"
+
+Fehlermeldungen
+===============
+
+OpenDevice failed
+
+        Die angegebene Kombination aus Device und Unit konnte nicht
+        geöffnet werden. Überprüfe diese Werte.
+
+
+cannot create IORequest
+cannot create reply port
+
+        Meistens zu wenig Speicher. Starte den Rechner neu und versuche
+        es noch einmal.
+
+
+device does not support NSD or TD64 for harddisks >4GB
+
+        Es scheint, dass dein Festplattentreiber nicht darauf vorbereitet
+        ist, Festplatten größer als 4GB anzusprechen. Stattdessen benutzt
+        er SCSI-Direct Befehle. Da ich nichts über SCSI-Direct weiß, ist
+        das (noch) nicht in RDBrecov eingebaut.
+        Wenn du OS3.5 besitzt oder NSDPatch installiert hast, kannst du
+        einen Eintrag in der Datei NSDPatch.cfg für deinen Treiber machen.
+
+
+TD_READ Error = <n> (text)
+
+        Lesefehler auf der Festplatte. <rc> ist der Fehlercode, der vom
+        Treiber zurückgegeben wurde. Wenn bekannt, ist 'text' eine kurze
+        Beschreibung des Fehlers.
+
+
+TD_GETGEOMETRY Error = <n> (text)
+
+        Der Treiber unterstützt das TD_GETGEOMETRY-Kommando nicht. <rc>
+        ist der Fehlercode, der vom Treiber zurückgegeben wurde. Wenn
+        bekannt, ist 'text' eine kurze Beschreibung des Fehlers.
+
+        Um die Festplatte trotzdem zu bearbeiten, müssen alle drei Parameter
+        SECTORSIZE, CYLINDERS und CYLSECTORS angegeben werden.
+
+
+not enough memory for buffers
+
+        Zuwenig Speicher für Puffer. RDBrecov benötigt Speicher für
+        mindestens 3 Disk-Blöcke.
+
+
+More partitions than table entries !
+
+        Mehr Partitionen, als in die Tabelle passen. Benutze den MAXPART-
+        Parameter, um die Anzahl zu erhöhen. Oder benutze den NOFFS-Schalter,
+        wenn du keine FFS-Partitionen benötigst.
+
+not enough memory for mountlist
+not enough memory for mountlist part
+
+        Ich glaube kaum, dass du so wenig Speicher hast.
+
+
+cannot open mountlist file
+
+        Du hast eine Mountliste angefordert, aber die genannte Datei kann
+        nicht zum Schreiben geöffnet werden. Überprüfe den Dateinamen und
+        versuche es noch einmal.
+
+
+cannot open mountfile
+
+        Du hast eine Mountdatei angefordert, aber die genannte Datei kann
+        nicht zum Schreiben geöffnet werden. Überprüfe den Dateinamen und
+        versuche es noch einmal.
+
+@ENDNODE
+@NODE "d_bugs" "RDBrecov Guide deutsch"
+@TOC "main"
+
+Einschränkungen / Fehler
+========================
+
+- Eine FFS-Partition wird nur erkannt, wenn ihr eine andere bekannte
+  Partition unmittelbar folgt. Ansonsten kann der Root-Block nicht
+  gefunden werden. (Obwohl diese Partitionen nicht geloggt werden,
+  schreibt RDBrecov den Start-Zylinder in das Shell-Fenster als
+  potentielle FFS-Partition (possible FFS partition)).
+
+- ToDo: Die Mountlist-Funktion so erweitern, dass man sie mit der
+  Funktion "Mountdatei laden" der HDToolbox benutzen kann.
+
+@ENDNODE
+@NODE "d_history" "RDBrecov Guide deutsch"
+@TOC "main"
+
+History
+=======
+
+V1.8    Support für Mountdateien der HDToolBox V45 hinzugefügt.
+
+V1.7    Fehler behoben: die Größe von SFS-Partitionen wurde falsch angezeigt,
+        wenn die Partition eine ungrade Anzahl Zylinder hatte.
+
+V1.6    Fehlendes Komma in der Parameter-Schablone ergänzt.
+
+        Neuer Parameter LUN.
+
+V1.5    DEEPFFS-Verarbeitung verbessert. Produziert nicht mehr so viele falsche
+        Partitionen.
+
+V1.4    DEEPFFS Parameter eingeführt, um mehr FFS-Partitionen zu finden.
+
+V1.3    Partitions-Daten können jetzt in eine Mounlist gespeichert werden, um sie
+        sofort zu benutzen.
+
+V1.2    Die Checksumme von SFS-Rootblocks wurde falsch berechnet, weshalb einige
+        Partitionen nicht gefunden wurden.
+
+V1.1    Deutsche Anleitung !
+        Anleitung als AmigaGuide.
+
+        FFS Partitionen werden geprüft, auch wenn ein Lesefehler aufgetreten
+        ist.
+
+V0.7    Fehler bei TD_GETGEOMETRY werden nun ignoriert, wenn alle Größen-
+        Parameter angegeben sind. (Wenn du wirklich der Anleitung folgst,
+        sind sie immer angegeben.)
+
+V0.6    RDBrecov kann nun auch FFS Partitionen erkennen.
+
+V0.5    Benutzung von TD_GETGEOMETRY korrigiert. Jetzt wird dg_TotalSectors
+        anstelle von dg_Cylinders benutzt.
+
+@ENDNODE

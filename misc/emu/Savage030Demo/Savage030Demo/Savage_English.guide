@@ -1,0 +1,600 @@
+@database Savage_english.guide
+@master Savage_english.guide
+@$VER:  1.3
+@author "László Török"
+@font phxmagyar.font 8
+@(c) "22.09.96"
+
+@node "Main" "Savage Main Menu"
+
+                   Savage-videodriver for 030/MMU AGA/ECS/OCS Amigas
+
+                          For ShapeShifter Macintosh Emulator
+
+                               Version 1.3 (Registered)
+
+                             © Copyright 1996 László Török
+
+
+@{"  What's this?           " link "micsoda" }      The driver's description
+@{"  Requirements           " link "kell" }      Required hard & software
+@{"  What's the MMU?        " link "MMU" }      Technical description of the MMU
+@{"  Tech stuff             " link "tech" }      Tech stuff about the driver
+@{"  Configuring            " link "konf" }      How to configure the driver under ShapeShifter
+@{"  Refresh rate           " link "fris" }      Setting the refresh rate
+@{"  Testresults 15bit      " link "tes15" }      15bit tests & results
+@{"  Testresults  8bit      " link "tests" }      256 colors test & results
+@{"  Testresults  4bit      " link "tes4b" }      16 colors test & results
+@{"  Used things            " link "felha" }      Used hard & software
+@{"  Author                 " link "keszit" }      Who did it? 
+@{"  Support sites          " link "supp" }      Where you find the new versions of this driver
+@{"  To do...               " link "kellmeg" }      Things to do...
+@{"  History                " link "revlist" }      Differences between the versions
+@{"  Thanks                 " link "koszi" }      The author wishes to thank..
+@{"  Copyright&other stuff.." link "legal" }      Legal mush
+
+Please read the Savage030demo.readme first!
+
+@endnode
+
+@node "kell" "Required hard&software..."
+
+Requires:
+
+Kickstart 3.0+ (for the 4bit modes too!!)
+
+an AGA Amiga for the 256 & 15 bit modes (A1200/A4000)
+
+OCS/ECS  for 16 color & 8bit->4bit versions (A500/+/A600,A2000,A2500,A3000,ofcourse AGA
+is good too!)
+
+Softkicked  A3000's:   if  this  driver  not work, please try the "PatchA3000MMU" tool,
+which is part of the FastECS1.2 (available on aminet misc/emu directory), after use the
+MMUoff program (which is in the A3000 directory), and after try to use this driver.  If
+the driver doesn't work after the patch too, please report it!
+
+A turbo/processorcard/processor which contains a full 68030 (NOT EC030!!)
+(Standard A4000/30 not... )
+examples:Blizzard A1230/50Mhz card or A4030/50 processorcard
+ex-GVP cards (50 Mhz CPU)
+And the M-Tec cards which contains full 68030
+
+It will not work on 68040/60! (Savage040-060 ofcourse yes, demo version is on the AmiNET)
+
+ShapShifter3.2 or newer...  (Tested only under 3.5)
+
+MUCH Fast memory...
+
+@endnode
+
+@node "micsoda" "What's diz?"
+
+Sadly the ShapeShifter doesn't support the MMU of the 030-boards, to speed up the
+screen refresh. So all of full 030 users need to use other drivers, which try to reach
+the faster speed without MMU (examples: AGA-EVD,Agabooster)
+
+But these drivers slow down the emulations, when none in the gfx changed (because the
+delta buffer check..) , especially in smaller refresh rates (1 or 2)
+
+So i write this driver to fix these problem, because with the help of MMU only these
+lines need to be freshen, which changed since the last refresh. Because this is detected
+by hardware-way, you able to try ShapeShifter with refresh rate 1 !
+(without big slowdown!!)
+
+Note:Because this version now contains delta-buffer you able to use on a 68030/50 a 256
+color version at refresh rate 1 without big slowdown, when the maximal change area of
+the screen is around 320x200/frame!
+
+@endnode
+
+@node "MMU" " Technical description of the MMU "
+
+Lets start with the name:
+MMU = Memory Management Unit
+
+As you can see its mission to do some things with the memory handling.
+(example: write protection, cache inhibit, showing the memory changes, others)
+
+But the AmigaOS (yet) doesn't support the memory handling wit MMU, so the MMU is
+doesn't need to be in an Amiga.
+
+Only some applications use it, where its really need: enforcer, VMM, cpu fastrom
+option, all UNIX and the LINUX, because almost unable to emulate it via software.
+(i can say UNABLE to emulate it via software way)
+
+As you can see the MMU is a memory handling unit, so unable to do other thing to do
+(example:chunky->planar conversion) Because many people think it from the option of the
+ShapeShifter called "MMU refresh", how the MMU make the refresh, but its DON'T TRUE!
+
+The MMU only able to handle the memory with (small) pages. (example: the 68851 in the
+68030 is able to work with:  256byte, 512byte, 1k, 2k, 4k, 8k, 16k, 32k big pages)
+
+And when we divide the Macintosh video memory to exam: 1kb size pages, the mmu is able
+to show how there was a difference in this page, and if yes, then we need only convert
+this chunk.
+
+Ok that's all about MMU. If you interested by other technical information about this
+driver then take a look to @{"Technical description" link "tech" }!
+
+
+@endnode
+
+@node "tech" "The technical description of the Driver (only for experts .... :)
+
+As i said it at the @{"MMU" link "MMU" } part, this driver does not other, only convert
+the changed parts of the display (which displayed by the MMU) from chunky to simple
+Amiga planar mode.
+
+This driver uses 256kb root page table, and one, two or three (depends from the mac
+videomemory ) pages and an other buffer for the remap8k.
+(That was the technical parameters of the MMU)
+(This driver uses similar MMU configuration, like in the FastECS 1.2 I haven
+the idea from that driver to write a 256 color driver..)
+
+The function remap8k is not other, than the driver remaps the lower 8k of the memory to
+the fastram, for higher performance. (similar function is in the ShapeShifter for
+040/060) This function gives on Amiga almost nothing difference, but the emulated mac's 
+math performance raises around 20-30% , and only cost 16kb of memory on the Amiga side.
+All Savage driver uses the remap8k function.
+
+The chunky->planar algorithm is a one pass cpu only algorithm, which can slow down the
+CPU when many pixels changes. This will be limited in the next versions.
+(Similar routine is in the AGA-EVD 1.2 i think... :)
+
+This version now uses delta-buffer, so the speed up (compared with 1.0) is around
+50-400%! (but requires more memory... )
+
+@endnode
+
+
+@node "konf" "Configuring the drivers under ShapeShifter"
+
+Simply  copy  the  drivers to the directory called "Video Drivers", because that is the
+default searching path of the external video drivers.
+
+1x1 drivers:
+From  version  1.3  not  limited the resolution of the 1x1 4bit & 8bit drivers, and the
+8bit->4bit driver.
+
+The  8bit  driver  is  usable, when the MACINTOSH display memory requirement is smaller
+than  512kb.   The  memory  requirement  of  the  display is easy to calculate:  simply
+multiple the display width with the display height.
+
+Example:
+640x480=307200, which is smaller than 524288, so usable.
+
+The  4bit  driver  is  usable, when the MACINTOSH display memory is smaller than 256kb,
+which  is  equal  in resolutions with the 8 bit driver, because similar 4bit resolution
+needs half of the memory as in the 8bit mode.  (i think this is logical..)
+The memory requirements of the 4bit mode can calculate at the followings:  multiply the
+display widht with the display height, after divide it by 2.
+
+Example:
+640x480/2=153600, which is smaller than 262144, so usable.
+
+!IMPORTANT!:
+Thats,  how the resoultion is able free to set, not means, how you can use any *stupid*
+resolution,  and  it will works!  I maked this option because many people asked for it.
+(i  dont  able  to  make guarantee using not recommented resolutions, because its a MAC
+side problem, not the driver's problem!)
+
+Recommented and legal MAC resolutions are the nexts: (whichs usable)
+512x384
+640x480
+832x624  (Because  i  dont  know,  how  the  MAC's  support the 800x600 mode, because a
+PowerMAC 7100 is support only this resolution)
+
+I want two things to say:
+-If  select  a  display  mode (which is not in the upper list) please make sure how the
+width dividable with 64. (thats not require for the driver, only need for the MAC
+programs)
+
+-Make sure, how the display memory is dividable with 1024. (all the upper resolutions
+are so) Because the driver cut the convertable memory to 1024 dividable parts, and when
+its not dividable with 1024, then possible how some pixels/lines will be not converted.
+
+15Bit driver:
+
+Here is only resolution 640x480 and ofcourse you must select 15bit colors.
+(That's will be converted to ham8)
+
+8bit->4bit driver:
+
+This is new from 1.3.
+Using  this  driver  you able to run 256 color/gray applications on OCS/ECS machines 16
+grayscale  (you  able  to  play with wolf 3d ;).  (you must set 256 colors to the color
+number)
+(a fast conversion routine convert the 256 color/gray graphics to 16 grayscale)
+The driver able to convert both color/gray graphics, all will be convert to 16 grays.
+(its not important the how the Control Panels/Screen color or gray is to set, but some
+programs (example:wolf3d) need to be set color to run)
+The drivers memory requirement is similar as the simple 8 bit mode.
+
+2x2 driver:
+Savage2x2_640x480_8bit  here the resolution is only 320x240 (similar like in
+                        Xanth-driver)
+
+
+
+Memory requirements:
+The first turn off the largest free block option, and set by manual the memory size.
+The driver's memory requirements:
+(the 8bit and 4bit modes are examples)
+
+Savage8bit  (640x480)     856 kb  ( 640x480 = 300kb+256kb MMU page fix+300kb dbuff)
+Savage8bit->4bit(640x480) 856 kb  ( 640x480 = 300kb+256k+300kb)
+Savage4bit  (640x480)     556 kb  ( 640x480 = 150kb+256kb+150kb)
+
+Savage2x2_640x480_8bit    886 kb  (1024x480 = 480kb+256kb+150kb)
+Savage_640x480_15bit     1488 kb  ( 640x480 = 600kb+256kb+600kb+32kb ham8convtab )
+
+Savage8bit (512x384)      640 kb  ( 512x384 = 192kb+256kb+192kb)
+Savage4bit (512x384)      448 kb  ( 640x480 = 300kb+256kb+300kb)
+
+
+Sadly (you can see it ...) for the easier handling the MMU page all driver's need 256kb
+more memory than other ways....
+
+I think you discovered it, how the 2x2 mode in the resolution 640x480 need more memory,
+but it have a simply answer.  For the higher speed every line need to be 1kb.  (because
+the pagesize of the mmu is 1kb too)
+
+So simply sub these values from the maximal memory and write it to the mac memory.  (if
+the mac videoram, or other puffer located in the chip memory the driver will be opens a
+requester and quit.  So sub a little bit more if you want sure to start it!)
+
+But  these  values  are  the  most bigger values, and its able to start them at smaller
+memory.  (around 100-200kb smaller)
+
+At last the @{"setting the refresh" link "fris" } is coming.
+
+@endnode
+
+
+@node "Fris" Setting the refresh rate
+
+
+Because this driver uses MMU, you should first try it with refresh rate 1.
+(At the 15bit mode too!!)
+This are recommended when changes an area of size around 320x256/frame, and requires
+much CPU power at same time:little screen games, emulators (Hi Louise!), image
+manipulators.  Or simply requires much CPU power:  like ray-tracers, DTP programs.
+
+But when you can use so program what makes many screen manipulation (ex:games) then you
+should try refresh 2 or 3 , or better try the 2x2 versions of the driver, and you can
+reach a good CPU/Graphics speed.
+
+Note: All values is for a 50Mhz 68030 at 256 color mode!
+
+@endnode
+
+@node "tests" "Test results-8bit"
+
+Test machine: A1200-68030/50 Mhz 2meg Chip+4meg Fast No FPU
+Software:Mac System7.1 (Hungarian) 40 meg hd - ShapeShifter 3.5
+(macintosh rom was everywhere in the fast memory - so the faster speed was everywhere)
+
+I make the tests with Speedometer 4.0.
+The resolution is everywhere 640x480 256 colors.  (except the Amiga 1 bit, that i
+include it for comparison)
+(The Amiga1bit and the Amiga8bit is the internal drivers of the ShapeShifter 3.5 , all
+other is external driver)
+
+1.0=Mac Quadra 605 (68040/25Mhz)
+
+Driver:          Savage  SavageSavage2x2  Xanth Amiga8bit Aga-Evd AGAboost Amiga1bit
+Version:            1.3     1.3      1.3     1.0      3.5     1.2      0.9       3.5
+Refresh rate:         1       2        2  intern        4       3        2         -
+------------------------------------------------------------------------------------
+CPU:              0.777   0.789    0.791   0.603    0.296   0.528    0.621     0.801
+MATH:             1.924   1.956    1.961   1.319    0.619   1.085    1.371     1.789
+Benchmark Aver:   0.677   0.681    0.687   0.524    0.257   0.445    0.558     0.699
+Color Quickdraw:  0.346   0.411    0.556   0.451    0.279   0.392    0.387     0.608
+
+Note: the Xanth driver uses internal refresh (i think..) what is around 2.
+
+As you can see this driver offers you the higher CPU/MATH speed, and the color
+quickdraw value is high too (especially when you look, how its made with refresh rate
+1...)
+
+The driver 2x2 is recommended for games, with higher color quickdraw speed and
+excellent CPU performance.  (and the c2p routine is nicer than in the Xanth...)
+
+
+Here is some other test results with a program called: BenchmarkV1.0B3 
+(i write only the important test results, and here is all values in seconds, smaller
+values are higher performances)
+
+
+Driver:          Savage  Savage Savage2x2  Xanth Amiga8bit Aga-Evd AGAboost Amiga1bit
+Version:            1.3     1.3       1.3     1.0       3.5     1.2      0.9       3.5
+Refresh rate:         1       2         2  intern         4       3        2         -
+--------------------------------------------------------------------------------------
+Moire:              8.42   7.30      6.43    7.12      7.95    8.08     6.82      5.22
+Butterfly:         13.10  12.10     11.03   13.47     18.57   18.45    15.18     10.70
+Ripples:           80.87  80.50     76.63  113.70    144.60  140.60   111.63     81.80
+
+Sadly i was unable to test it with games, because i have only 4 meg fastmem...  :((( 
+
+@endnode
+
+@node "tes4b" "Test results-4bit"
+
+Test machine: A1200-68030/50 Mhz 2meg Chip+4meg Fast No FPU
+Software:Mac System7.1 (Hungarian) 40 meg hd - ShapeShifter 3.5
+(macintosh rom was everywhere in the fast memory - so the faster speed was everywhere)
+
+I make the tests with Speedometer 4.0.
+The resolution is everywhere 640x480 16 colors.  (except the Amiga 1 bit, that i
+include it for comparison)
+(The Amiga1bit and the Amiga4bit is the internal drivers of the ShapeShifter 3.5 , all
+other is external driver)
+
+1.0=Mac Quadra 605 (68040/25Mhz)
+
+Driver:          Savage Aga-Evd FastECS Amiga1bit Amiga4bit
+Version:            1.3     1.2     1.2       3.5       3.5
+Refresh Rate:         1       2  intern         -         3
+-----------------------------------------------------------
+CPU:              0.787   0.559   0.795     0.801     0.614
+MATH:             1.934   1.256   1.928     1.789     1.372
+Benchmark Aver:   0.687   0.485   0.695     0.699     0.531
+Color Quickdraw:  0.492   0.475   0.262     0.608     0.500
+
+Comment: the FastECS driver uses internal refresh which is around 1.
+
+As  you  can  see  this  driver  offers  you  the  higher CPU/MATH speed, and the color
+quickdraw  value  is high too (especially when you look, how its made with refresh rate
+1...), and this driver is around 2 times faster than FastECS.
+(this driver in 256 color mode is around 30% faster than FastECS in 16 colors...  !!)
+
+
+Here is some other test results with a program called: BenchmarkV1.0B3 
+(i  write  only  the important test results, and here is all values in seconds, smaller
+values are higher performances)
+
+Driver:          Savage  Aga-Evd FastECS Amiga1bit Amiga4bit
+Version:            1.3      1.2     1.2       3.5       3.5
+Refresh rate:         1        2  intern         -         3
+------------------------------------------------------------
+Moire:             6.53     6.95    7.45      5.22      6.48
+Butterfly:        11.17    15.52   11.62     10.70     14.37
+Ripples:          78.72   120.98   78.65     81.80    110.00
+
+
+@endnode
+
+@node "tes15" "Testresults-15bit"
+
+Sadly (because i have only 4 megs of Fastram..) i was not able to start SpeedoMeter,
+(when the Macintosh rom located in the fast memory...) and here is no testresults :(((.
+
+Note:  but looks like, how this driver with refresh rate 1 is very usable, and MUCH
+faster than AGA-EVD.  (If you don't think it so, then try AGA-EVD with refresh rate 1...
+;)
+
+@endnode
+
+
+
+@node "keszit" "About the author"
+
+
+If you have any problems, suggestion, bug reports then write to:
+
+snail mail:             László Török (pH03N1x/CDi)
+                        H-8900 Zalaegerszeg 
+                        Cserfa 31.
+                        Hungary
+phone:                  +36 92 310 396 (after 18:00 CET)
+
+E-Mail : phoenix@master.fok.hu
+or:      phoenix@fok.hu         (i think equal with the previous..)
+or:      torokl@alpha.dfmk.hu   <- work
+
+I think now i have an account on the @{"Dark Millennium BBS" link "supp" } So you can
+reach me under user name:  phoenix (Thanks Dark!)
+
+iRC (not so often..) : pH03N1x@iRC (#magyar, #amiga vagy #amigahu channels)
+
+U can check my homepage at (a bit old): http://www.fok.hu/~phoenix
+(out of order, becoz the home volume fucked up..)
+
+As u can see my english knowledge is very limited, and my german is MUCH better...
+(ich denke so... ;)
+
+@endnode
+
+
+
+@node "supp" "The support sites"
+
+
+You able to find the new demo versions of this driver on the following sites:
+Aminet: misc/emu subdirectory
+
+and
+
+Dark Millennium BBS:        (CDi WHQ/Crimson Jihad Distro)
+
+phone: +36 93 320 679
+
+HW: A1200-68060/60 18 meg ram 1.3GHD 4xCD-ROM 28.8k
+open: every day 22.00-06.00 (CET)
+
+Sysop: Dark/CDi
+
+@endnode
+
+@node "revlist" "Revision history"
+
+0.9b (10.06.1996)       First working version .... (yeeeepp :)
+                        Size-optimization... (its good for now a 4kb intro.. :)
+                        Including Remap8k 
+
+1.0  (11.06.1996)       Including BorderBlank function
+                        1x2 and 2x2 and 512x384 versions
+                        Some memory frees bug fixed
+
+1.1  (17.06.1996)       Delta-Check buffer added (50-400% speed increase!)
+                        4 bit version added (around two times faster than FastECS 1.2)
+                        15 bit version added (very fast at refresh rate 1!)
+                        Stop supporting 1x2 versions (there was not a big speed
+                        difference compared with the 2x2 versions)
+
+1.11 (19.06.1996)       Heavy code optimization->10% faster drivers
+                        Fixed some memory freeing & MMU turnoffing problems
+                        Some little bugfix in the 4bit drivers
+
+1.12 (22.06.1996)       MUCH heavier code optimization->again 10% speed up 
+                        (only in the 4bits, and the simply 8 bit drivers)
+
+--------------FREEWARE conception changed to SHAREWARE ---------------------------------
+
+1.2  (28.08.1996)       Screen memory allocation is MUCH safer.
+                        All important memory address is now 32bit address:+5%speed up
+                        New version string handling (very important ;)
+                        (i think higher speed is not possible whitout changing the c2p
+                        routine)
+
+
+1.3  (22.09.1996)       1x1 4/8 bit modes able free to select the resoulution
+                        New 8bit->4bitgray driver
+                        Some optimization in the init routines
+
+@endnode
+
+@node "kellmeg" "To do list:"
+
+The MMU is limited to 2GB.. i hope this area contains the M-Tec and the GVP cards ram
+address range.                                (if not so sorry... i have Blizzard :)
+
+The c2p routine will be changed a CPU+Blitter routine.  (CPU+Blitter rules...  we are
+on Amiga -not?  ;)
+
+Fast 15bit->256 colors (332 dither) and 15bit->256 gray conversion
+
+16 colors Workbench-window version (only on AGA)
+
+@endnode
+
+@node "felha" "Used hard & software"
+
+Hardware:
+
+A1200-68030/50 (BlizzardIII) 2meg Chip + 4 meg Fast
+
+Samsung 120 meg HDD (from it around 20megs bad block :((((( and the reading speed is 
+300kb/s on 68030/50... and random crashes... :(((  (some contact errors..) don't can
+give somebody a usable (little is good too!) HDD? ...)
+
+Ehh... now i have a "usable" HDD... 170 MB Quantum rulez
+
+1084s monitor.... (its important... :)
+
+2x80watt audio.... (its MUCH important... :)
+
+Technics RS-TR 333 Deck
+
+Sony  MDR  CD250  Headphone  (to keep the family peace...  i think dont need to use the
+2x80 at the night...  or ?  ;)
+
+
+Software:
+
+Shapeshifter-ExeternalVideodriver manual level2 by Christian Bauer
+                        (A very good & usable manual & driverspecification description)
+
+Asm-one 1.29 ..         This version is able to compile MMU code... but still have bugs
+                        so dc.l $f0114000 rulez again...
+
+MMU Expert 1.32         by F.Bürgel... (oldie but goldie! (from 1991))
+
+HippoPlayer 2.30        need some zax for developing...
+
+D68k 2.0.7              The best resourcer on Amiga (i think better than resource 6.0)
+                        (FULL MMU,FPU,68000-68060 support!)
+
+This file checked with the MacWrite Spelling checker... (From Shape...)
+
+44 Guru (reported by MCP gurureport) (from MMU config error to corrupt memory list in
+freememen and some illegal instruction so Amiga rulez... ;)
+
+
+@endnode
+
+
+@node "koszi" "The author wishes to thanks:"
+
+The author wishes to thanks:
+
+Christian Bauer                 For the World's best Macintosh emulator, and the
+                                awesome external videodriver concept
+
+K-P Koljonen                    for Hippoplayer
+
+Psycho@master.fok.hu            for the account,and for the free HDD(almost unusable ;) 
+
+Pawel Hernik                    for AGA-EVD, and for the c2p routine (and 4bit c2p too)
+                                and for the 15bit->ham8 conversion routines (this is a
+                                very fast&good routine!)
+
+Peter McGavin                   for the fastest c2p routines on Amiga
+
+Chris Brenner                   for FastECS  (which uses similar MMU config like this
+                                driver) , and for the idea of remap8k
+
+Michael 'Xanth' Spenner         for the 2x2 version idea
+
+Dennis Arketyd                  for the Agaboost driver
+
+To all registered users!
+
+Other greetinx:
+
+Amiga:  Dark/CDi, Shamen/CDi, Flex/Frame18, Anorganic/Promise, Pogi/Crimson Jihad
+        Hanzi/???, Chexum
+
+        Louise/??????      -       A ShapeShifter maniac... ;) (like me...)
+        All members of Amiga Only       <- The best Hungarian amiga-user mag
+
+PC:     Basq/Tsi Alive, Trajic/Shock!, Hamster/???, Dada
+
+Thanks for the ql music (tg96 4 channel compo...) which i heard very often during
+developing.. 
+
+mod.After Eight
+mod.AlleSammen
+mod.ba'rock
+mod.big'n funky         <- this is my favorite...
+mod.dawn of a new man   <- this too...
+mod.keys to imagination <- and this too...
+mod.river volga
+
+And a BIIIIGG greets to all sid composer. (i have a BIIIGG sid collection)
+
+And the following composers:
+Jogeir Liljedahl
+Scorpik
+XTD
+
+Last, but not at least: the Developers of the Amiga and AmigaOS (yes this is a really
+OS -okay, have some bugs- , but really fun to develop under it!!)
+
+Fuck to all PC-owners who's think how Amiga is a game-machine...
+
+@endnode
+
+@node "legal" "Legal mush"
+
+This  driver  is  SHAREWARE, but only the registered users have a permission to use it,
+and dont able to give it to other peoples.  Use it at your own risk. (the old driver
+was FREEWARE, but becoz i get 0 (yes 0!!!) donation from the users i changed it to
+SHAREWARE... )
+
+Amiga  and  the  AmigOS  is  registered  trademark of ESCOM or Viscorp (i don't know it
+exactly...  it changes to often..)
+
+Macintosh is registered trademark of Apple computer INC.
+
+@endnode

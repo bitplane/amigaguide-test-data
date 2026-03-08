@@ -1,0 +1,1002 @@
+@database Savage040-060_eng.guide
+@master Savage060_eng.guide
+@$VER:  2.41
+@author "László Török"
+@font phxmagyar.font 8
+@(c) "04.05.97"
+
+@node "Main" "Savage040-060 Main Menu"
+
+                         Savage-videodriver for 040-060 Amigas
+
+                          For ShapeShifter Macintosh Emulator
+
+                                     Version 2.41
+
+
+@{"  What's this?            " link "micsoda" }      The driver's description
+@{"  Requirements            " link "kell" }      Required hard & software
+@{"  What's the MMU?         " link "MMU" }      Technical description of the MMU
+@{"  Tech stuff              " link "tech" }      Tech stuff about the driver
+@{"  Configuring             " link "konf" }      How to configure the driver under ShapeShifter
+@{"  Refresh rate            " link "fris" }      Setting the refresh rate
+@{"  VBLANK vs. Normal       " link "vblank" }      VBLANK vs normal refresh
+@{"  Testresults 68060/60Mhz " link "tests060" }      68060/60Mhz testresults
+@{"  Testresults 68040/40Mhz " link "tests04040" }      68040/40Mhz testresults
+@{"  Testresults 68040/25Mhz " link "tests04025" }      68040/25Mhz testresults
+@{"  Opps! I have problems!  " link "gondok" }      Click here if you have problems with this driver
+@{"  Used things             " link "felha" }      Used hard & software
+@{"  Author                  " link "keszit" }      Who did it? 
+@{"  Support sites           " link "supp" }      Where you find the new versions of this driver
+@{"  To do...                " link "kellmeg" }      Things to do...
+@{"  History                 " link "revlist" }      Differences between the versions
+@{"  Thanks                  " link "koszi" }      The author wishes to thank..
+@{"  Copyright&Registration  " link "legal" }      Registration & Copyright
+
+If this version is a demo version, then please read the "Read_me_First" file!
+
+@endnode
+
+@node "kell" "Required hard&software..."
+
+Requires:
+
+Kickstart 3.0+ (for the 4bit modes too!!)
+
+an AGA Amiga for 15bit/8bit and ECS/OCS for 4bit
+
+A turbo/processorcard/processor which contains 68040 or 68060
+
+Tested (and works) with:  
+Blizzard A1240ERC
+Blizzard A1260
+Cyberstorm MK II (68040/40)
+A4000/6840-25 (standard Commodore CPU card)
+
+ShapShifter3.2 or newer...  (Tested only under 3.5/3.6/3.7)
+
+MUCH Fast memory...
+
+@endnode
+
+@node "micsoda" "What's diz?"
+
+Sadly the ShapeShifter's internal MMU driver is a bit slow, and the other non MMU based
+drivers slow down the emulation speed, when none (or few) pixels changed since the last
+refresh.
+
+So i developed this driver , because with the help of MMU only these lines need to be
+freshen, which changed since the last refresh.  Because this is detected by
+hardware-way, you able to try ShapeShifter with refresh rate 1 !
+(without big slowdown!!)
+
+@endnode
+
+@node "MMU" " Technical description of the MMU "
+
+Lets start with the name:
+MMU = Memory Management Unit
+
+As you can see its mission to do some things with the memory handling.
+(example: write protection, cache inhibit, showing the memory changes, others)
+
+But the AmigaOS (yet) doesn't support the memory handling wit MMU, so the MMU is
+doesn't need to be in an Amiga.
+
+Only some applications use it, where its really need: enforcer, VMM, cpu fastrom
+option, all UNIX and the LINUX, because almost unable to emulate it via software.
+(i can say UNABLE to emulate it via software way)
+
+As you can see the MMU is a memory handling unit, so unable to do other thing to do
+(example:chunky->planar conversion) Because many people think it from the option of the
+ShapeShifter called "MMU refresh", how the MMU make the refresh, but its DON'T TRUE!
+
+The 68060 after the boot from the 68060.library turn on the mmu, and this driver try to 
+use the default 68060's MMU config.
+(The 68040 makes similar, but use the 68040.library)
+
+And when we divide the Macintosh video memory to exam: 4kb size pages, the mmu is able
+to show how there was a difference in this page, and if yes, then we need only convert
+this chunk.
+
+Ok that's all about MMU. If you interested by other technical information about this
+driver then take a look to @{"Technical description" link "tech" }!
+
+
+@endnode
+
+@node "tech" "The technical description of the Driver (only for experts .... :)
+
+As i said it at the @{"MMU" link "MMU" } part, this driver does not other, only convert
+the changed parts of the display (which displayed by the MMU) from chunky to simple
+Amiga planar mode.
+
+This driver works only when the used processor/processordcard uses the following MMU
+configuratuion:
+
+RootPageTable 16 Megabyte
+LevelA PageTable 256 Kbyte
+LevelB PageTable 4 Kbyte
+
+(so   if  you  dont  understand  it,  simply  if  your  processorcard  uses  other  MMU
+configuration this driver will dont work ;)
+
+@endnode
+
+
+@node "vblank" "What is the difference between the VBLANK and the non VBLANK drivers?"
+
+As you can detect, here are two different versions from the drivers:
+(from the version 2.4)
+
+simply version
+and VBLANK version (the filename ending with the VBLANK string)
+
+What is the difference?
+In  the non-VBLANK driver you able to set the refresh rate (by using the ShapeShifter's
+Refresh  Rate  option),  but  the  VBLANK  drivers get the refresh rate from the screen
+(example  50  times  refresh  per second on PAL mode) which gives you MUCH smoother gfx
+operations.   (no  flickering  mouse  pointer,  smoother  scrolling  in  games  like in
+Warcraft)  Ofcourse the gfx speed is a bit slower (because of the higher refresh rate),
+but  this  only  noticable  by  the test programs (because almost all testprograms draw
+single  pixel lines, and this driver convert at least 32 pixels by one conversion), but
+in  the  most  case  the  smoother  effect  is better.  (simply try DOOM or Warcraft on
+Pal-Lace  screen  at  refresh  rate  1  with  normal  driver, and after with the VBLANK
+driver...  the VBLANK driver gives better and smoother results)
+
+@endnode
+
+
+
+
+
+@node "konf" "Configuring the drivers under ShapeShifter"
+
+
+Simply  copy  the  drivers to the directory called "Video Drivers", because that is the
+default searching path of the external video drivers.
+
+What is the difference between the normal and the VBLANK drivers?
+Press @{"here" link "vblank" } to see!
+
+1x1 drivers:
+From  version  2.1  not  limited the resolution of the 1x1 4/8/15bit drivers, and 
+from version 2.4 you able to set the resolution in all modes up to 1024x1024!
+
+The 15bit  driver  is  usable, when the MACINTOSH display memory requirement is smaller
+than  2048kb.   The  memory  requirement  of  the display is easy to calculate:  simply
+multiple the display width with the display height and multiply it with 2.
+
+Example:
+640x480*2=614400, which is smaller than 2097152, so usable.
+
+The  8bit  driver  is  usable, when the MACINTOSH display memory requirement is smaller
+than  1024kb.   The  memory  requirement  of  the display is easy to calculate:  simply
+multiple the display width with the display height.
+
+Example:
+640x480=307200, which is smaller than 1048576, so usable.
+
+The  4bit  driver  is  usable, when the MACINTOSH display memory is smaller than 512kb,
+which  is  equal  in resolutions with the 8 bit driver, because similar 4bit resolution
+needs half of the memory as in the 8bit mode.  (i think this is logical..)
+The memory requirements of the 4bit mode can calculate at the followings:  multiply the
+display widht with the display height, after divide it by 2.
+
+Example:
+640x480/2=153600, which is smaller than 524288, so usable.
+
+
+
+!IMPORTANT!:
+Thats,  how the resoultion is able free to set, not means, how you can use any *stupid*
+resolution,  and  it will works!  I maked this option because many people asked for it.
+(i  dont  able  to  make guarantee using not recommented resolutions, because its a MAC
+side problem, not the driver's problem!)
+
+Recommented and legal MAC resolutions are the nexts: (whichs usable)
+512x384
+640x480
+832x624  (Because  i  dont  know,  how  the  MAC's  support the 800x600 mode, because a
+PowerMAC 7100 is support only this resolution)
+
+Note:   in  the  8/15  mode you not able to use to use resolution 800x600 (like Super72
+etc.),  because  of the hardware limitation of the AGA chipset.  (because every line of
+every bitplane must be quad-longword aligned, this requires for the full 32 bit Chipram
+access - this is the maximum bandwith mode of the AGA)
+So in 8/15 bit modes use a width which is dividable with 64.
+(so please use 768x600 or 832x600 instead of 800x600)
+
+Note:of  course  a  workaround  is  possible,  but hard to do (because of the continous
+bitplane memory allocation, and requires MUCH memory, like the 2x2 driver)
+
+2x2 driver:
+Savage040-060_2x2       here the resolution is 640x480 but it will be converted to
+                        320x240 - like the Xanth-driver. Recommented for games, and for
+                        full screen animations.
+
+
+
+Memory requirements:
+The first turn off the largest free block option, and set by manual the memory size.
+The driver's memory requirements:
+(the 8bit and 4bit modes are examples)
+
+Savage040-060_8bit (640x480)   856 kb  ( 640x480 = 300kb+256kb MMU page fix+300kb dbuff)
+Savage040-060_4bit (640x480)   556 kb  ( 640x480 = 150kb+256kb+150kb)
+
+Savage040-060_2x2_8bit        2326 kb  (4096x480 = 1920kb+256kb+150kb)
+Savage_640x480_15bit          1488 kb  ( 640x480 = 600kb+256kb+600kb+32kb ham8convtab )
+
+Savage040-060_8bit (512x384)   640 kb  ( 512x384 = 192kb+256kb+192kb)
+Savage040-060_4bit (512x384)   448 kb  ( 640x480 = 300kb+256kb+300kb)
+
+
+Sadly (you can see it ...) for the easier handling the MMU page all driver's need 256kb
+more memory than other ways....
+
+I think you discovered it, how the 2x2 mode in the resolution 640x480 need MORE memory,
+but it have a simply answer.  For the higher speed every line need to be 4kb. (because
+the pagesize of the mmu is 4kb too)
+(sorry  for  it  but in the 68040/68060.library the default pagesize is set to 4kb, and
+its  too  big  for my routines, and because i want to make the highest speed i maked it
+so.  sorry again...)
+
+So simply sub these values from the maximal memory and write it to the mac memory.  (if
+the  mac  videoram,  or  other buffer located in the chip memory the driver will open a
+requester and quit.  So sub a little bit more if you want sure to start it!)
+
+But  these  values  are  the  most bigger values, and its able to start them at smaller
+memory.  (about 100-200kb smaller)
+
+At last the @{"setting the refresh" link "fris" } is coming.
+
+@endnode
+
+
+@node "Fris" Setting the refresh rate
+
+
+Because this driver uses MMU, you should first try it with refresh rate 1.
+(At the 15bit mode too!!)
+This  are  recommended  when  changes an area of size about 320x256/frame, and requires
+much  CPU  power  at  same  time:little  screen  games,  emulators  (Hi Louise!), image
+manipulators.  Or simply requires much CPU power:  like ray-tracers, DTP programs.
+
+But when you can use so program what makes many screen manipulation (ex:games) then you
+should try refresh 2.
+
+For  games  with  biiiig  scrolling  areas  (like  Warcraft) i recomment you the VBLANK
+version of the drivers.  (these give MUCH more smoother scrolling)
+
+@endnode
+
+@node "tests04040" "Test results 68040/40Mhz"
+Testmachine: 
+A1200-68040/40 (Blizzard 1240T/ERC) 2MB Chip + 16 MB Fast (my machine)
+C=1942 Multisync
+200 MB DeviceDisk under ShapeShifter
+
+Software: Hungarian MAC System 7.5, ShapeShifter 3.7
+
+8bit tests:
+
+The resolution was 640x480 8bit, and the used screenmode was Pal-HiresLace.
+
+Testprograms: Speedometer 4.0 (Color Quickdraw/CPU), Offscreen Toys boost (FPS),
+Symantec System info (Display test)
+
+1.0=Mac Quadra 605 (68040/25Mhz) 8bit mode 
+100% in the Display test is a Mac Quadra 700/8bit mode (68040/25 Mhz)
+
+Note to all tests: Higher Value = Faster Performance
+
+Driver:          Savage  TurboEVD
+Version:           2.41      34.1
+Refresh rate:         1         1
+---------------------------------
+Color Quickdraw:  0.610     0.621
+CPU:              1.478     1.476
+FPS:                 83        84   
+Display test:      36.5      36.9
+
+Same as above, but the screenmode is Multiscan:Productivity (640x480) - 61Hz
+
+Driver:          Savage  TurboEVD
+Version:           2.41      34.1
+Refresh rate:         1         1
+---------------------------------
+Color Quickdraw:  0.434     0.362
+CPU:              1.455     1.448
+FPS:                 81        68
+Display test:      20.4      16.4
+
+
+
+4bit tests:
+
+The resolution was 640x480 4bit, and the used screenmode was Pal-HiresLace.
+
+Testprograms: Speedometer 4.0 (Color Quickdraw/CPU), Offscreen Toys boost (FPS),
+Symantec System info (Display test)
+
+1.0=Mac Quadra 605 (68040/25Mhz) 8bit mode 
+100% in the Display test is a Mac Quadra 700/8bit mode (68040/25 Mhz)
+
+Note to all tests: Higher Value = Faster Performance
+
+Driver:          Savage  TurboEVD
+Version:           2.41      34.1
+Refresh rate:         1         1
+---------------------------------
+Color Quickdraw:  0.900     0.916
+CPU:              1.482     1.487
+FPS:                121       118
+Display test:      77.3      87.6
+
+Same as above, but the screenmode is Multiscan:Productivity (640x480) - 61Hz
+
+Driver:          Savage  TurboEVD
+Version:           2.41      34.1
+Refresh rate:         1         1
+---------------------------------
+Color Quickdraw:  0.883     0.902
+CPU:              1.474     1.473
+FPS:                114       112
+Display test:      73.8      84.3
+
+
+
+
+15bit tests:
+
+The resolution was 640x480 15bit, and the used screenmode was Pal-HiresLace.
+
+Testprogram: Speedometer 4.0 (Color Quickdraw/CPU)
+1.0=Mac Quadra 605 (68040/25Mhz) 15bit mode 
+
+Note to all tests: Higher Value = Faster Performance
+
+Driver:          Savage
+Version:           2.41
+Refresh rate:         1
+-----------------------
+Color Quickdraw:  0.297
+CPU:              1.473
+
+Same as above, but the screenmode is Multiscan:Productivity (640x480) - 61Hz
+
+Driver:          Savage
+Version:           2.41
+Refresh rate:         1
+-----------------------
+Color Quickdraw:  0.235
+CPU:              1.451
+
+Note: No testresults for TurboEVD in 15bit mode, because only Savage support the 15
+bit mode.
+
+
+@endnode
+
+
+@node "tests04025" "Test results 68040/25Mhz"
+
+Testmachine A4000 (standard CPU card) + C=1950 Multisync Monitor
+Tests done by Alessandro Gerelli (thanx man!)
+
+Testprogram: Symantec System Info
+
+100 = Mac Quadra 700/8bit mode (68040/25 Mhz) - Higher Value = Faster Performance
+
+
+640x480 Multiscan (8bit)
+
+        CPU     FPU     Video
+
+2.41    70.1    84.1    11.8
+
+2.41
+Vblank  69.8    83.6    7.83
+
+2.3     70.2    84.1    12.0
+
+2.3
+Vblank  71.0    85.0    7.72
+
+
+
+768x576 Super72 (8bit)
+
+        CPU     FPU     Video
+
+2.41    69.6    83.5    9.51
+
+2.41
+Vblank  69.1    82.8    7.37
+
+
+And these test are the same but with Kickstart _3.1_
+
+640x480 Multiscan (8bit)
+
+        CPU     FPU     Video
+
+2.41    70.2    84.1    12.0
+
+2.41
+Vblank  69.8    83.7    7.69
+
+(nothing noticeable faster with kick 3.1)
+
+
+640x480 Multiscan (4bit)
+
+        CPU     FPU     Video
+
+2.2     70.9    84.9    31.4
+
+2.3     70.9    84.9    31.3
+
+2.41    70.8    84.9    31.8
+
+
+640x480 Multiscan (15bit)
+
+        CPU     FPU     Video
+
+2.2     70.2    84.2    3.87
+
+2.41    70.2    84.1    3.79
+
+
+
+
+@endnode
+
+
+
+@node "tests060" "Test results 68060/60Mhz"
+
+Testmachine: A1200-68060/60 Mhz (YEES! 60 MHZ!) 2meg Chip+16meg Fast 
+(Dark/CDi's Machine)
+
+Software:Mac System7.5 (hungarian) 80 meg hd - ShapeShifter 3.6
+(macintosh rom was everywhere in the fast memory - so the faster speed was everywhere)
+Note:only  Savage  and  TurboEVD  testvalues  here,  becoz  all other (AGABoost,AGAEVD)
+videodrivers are MUCH more slower...  (because Savage and TurboEVD uses MMU)
+
+Note: sorry only the older Savage version (2.2) testresults are here... 
+(because dont have time to go my friend for the testresults... sorry) 
+
+
+
+8bit tests:
+
+The resolution was everywhere 640x480 8bit, and the used screenmode was Pal-HiresLace.
+
+Testprogram: Speedometer 4.0
+
+1.0=Mac Quadra 605 (68040/25Mhz) 8bit mode - Higher Value = Faster Performance
+
+Driver:          Savage  Savage  TurboEVD TurboEVD
+Version:            2.2     2.2      34.1     34.1
+Refresh rate:         1       2         1        2
+--------------------------------------------------
+Color Quickdraw:  0.920   1.109     0.889    1.054
+
+
+Testprogram: OffScreen Toys (Boost) 1.3
+
+All values in FPS (Frame per Second) - Higher Value = Faster Performance
+
+Driver:          Savage  Savage  TurboEVD TurboEVD
+Version:            2.2     2.2      34.1     34.1
+Refresh rate:         1       2         1        2
+--------------------------------------------------
+Frame per Second:   135     151       124      142
+
+
+Testprogram: Symantec System Info
+
+100 = Mac Quadra 700/8bit mode (68040/25 Mhz) - Higher Value = Faster Performance
+
+Driver:          Savage  Savage  TurboEVD TurboEVD
+Version:            2.2     2.2      34.1     34.1
+Refresh rate:         1       2         1        2
+--------------------------------------------------
+Display test:      53.5    69.8      48.8     62.9
+
+
+
+4bit tests:
+
+The resolution was everywhere 640x480 4bit, and the used screenmode was Pal-HiresLace.
+
+Testprogram: Speedometer 4.0
+
+1.0=Mac Quadra 605 (68040/25Mhz) 4bit mode - Higher Value = Faster Performance
+
+Driver:          Savage  TurboEVD
+Version:            2.2      34.1
+Refresh rate:         1         1
+---------------------------------
+Color Quickdraw:  1.321     1.326
+
+
+Testprogram: OffScreen Toys (Boost) 1.3
+
+All values in FPS (Frames per Second) - Higher Value = Faster Performance
+
+Driver:          Savage  TurboEVD
+Version:            2.2      34.1
+Refresh rate:         1         1
+---------------------------------
+Frames per Second:  190       191
+
+
+Testprogram: Symantec System Info
+
+100 = Mac Quadra 700/8bit mode (68040/25 Mhz) - Higher Value = Faster Performance
+
+Driver:          Savage  TurboEVD
+Version:            2.2      34.1
+Refresh rate:         1         1
+---------------------------------
+Display test:       123       126
+
+(wow... TurboEVD 2% Faster than Savage2.2 in 4 bit mode ;)
+
+
+
+
+15 bit tests:
+
+Testprogram: Speedometer 4.0
+
+1.0=Mac Quadra 605 (68040/25Mhz) 15bit mode - Higher Value = Faster Performance
+
+Driver:          Savage
+Version:            2.2
+Refresh rate:         2
+-----------------------
+Color Quickdraw:  0.697
+
+
+Testprogram: OffScreen Toys (Boost) 1.3
+
+All values in FPS (Frame per Second) Higher Value = Faster Performance
+
+Driver:          Savage
+Version:            2.2
+Refresh rate:         2
+-----------------------
+Frame per Second:     - 
+Note: Offscreen toys NOT run in 15 bit mode... ;)
+
+
+Testprogram: Symantec System Info
+
+100 = Mac Quadra 700/8bit mode (68040/25 Mhz)  Higher Value = Faster Performance
+
+Driver:          Savage
+Version:            2.2 
+Refresh rate:         2 
+-----------------------
+Display test:      19.3
+
+@endnode
+
+
+
+@node "gondok" "Problems..."
+
+Problem:  Some pixels seems to be converted wrongly and some some old pointer 
+          phases on the screen
+Solution: Please turn on the MMU refresh in the ShapeShifter/Graphics 
+
+--------------------------------------------------------------------------------------
+
+Problem:  This driver wont start, i get only a message: 
+          "The Selected Macintosh Display etc..."
+
+Solution: If you use the demo version, please select the 4/8/15 bit mode, and the 
+          resolution 512x384.
+          In registered version the driver configuration described in the configuring 
+          part.
+
+--------------------------------------------------------------------------------------
+
+Problem:  I got a message: "The Delta buffer or the Macintosh video memory located in
+          the chip memory"
+
+Solution: Please turn off the largest free block option in the ShapeShifter memory
+          options and select the memory as described @{"here" link "konf" }
+
+--------------------------------------------------------------------------------------
+
+Problem:  The driver simply crash on my machine!
+
+Solutions for 040:
+          -Make sure, how your CPU uses the MMU with page size 4kb.
+           (if your CPU/CPUCard have extra programs to control it please set it to 4kb)
+          -If you CPU uses other program than setpatch to utilize your CPU, please try to
+           set the MMU pagesize to 4kb.
+          -If your CPUCard uses only the setpatch (and you dont get any program/disk
+           with your card) to detect 68040, please check the followings:
+             - have you the 68040.library installed in libs: ?
+               if not, simply copy it from your Workbench disk
+             - your setpatch is started during the boot sequence?
+               if not, please put in the Startup-Sequence
+             - your setpatch is able to load the 68040.library?
+               if not, please upgrade (look Aminet for setpatch)
+
+Solutions for 060:
+          - Please copy the 68040.library and the 68060.library to libs:
+          (you got its with yout CPUcard)
+          - Please upgrade your Setpatch if needed. (when not load the 68040.library)
+
+--------------------------------------------------------------------------------------
+
+Problem:  The driver works correctly, but the MAC uses funny colors. 
+          (green/blue colors... not b/w and not standard MAC colors)
+
+Solution: You have pirated/damaged keyfile for ShapeShifter
+          Please register the ShapeShifter!
+
+
+@endnode
+
+
+@node "keszit" "About the author"
+
+
+If you have any problems, suggestion, bug reports then write to:
+(send the registration fee here )
+
+snail mail:             László Török (pH03N1x/CDi)
+                        H-8900 Zalaegerszeg 
+                        Cserfa 31.
+                        Hungary
+
+phone:                  +36 92 310 396 (after 18:00 CET)
+
+E-Mail : phoenix@master.fok.hu   <- preferred
+or:      phoenix@fok.hu         (i think equal with the previous..)
+
+or:     torokl@alpha.dfmk.hu     <- work
+
+I think now i have an account on the @{"Dark Millennium BBS" link "supp" } So you can
+reach me under user name:  phoenix (Thanks Dark!)
+
+iRC (not so often..) : pH03N1x@iRC (#magyar, #amiga or #amigahu channels)
+
+U can check my homepage at (a bit old): http://www.fok.hu/~phoenix
+(maybe dont work, becoz the home volume is fucked up...)
+
+As u can see my english knowledge is very limited, and my german is MUCH better...
+(ich denke so... ;)
+
+@endnode
+
+
+
+@node "supp" "The support sites"
+
+
+You able to find the new demo versions of this driver on the following sites:
+Aminet: misc/emu subdirectory
+
+and
+
+Dark Millennium BBS:        (CDi WHQ/Crimson Jihad Distro)
+
+phone: +36 93 320 679
+
+HW: A1200-68060/60 18 meg ram 1.7GHD 8xCD-ROM 28.8k
+open: every day: 22.00-06.00 (CET)
+
+Sysop: Dark/CDi
+
+@endnode
+
+@node "revlist" "Revision history"
+
+2.00 (20.07.96) First version for 060
+
+2.1             Works on 68040 too (the 2.0 is worked too, but i got many questions, so
+                i added the 040 to its name)
+                Better memory allocation (all important address now on 32 bit address)
+                At least 5% faster drivers (1x1 4/8 bit only)
+                1x1 8/4 bit modes free resolution selection (up to 832x624)
+                No more 2 minutes time limit in the demo version, only resolution limit 
+                (8bit and 512x384)
+                New version string handling (very important ;)
+                (released only for beta testing)
+
+2.2 (01.12.96)  New c2p for 1x1 8 bit modes (now again Savage is the fastest driver for
+                040/060 and for Savage030 030 too ;) thanx the new c2p to: EFT/Impulse 
+                and Zak/The Forcers Team (and i speeded it up again ;)
+                30-40% speed increase in the 1x1 8bit mode (now Savage2.2 at least 10% 
+                faster than TurboEVD)
+                Some optimizations in all the other drivers (little speed up)
+
+2.3             Single file version (4/8/15 bit drivers in one file)
+                Free resolution selection in 15bit mode
+                Faster 15bit drivers (about 5-10%)
+                All 1x1 modes can handle up to the resolution 1024x1024
+                (released only for testing)
+                                
+2.4 (21.04.97)  VBLANK Versions - MUCH more smoother refresh, and no more windoze like 
+                pointer moving on mac side
+                (released only for testing)
+
+2.41 (25.04.97) About 5-10% faster 4bit drivers
+                Major speed increase in the 2x2 driver (up to 25%!)
+                New demo concept: 4/8/15 bit 512x384 normal, and 640x480 8 bit VBLANK
+                versions
+
+
+@endnode
+
+@node "kellmeg" "To do list:"
+
+24 bit version  (for 030 is ready, dont so hard work to do it for 040-060 too)
+256color->64Color (like AGABoost) for faster 8bit in multiscan modes.
+
+@endnode
+
+@node "felha" "Used hard & software"
+
+Hardware:
+
+To version 2.2:
+A1200-68060/60 (Blizzard1260) 2MB Chip + 16 MB Fast  <- Dark Milennium server ;)
+(68030/50 - my machine)
+
+From version 2.3:
+A1200-68040/40 (Blizzard 1240T/ERC) 2MB Chip + 16 MB Fast (my machine)
+
+1084s monitor... i changed it to a C=1942 MultiSync (its important... :)
+2x80watt audio.... (its MUCH important... :)
+Techincs RS-TR 333 Tapedeck
+An oldie VIDEOTON RA 6363 Stereo Receiver 
+Sony MDR CD-250 HeadPhone 
+
+
+Some oldie bullshit coming next... :) 
+
+Version 2.0 is developed on CDi meeting (14.07.96-21.07.96 BalatonMária)
+
+Most important peoples:
+Toxin/CDi (american section)
+Dæ®k/CDi&C^J (the very tall dude)
+DarkSide/CDi (kübli colourer)
+CaveM@N/CDi (the foundator of the logical coder section)
+G®æ$$/CDi (Slamtilt tester/graphician)
+Flex/Frame18 & CDi (who heared the CDs & kübli tracer)
+Józsi/CDi (arrghh... pC section.... & transporter )
+And me: pH03N1x/CDi
+
+Used things on the meeting:
+Food:   30 piece of luncheon meat
+        15 piece of egg
+        12 kg of bread
+        40 Liter Cola/Fanta etc.
+        Milk, Paprika, Tomato
+        20 kg peach (from the nearest peachtree)
+        Some alcohol.... (hukkkk...)
+
+Trash:  around 30kg trash
+        2 telefoncards
+        1 rentabike (smashed by Flex... -3000Ft 8( )
+        210 MegHd partition (Darkside's DH1: virus sux)
+
+        Many Worms+Dogfight party (5 hours of continous Dogfight)
+        Looking houndreds demos
+        Girl hunting
+        Toilette Debugger V1.0
+        Mosquito killer V1.0 (one by Flex .. ) ;)
+        Arabian terrorists on the beach of Balaton ;)
+        Theorical SW/HW developing (memory protection & very nice computer design)
+        Making an unfinished AVI player (no sound)
+
+Best sayings:
+-"Darkside are you sleeping?" - at 2 AM.
+-.... 
+
+-When are we going to bike again? (after Flex had an accident...)
+
+-Who drinked my Coke?
+-At the evening it was full!
+
+-This all stored MPEG anim !
+
+-How can i slowing down the MPEG-player? (on 060)
+
+-U fool! 
+
+-Darkside open the tap! 
+
+-There is a spider! Who has a matchbox? (around 3km far from the meeting place)
+
+-U Sucker!
+
+-Jump jump! - And a german people:
+-Alles Klar?
+
+-Fingomcsing!
+
+
+Others:
+Ehh!, Kübli
+
+IIIIIIIIIIIII VEEEEEEEEEERYYYYYYYYY HAAAAAAAAATTTTTTEEEE THHHHHHHHHHEEEEEEEEEE
+ROOOOOBBBBEEERRRRTTTT MMIIIILLLEEEESSS CCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDDDDDDDDDDD!
+
+(I (pH03N1x) have to heard it about 100 times - Flex arrrrgghh )
+
+
+Software:
+
+Shapeshifter-ExeternalVideodriver manual level2 by Christian Bauer
+                        (A very good & usable manual & driverspecification description)
+
+Asm-one 1.29 ..         Around 4 new bugs detected...
+
+MMU Expert 1.32         by F.Bürgel... (oldie but goldie! (from 1991))
+
+HippoPlayer 2.39        need some zax for developing...
+
+D68k 2.0.7              The best resourcer on Amiga (i think better than resource 6.0)
+                        (FULL MMU,FPU,68000-68060 support!)
+
+MPEGA.040FPU            by Stéphane TAVENARD (to enjoy the MP3 files on Amiga)
+
+
+This file checked with the MacWrite Spelling checker... (From Shape...)
+
+19 Guru (reported by MCP gurureport) (from MMU config error to corrupt memory list in
+freememen and some illegal instruction so Amiga rulez... ;)
+
+
+@endnode
+
+
+@node "koszi" "The author wishes to thanks:"
+
+The author wishes to thanks:
+
+Christian Bauer                 For the World's best Macintosh emulator, and the
+                                awesome external videodriver concept
+
+K-P Koljonen                    for Hippoplayer
+
+Psycho@master.fok.hu            for the account,and for the free HDD(almost unusable ;) 
+
+Pawel Hernik                    for AGA-EVD, and for the c2p routine (and 4bit c2p too)
+                                and for the 15bit->ham8 conversion routines (this is a
+                                very fast&good routine!)
+
+Peter McGavin                   for the fastest c2p routines on Amiga
+
+Chris Brenner                   for FastECS
+
+Michael 'Xanth' Spenner         for the 2x2 version idea
+
+Dennis Arketyd                  for the Agaboost driver
+
+Aki Laukkanen                   for the TurboEVD driver (yeahh.. it was faster than
+                                Savage2.1 but now try to beat the Savage060 2.2 1x1
+                                8bit performance ;)                                
+
+EFT/Impulse                     for the NEW 040-060 optimized c2p (but i speeded it up 
+and                             about 20% ;)
+Zak/Forcers Team
+                                
+Thanx to my beta testers:
+
+68060/60Mhz                     Na most nem hagytalak ki a beta tesztelõk közül :)
+(A1200/Blizzard1260)            Hehehe... azértse írom ezt ide angolul... pukkaggyanak
+Zsolt Sipos (Dark/CDi)          meg! :)
+
+68040/25Mhz (Amiga4000)
+Alessandro Gerelli              Yeeaahh! thax for the AVId beta testing too!
+(a.gerelli@agonet.it)           Now i included your testresults... :)
+
+68060/50 Mhz                    Thanx for the critism and for the VBLANK driver idea!
+(A1200/Blizzard1260)
+Árpád Miklós (Alan)
+(alan@elender.hu)
+
+68040/40Mhz                     Sorry i missed your config in the old docs...
+(A4000/Cyberstorm MKII)   
+Roland Lewis                            
+(Roland_Lewis@o14amiga.demon.co.uk)
+
+68040/40Mhz                     Yeah... thanx for help to get i a 040/40 to!
+(A1200/Blizzard1240/40) 
+Csaba Imre
+
+AND: ALL REGISTERED USERES!
+
+Other greetinx:
+
+Amiga:  Shamen/CDi, Flex/Frame18, Anorganic/Promise, Pogi/Crimson Jihad
+        Hanzi/???, Chexum, Gizmo/Frame18, ZAK/The Forcers TEAM, Louise/????,
+        Goa/CDi/Faculty, EFT/Impulse, Soldier/Impulse, Chris/Power Team,
+        Magic/Amiga Only, Unreal/Faculty
+
+        Louise/????                     A ShapeShifter maniac... ;) (like me...)
+        All members of Amiga Only       <- The best Hungarian Amiga-user mag
+
+pC:     Grass/CDi, Basq/Tsi Alive, Trajic/Shock!, Hamster/???, Dada, Dab/Promise PC
+
+Last, but not at least: the Developers of the Amiga and AmigaOS (yes this is a really
+OS -okay, have some bugs- , but really fun to develop under it!!)
+
+Fuck to all pC-owners who's think how Amiga is a game-machine...
+
+@endnode
+
+@node "legal" "Legal mush"
+
+The registration fee is 15DM or 10$USD, (or an equal amount in other currency).
+If you want to register both my Savage videodriver (030 or the 040/60 version) and AVId,
+then the registration fee is 20-25 DM or 15$USD! (or equal in other curr.)
+(instead of 30DM and 20 US$)
+
+Note: AVId is a fast AVI player for AGA/020+ based Amigas click @{"here" link "myavid" } for more info!
+Note2: i accept your own programs/keyfiles for registration fee!
+
+If you want to register please send the registration fee to @{"my postal address" link "keszit" } in !CASH! 
+And after i got the money I'll send you the full version in E-mail uuencoded.
+(registration is also possible in snail-mail too, but please add an answer envelope to
+your mail and an errorfree 3.5 DD disk too)
+
+(the postal money transfer is working too, so use it if you like better ;)
+
+The updates are free, when you have E-Mail address!
+
+If you registered please DO NOT spread your version!
+
+Amiga  and the AmigOS is registered trademark of Gateway2000 (huh...  i need correct it
+in every docs...  its to booooooring :((((( )
+
+Macintosh is registered trademark of Apple computer INC.
+
+@endnode
+
+@node "myavid" "AVId - the AVIplayer for Amiga"
+(at  this  moment 0.993 beta is available, a demo on aminet:gfx/show/AVId.lha)
+
+AVId (0.993b) features:
+
+Requires: 68020+
+          AGA Chipset and OS 3.0+
+          (maybe will be a 16 gray ECS support too... not sure..)
+Recommented: 68030/50 or faster with 0.5 Mb of free FastRam 
+             (for 240x180 CVID 15 FPS playback needs 68040/25 at least)
+
+Supported video encoders:
+Miscrosoft RGB   (RGB ) 8/16 bit
+Microsoft Video1 (CRAM) 8/16 bit
+Radius CinePak   (CVID)   24 bit
+
+Supported audio:
+PCM mono 8 bit
+PCM mono/stereo 16 bit
+
+Features:
+Async I/O
+FULL in Assembly language coded decrunchers (at moment more than 93kb of Source code)
+Fast c2p
+256 color for 8 bit AVIs 
+256 gray/HAM8 for 16/24 bit AVIs
+18bit mode for 24 bit AVIs (bugfree ham8)
+FAAAASSSSSTTT Playback! (Timer based frame skipping method - like on pC)
+
+The demo version is will play the first 400 frames of the animation, and will be there
+no 18bit support.
+The Full version registration fee is 15DM/10US$ (like Savage)
+@endnode

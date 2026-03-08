@@ -1,0 +1,780 @@
+@database "RAM Disk:diskimage_device.guide"
+@node "MAIN" "RAM Disk:diskimage_device"
+@{b}DiskImage.device@{ub}
+
+This is a from scratch development for AmigaOS4.x that aims to be an improved
+version of Thore Boeckelmann's diskimage.device for AOS3.x.
+
+Thore's DiskImageCtrl program doesn't work with this device for this reason.
+This should not be a problem however as there is now (as of v52.2) a ReAction
+GUI that provides the same functionality as this program and more.
+
+Some new features of this device are: no hardcoded limit on the amount of
+useable device units, large file support, CD audio tracks and support for many
+more diskimage formats through an extensible plugin interface.
+
+After installing a new version of diskimage.device you should always perform a
+soft reboot as this is the only way to make sure that the new device version
+has been loaded. DiskImageGUI tries to be within reason backwards compatible
+with older device versions, but this might not always be perfect, so it's not
+recommended to use a newer DiskImageGUI with an older device version (or vice
+versa).
+
+@{"Requirements      " LINK "Requirements"}
+@{"Installation      " LINK "Installation"}
+@{"Supported Formats " LINK "Disk Image Formats"}
+@{"MountDiskImage    " LINK "MountDiskImage"}
+@{"FixHDF            " LINK "FixHDF"}
+@{"DiskImage         " LINK "DiskImage"}
+@{"Changelog         " LINK "Changelog"}
+
+@{b}Copyright (C) 2007-2014 Fredrik Wikstrom@{ub}
+@endnode
+@node "Changelog" "Changelog"
+@{b}Complete changelog for the AmigaOS 4.x diskimage.device
+Copyright (C) 2007-2014 Fredrik Wikstrom@{ub}
+
+53.2 (30-Mar-2014)
+- Updated CUE plugin to use the latest versioned shared object files.
+- Updated GUI code to use OpenClass()/CloseClass() for opening and closing
+  BOOPSI classes.
+- Updated DMG and ISZ plugins to use Thore's now renamed bzip2.library.
+- Updated AutoInstall script to use CopyStore for executable files.
+
+53.1 (23-Mar-2014)
+- MDS track mode detection now only looks at the 3 least significant bits.
+- Added MODE 2 FORM 1 / 2448 support to MDS plugin.
+- Added compiled in black and white fallback images same as in the m68k
+  version (requires speedbar.gadget >= 53.11 because older AOS 4.x versions
+  crash on non-BOOPSI button images).
+- Updated to use Thore Boeckelmann's bz2.library.
+- Updated to use application.library version 2 interfaces.
+
+52.78 (23-Jul-2012)
+- Fixed a bug in READ TOC command when TIME bit is set (the returned address
+  should be 0MSF and not HMSF).
+
+52.77 (24-Feb-2012)
+- Updated Italian catalogs.
+- Fixed ISO mounting which was broken by changes in previous version.
+
+52.76 (21-Feb-2012)
+- Rewrote HD_SCSICMD handling and moved some pretty general code away from
+  plugins to the device where it belongs.
+- Fixed code for saving and restoring the window sizes in DiskImageGUI.
+- Improved the MDS plugin (should now be able to handle more MDS files than
+  previously).
+- WavPack plugin now uses WavpackGetBinaryTagItem() function as well as
+  WavpackGetTagItem() to look for a WavPack embedded cuesheet.
+- Updated German DiskImageGUI catalog.
+
+52.75 (6-Sep-2011)
+- Fixed a bug in the index parsing of CUE plugin (it would incorrectly return
+  an error if the minute part was >= 60).
+- Removed usage of deprecated XXXX_GetClass() functions.
+- CUE plugin now only byteswaps audio tracks when MOTOROLA file type is used
+  instead both data and audio tracks (not sure if this is correct or not).
+- Added MODE 2 support in CCD plugin.
+
+52.74 (13-Jun-2011)
+- Updated Italian catalogs.
+- Added support for WavPack files with embedded cuesheet information.
+- Fixed WAVPACK_set_pos_rel callback implementation.
+
+52.73 (5-Jun-2011)
+- Fixed some pretty serious bugs in ReadTOC command introduced by the last
+  released version.
+- Updated plugin API to v7 (older plugins will no longer work).
+
+52.72 (4-Jun-2011)
+- Added support for non-zero track number in ReadTOC SCSI command.
+- Added support for ReadCD SCSI command (needed by ADRipper program).
+
+52.71 (18-May-2011)
+- Completely rewrote and optimised all code for opening and closing libraries
+  in plugins.
+- Updated plugin API to v6 (older plugins will no longer work).
+- Implemented VMDK plugin for handling .vmdk files.
+- Implemented G64 plugin for handling .g64 files.
+
+52.70 (1-May-2011)
+- Fixed bug in MP3 support when seeking from EOF.
+- Removed header size check in VDI plugin.
+- Updated Italian catalogs.
+- Implemented ISZ plugin for handling .isz files.
+
+52.69 (23-Apr-2011)
+- Now correctly ignores MPG123_NEW_FORMAT return from mpg123_read().
+
+52.68 (23-Apr-2011)
+- Replaced usage of mpega.library in CUE plugin with mpg123.library
+  (mpg123.library has better seeking).
+- Implemented OGG Vorbis support in CUE plugin using libvorbisfile.so.
+
+52.67 (15-Nov-2010)
+- Added a Turkish translation by Serkan Dursun.
+- Updated Polish catalogs.
+- Added support for FLAC files with embedded cuesheet information.
+
+52.66 (16-Oct-2010)
+- Updated German catalogs.
+- Added AddReloadPluginsHook function to m68k jumptable.
+- Changed DiskImageGUI PATTERN tooltype to "~(#?.info)" as it was getting too
+  long for ASL to handle.
+- Implemented FLAC support in CUE plugin using libFLAC.so.
+- Implemented WavPack support in CUE plugin using libwavpack.so.
+- External libraries opened by plugins are now closed when not needed any more.
+- Added EJECT switch to MountDiskImage command.
+- MountDiskImage now returns an error if neither DRIVE nor UNIT is specified.
+- MountDiskImage now uses requesters if run from Workbench instead of writing
+  to stdout/stderr.
+
+52.65 (28-Aug-2010)
+- Updated Italian catalogs.
+- Scrollers are now updated correctly when scrolling using mouse wheel.
+
+52.64 (26-Aug-2010)
+- Updated German DiskImageGUI catalog.
+- The image loader should no longer fail if there is a directory with the
+  same name as the image somewhere in the image search path.
+- Fixed a bug in the event handling code of the drive settings window.
+
+52.63 (17-May-2010)
+- Updated French and Italian catalogs.
+- Drives with dg_DeviceType set to DG_CDROM or DG_OPTICAL_DISK are now shown
+  with a small CD icon in DiskImageGUI.
+- DiskImageGUI now allows configuring a device unit as either Direct Access,
+  CD-ROM or Optical Disk.
+
+52.62 (11-May-2010)
+- DiskImageGUI has been rewritten from scratch so that it now has screen
+  notify support and hopefully less bugs as well.
+- Added RELOADPLUGINS notification code to diskimage.device and DiskImageGUI.
+- The DiskImageGUI listbrowser scrollers are now placed inside the window
+  borders.
+- diskimage.device now stores the name of the plugin if DITAG_Plugin was used
+  when mounting the disk.
+
+52.61 (6-May-2010)
+- Updated German catalogs.
+- Fixed MountDiskImage so that it doesn't need a ':' character at the end of
+  the drive name any more.
+- Implemented VDI plugin for VirtualBox disk images.
+- Added an additional check for CCD and CUE formats to make sure that they
+  contain text and not binary data.
+- The DMG plugin now ignores any unsupported partition types (this makes some
+  .dmg files work that didn't before).
+
+52.60 (5-May-2010)
+- Updated Italian catalogs.
+- Fixed the empty error requesters when using the write protect function in
+  DiskImageGUI.
+
+52.59 (4-May-2010)
+- Updated German and Polish catalogs.
+- TD_GEOMETRY now returns IOERR_SUCCESS instead of TDERR_DiskChanged if no
+  disk is in the drive.
+- Removed the KEEPOPEN switch from the MountDiskImage command as it's not
+  needed any more.
+- Fixed lockup/crash when starting a second instance of DiskImageGUI.
+
+52.58 (15-Apr-2010)
+- Implemented the TD_REMOVE command (needed by some old filesystems).
+- Added a 68k jumptable to diskimage.device for compatibility with the OS3.x
+  ported version of this device.
+- Increased the process priority to 4.
+
+52.57 (30-Mar-2010)
+- Fixed a longstanding bug in the TD_ADDCHANGEINT/TD_REMCHANGEINT support
+  (it seems that IExec->Cause trashes the is_Node.ln_Pred and is_Node.ln_Succ
+  fields in the interrupt). The new implementation not only works around this
+  but should also be much safer.
+
+52.56 (28-Mar-2010)
+- The device now remembers which images were mounted the last time it was used
+  and automatically mounts them at startup.
+- Cleaned up and fixed the track offset and length calculations in the CUE
+  plugin.
+- Minor optimisations to the seeking in the CUE plugin MP3 support (still
+  doesn't handle "random" CDDA accesses too well though).
+
+52.55 (22-Mar-2010)
+- Fixed the MP3 support in the CUE plugin.
+- Implemented RIFF-WAVE and IFF-AIFF audio track support in the CUE plugin.
+
+52.54 (21-Mar-2010)
+- Updated Italian catalogs.
+- Fixed a memory leak in the NRG plugin (track structures weren't freed on
+  disk image unmount).
+- Implemented MDS and CCD plugins for mounting .mds and .ccd files.
+- Added support for MP3 audio tracks in the CUE plugin using mpega.library
+  (this feature still needs some work as the audio is far from perfect ATM).
+
+52.53 (17-Mar-2010)
+- Implemented CUE plugin for mounting .cue files (has the same experimental
+  CDDA support as the NRG plugin).
+
+52.52 (16-Mar-2010)
+- Updated Italian catalogs.
+- Finally implemented a proper AutoInstall script for AmiUpdate (can also be
+  to manually update a diskimage.device installation by typing the command
+  "execute AutoInstall" into a CLI window).
+- Implemented experimental CDDA support in the NRG plugin (only supports
+  "READ TOC" and "READ MSF" commands currently which is just enough to use
+  the OS4 CDFileSystem's CDDA tracks as AIFF files feature and to play the
+  tracks with PlayCDDA).
+- Fixed a bug in the handling of uncompressed data (PT_COPY) in the DMG
+  plugin.
+
+52.51 (9-Mar-2010)
+- Removed all format specific code from the builtin Generic plugin (support
+  for these formats will gradually be added back in in the form of other
+  plugins).
+- Added builtin D64 plugin for handling .d64 disk images (256 bytes per
+  block).
+- Added builtin ISO plugin for handling 2352 bytes per block .iso files.
+- Added info on which plugins support writing to the DiskImageGUI "Plugins"
+  window.
+
+52.50 (8-Mar-2010)
+- Fixed the CheckImage functions in several plugins (incorrectly used ">"
+  comparison instead of ">=").
+- Added ability to detect diskimage format by file footer as well as header
+  (this function is now used by DMG and UIF plugins instead of relying on the
+  filename extension).
+- The Nero disk image format (NRG) is now properly supported through an own
+  plugin instead of just being semi-supported by the Generic plugin (only the
+  first track/session is supported for now though).
+
+52.49 (4-Mar-2010)
+- Rewrote and improved most of the DMG plugin code.
+- Added BZLIB support to the DMG plugin using Joerg Strohmayer's bz2.library.
+- Added ADC support to the DMG plugin (untested).
+- The DMG plugin now only opens z.library/bz2.library when they are needed to
+  decode a mounted disk image.
+
+52.48 (2-Mar-2010)
+- Updated French and Italian catalogs.
+- Added a Swedish translation by Magnus Hammarstrom.
+- Rewrote the plugin error reporting so that it doesn't need a mutex anymore.
+- The DMG plugin now returns ERROR_NOT_IMPLEMENTED if it encounters an
+  unsupported block type.
+- Modified the DMS plugin so that it's now re-entrant and doesn't need any
+  additional mutex protection.
+- Now uses shared semaphore locks to protect read access to some global lists
+  (units, plugins, ...) instead of mutexes.
+
+52.47 (15-Feb-2010)
+- Added Greek catalogs by Antonis Iliakis.
+- Updated Italian catalogs.
+- Fixed an error reporting bug in DiskImageGUI ("Error: %s").
+- Fixed a problem with unreleased mutexes when using XAD, XPK and DMS plugins.
+
+52.46 (27-Sep-2009)
+- Updated Finnish catalogs.
+- Added an error requester for when an image couldn't be found.
+- Images are searched for in the following places (in order):
+   - PROGDIR:
+   - PROGDIR:Images/
+   - SYS:Prefs/Presets/Images/
+   - TBImages: (if available)
+
+52.45 (16-Sep-2009)
+- Updated French catalogs.
+- Modified to use the OS4.0 ExamineDir() function when scanning for plugins
+  instead of the now deprecated ExAll() function.
+- Removed the AISS requirement as per Open Amiga guidelines.
+
+52.44 (17-Aug-2009)
+- Updated Italian catalogs.
+- Fixed crashes in DiskImage command.
+- DiskImage command now shows current progress as a percentage.
+- DiskImage command now uses a 1 MB i/o buffer instead of reading just one
+  block at a time.
+
+52.43 (27-Jul-2009)
+- Fixed a bug in the plugin interface definition (the last entry that
+  signifies the end of the list was missing from the vector list).
+
+52.42 (4-Jul-2009)
+- Rewrote much of the device <-> unit process communication code.
+- Fixed the code for reporting errors when mounting disk images (it could
+  break if more than one disk image was being mounted at the same time).
+- Updated the plugin API to v2 (plugins compiled for diskimage.device 52.41
+  are no longer supported by the device).
+
+52.41 (18-Jun-2009)
+- Replaced all SignalSemaphores with Mutexes.
+- Implemented TD_CHANGENUM, TD_CHANGESTATE and TD_PROTSTATUS as immediate
+  commands.
+
+52.40 (28-Nov-2008)
+- Fixed snapshotting code for the plugins window.
+- Removed D64FileSystem from archive as it is available separately, and fs1541
+  is better for this purpose anyway.
+- Updated Spanish catalogs.
+- Added application.library support.
+- Some bugs fixed.
+- Added code for detecting .nrg files in ISO format.
+- Added support for .iso files with 2352 bytes per block.
+
+52.39 (15-Jul-2008)
+- Updated Polish catalogs.
+- Updated Italian catalogs.
+- Updated Finnish catalogs.
+- Fixed "Unit" column label in DiskImageGUI.
+- Implemented disk change detection in DiskImageGUI.
+- Added "Snapshot" buttons to DiskImageGUI window titlebars.
+- Removed "Snapshot" menu items since they aren't needed anymore.
+- Modified snapshotting so that all size data is saved to a .xml file in
+  ENV/ENVARC, instead of one .winsize file for each window (this also means
+  that windows will need to be resnapshotted when updating).
+
+52.38 (27-Mar-2008)
+- Added Polish catalogs.
+- Added "Plugins" window to DiskImageGUI.
+- Added "Use plugin" chooser to DiskImageGUI.
+
+52.37 (20-Mar-2008)
+- Removed debug output from FDI plugin.
+- DiskImage command now outputs most common device errors as text also.
+- DiskImage command now allows retry and ignoring of errors.
+- FDI plugin now optimised for speed, not size.
+
+52.36 (19-Mar-2008)
+- Updated Spanish catalogs.
+- FDI plugin for .fdi files.
+
+52.35 (10-Mar-2008)
+- Updated French catalogs.
+- Updated German catalogs.
+- Updated Italian catalogs.
+- Changed unit process names to "diskimage unit %ld".
+- The password and progress bar windows now use this as window title instead
+  of "diskimage.device".
+- DiskImage command now inhibits the filesystem when writing an image to disk.
+
+52.34 (28-Feb-2008)
+- Added German catalogs.
+- Implemented Refresh button in DiskImageGUI.
+- Added PLUGIN/K option to force the device to use a specific plugin.
+- Crypt plugin (should be compatible with crypt.device but this is not tested).
+
+52.33 (25-Feb-2008)
+- Removed debug output from DMG plugin.
+- Plugins now only open libraries/devices when they are first needed.
+- Reduced priority of XAD/XPK plugins.
+- DAX plugin for .dax files.
+
+(13-Feb-2008)
+- DiskImage command was missing from archive.
+- CPC plugin for CPCEmu disk images (non-EXTENDED only ATM).
+
+52.32 (11-Feb-2008)
+- Updated Italian catalogs.
+- GI plugin for .gi files.
+- DiskImage command for creating disk image files and writing them to disk
+  (works on disk drives, harddrive partitions, etc., has NSD64 support).
+  Note: if you use it to create an image of your SYS: partition your computer
+  may appear to lock up while the read is in progress.
+
+52.31 (10-Feb-2008)
+- Reduced the memory requirements for the DMG plugin.
+- Fixed a bug in the DMG/UIF buffering code.
+- DAA plugin for .daa files.
+
+52.30 (9-Feb-2008)
+- All plugins now have version strings.
+- Fixed missing return statement in the DMG plugin.
+- UIF plugin for .uif files.
+- Added some simple buffering code to the DMG plugin same as in the UIF plugin
+  (should be much faster now).
+
+(8-Feb-2008)
+- Fixed DSIs in the DMG plugin.
+
+52.29 (7-Feb-2008)
+- Added RELOADPLUGINS/S option to MountDiskImage.
+- Fixed several bugs in the error reporting routines.
+- DMG plugin for .dmg files.
+
+52.28 (7-Feb-2008)
+- Rewritten and improved diskimage.device with plugin support (plugins are
+  stored in DEVS:DiskImage).
+- CISO plugin for reading .cso files.
+- DMS, IPF, XAD and XPK now implemented as plugins.
+
+52.27 (4-Feb-2008)
+- Fixed placement of icon when DiskImageGUI window is iconified.
+- IDiskImage not dropped on exit (DiskImageGUI).
+- Added .raw support.
+- Disabled the (not working) .uif support.
+
+52.26 (14-Jan-2008)
+- Unit process names (diskimage.device:<unit number>).
+- Added default tool (MountDiskImage) and DRIVE tooltype to def_??? icons.
+- D64FileSystem 0.3.
+- Fixed CDFileSystem related problem (CDFileSystem doesn't seem to like that
+  diskimage.device HD_SCSICMD only supports a few of the commands required by
+  the SCSI standard).
+
+52.25 (12-Nov-2007)
+- Implemented (non-extended) CPCEMU disk image support (a filesystem will
+  still be needed if on-disk files are to be accessed).
+- Better handling of HD_SCSICMD and support for the 'read capacity' command.
+- The device now uses NP_NotifyOnDeathMessage for its units.
+- Added .uif support (untested).
+- New icons by Martin "Mason" Merz.
+- D64FileSystem 0.2 (see d64filesystem.readme).
+
+52.24 (26-Oct-2007)
+- Simple HD_SCSICMD implementation that supports only the 'inquiry' and
+  'test unit ready' commands so that System/Mounter can be used to mount RDB
+  partitions on the device.
+
+52.23 (24-Oct-2007)
+- In the gui, buttons are now shown as ghosted when they are not usable
+  (f.e. eject with no disk in drive).
+- Added KEEPOPEN option to MountDiskImage.
+
+52.22 (10-Oct-2007)
+- Added Italian catalogs.
+- Added new icons by Mason.
+- Implemented AbortIO in the device.
+
+52.21 (12-Aug-2007)
+- Updated Finnish catalog.
+- Added .d64 image support.
+- Added ID64 dosdriver and D64FileSystem.
+
+52.20 (9-Aug-2007)
+- MountDiskImage can now be used as default tool for icons (mount disk image on
+  double-click in Workbench).
+- Fixed the code for remembering which unit was selected on doslist changes.
+
+52.19 (4-Aug-2007)
+- Fixed error message printing in MountDiskImage.
+- Added PASSWORD/K option to MountDiskImage.
+- Updated locale catalogs (Finnish, French, Spanish).
+- Added FixHDF tool for fixing .hdf files with incorrect filesizes.
+- Mounting .hdf files has always worked with the device (see section about HDF
+  files above).
+
+52.18 (2-Aug-2007)
+- Added WBMENUITEM tooltype which causes a menu item to be added to the
+  Workbench "Tools" menu that can be used to call up the GUI.
+- Added support for password encrypted XAD/XPK archives.
+- Added locale support to the device itself (diskimagedevice.catalog).
+
+52.17 (1-Aug-2007)
+- Fixed a couple of memory leaks related to changing the temp dir from the GUI.
+- Added ability to stop the decompression process.
+- Better error messages for some XAD/XPK errors.
+- Included a French locale catalog for the GUI.
+
+52.16 (31-Jul-2007)
+- Implemented progress bars for XAD/XPK decompression.
+- Reduced the task priority of the device unit processes from 0 to -1.
+- Temp directory for compressed images can now also be changed from the GUI.
+
+52.15 (29-Jul-2007)
+- The XAD support was broken in the previous version (fixed).
+- GUI now puts up the busy pointer while an image file is being mounted.
+- Currently selected drive/unit is no longer unselected on doslist changes.
+- Drive/unit selection is now kept when the sorting is changed.
+
+52.14 (29-Jul-2007)
+- GUI now monitors DosList changes (devices added/removed) and updates it's
+  unit list accordingly (previously it was necessary to close and reopen the
+  window for changes to take effect).
+- Made some more texts in the GUI localisable (About requester, etc.).
+- Fixed a bug in the error requester code.
+- Included two GUI catalogs (Finnish and Spanish).
+
+52.13 (14-Jul-2007)
+- Added a data checksum check to the .ipf code.
+- Added .pdi support (untested).
+- Added .b5i support (untested).
+- Added .cdi support (untested).
+- Improved TD_GETGEOMETRY handling.
+- Fixed locale support in GUI (wasn't working before).
+- Added doubleclick handling for unit/drive list in GUI (insert/eject).
+- Added gadget help texts for button bar in GUI.
+
+52.12 (19-Jun-2007)
+- Rewritten and improved .ipf support.
+- Added a simple install script.
+
+52.11 (17-Jun-2007)
+- Supports compressed .ipf files (xad/xpk).
+- Filters out readmes and some other non-mountable files from xad archives
+  (first file to get through is unpacked and then mounted).
+- Added FILEDIR tooltype to DiskImageGUI.
+- Added CloneCD .img support.
+- Fixed a bug (missing return statements) in the bin/mdf support codes.
+
+52.10 (15-Jun-2007)
+- Added xadmaster.library support.
+- Added xpkmaster.library support.
+- Now supports changing the temp files directory.
+- Temp files are now automatically deleted on unmount.
+
+52.9 (10-Jun-2007)
+- Added locale support to DiskImageGUI.
+- Added .mdf support.
+- Added .bin support.
+
+52.8 (9-Jun-2007)
+- Added IPC0 mount file for fat (ms-dos) disk images.
+- Added IEXT mount file for ext2 (linux) disk images (uses EXT2FileSystem
+  which can be downloaded from Aminet).
+- Added file pattern support to DiskImageGUI via PATTERN tooltype.
+- Added .nrg support.
+
+52.7 (3-Jun-2007)
+- Now opens a requester when a needed support library is missing (f.e. when
+  trying to mount an .ipf with no capsimage.device or an .adz with no
+  z.library).
+- Added .dms support (should also work with encrypted ones too but this code
+  is untested so please report to me if there are problems with it).
+
+52.6 (2-Jun-2007)
+- "About" requester in DiskImageGUI.
+- Opening the DiskImageGUI window / changing the write protection of a disk
+  no longer causes the device units' diskchange interrupts to be run.
+- Fixed TD_EJECT for IPF files.
+- Added .adz support through the OS4 native z.library by Johan Gill.
+
+52.5 (31-May-2007)
+- Fixed a couple of memory trashing bugs in the device code that could cause
+  crashes/lockups when mounting disk images.
+- Added .ipf support through capsimage.device.
+
+52.4 (30-May-2007)
+- DiskImageGUI icon was missing from previous archives (fixed).
+- Added WP=WRITEPROTECT/S option to MountDiskImage command.
+- Added some error requesters to DiskImageGUI.
+
+52.3 (29-May-2007)
+- Added support for write protection (device and GUI).
+- Added NSD64 and TD64 command support.
+- Device should have no problems with disk images >4GB as long as the
+  underlying filesystem also supports this (current available filesystems do
+  not) - thanks to joerg for testing this.
+- Fixed a small bug in the GUI (clicking "Insert" with no unit selected).
+
+52.2 (28-May-2007)
+- Added DiskImageGUI program.
+
+52.1 (27-May-2007)
+- First released version.
+
+@endnode
+@node "MountDiskImage" "MountDiskImage"
+@{b}MountDiskImage@{ub} UNIT/K/N,DEVICE=DRIVE/K,FILE,WP=WRITEPROTECT/S,
+@{tab}PASSWORD/K,RELOADPLUGINS/S,PLUGIN/K
+
+@{b}CLI Usage:@{ub}
+
+ - @{b}UNIT/K/N@{ub}
+   diskimage.device unit number
+ - @{b}DEVICE=DRIVE/K@{ub}
+   Device name (f.e. IDF0:, ICD0:, ...)
+ - @{b}FILE@{ub}
+   Name of disk image file to mount
+ - @{b}EJECT@{ub}
+   Eject the currently inserted disk
+ - @{b}WP=WRITEPROTECT/S@{ub}
+   Mount image as writeprotected
+ - @{b}PASSWORD/K@{ub}
+   Password for password encrypted files/archives
+ - @{b}RELOADPLUGINS/S@{ub}
+   Force device to reload all plugins (will unmount all device units)
+ - @{b}PLUGIN/K@{ub}
+   Force device to open file with a specific plugin (required in order to use
+   the Crypt plugin f.e.)
+
+@{b}Examples:@{ub}
+
+ - Mount filename.iso on ICD0:
+   @{i}@{b}MountDiskImage @{ub}DRIVE ICD0: filename.iso @{ui}
+
+ - Mount filename.adf on IDF0: as writeprotected:
+   @{i}@{b}MountDiskImage @{ub}DRIVE IDF0: filename.adf WP @{ui}
+
+ - Mount a single-partition hardfile on IDF0:
+   @{i}@{b}MountDiskImage @{ub}DRIVE IDF0: filename.hdf @{ui}
+
+ - Mount an RDB hardfile on diskimage.device unit 100:
+   @{i}@{b}MountDiskImage @{ub}UNIT=100 rdb.hdf @{ui}
+   @{i}@{b}Mounter @{ub}D=diskimage.device U=100 @{ui}
+
+ - Mount an encrypted image file
+   @{i}@{b}MountDiskImage @{ub}PLUGIN=crypt image.bin @{ui}
+
+@{b}WB Usage:@{ub}
+
+When MountDiskImage is set as the @{i}"Default Tool" @{ui}of a disk image file and
+@{i}"Start from:" @{ui}is set to Workbench. The file will be mounted using options
+specified in the icon's tooltypes.
+
+Currently the following options can be used:
+ - @{b}UNIT/K/N@{ub}
+ - @{b}DEVICE=DRIVE/K@{ub}
+ - @{b}WP=WRITEPROTECT/S@{ub}
+ - @{b}PASSWORD/K@{ub}
+ - @{b}PLUGIN/K@{ub}
+
+@endnode
+@node "Installation" "Installation"
+@{b}Installation:@{ub}
+
+The following instructions are for manually installing the device and its
+associated files. It is recommended that you use the included Install script
+instead as it makes the installation process somewhat easier.
+
+@{b}Installation (manual):@{ub}
+
+Start by opening a CLI and CD:ing to the diskimage_device directory. Then type
+the following commands into the CLI to install the device and associated files:
+Copy Devs/#? ALL TO DEVS:
+Copy C/#? TO C:
+Copy DiskImageGUI#? TO SYS:System/
+Copy Catalogs/~(#?.#?) ALL TO LOCALE:Catalogs/
+
+@{b}Installation (update):@{ub}
+
+Updating an existing diskimage.device installation is as easy as executing the
+included AutoInstall script (just open a CLI and type "Execute AutoInstall").
+@endnode
+@node "FixHDF" "FixHDF"
+@{b}FixHDF @{ub}FILE/A,BLOCKSPERTRACK/N,SURFACES/N,BLOCKSIZE/N,CYLINDERSIZE/N
+
+@{b}CLI Usage:@{ub}
+
+Used to correct the file size of invalid sized hardfiles (removes extra unused
+bytes that may cause the file not to mount correctly with the device). Assuming
+a "standard" geometry of:
+BlocksPerTrack = 32
+Surfaces = 1
+BlockSize = 512
+then only the filename of the hdf will need to be given to the command.
+
+If @{b}CYLINDERSIZE/N @{ub}is specified all other options except for @{b}FILE/A @{ub}will be
+ignored.
+@endnode
+@node "DiskImage" "DiskImage"
+@{b}DiskImage DRIVE/A,DISKIMAGE/A,WRITE/S @{ub}
+
+@{b}CLI Usage: @{ub}
+
+ - @{b}DRIVE/A @{ub}
+   DOS device name (f.e. DF0:, CD1:, HD2:, ...)
+ - @{b}DISKIMAGE/A @{ub}
+   Disk image filename
+ - @{b}WRITE/S @{ub}
+   Use if you want to write a disk image file back to disk
+
+@{b}Examples: @{ub}
+
+ - Create diskimage file from disk in DF0:
+   @{i}@{b}DiskImage @{ub}DF0: diskimage.adf @{ui}
+
+ - Write diskimage file to disk in DF0:
+   @{i}@{b}DiskImage @{ub}DF0: diskimage.adf WRITE @{ui}
+
+ - Create diskimage file from disk in CD0:
+   @{i}@{b}DiskImage @{ub}CD0: diskimage.iso @{ui}
+
+ - Create diskimage file from harddrive partition DH2:
+   @{i}@{b}DiskImage @{ub}DH2: diskimage.hdf @{ui}
+@endnode
+@node "Requirements" "Requirements"
+@{b}Requirements@{ub}
+
+ - AmigaOS >= 4.1
+
+ - capsimage.device (IPF plugin) - http://softpres.org
+
+ - z.library >= 52.1 (CSO, DAA, DAX, DMG, ISZ, UIF and VMDK plugins) -
+   http://aminet.net/util/libs/z_library.lha
+
+ - bzip2.library >= 53.1 (DMG and ISZ plugins) - included with MUI 4.0
+
+ - expat.library >= 4.1 (DMG plugin) -
+   http://os4depot.net/share/development/library/misc/expat-ppc.lha
+
+ - mpg123.library >= 52.1 (MP3 audio tracks) -
+   http://os4depot.net/share/library/audio/mpg123_lib.lha
+
+ - libFLAC.so (FLAC audio tracks) -
+   http://os4depot.net/share/development/library/audio/libflac.lha
+
+ - libwavpack.so (WavPack audio tracks) -
+   http://os4depot.net/share/development/library/audio/libwavpack.lha
+
+ - Vorbis and ogg shared objects (Ogg Vorbis audio tracks) -
+   http://os4depot.net/share/development/library/audio/libvorbis.lha
+   http://os4depot.net/share/development/library/audio/libogg.lha
+
+ - CBM1541FileSystem (D64/G64 files) -
+   http://os4depot.net/share/driver/filesystem/cbm1541_fs.lha
+
+ - SAMDOSFileSystem (SAD/DSK files) -
+   http://os4depot.net/share/driver/filesystem/samdos_fs.lha
+
+ - XISOFileSystem (XISO files) -
+   http://os4depot.net/share/driver/filesystem/xiso_fs.lha
+
+@{b}Recommended:@{ub}
+
+ - AISS (DiskImageGUI) - http://masonicons.info/
+@endnode
+@node "Disk Image Formats" "Disk Image Formats"
+@{b}Supported Disk Image Formats: @{ub}
+
+ - adf    (Amiga Disk File)
+ - adz    (gzipped adf file)
+ - bin
+ - ccd    (CloneCD)
+ - cso    (Compressed ISO)
+ - cpr    (same format as dsk)
+ - cue
+ - d64    (C=64)
+ - daa
+ - dax
+ - dmg    (Apple disk image format)
+ - dms    (DiskMaSher)
+ - dsk    (CPCEmu, non-EXTENDED images only)
+ - flac   (with embedded cue file)
+ - g64    (C=64)
+ - gi     (untested)
+ - hdf
+ - img
+ - ipf    (needs capsimage.device)
+ - iso    (CD/DVD)
+ - isz
+ - mdf    (Daemon Tools/Alcohol)
+ - mds    (Daemon Tools/Alcohol)
+ - nrg    (Nero)
+ - raw
+ - sad    (Sam Coupe)
+ - toast  (Roxio Toast)
+ - uif    (MagicISO)
+ - vdi    (VirtualBox)
+ - vmdk   (VMWare)
+ - wv     (with embedded cue file)
+ - xiso   (X-Box ISO)
+
+@{b}Also supports compressed images through (if available): @{ub}
+
+ - xadmaster.library
+ - xpkmaster.library
+
+Some plugins (f.e. DMS, XAD and XPK) will unpack to a temporary file in T:
+(or a path specfied by the DiskImageTempPath env variable). In order to save
+changes made to this file simply make a copy of the file to your harddrive.
+
+Not all plugins have write support implemented. In this case the disks will
+behave as if they were write protected.
+@endnode

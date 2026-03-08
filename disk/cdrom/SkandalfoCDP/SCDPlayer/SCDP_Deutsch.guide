@@ -1,0 +1,738 @@
+@Database SCDP_Deutsch.guide
+@Author "Juan J. García de Soria"
+@(c) Copyright © 1996 Juan J. García de Soria
+@$VER: SCDP_Deutsch.guide 1.6
+@Index "Main"
+@WordWrap
+
+        Dokumentation für SCDPlayer 1.6. Deutsch.
+
+@Node Main "SCDPlayer 1.6 Dokumentation"
+@{b}@{u}SCDPlayer 1.6@{uu}:@{ub} Ein CDDA Player. Copyright © 1996 Juan J. García de Soria.
+
+   @{" Copyright        " Link Copyright}  Lies' mich jetzt.
+   @{" Einleitung       " Link Introduction}  Was ist SCDPlayer? Warum SCDPlayer?
+   @{" Features         " Link Features}  Was hat SCDPlayer was andere nicht haben?
+   @{" Vorraussetzungen " Link Requirements}  Was wird benötigt?
+   @{" Über MUI         " Link MUI}  Über das MUI-System.
+   @{" Installation     " Link Installation}  Wie kriege ich das Ding zum laufen?  
+   @{" ToolTypes        " Link ToolTypes}  Einstellungen im Icon.        
+   @{" Benutzung        " Link Usage}  Wie bediene ich SCDPlayer.
+   @{" ARexx port       " Link ARexx}  Der AREXX-Port und die Befehle.
+   @{" SCDPKaraoke      " Link SCDPLyrics}  SCDPlayer's Synchron-Texte.
+   @{" Geschichte       " Link History}  Programm-Versionen.      
+   @{" Die Zukunft      " Link Future}  Wie werden zukünftige Versionen aussehen?    
+   @{" Der Autor        " Link Author}  Wer hat SCDPlayer programmiert.       
+   @{" Bugs             " Link Bugs}  Versteckte Funktionen!        
+
+    Dank an Boris Jakubaschk
+              für den Original MCDP-Code.
+            Brian Aagaard Petersen
+              für seine Hilfe bei ARexx.
+            Thomas Andersson
+              für den Schwedischen Katalog.
+            Alexander Limi
+              für die MWB-Icons und den Norwegischen Katalog.
+            Pascal Rullier
+              für den Französischen Katalog.
+            Jürgen Urbanek
+              für die alternativen 3d button-Bilder und den deutschen Katalog.
+            Ingo Nehls
+              für die deutsche AmigaGuide®-Anleitung.
+            Nicola Salmoria, Eric Sauvageau, Phil Vedovatti und Roger McVey
+              für die Newicons.
+            Russel Leighton
+              für MUIRexx.
+@EndNode
+
+@Node SCDPLyrics "SCDPKaraoke 1.0"
+SCDPKaraoke ist ein ARexx Script für @{b}SCDPlayer@{ub}. Dieses kann synchron zur Musik Texte in einem eigenen Fenster anzeigen. Hierfür braucht das Script MUIRexx von Russel Leighton.
+
+Die Idee für SCDPKaraoke kommt von RexxCD (von Urban Lindeskog; auch im Aminet).
+
+Damit SCDPKaraoke funktioniert, muß das MUIRexx-Programm im Pfad MUIRexx: zu finden sein. Auch der "Delay"-Befehl sollte entweder im Suchpfad (z.B. C:) oder resident sein.
+
+Es gibt zwei @{b}SCDPlayer@{ub} Scripts um die SCDPKaraoke-Funktionen zu steuern:
+
+    - StartLyrics.scdp: Startet SCDPKaraoke und öffnet sein Fenster.
+        
+    - QuitLyrics.scdp: Beendet SCDPKaraoke und schließt sein Fenster.
+        
+Wenn man SCDPKaraoke benutzen möchte, sollte @{b}SCDPlayer@{ub} so konfiguriert werden, daß QuitLyrics beim Beenden ausgeführt wird. Das kann mit Hilfe des Tooltype gemacht werden:
+
+    SCRIPTONQUIT=Rexx/QuitLyrics.scdp
+        
+Um es bei jedem @{b}SCDPlayer@{ub} Start zu starten kann dieses Tooltype benutzt werden:
+
+    SCRIPTONSTART=Rexx/StartLyrics.scdp
+        
+Wenn es manuell gestartet werden soll, kann StartLyrics.scdp mit dem "Execute..."-Menüpunkt gestartet werden, oder es wird in das ARexx-Menü aufgenommen:
+
+    MENUSCRIPT=Rexx/StartLyrics.scdp
+        
+Die letzte Möglichkeit ist ein RexxKnopf.
+
+
+Um die Texte richtig anzeigen zu können, müssen diese in einem bestimmten Format gespeichert sein (von RexxCD übernommen). Der Filename muß der gleiche sein wie der des ID-File für die CD. Der einzige Unterschied ist das 'LY' statt dem 'ID' im Namen.
+
+In diesem File müssen für jedes Karaoke-Lied folgende Zeilen eingegeben werden:
+
+#n
+mm:ss.t Karaoke_Zeile1
+mm:ss.t Karaoke_Zeile2
+   :        :
+   :        :
+
+'n' ist die Liednummer. mm:ss.t ist der Zeitpunkt (in Minuten:Sekunden.Zentelsekunden) innerhalb des Liedes zu dem der jeweilige Text erscheinen soll.
+
+'.t' ist optional, das heißt, daß wenn es nicht angegeben wird, wird '.t' als '.0' angenommen. Innerhalb eines Liedes dürfen keine Leerzeilen entstehen. In dieser Art und Weise wird für jedes Lied der zugehörige Text geschrieben.
+
+Dieses Format ist das selbe wie das von RexxCD. RexxCD speichert allerdings die Texte im ID-File und nicht in einem Extra-LY-File! Das bedeutet, das wenn Texte von RexxCD verwendet werden sollen, nur der Name der ID-Files (nach LY) geändert und die ID-Informationen (Liedtitel usw.) aus dem File entfernt werden müssen.
+@EndNode  
+
+
+@Node ARexx "SCDPlayer 1.6 ARexx-Port"
+Seit Version 1.5 hat @{b}SCDPlayer@{ub} einen ARexx-Port integriert. Er hat viele Kommandos zur Kontrolle des CD-Laufwerks und der Datenbank.
+
+@{b}SCDPlayer@{ub} kann ARexx-Skripte starten. Dafür gibt es ein Menü, und konfigurierbare Knöpfe (RexxKnöpfe). Außerdem kann @{b}SCDPlayer@{ub} während des Startens, des Beendens und des Einlegens einer CD Skripte starten.
+
+Wichtig zu beachten ist, daß @{b}SCDPlayer@{ub} nicht zu verlassen ist, wenn noch Skripte im Hintergrund laufen. Das heißt, daß wenn ein Skript in einer Schleife läuft, ohne diese zu beenden, wird @{b}SCDPlayer@{ub} nicht verlassen.
+
+Um das zu vermeiden, sollten alle Skripte die nicht sofort wieder verlassen werden, die Funktion @{" USERACTION " Link USERACTION} benutzen, um herauszufinden, ob @{b}SCDPlayer@{ub} sich zu beenden versucht, oder Knöpfe gedrückt wurden.
+
+@{b}Liste der ARexx-Befehle:@{ub}
+
+    @{" PLAYRAW " Link PLAYRAW}              @{" SAVEPROGRAM " Link SAVEPROGRAM}   @{" FASTFORWARD " Link FASTFORWARD}
+    @{" PLAYTRACK " Link PLAYTRACK}            @{" CDTITLE " Link CDTITLE}       @{" EJECT " Link EJECT}
+    @{" PLAYINGPOS " Link PLAYINGPOS}           @{" CDARTIST " Link CDARTIST}      @{" LOAD " Link LOAD}
+    @{" PLAYINGTRACK " Link PLAYINGTRACK}         @{" TRACKS " Link TRACKS}        @{" VOLUME " Link VOLUME}
+    @{" PROGRAM " Link PROGRAM}              @{" TRACKNAME " Link TRACKNAME}     @{" IDFILENAME " Link IDFILENAME}
+    @{" SHUFFLE " Link SHUFFLE}              @{" TRACKSTART " Link TRACKSTART}    @{" DISKSPATH " Link DISKSPATH}
+    @{" REPEAT " Link REPEAT}               @{" TRACKEND " Link TRACKEND}      @{" OPENLIST " Link OPENLIST}
+    @{" AUTOPROGRAM " Link AUTOPROGRAM}          @{" ISDATATRACK " Link ISDATATRACK}   @{" CLOSELIST " Link CLOSELIST}
+    @{" AUTOSHUFFLE " Link AUTOSHUFFLE}          @{" SAVECDDATA " Link SAVECDDATA}    @{" OPENPROGRAM " Link OPENPROGRAM}
+    @{" AUTOREPEAT " Link AUTOREPEAT}           @{" PLAY " Link PLAY}          @{" CLOSEPROGRAM " Link CLOSEPROGRAM}
+    @{" AUTOPLAY " Link AUTOPLAY}             @{" STOP " Link STOP}          @{" STATUS " Link STATUS}
+    @{" SETPROGRAM " Link SETPROGRAM}           @{" PAUSE " Link PAUSE}         @{" USERACTION " Link USERACTION}
+    @{" PROGRAMMEDTRACKS " Link PROGRAMMEDTRACKS}     @{" PREVIOUS " Link PREVIOUS}      @{" SLEEP " Link SLEEP}
+    @{" PROGRAMMEDTRACK " Link PROGRAMMEDTRACK}      @{" NEXT " Link NEXT}
+    @{" ADDPROGRAMMEDTRACK " Link ADDPROGRAMMEDTRACK}   @{" REWIND " Link REWIND}
+    
+Alle diese Befehle geben, wenn alles korrekt ausgeführt wurde, 0 als Rückgabecode zurück. Falls ein Fehler auftrat, ist dieser Wert 5. Der Rückgabewert (!!!) nimmt -1 an, wenn ein Fehler auftrat.
+@EndNode
+
+@Node PLAYRAW
+@{b}PLAYRAW STARTADRESSE/N/A,ENDADRESSE/N@{ub}
+
+Dieser Befehl spielt die CD von der in "STARTADRESSE" angegebenen Position bis "ENDADRESSE", oder bis zum Ende, wenn nicht angegeben. Der Befehl schlägt fehl, wenn keine CD vorhanden ist.
+
+Die Adressen sind Index-Einheiten. Eine Sekunde besteht aus 75 Index-Einheiten.
+@EndNode
+
+@Node PLAYTRACK
+@{b}PLAYTRACK LIED/N/A@{ub}
+
+Dieser Befehl spielt das Angegebene Lied. Der Befehl schlägt fehl, wenn keine CD eingelegt ist, oder die Liednummer nicht existiert.
+@EndNode
+
+@Node PLAYINGPOS
+@{b}PLAYINGPOS@{ub}
+
+Dieser Befehl gibt die aktuelle Spiel-Position in Index-Einheiten an. Der Befehl schlägt fehl, wenn keine CD eingelegt ist, nicht gespielt wird oder die CD pausiert.
+
+Die Adressen sind Index-Einheiten. Eine Sekunde besteht aus 75 Index-Einheiten.    
+@EndNode
+
+@Node PLAYINGTRACK
+@{b}PLAYINGTRACK@{ub}
+
+Dieser Befehl gibt das aktuell gespielte Lied zurück. Der Befehl schlägt fehl, wenn keine CD eingelegt ist, nicht gespielt wird oder die CD pausiert.
+@EndNode
+
+@Node PROGRAM
+@{b}PROGRAM NEU/N@{ub}
+
+Dieser Befehl gibt den Status des Programm-Knopfes zurück. Es wird 1 zurückgegeben, wenn der Knopf gedrückt ist (also der Programm-Modus aktiv ist), andernfalls wird 0 zurückgegeben.
+
+Außerdem kann in "NEU" ein neuer Wert übergeben werden, um den Programm-Modus zu aktivieren/deaktivieren.
+@EndNode
+
+@Node SHUFFLE
+@{b}SHUFFLE NEU/N@{ub}
+
+Dieser Befehl gibt den Status des Zufalls-Knopfes zurück. Es wird 1 zurückgegeben, wenn der Knopf gedrückt ist (also der Zufalls-Modus aktiv ist), andernfalls wird 0 zurückgegeben.
+
+Außerdem kann in "NEU" ein neuer Wert übergeben werden, um den Zufalls-Modus zu aktivieren/deaktivieren.
+@EndNode
+
+@Node REPEAT
+@{b}REPEAT NEU/N@{ub}
+
+Dieser Befehl gibt den Status des Endlos-Knopfes zurück. Es wird 1 zurückgegeben, wenn der Knopf gedrückt ist (also der Endlos-Modus aktiv ist), andernfalls wird 0 zurückgegeben.
+
+Außerdem kann in "NEU" ein neuer Wert übergeben werden, um den Endlos-Modus zu aktivieren/deaktivieren.
+@EndNode
+
+@Node AUTOPROGRAM
+@{b}AUTOPROGRAM NEU/N@{ub}
+
+Dieser Befehl gibt den Status des Autoprogramm-An/Aus-Knopfes zurück. Es wird 1 zurückgegeben, wenn der Knopf gedrückt ist (also der Autoprogramm-Modus aktiv ist), andernfalls wird 0 zurückgegeben.
+
+Außerdem kann in "NEU" ein neuer Wert übergeben werden, um den Autoprogramm-Modus zu aktivieren/deaktivieren.
+@EndNode
+
+@Node AUTOSHUFFLE
+@{b}AUTOSHUFFLE NEU/N@{ub}
+
+Dieser Befehl gibt den Status des Autozufalls-An/Aus-Knopfes zurück. Es wird 1 zurückgegeben, wenn der Knopf gedrückt ist (also der Autozufalls-Modus aktiv ist), andernfalls wird 0 zurückgegeben.
+
+Außerdem kann in "NEU" ein neuer Wert übergeben werden, um den Autozufalls-Modus zu aktivieren/deaktivieren.
+@EndNode
+
+@Node AUTOREPEAT
+@{b}AUTOREPEAT NEU/N@{ub}
+
+Dieser Befehl gibt den Status des Autoendlos-An/Aus-Knopfes zurück. Es wird 1 zurückgegeben, wenn der Knopf gedrückt ist (also der Autoendlos-Modus aktiv ist), andernfalls wird 0 zurückgegeben.
+
+Außerdem kann in "NEU" ein neuer Wert übergeben werden, um den Autoendlos-Modus zu aktivieren/deaktivieren.
+@EndNode
+
+@Node AUTOPLAY
+@{b}AUTOPLAY NEU/N@{ub}
+
+Dieser Befehl gibt den Status des Autoplay-Knopfes zurück. Es wird 1 zurückgegeben, wenn der Knopf gedrückt ist (also der Autoplay-Modus aktiv ist), andernfalls wird 0 zurückgegeben.
+
+Außerdem kann in "NEU" ein neuer Wert übergeben werden, um den Autoplay-Modus zu aktivieren/deaktivieren.
+@EndNode
+
+@Node SETPROGRAM
+@{b}SETPROGRAM LIEDNUMMERN/N/M@{ub}
+
+Dieser Befehl setzt die Programm-Lieder. Die übergebenen Liednummern sind die Lieder, die in der Programmliste enthalten sein sollen. Sie werden automatisch in die Programmliste aufgenommen. Wenn keine Liednummern übergeben werden, wird das Programm geleert.
+
+Der Befehl schlägt fehl, wenn eine Nummer nicht existiert, oder keine CD eingelegt ist.
+@EndNode
+
+@Node PROGRAMMEDTRACKS
+@{b}PROGRAMMEDTRACKS@{ub}
+
+Dieser Befehl gibt die Anzahl der im Programm enthaltenen Lieder zurück.
+@EndNode
+
+@Node PROGRAMMEDTRACK
+@{b}PROGRAMMEDTRACK NUMMER/N,NEU/N@{ub}
+
+Wenn kein Argument übergeben wird, wird die Nummer (im Programm) zurückgegeben, die das gerade spielende Lied hat (schlägt fehl, wenn nicht im Programm-Modus und spielend).
+
+Wenn das erste Argument übergeben wird, wird die Lied-Nummer (auf der CD) zurückgegeben, das an der NUMMER'sten Stelle im Programm steht (schlägt fehl, wenn die Nummer falsch ist).
+
+Wenn beide Argumente übergeben werden, wird das Lied in die Programmliste an der Stelle NUMMER eingetragen, das in NEU übergeben wurde.
+@EndNode
+
+@Node ADDPROGRAMMEDTRACK
+@{b}ADDPROGRAMMEDTRACK NEU/N/A@{ub}
+
+Hängt den in NEU angegebenen Track an die Programmliste an (schlägt fehl, wenn die Nummer falsch ist).
+@EndNode
+
+@Node SAVEPROGRAM
+@{b}SAVEPROGRAM@{ub}
+
+Dieser Befehl speichert das aktuelle Programm als Standart-Programm für die eingelegte CD.
+@EndNode
+
+@Node CDTITLE
+@{b}CDTITLE TITEL@{ub}
+
+Gibt den Titel der eingelegten CD zurück (Nur wenn eine CD eingelegt ist).
+
+Wenn TITEL angegeben wird, wird der Titel auf diesen geändert.
+@EndNode
+
+@Node CDARTIST
+@{b}CDARTIST INTERPRET@{ub}
+
+Gibt den Interpreten der eingelegten CD zurück (Nur wenn eine CD eingelegt ist).
+
+Wenn INTERPRET angegeben wird, wird er auf diesen geändert).
+@EndNode
+
+@Node TRACKS
+@{b}TRACKS@{ub}
+
+Gibt die Anzahl der auf der CD enthaltenen Titel zurück (Nur wenn eine CD eingelegt ist).
+@EndNode
+
+@Node TRACKNAME
+@{b}TRACKNAME NUMMER/N/A,NAME@{ub}
+
+Wenn nur das erste Argument übergeben wird, wird der Name des Titels zurückgegeben (Nur wenn eine CD eingelegt ist).
+
+Wenn beide Argumente angegeben werden, wird der Titelname af den angegebenen geändert.
+@EndNode
+
+@Node TRACKSTART
+@{b}TRACKSTART NUMMER/N/A@{ub}
+
+Dieser Befehl gibt die Startadresse des Titels zurück.
+
+Die Adresse wird in Index-Einheiten angegeben (75 pro Sekunde).
+@EndNode
+
+@Node TRACKEND
+@{b}TRACKEND NUMMER/N/A@{ub}
+
+Dieser Befehl gibt die Endadresse des Titels zurück.
+
+Die Adresse wird in Index-Einheiten angegeben (75 pro Sekunde).    
+@EndNode
+
+@Node ISDATATRACK
+@{b}ISDATATRACKSTART NUMMER/N/A@{ub}
+
+Dieser Befehl gibt eine 1 zurück wenn der angegebene Titel ein Datentrack ist. Sonst wird eine 0 zurückgegeben.
+@EndNode
+
+@Node SAVECDDATA
+@{b}SAVECDDATA@{ub}
+
+Dieser Befehl speichert die CDTitel, den Interpreten und die Liedtitel ab.
+@EndNode
+
+@Node PLAY
+@{b}PLAY@{ub}
+
+Hat die selbe Funktion wie der Play-Knopf im @{b}SCDPlayer@{ub} Hauptfenster.
+@EndNode
+
+@Node STOP
+@{b}STOP@{ub}
+
+Hat die selbe Funktion wie der Stop-Knopf im @{b}SCDPlayer@{ub} Hauptfenster.
+@EndNode
+
+@Node PAUSE
+@{b}PAUSE@{ub}
+
+Hat die selbe Funktion wie der Pause-Knopf im @{b}SCDPlayer@{ub} Hauptfenster.
+@EndNode
+
+@Node PREVIOUS
+@{b}PREVIOUS@{ub}
+
+Hat die selbe Funktion wie der Lied-zurück-Knopf im @{b}SCDPlayer@{ub} Hauptfenster.
+@EndNode
+
+@Node NEXT
+@{b}NEXT@{ub}
+
+Hat die selbe Funktion wie der Lied-weiter-Knopf im @{b}SCDPlayer@{ub} Hauptfenster.
+@EndNode
+
+@Node REWIND
+@{b}REWIND@{ub}
+
+Hat die selbe Funktion wie der Rückwärts-Knopf im @{b}SCDPlayer@{ub} Hauptfenster.
+@EndNode
+
+@Node FASTFORWARD
+@{b}FASTFORWARD@{ub}
+
+Hat die selbe Funktion wie der Vorwärts-Knopf im @{b}SCDPlayer@{ub} Hauptfenster.
+@EndNode
+
+@Node EJECT
+@{b}EJECT@{ub}
+
+Öffnet die CD-Schublade.
+@EndNode
+
+@Node LOAD
+@{b}LOAD@{ub}
+
+Schließt die CD-Schublade.
+@EndNode
+
+@Node VOLUME
+@{b}VOLUME LEVEL/N@{ub}
+
+Gibt die aktuelle Lautstärke zurück (1..31). Wenn LEVEL angegeben wird, wird dieser Wert eingestellt.
+@EndNode
+
+@Node IDFILENAME
+@{b}IDFILENAME@{ub}
+
+Gibt den Filenamen des ID-Files für die aktuelle CD zurück. Schlägt fehl, wenn keine CD eingelegt ist.
+
+Das "ID-File" enthält CD-Informationen im folgenden Format:
+
+    ·Eine Zeile für den Interpreten.
+    
+    ·Eine Zeile für den CD-Titel.
+    
+    ·Je eine Zeile für die Titel-Namen.
+    
+    ·Bei neueren Versionen (1.4 und höher) eine Zeile die mit einem Sternchen anfängt, und Buchstaben für die Automatikfunktionen enthält.
+    
+Diese "ID-Files" werden unter dem im DISKPATH-Tooltype angegebenen Pfad gespeichert.
+@EndNode
+
+@Node DISKSPATH
+@{b}DISKSPATH@{ub}
+
+Gibt den im DISKPATH-Tooltype angegebenen Pfad für "ID-Files" zurück.
+@EndNode
+
+@Node OPENLIST
+@{b}OPENLIST@{ub}
+
+Öffnet das Listen-Fenster.
+@EndNode
+
+@Node CLOSELIST
+@{b}CLOSELIST@{ub}
+
+Schließt das Listen-Fenster.
+@EndNode
+
+@Node OPENPROGRAM
+@{b}OPENPROGRAM@{ub}
+
+Öffnet das Programm-Fenster.
+@EndNode
+
+@Node CLOSEPROGRAM
+@{b}CLOSEPROGRAM@{ub}
+
+Schließt das Programm-Fenster.
+@EndNode
+
+@Node STATUS
+@{b}STATUS@{ub}
+
+Gibt eine der folgenden Strings zurück, je nach CD-Status:
+
+    NODISK
+
+    PLAYING
+    
+    STOPPED
+    
+    PAUSED
+@EndNode
+
+@Node USERACTION
+@{b}USERACTION@{ub}
+
+Gibt eine der folgenden Werte zurück:
+
+    0 -> Der Benutzer hat nichts gemacht, seit der Ausführung des letzten ARexx-Kommandos.
+    
+    1 -> Der Benutzer hat seit dem letzten ARexx-Kommando Befehle gegeben.
+
+    2 -> @{b}SCDPlayer@{ub} versucht sich zu beenden.
+    
+Jedes ARexx-Skript das Schleifen bearbeitet, sollte diesen Befehl periodisch abfragen und beendet werden falls eine 2 zurückgegeben wurde. In den meisten Fällen sollte auch bei einer zurückgegebenen 1 das Programm beendet werden.
+@EndNode
+
+@Node SLEEP
+@{b}SLEEP NEU/N/A@{ub}
+
+Wenn mit diesem Befehl eine 1 als Argument übergeben wird, werden @{b}SCDPlayer's@{ub} Fenster eingefroren. In diesem Fall kann der Benutzer keine Eingaben machen, da nur ein Busy-Pointer zu sehen ist.
+
+Bei Übergabe von 0 werden die Fenster "aufgetaut".
+
+@{b}ACHTUNG:@{ub} Auf jeden Fall sollte in jedem Programm ein Sleep-Befehl mit 0 auf einen Sleep-Befehl mit 1 folgen.
+@EndNode
+
+@Node Copyright "SCDPlayer 1.6 Copyright"
+@{b}SCDPlayer@{ub}, Copyright © 1996 Juan J. García de Soria, alle Rechte vorbehalten.
+
+@{b}SCDPlayer@{ub} ist frei kopierbar, solange keine Gebühren außer Kopier- oder Datenträgerkosten erhoben werden. Alle Files in diesem Archiv dürfen nicht verändert werden und müssen in dieser Zusammenstellung erhalten bleiben.
+
+Die Programmcodes von  @{b}SCDPlayer@{ub} dürfen als Lernbeispiel verwendet werden. Wenn Teile der Programme verwendet werden, dürfen diese nur weiterverteilt werden wenn die Arbeit des Orginal-Autors irgendwo erwähnt wird.
+
+@{b}Dieses Programm wird so verteilt wie es ist, es gibt keine Gewährleistung.@{ub} Der Autor übernimmt keine Verantwortung für eventuell durch dieses Programm verursachte Schäden an Ihrer Hard- oder Software. @{b}BENUTZUNG AUF EIGENES RISIKO.@{ub}
+
+@{b}SCDPlayer@{ub} kann frei benutzt werden, wenn Dir das Programm gefällt schicke etwas an den Autor: Postkarten (in Englisch), eines Deiner Programme, oder einfach nur Vorschläge...
+@EndNode
+
+@Node Introduction "SCDPlayer wurde geboren!"
+Vor einiger Zeit habe ich mir ein CD-ROM Laufwerk für meinen A1200 gekauft. Es hat toll funktioniert, und ich hörte auch Audio-CD's damit. Es gab einige Programme um CDDA-Tracks abzuspielen, aber ich war nicht besonders glücklich, denn irgendwie fehlte jedem Programm Funktionen, die ich haben wollte.
+
+Eines dieser Programme war @{b}MCDPlayer,@{ub} von @{b}Boris Jakubaschk.@{ub} Es sah gut aus und funktionierte ganz gut. Aber das Programm hatte weder Endlos, Zufall noch Lautstärke-Funktionen. Ich habe es zwar benutzt, aber dann hatte ich keine Lust mehr auf diese Limitierungen und habe dann einfach meinen eigenen CDDA-Spieler programmiert.
+
+Glücklicherweise waren bei @{b}MCDPlayer@{ub} die Programmcodes dabei (Danke Boris), und so konnte ich die SCSI-Befehle, die das CD-Laufwerk steuern, lernen. Ich habe mit den @{b}MCDPlayer@{ub}-SCSI-Befehlen angefangen zu programmieren, und so kam dieses Programm heraus. Da ich nicht genug Amiga-Programmier-Dokumentationen habe um ein GUI zu programmieren, und mir @{b}MUI@{ub} einen Großteil der Arbeit abnimmt, habe ich es für die Benutzeroberfläche benutzt.
+
+Übrigens, @{b}SCDPlayer@{ub} bedeutet @{u}Skandalfo's CD Player@{uu}.
+@EndNode
+
+@Node Features "SCDPlayer 1.6 Funktionen"
+@{b}SCDPlayer@{ub} hat folgende Funktionen:
+
+   ·Er funktioniert mit SCSI- und Atapi-CD-ROM Laufwerken (Sollte zumindest, denn ich habe es nicht viel getestet).
+
+   ·Er benutzt @{b}MUI@{ub} für eine schöne Benutzeroberfläche.
+
+   ·Er erkennt CD's, deren Daten gespeichert wurden.
+
+   ·Er hat ein eigenes Fenster um die CD-Titel zu editieren und zu speichern. SCDPlayer benutzt das gleiche Format wie @{b}MCDPlayer@{ub}, somit müssen nicht alle Songnamen neu eingegeben werden wenn dieser vorher benutzt worden ist.
+
+   ·Er hat für jede CD ein eigenes Programm, das in einem Fenster editiert werden kann.
+
+   ·Er hat einen Zufallsmodus, um die Titel einer CD zufällig abzuspielen.
+
+   ·Er hat einen Endlos-modus, um eine CD oder ein Programm immer wieder zu wiederholen.
+
+   ·Er kann eine CD sofort starten, sobald sie eingelegt worden ist. Das funktioniert für Programm-, Zufalls- und Endlosmodus und jeweils unterschiedlich für jede CD.
+
+   ·Er hat einen Lautstärkeregler (Ich bin aber nicht sicher, ob er funktioniert. Details unter @{" bugs " Link Bugs}).
+
+   ·Kann über Hotkeys gesteuert werden während er ikonifiziert ist.
+
+   ·Er hat kein riesengroßes GUI, so wie @{b}JukeBox@{ub}.
+
+   ·Er ist lokalisiert (ab OS2.1 oder höher).
+
+   ·Er hat einen mächtigen ARexx-Port.
+
+   ·Er hat ein MUIRexx-Programm für Karaoke-Funktionen dabei.
+   
+   ·Er ist frei verteilbar!
+@EndNode
+
+@Node Requirements "Was wird benötigt, um SCDPlayer 1.6 zu benutzen?"
+@{b}SCDPlayer@{ub} benötigt:
+
+   ·Einen @{b}Amiga@{ub}.
+
+   ·Ein SCSI oder Atapi CD-ROM Laufwerk.
+
+   ·@{b}AmigaOS@{ub} 2.04 oder höher (2.1 oder höher für Lokalisierung).
+
+   ·@{b}MagicUserInterface@{ub} 3.1 oder höher, von Stefan Stuntz (siehe @{" Über MUI " Link MUI}).
+
+   ·MUIRexx 2.1 von Russel Leighton, wenn man SCDPKaraoke benutzen möchte (im Aminet; Verzeichnis dev/gui).
+   
+   ·Ungefähr 100 kB freien Speicher (ohne muimaster.library).
+@EndNode
+
+@Node MUI "Über das MUI system"
+        Dieses Programm benutzt
+
+
+        MUI - MagicUserInterface
+
+        (c) Copyright 1993/94 by Stefan Stuntz
+
+
+    MUI ist ein System zum Erzeugen und Unterstützen von grafischen Benutzungsoberflächen. Mit der Hilfe eines Konfigurationsprogrammes bekommt der Benutzer einer @{b}MUI@{ub}-Applikation die Möglichkeit das Aussehen dieser Applikation seinem Geschmack anzupassen.
+
+    MUI wird als Shareware vertrieben. Um ein vollständiges Programmpaket zu bekommen, das viele Beispiele und mehr Informationen über die Registrierung beinhaltet, sollten Sie auf lokalen Bulletin Boards oder Public Domain Disketten nach einer Datei namens muiXXusr.lha Ausschau halten (XX steht für die letzte Versionsnummer).
+ 
+
+   Sie können sich auch direkt registrieren lassen, indem Sie 30.- DM oder 20.- US$ an die folgende Adresse schicken:
+
+                        Stefan Stuntz
+                   Eduard-Spranger-Straße 7
+                        80935 München
+                           GERMANY
+
+         Telefon: +49-89-313-1248
+         E-Mail:  stuntz@informatik.tu-muenchen.de
+ 
+
+@EndNode
+
+@Node Bugs "Versteckte Funktionen!"
+Ich hoffe @{b}SCDPlayer@{ub} hat keinen schlimmen Fehler. Ich habe zumindest bis jetzt keinen gefunden.
+
+Wie auch immer, der Lautstärkeregler von @{b}SCDPlayer@{ub} funktioniert nicht richtig. Die Orginal-Funktion von @{b}MCDPlayer@{ub} hat bei mir nicht funktioniert, also habe ich solange rumprobiert bis sie endlich lief. Auf meinem System läuft es jedenfalls, obwohl ich nicht weiß warum. Ich bin nicht sicher, ob sie auf irgendeinem anderen System läuft. Falls sie nicht läuft das NOVOLUME-@{" ToolType " Link ToolTypes} benutzen.
+
+Wenn jemand weiß, wie man die Lautstärke bei SCSI CD-ROM Laufwerken steuert, bitte bei mir melden.
+@EndNode
+
+@Node Installation "Wie bekommt man das Ding zum Laufen"
+Einfach die @{b}SCDPlayer@{ub}-Schublade dahin ziehen wo Du sie haben willst und die DEVICE- und UNIT-@{" ToolTypes " Link ToolTypes} setzen, damit das CD-ROM Laufwerk gefunden wird.
+
+In der "alternative"-Schublade gibt es auch noch andere Icons für @{b}SCDPlayer@{ub}.
+@EndNode
+
+@Node ToolTypes "SCDPlayer's Icon ToolTypes"
+Die folgenden Tooltypes sind im @{b}SCDPlayer's@{ub} icon zu benutzen:
+
+@{u}DEVICE@{uu}:
+Einstellung des exec.library device das zur Steuerung des CD-ROM Laufwerkes benutzt werden soll. Voreingestellt ist:
+
+        DEVICE=scsi.device
+
+@{u}UNIT@{uu}:
+Einstellung der Laufwerksnummer für das CD-ROM Laufwerk. Voreingestellt ist:
+
+        UNIT=4
+
+@{u}NOVOLUME@{uu}:
+Mit diesem Tooltype kann @{b}SCDPlayer's@{ub} Lautstärke-Funktion abgestellt werden.Siehe @{" Bugs " Link Bugs} Abschnitt.
+
+@{u}DISKSPATH@{uu}:
+Dieses Tooltype sagt @{b}SCDPlayer@{ub} wo die Daten der CD's und CD-Programmen liegen. Voreingestellt ist "PROGDIR:disks".
+
+@{u}CUSTOMFONTS@{uu}:
+Mit diesem ToolType wird @{b}SCDPlayer@{ub} ein anderer Font zugewiesen als der, der bei @{b}MUI@{ub} definiert ist.
+
+@{u}NORMALFONT | TINYFONT | FIXEDFONT | LISTFONT | TITLEFONT@{uu}: Diese Tooltypes bestimmen welche Fonts für Beschriftung und Knöpfe | Titel über Nummern im Display | Nummern im Display | Listeneinträge | Titel wenn CUSTOMFONTS gesetzt ist. Das Tooltype-Format muß "____FONT=Name/Größe" (Der Name ohne ".font"). Zum Beispiel:
+
+        NORMALFONT=topaz/11
+
+@{u}CX_POPUP@{uu}:
+Wenn dieses Tooltype "NO" gesetzt ist, wird @{b}SCDPlayer@{ub} ikonifiziert gestartet. Mit "YES" wird das Fenster geöffnet. Wenn dieses Tooltype nicht gesetzt ist, wird die Einstellung für den @{b}SCDPlayer@{ub} vom MUI System Preferences-Programm genommen.
+
+@{u}CX_POPKEY@{uu}:
+Setzt das Tastaturkürzel um den @{b}SCDPlayer@{ub} zu ikonifizieren/deikonifizieren. Voreinstellung ist "control lcommand numericpad enter".
+
+@{u}PLAY_KEY | PAUSE_KEY | STOP_KEY | PREVIOUS_KEY | NEXT_KEY | REWIND_KEY | FASTFORWARD_KEY | EJECT_KEY | PROGRAM_KEY | SHUFFLE_KEY | REPEAT_KEY@{uu}:
+Dies sind die Tastaturkürzel-Equivalente für die Knöpfe im Hauptfenster des @{b}SCDPlayer's@{ub}. Sie funktionieren auch wenn @{b}SCDPlayer@{ub} ikonifiziert ist. Voreinstellungen unter @{" Benutzung " Link Usage}.
+ 
+@{u}SCRIPTONSTART@{uu}:
+Hier wird der Pfad und der Name eines ARexx-Scriptes angegeben, das gestartet wird sobald @{b}SCDPlayer@{ub} gestartet ist. Die Standard-Endung ist ".scdp"
+
+@{u}SCRIPTONQUIT@{uu}:
+Hier wird der Pfad und der Name eines ARexx-Scriptes angegeben, das gestartet wird sobald @{b}SCDPlayer@{ub} beendet wurde. Die Standard-Endung ist ".scdp"
+
+@{u}SCRIPTONINSERT@{uu}:
+Hier wird der Pfad und der Name eines ARexx-Scriptes angegeben, das gestartet wird sobald eine CD eingelegt wurde. Die Standard-Endung ist ".scdp"
+
+@{b}ACHTUNG:@{ub} Diese drei Tooltypes können NUR EIN Skript enthalten. Wenn mehrere Skripte angegeben werden, zum Beispiel zwei mal SCRIPTONINSERT mit verschiedenen Skripten, wird immer nur das Letzte ausgeführt.
+
+@{u}MENUSCRIPT@{uu}:
+Hier wird der Pfad und der Name eines ARexx-Scriptes angegeben, das in @{b}SCDPlayer's@{ub} ARexx-Menü aufgenommen wird und bei Selektion ausgeführt wird. Die Standard-Endung ist ".scdp". Es können maximal 8 Menüeinträge aufgenommen werden.
+
+@{u}BUTTONSCRIPT@{uu}:
+Hier wird der Pfad, der Name und ein Bild für einen Rexx-Knopf, einer einzigartigen Funktion von @{b}SCDPlayer@{ub}. Es können maximal 8 Rexx-Knöpfe eingebaut werden. Das ToolType-Format ist "BUTTONSCRIPT=Skriptpfadundname|Bildname". Das ARexx Skript hat die selbe Standard-Endung wie die anderen. Der BildName sollte der Name eines MUI-Brushes in der Images-Schublade in @{b}SCDPlayer's@{ub}-Schublade. Für jedes Tooltype wird im Hauptfenster des @{b}SCDPlayer@{ub} ein neuer Knopf mit dem jeweiligen Bild generiert. Diese Knöpfe starten dann die dazugehörigen ARexx-Skripte.
+
+Diese ToolTypes sind @{b}case sensitive@{ub} (Auf Groß- und Kleinschreibung achten!). Wenn @{b}SCDPlayer@{ub} von einer Shell gestartet wird, müssen die Tooltypes als Argumente eingegeben werden:
+
+        SCDP "DEVICE=scsi.device" "UNIT=4"
+@EndNode
+
+@Node Usage "Benutzung des SCDPlayer 1.6"
+@{b}SCDPlayer@{ub} kann von der Workbench aus mit einem Doppelklick und auch von der Shell aus gestartet werden. Wenn er von der Shell aus gestartet wird, müssen Argumente für das Device und die Unit des CD-ROM Laufwerkes mit übergeben werden (siehe @{" ToolTypes " Link ToolTypes}).
+
+@{b}Achtung, SCDPlayer braucht mindestens 20000 bytes Stackspeicher. Der Shell oder dem Icon muß genug Stackspeicher zugeordnet sein.@{ub}
+
+Wenn @{b}SCDPlayer@{ub} gestartet ist, wird ein Fenster geöffnet. Man sieht das @{b}SCDPlayer@{ub} Logo, einen Abschnitt, in dem Daten über die aktuelle CD angezeigt werden, eine Reihe von Knöpfen um das Laufwerk zu steuern, eine Liste mit den Titeln auf der CD und zwei weitere Knöpfe.
+
+Der Informationsabschnitt des Fensters zeigt an welcher Track gerade gespielt wird, die gespielte Zeit des Titels und der CD, den Namen des Interpreters, der CD und des Titels.
+
+In der ersten Knopfreihe sind:
+
+    @{u}Knopf@{uu}    @{u}Bedeutung@{uu}      @{u}Voreingestelltes Tastaturkürzel@{uu}
+    |>      Play          control lcommand Space    (lcommand entspricht linke Amigataste)
+    ||      Pause         control lcommand z
+    []      Stop          control lcommand x
+    |<      Lied Zurück   control lcommand <
+    >|      Lied Weiter   control lcommand >
+    <<      5 sec zurück  control lcommand c
+    >>      5 sec weiter  control lcommand v
+    @{u}^@{uu}       Auswerfen     control lcommand `
+
+In der Mitte erscheinen Knöpfe wenn wenigstens ein Rexx-Knopf konfiguriert worden ist. Diese Knöpfe können vom Benutzer eingeschaltet werden (siehe @{" ToolTypes " Link ToolTypes}). Sie starten dann ARexx-Skripte. Die Standardkonfiguration, die mitgeliefert wird hat zwei Knöpfe. Der erste wiederholt ein Lied, und der zweite einen Teil der CD.
+
+In der letzten Knopfreihe sind:
+
+    @{u}Knopf@{uu}     @{u}Bedeutung@{uu}         @{u}Voreingestelltes Tastaturkürzel@{uu}
+    Schieber  Lautstärke
+    =         Programm Modus   control lcommand p
+    %         Zufallsmodus     control lcommand s
+    @         Endlosmodus      control lcommand r
+
+Diese Tastaturkürzel sind nur Voreinstellungen. Sie können mit den @{" ToolTypes " Link ToolTypes} verändert werden. Diese Tastaturkürzel bleiben auch aktiv wenn @{b}SCDPlayer@{ub} ikonifiziert ist.
+
+Mit den Registern kann man wählen ob in der Liste die CD-Titel oder die Programm-Titel angezeigt werden. Der aktive Track wird gespielt. Bei einem Doppelklick auf einen Eintrag wird dieser Track sofort gespielt.
+
+Der "Liste"-Knopf öffnet ein Fenster in dem diese Daten einer CD editiert werden können.
+
+    ·Interpret.
+
+    ·Titel der CD.
+
+    ·Titel der Lieder.
+
+In diesem Fenster sind vier Knöpfe um einzustellen was @{b}SCDPlayer@{ub} macht wenn eine CD eingelegt wird (Auto Play, Auto Programm, Auto Zufall & Auto Endlos).
+
+Das Fenster hat drei Knöpfe um die Daten nur jetzt zu benutzen (OK), sie zu speichern oder wieder zu löschen (Abbrechen).
+
+Der "Programm"-Knopf öffnet ein Fenster um ein Programm für diese CD zu erstellen/editieren. Es erscheint eine Liste der Titel, das jetzige Programm, Knöpfe, um das Programm zu verändern und drei Knöpfe, zum Benutzen, Speichern und Verwerfen. Das Programm kann auch mit Drag&Drop arrangiert werden.
+@EndNode
+
+@Node History "Geschichte:"
+@{u}Date@{uu}    @{u}Version@{uu} @{u}Änderungen@{uu}
+17-3-96 1.0     Erste Version.
+
+18-3-96 1.1     Andere Fonts werden unterstützt.
+
+31-3-96 1.2     Problem mit Hintergründen und dem Logo gelöst.
+                Unterstützung von MUI 3.1.
+                Hilfe-Blasen eingebaut.
+                Programm Menü unterstützt nun drag&drop.
+                Automatisch verschwindende Objekte.
+
+22-6-96 1.3     AutoPlay, AutoProgramm, AutoZufall & AutoEndlos bei CD-Einlegen.
+
+19-7-96 1.4     Verschiebungsmöglichkeit des Hauptfensters und DISKPATH-Tooltype hinzugefügt.
+                Vollständige Commodities-Unterstützung und verstellbare Hotkeys hinzugefügt.
+                CD-Info Fenster geändert, sodaß der CD-Name immer zu sehen ist.
+                Weiter- und Zurückknöpfe auf 5 sec-Sprünge geändert (vorher 10).
+
+16-8-96 1.5     Register für CD-Titel und Programm-Titel im Hauptfenster hinzugefügt.
+                Einige "Verhaltensstörungen" beseitigt.
+                ARexx port und Beispiel-Skripte hinzugefügt.
+
+03-9-96 1.6     Jetzt schreibt der DISKSPATH ARexx-Befehl den Pfad aus.
+                                Französischen Katalog hinzugefügt.
+                                SCDPKaraoke V1.0 hinzugefügt.
+                                Installationsskript modifiziert.
+@EndNode
+
+@Node Future "Die Zukunft"
+Tja, es sieht so aus als ob das Programm ziemlich fertig ist. Also werden keine neuen Versionen erscheinen, solange nicht irgendein wichtiger Bug gefunden wird.
+
+(Und ich glaube, er findet doch noch was (Ingo Nehls).  ;-) )
+@EndNode
+
+@Node Author "Wer hat das programmiert?"
+@{b}SCDPlayer@{ub} wurde programmiert von:
+
+    Juan J. García de Soria.
+    Alte. León Herrero 31, 5ºJ
+    11100 San Fernando (Cádiz)
+    SPAIN
+
+    e-mail: amisanf@ctv.es
+
+    Ich bin ein Telekommunikations-Ingenieur-Student in Seville (Spanien)
+
+    Sendet mir einfach eure Meinung über @{b}SCDPlayer@{ub}.
+
+
+
+<<< Skandalfo ist Mitglied bei
+        
+                         _,æßÆ¡ßðø»å
+                      .æßð£¾¼×$»¢¤`"
+          ,.,         ø^°"  `¶µ´    .
+        ,øåß$%ç.             øØ    Æ%
+        µ¼´¨¯¾½ð,   Ø  .å    ¥Þ   .ß´ øª#¶¾
+       £ß°    `¼ç  Æß  Æ©   .©®   $% Æ§   §¢  ,.,
+       ½$      §æ, sð. £o   ÆØ    øµ ¹æc ß®° øåß$%ç.
+       [@      Ø®   «ø®þ´  ,§o   .ßð  ¯©å¤^ Æ¼´¨¯¾½ð,
+       ¶¼,    ,þ©          Æ£  øª#¶¾´      £ß°    `¼ç  þ,_.._
+        ½ß.  .Æð´             Æ§   §¢      ½$      §æ, ßÐ¶°¤µç
+         ¶Kbit!"              ¹æc ß®°      [@      Ø®  ¤þ    `
+          `"""                 ¯©å¤        ¶¼,    ,þ©  ßð
+                                            ½ß.  .Æð´  Ðþ
+                                             ¶¼ßª½×"    ðß
+                                               ""´       "      
+                                          The truth is OuTdoOr  >>>
+@EndNode 
+

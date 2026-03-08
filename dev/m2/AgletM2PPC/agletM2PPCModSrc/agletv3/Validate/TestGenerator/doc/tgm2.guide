@@ -1,0 +1,427 @@
+@database "validate/TestGenerator/doc/tgm2.guide"
+@author "Tom Breeden"
+@(c) "Tom Breeden"
+@$VER: 0.0 (4.2.2011)           
+@font "Bitstream Vera Serif.font" 16
+@smartwrap
+@macro "_tgm2_" "@{i}tgm2 @{ui}"
+@macro "_ITMBEGIN_" "@{tab}@{lindent 3}"
+@macro "_Title_" "@{jcenter}@{bg Shine}@{b} $1 @{ub}@{bg Background}@{line}@{jleft}@{_LMARG_}"
+@macro "_LMARG_" "@{lindent 2}"
+@node "MAIN" "validate/TestGenerator/doc/tgm2"
+@font "Bitstream Vera Mono.font" 18
+@{_Title_ "Test Generator for ISO Modula-2"} 
+@{line}tgM2 v0.13 (23.1.2010)@{line} 
+@{jleft}@{lindent 2}
+
+By Tom Breeden (tmb@virginia.edu)@{line}
+Apr 2, 2011@{line}
+@{code}
+        @{" Overview            " LINK Overview}
+        @{" Test Scripts        " LINK Test_Scripts}
+        @{" Test Script Layout  " LINK Test_Script_Layout}
+        @{" Test Script Syntax  " LINK Test_Script_Syntax}
+        @{" Notes               " LINK Notes}
+        @{" Test Script Layout  " LINK Test_Script_Layout}
+        @{" Demo Test Script    " LINK Demo_Script}
+        @{" Macro Example       " LINK Macro_Example}
+        @{" Test Driver Startup " LINK Test_Driver_Startup}
+        @{" Modules and Files   " LINK tgm2_modules}
+        @{" Support Modules     " LINK support_modules}
+
+        @{" TestManager         " LINK TestManager}
+
+
+@endnode
+@node "Overview" "Overview"
+@{_Title_ Overview}
+
+@{_tgM2_} is a program to aide in unit testing of Modula-2 software. It takes as input a user-prepared test script (*.ts file) which specifies one or more tests of a procedure or code block to be executed and reported upon. tgM2 writes out a Modula-2 program for this test suite. The output program itself writes its results to standard output.
+
+
+@{_tgM2_} owes its existence and most of its architecture to the Ada 95 test driver generator program @{i}tg@{ui}  for Ada written by Andre Spiegel, along with the version of tg for Modula-2 (still an Ada 95 program) adapted to generate Modula-2 scripts done by Ralf Reissing.
+
+
+I produced @{_tgM2_} for two reasons. First, I wanted to remove the necessity of obtaining an Ada compiler in order to build the program. Second, I wanted to use ISO Modula-2 to restore the capabilities of the original Ada driver generation that had been lost in adaptation to a pre-ISO M2 language base. Specifically, these depended on the EXCEPT language construct in the ISO definition. Exception handing provides the possibility of generating more robust test scripts as well as the ability to test that situations which should cause exception execution actually do so.
+
+
+The program was developed and tested in 2007 on Win2K using Stony Brook Modula-2 and on an Amiga using a semi-ISO (unreleased) M2 compiler for Amiga (M68040).
+
+Since then I used it only on Amiga OS v4 (and have extended it a little on that platform).
+
+
+The files in the download tgM2.lha include the complete sources of @{_tgM2_} and an AmigaOS 4 executable, plus some demo script files, and support module sources.
+
+
+Your bug reports and other comments are appreciated.
+
+
+
+@endnode
+@node "Test_Scripts" "Test_Scripts"
+@{_Title_ "Test Scripts"}
+
+The test script you prepare is a text file (with extension ".ts") containing all the information necessary for @{_tgm2_} to generate a "driver" program source file that can be compiled and linked to run the test suite.@{line}
+
+The different sections of the test script are:@{line}
+
+@{u}General Section@{uu} - can occur once, at the beginning of the script.@{lindent 10}@{line}
+Fail/Error Handling Specification@{lindent 15}@{line}
+- "stop" at first failure/error or "continue"@{lindent 10}@{line}
+Context@{lindent 15}@{line}
+- the IMPORT statements necessary@{lindent 10}@{line}
+Global Definition@{lindent 15}@{line}
+- variables used by all the test cases@{line}
+- CONST and TYPE statements for global use.@{line}
+- Procedures called from the Test Code section.@{lindent 10}@{line}@{_LMARG_}
+
+@{lindent 30}@{u}Code Sections@{uu} - can occur multiple times, and interspersed with Test Case Sections@{lindent 10}@{line}
+Code Section@{lindent 15}@{line}
+- code to be executed before/between Test Cases.@{line}
+@{lindent 18}- Code Sections and Test Case Sections are executed in the order in which they appear in the script file.@{lindent 10}@{line}@{_LMARG_}
+
+@{u}Test Case Sections@{uu} - can occur multiple times to create a test suite@{lindent 10}@{line}
+Title@{lindent 15}@{line}
+- descriptive title for the test case@{lindent 10}@{line}
+Definitions@{lindent 15}@{line}
+- variables used by this test case@{line}
+- CONST and TYPE statements for this test case.@{line}
+- Procedures called within this test case only.@{lindent 10}@{line}
+Preparation Code@{lindent 15}@{line}
+- statements executed prior to the test itself@{lindent 10}@{line}
+Test Code@{lindent 15}@{line}
+- statements that perform the test itself@{lindent 10}@{line}
+Test Result Predicate(s)@{lindent 15}@{line}
+- boolean expressions to be evaluated after the Test Code@{line}
+- or within an EXCEPT block caused by the test code@{line}
+- all must evaluate TRUE for the test to be marked "Pass"@{lindent 10}@{line}
+CleanUp Code@{lindent 15}@{line}
+- statements executed after to the test itself@{lindent 10}@{line}@{_LMARG_}
+
+
+@endnode
+@node "Test_Script_Layout" "Test_Script_Layout"
+@{_Title_ "Test Script Layout"}
+
+The *.ts file is a "column 1 significant" text file; ie, if a non-blank character appears in column 1, it must be a "keyword" (such as "define", "test", "pass"). Other material is (mainly) Modula-2 statements or phrases, which can encompass more than one line, so long as column 1 is blank.@{line}
+
+Comments in the *.ts file are in M2 comment format, but are never passed onto the driver program. (currently nested comments are not supported).@{line}
+
+Most of the sections or subsections above are optional. However, there must be a Test Case Title (ie, the "****" keyword), a Test Code subsection, and a Test Result Predicate. Subsections must appear in the order given above.@{line}
+
+Keywords are not case sensitive.@{line}
+
+
+
+
+@endnode
+@node "Test_Script_Syntax" "Test_Script_Syntax"
+@{_Title_ "Test Script Syntax"}
+
+@{u}General Section@{uu}@{lindent 10}@{line}
+Keyword: @{b}fail_handling stop@{ub} | @{b}fail_handling continue@{ub}@{line}
+Keyword: @{b}error_handling stop@{ub} | @{b}error_handling continue@{ub}@{line}
+Keyword: @{b}context@{ub} <IMPORT statement> {<IMPORT statement>}@{line}
+Keyword: @{b}define@{ub} <variables list>:<Type>; {<M2 definitions and procedures >}@{lindent 30}@{line}
+- No VAR in front of the initial variables list.@{lindent 10}@{_LMARG_}@{line}
+
+@{u}Code Sections@{uu}@{lindent 10}@{line}
+Keyword: @{b}code@{ub} <M2 definitions and code>@{lindent 30}@{line}
+- Will be wrapped into a procedure constructed by @{_tgm2_}@{lindent 10}@{line}
+Keyword: @{b}macro@{ub} <macroname> {%<paramname>}@{line}
+Keyword: @{b}endmacro@{ub}@{lindent 30}@{line}
+- Parameter names each begin with a "%"@{line}
+@{lindent 33}- Any parameter names occurring between macro and endmacro and surrounded by angle brackets will be substituted with the parameter value.@{lindent 10}@{_LMARG_}@{line}
+
+@{u}Test Case Sections@{uu}@{lindent 10}@{line}
+Keyword: @{b}*****@{ub} <text>@{lindent 30}@{line}
+- The test case will be wrapped into a procedure constructed by @{_tgm2_}@{lindent 10}@{line}
+Keyword: @{b}define@{ub} <variables list>:<Type>; {<M2 definitions and procedures >}@{lindent 30}@{line}
+- No VAR in front of the initial variables list.@{lindent 10}@{line}
+Keyword: @{b}prepare@{ub} <M2 code>@{line}
+Keyword: @{b}test@{ub} <M2 code>@{line}
+Keyword: @{b}pass@{ub} <boolean expression>@{line}
+Keyword: @{b}pass exception@{ub} <boolean expression>@{lindent 30}@{line}
+- the "pass exception" predicate is placed into the procedure's EXCEPT block.@{line}
+- Multiple instances of either of the pass keywords may appear.@{lindent 10}@{line}
+Keyword: @{b}cleanup@{ub} <M2 code>@{lindent 10}@{line}@{_LMARG_}
+
+
+
+
+
+
+
+
+
+@endnode
+@node "Notes" "Notes"
+@{_Title_ "Notes"}
+
+  > "fail" vs. "error" - A test case is marked "fail" if any of the pass or pass exception predicates are false.
+It is also marked "fail" if an exception occurred within the test subsection but there was no pass exception keyword, or, similarly, if there was a pass exception keyword but no exception occurred within the test subsection.
+If there is an exception anywhere outside of the test subsection then the test case (and the overall run result) is marked "error".@{line}
+
+  > The created test program always imports WriteString and WriteLn from the standard ISO module STextIO.@{line}
+
+  > For a more comprehensive discussion and documentation of the tg approach to testing and the .ts files, see the formatted document distributed with tg for Modula-2 by Andre Spiegel and Ralf Reissing at tg.pdf. Nearly all of it applies to @{_tgM2_}, though the pass exception keyword is new with tgM2.@{line}
+
+  > The Windows executable was created in the Stony Brook M2 v4, build 29 system.@{line}
+     The Amiga executable on AOS 4.1u2.@{line}
+
+  > Using an optimizing compiler, for some very simple test and pass combinations it may be necessary to turn off optimization or take other steps to insure that the compiler does not remove some of your statements. (see ArithExpressions.ts)@{line}
+
+
+
+
+
+
+
+
+
+
+@endnode
+@node "Demo_Script" "Demo_Script"
+@font "Bitstream Vera Mono.font" 14
+@{_Title_ "Demo Test Script: ArithExpressions.ts"}
+@{code}
+
+(* Test script for some Arithmetic expressions with a Modula-2 compiler *)
+(* tgM2 0.13 (23.1.2010) - PPC *)
+
+@{b}fail_handling continue@{ub}
+@{b}error_handling stop@{ub}
+
+@{b}context@{ub} FROM M2EXCEPTION IMPORT IsM2Exception;
+        <*/NOOPTIMIZE*>  (* Otherwise, some of the simple tests below disappear! *)
+
+@{b}*****@{ub} INTEGER Overflow
+@{b}define@{ub}  Result, I, J, K  :INTEGER16;
+@{b}prepare@{ub} <*/PUSH*>
+        <*/CHECK:O*>
+        Result := 0;
+        I := 30000; J := -30000;
+@{b}test@{ub}    Result := I-J;
+@{b}pass@{ub}    exception IsM2Exception()
+@{b}cleanup@{ub} <*/POP*>
+
+@{b}*****@{ub} INTEGER Overflow without checking
+@{b}define@{ub}  Result, I, J, K  :INTEGER16;
+@{b}prepare@{ub} <*/PUSH*>
+        <*/NOCHECK:O*>
+        Result := 0;
+        I := 30000; J := -30000;
+@{b}test@{ub}    Result := I-J;
+@{b}pass@{ub}    TRUE
+@{b}cleanup@{ub} <*/POP*>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@endnode
+@node "Macro_Example" "Macro_Example"
+@font "Bitstream Vera Mono.font" 14
+@{_Title_ "Macro Example"}
+
+@{_tgm2_} provides a simple string substitution macro facility. Use of macros in @{_tgm2_} can make it much quicker to construct many similar test cases within a script file, but with variations in operators, values, exception expectation, etc.@{line}
+
+The text in blue below is replicated with string substitution each time the macro invocation appears later in the script file. As below, the macro can represent an entire test case or whatever parts of the script desired. 
+
+@{code}
+
+@{b}macro@{ub} _FDoArith %tname %leftside %typ %a %ae %b %be %op %res %rese %nonexc %except
+
+    (* NOTE: if you care only about an exception occurring, don't include a "pass..." statement *)
+
+@{fg Highlight}***** <%tname>
+define  a,
+        b,
+        res,
+        c,
+        d    :<%typ>;
+        diff :<%typ>;
+        r1   :REAL;
+        R2   :LONGREAL;
+        bRes :BOOLEAN;
+
+prepare bRes := FALSE;
+        a := <%a>;
+        b := <%b>;
+        res := <%res>;
+
+test    <%leftside> := <%ae> <%op> <%be>;
+        diff := res - <%leftside>;
+        bRes := ABS(diff) \< 1.0E-6;
+
+<%nonexc>
+
+<%except>
+@{fg Text}
+@{b}endmacro@{ub}
+
+....
+
+and some macro calls after the definition:
+
+_FDoArith(AddVarVar,     c, REAL, "(-2.742)", a, 6.632, b, "+", "3.89", res, "pass bRes", "(**)")
+_FDoArith(AddVarConst,   c, REAL, "(-2.742)", a, 6.632, 6.632, "+", "3.89", res, "pass bRes", "(**)")
+_FDoArith(SubVarVar,     c, REAL, "(-2.742)", a, 6.632, b, "-", "(-9.374)", res, "pass bRes", "(**)")
+_FDoArith(SubVarConst,   c, REAL, "(-2.742)", a, 6.632, 6.632, "-", "(-9.374)", res, "pass bRes", "(**)")
+
+
+
+
+
+
+
+
+
+
+
+
+@endnode
+@node "Test_Driver_Startup" "Test_Driver_Startup"
+@tab 50
+@{_Title_ "Test Driver Startup"}
+
+tgM2: A Test Driver Generator for Modula-2 programs (v0.9-051804).@{line}
+
+Usage:   tgM2 [options...] script_file [driver_file]@{line}
+
+Options template is "@{b}-f=-fail/K,-p=-pass/K,-script/A,-driver,-overwrite/S,-h=-help/S@{ub}"@{lindent 20}@{line}
+/A = always required@{line}
+/K = option keyword required@{line}
+/S = boolean switch@{_LMARG_}@{line}
+
+@{b}-f@{ub}    Specifies how failed test cases will be reported by the testdriver.  may be one of@{lindent 20}@{line}
+
+off@{tab}No output.@{line}
+numbers@{tab}Only test case numbers, followed by the string "FAIL."@{line}
+titles@{tab}Numbers and titles, followed by "...FAIL" on the next line.@{line}
+full@{tab}Numbers and titles, "...FAIL" and a short explanation on the next line.@{line}
+@{tab}This is the default.@{_LMARG_}@{line}
+
+@{b}-p@{ub}    Same as "-f", but for passed test cases.@{lindent 20}@{line}
+Default is "numbers".@{_LMARG_}@{line}
+
+@{b}-overwrite@{ub}     Overwrite any existing driver file of the same name@{line}
+
+The script_file must have the extension ".ts".@{line}
+
+If the output driver_file is not specified, the name is constructed from the script_file with extension changed to ".mod".@{line}
+
+
+
+
+
+@endnode
+@node "tgm2_modules" "tgm2_files"
+@tab 48
+@{_Title_ "tgM2 Modules and Files"}
+
+@{u}Program Modules@{uu}@{line}
+   @{b}tgM2@{ub}@{line}
+   @{b}tgM2TranslatorISO@{ub}@{line}
+   @{b}tgM2Parser@{ub}@{line}
+   @{b}tgM2Scanner@{ub}@{line}
+   @{b}tgM2Exceptions@{ub}@{line}
+   @{b}tgM2Utils@{ub}@{line}
+   @{b}tgM2Version@{ub}@{line}
+
+   @{b}tgM2@{ub}@{tab}Amiga OS4 executable@{line}
+   @{b}tgM2.prj@{ub}@{tab}Aglet Modula2 M2IDE project file@{line}
+
+@{u}Test Scripts@{uu}@{line}
+   @{b}Demo1.ts@{ub}@{tab}from Ada 95 tg package.@{line}
+   @{b}ArithExpressions.ts@{ub}@{tab}some arithmetic overflow tests with exceptions.@{line}
+   @{b}TsttgM2Parser.ts@{ub}@{tab}a more complex script doing a bit of testing of tgM2's parsing modules.@{line}
+
+
+
+
+@endnode
+@node "support_modules" "support_modules"
+@tab 40
+@{_Title_ "Support Modules"}
+
+@{u}ISO Lib Support Modules@{uu}@{line}
+   @{b}ArgsSupport@{ub}@{tab}specification, reading, and initial parsing of command line arguments.@{line}
+   @{b}TextIOHelper@{ub}@{tab}eases the use of the ISO standard TextIO input routines.@{line}
+
+@{u}Null delimited static strings@{uu}@{line}
+   @{b}Str0@{ub}@{tab}Basic procedures.@{line}
+   @{b}Str1@{ub}@{tab}More procedures.@{line}
+
+@{u}Dynamic strings@{uu}@{line}
+   @{b}DynStr0@{ub}@{tab}Basic procedures, size fixed at create time.@{line}
+   @{b}DynStr1@{ub}@{tab}Common procedures.@{line}
+   @{b}DynStr1b@{ub}@{tab}some Strings module flavor procs.@{line}
+   @{b}DynStr1NC@{ub}@{tab}Compare procedures, case insensitive.@{line}
+   @{b}DynStr1C@{ub}@{tab}Common procedures, one character parameter.@{line}
+   @{b}DynStr3@{ub}@{tab}As DynStr0 and DynStr1, but size will be reallocated on assignment.@{line}
+   @{b}TextBlocks@{ub}@{tab}In-memory, line-oriented, dynamically-extending blocks of text.@{line}
+
+@{u}List processing@{uu}@{line}
+   @{b}ListV2Processor@{ub}@{tab}Simple generalized list processing module.@{line}
+
+@{u}Misc@{uu}@{line}
+   @{b}MaxMin@{ub}@{tab}Maximum and Minimum functions for CARDs, INTs, REALs.@{line}
+   @{b}Debugging0@{ub}@{tab}Assert and Debug procs.@{line}
+   @{b}TBChans@{ub}@{tab}used only by tsttgM2Parser.ts@{line}
+
+
+
+
+@endnode
+@node "TestManager" "TestManager"
+@{_Title_ "TestManager"}
+
+A companion program, @{i}TestManager@{ui}, has been written to act as a testing "harness". It will run automate the running of many testing in a batch mode. ie, It will take a list of *.ts scripts, run @{_tgm2_} multiple times to generate the test driver Modula-2 files, compile, link, and run them, and then give a summary report on passed and failed tests.@{line}
+
+For example, test cases for bugs that have been fixed in the compiler are run recursively to detect any that have re-appeared via this command:
+
+
+TestManager -@tg "TstBugs.lst"   gives this output:
+
+@{code}
+tgM2.mod 0.13 (23.1.2010) - PPC
+test run: 02-Apr-2011
+
+============================
+TstSmallIndexBug
+============================
+Total test result: pass.
+
+============================
+TstBoolSetBug
+============================
+Total test result: pass.
+
+============================
+TstCharSubrangeBug
+============================
+Total test result: pass.
+
+============================
+TstSetLiteralBug
+============================
+Total test result: pass.
+
+ModulesPassed: 4
+ModulesFailed: 0
+
+TotalPassed: 4
+TotalFailed: 0
+
+@endnode

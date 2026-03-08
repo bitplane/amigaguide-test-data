@@ -1,0 +1,523 @@
+@database super_picture.guide
+
+@$VER: Super_Picture V1.50 - (C)Copyright Amiga Foundation Classes
+
+This guide file has been created using AutoGuide V1.05 - By Fabio Rotondo (fsoft@intercom.it).
+
+@node "Main" "Amiga-E MODULE: Super_Picture"
+
+
+
+                 **  Super_Picture - Original By Fabio Rotondo **
+
+            ** This Object is part of the Amiga Foundation Classes **
+
+                           ** DOCUMENTATION GUIDE **
+
+        @{" Introduction " link "Super_Picture_introduction" 0}  @{" Author Info " LINK "author"}     @{" Amiga Foundation Classes " LINK "afc.guide/main"}  @{" History " LINK "Super_Picture_History"}
+
+   Requires: @{" IFFParser " LINK "IFFParser.guide/main"}, @{" Bitmapper " LINK "bitmapper.guide/main"}
+
+   Base:     $0007000
+
+   COMMANDS                             BRIEF DESCRIPTION
+   -------------------------------------------------------------------------
+   @{" super_picture(pal=TRUE)            " link "Super_Picture_Super_Picture" 0} Class Constructor.
+   @{" bitmap()                           " LINK "Super_Picture_bitmap"} Returns picture's bitmap.
+   @{" bmhd()                             " LINK "Super_Picture_bmhd"} Returns the BitmapHeader.
+   @{" bmobj()                            " LINK "Super_Picture_bmobj"} Returns embedded bitmapper.
+   @{" check(filename)                    " link "Super_Picture_check"} Checks if the file is a valid ILBM.
+   @{" clear()                            " link "Super_Picture_clear"} Frees all memory.
+   @{" cludge()                           " LINK "Super_Picture_cludge"} Converts a memory area into a picture.
+   @{" depth()                            " LINK "Super_Picture_depth"} Returns picture's depth.
+   @{" dtload(fname, layers, rport, scr)  " LINK "Super_Picture_dtload"} Loads a picture using DataTypes only.
+   @{" dump()                             " LINK "Super_Picture_dump"} Dumps a picture inside a file in raw format.
+   @{" height()                           " LINK "Super_Picture_height"} Returns picture's height.
+   @{" image()                            " LINK "Super_Picture_image"} Creates and returns picture's image structure.
+   @{" load(fname, layers, rport, trap)   " link "Super_Picture_load"} Loads up a picture.
+   @{" loadraw(filename)                  " LINK "Super_Picture_loadraw"} Loads a dumped file into memory.
+   @{" modeid()                           " LINK "Super_Picture_modeid"} Returns picture's ModeID.
+   @{" numcols()                          " LINK "Super_Picture_numcols"} Returns number of colours.
+   @{" palette()                          " LINK "Super_Picture_palette"} Returns the picture's palette.
+   @{" paltoscr(screen)                   " link "Super_picture_paltoscr"} Set the screen palette.
+   @{" width()                            " LINK "Super_Picture_width"} Returns picture's width.
+   @{" version()                          " link "Super_Picture_version" 0} Returns class version AND revision.
+
+   @{" Error Table " LINK "Super_Picture_ErrorTable"}
+
+@endnode
+
+@node Super_Picture_History "Amiga Foundation Classes: Super_Picture / History"
+
+    HISTORY
+
+    V1.50 - Add: @{" dtload() " LINK Super_Picture_dtload} method
+
+            Enh: now datatype loading supports remapping
+
+            Enh: Added an optional parameter to the @{" load() " LINK Super_Picture_load} method.
+
+    V1.40 - Add: image() method
+
+    V1.30 - Add: dump() method
+
+    V1.20 - Fix: small bug in decodebody() method
+
+    V1.10 - Add: cludge() method
+
+    V1.00 - Inital release
+
+@endnode
+
+@node author "Author(s) Info"
+
+    Original By:  Fabio Rotondo  (fsoft@intercom.it)
+
+    E Version By: Fabio Rotondo
+
+    
+    
+    Address:
+
+            Fabio Rotondo
+            C.so Vercelli 9
+            28100 Novara
+            ITALY
+
+            e-mail: fsoft@intercom.it
+                    Fabio.Rotondo@deagostini.it
+
+            Phone:  (ITA) - (0)321 -   459676  (home)
+                    (ITA) - (0)2   - 38086520  (office)
+                    (ITA) - (0)338 -  7336477  (GSM Phone)
+
+            Fax:    (ITA) - (0)2   - 38086278
+
+            Web:    http://www.intercom.it/~fsoft               (my home page)
+
+                    http://www.intercom.it/~fsoft/ablast.html   (Amiga Blast Home Page)
+@endnode
+
+@node "Super_Picture_introduction" "Introduction"
+
+    Super Picture Class - Introduction
+
+    This is a very useful class which interfaces the programmer with OS2.0 and OS3.0
+    features in loading pictures.
+    This class allows you to load any kind of picture (via DataTypes) without worrying 
+    about interfacing with datatypes.library, because it does it all by itself.
+
+    The great thing is that is the class itself which knows if DataTypes are avaible
+    or not and, if not, the class will just handle standard ILBM IFF files, using a
+    very fast ILBM decoding routine built in: no need of iff.library or any other
+    "non-standard Amiga" libraries.
+
+    I hope you will enjoy this class.
+
+                Fabio Rotondo
+
+
+    NOTE: many thanks to Alfred P. Schwarz, who elped me in writing the image() method.
+@endnode
+
+@node Super_Picture_ErrorTable "Super_Picture / Error Table"
+
+ERROR VALUE     | DESCRIPTION
+----------------+-------------------------------------
+    $0000       | No Memory
+    $0001       | Could not open 'datatypes.library'
+    $0002       | Could not create datatype OBJECT
+    $0003       | DoMethod() call failed
+    $0004       | Could not save file
+    $0005       | Could not open file FOR saving
+    $0006       | BitMapHeader Chunk not found
+    $0007       | ColorMap chunk not found
+    $0008       | Body Chunk not found
+@endnode
+
+@node "Super_Picture_Super_Picture" "Amiga Foundation Classes: Super_Picture/Super_Picture()"
+           NAME: super_picture(pal=TRUE)
+
+    DESCRIPTION: This is the class constructor.
+
+          INPUT: pal        - (DEFAULT: TRUE) this is a flag and it is used to tell
+                              the class whether you want to store also a palette along
+                              with picture data or not.
+                              NOTE: if you set it to TRUE, additional 256*3 bytes of memory
+                              will be allocated during construction.
+
+
+        RESULTS: NONE.
+
+       SEE ALSO:
+@endnode
+
+@node "Super_Picture_clear" "Amiga Foundation Classes: Super_Picture/clear()"
+
+           NAME: clear()
+
+    DESCRIPTION: This method will free all allocated resources inside a
+                 super_picture class.
+
+          INPUT: NONE.
+
+        RESULTS: Memory will be freed.
+
+           NOTE: It is safe to call this method also if the class has not been
+                 used yet.
+
+       SEE ALSO: @{" bitmapper / clear() " LINK "bitmapper.guide/bitmapper_clear"}
+@endnode
+
+@node "Super_Picture_load" "Amiga Foundation Classes: Super_Picture/load()"
+
+           NAME: load(fname: PTR TO CHAR, layers=FALSE, rastport=FALSE, trap=FALSE, scr=NIL)
+
+    DESCRIPTION: This is the biggy. This method will try to load a picture in
+                 memory. If the user has OS3.0+, also all picture formats
+                 supported by datatypes can be loaded. Under OS2.0+ only ILBM
+                 IFF files will be supported.
+
+          INPUT: fname              - The file name of the picture you wish to load.
+
+                 layers             - (DEFAULT: FALSE) If you want to create a layer
+                                      related to the picture you are loading,
+                                      set this to TRUE.
+
+                 rastport           - (DEFAULT: FALSE) If you want to create a
+                                      rastport to the picture you are loading,
+                                      set this to TRUE.
+
+                 trap               - (DEFAULT: TRUE) If the picture does not
+                                      exists (i.e. "File not found"), then the
+                                      class WILL NOT return raise any error,
+                                      but you will get the error number as 
+                                      a return code (you can also ignore it, 
+                                      if you want.)
+                                      If it is set to FALSE, then the class
+                                      will raise an exception.
+
+                 scr                - (DEFAULT: NIL) You can provide a screen
+                                      from where the palette will be used to
+                                      remap the picture during loading.
+                                      This remap works only on DataTypes pictures
+                                      at the moment.
+
+        RESULTS: if trap is TRUE and an error occurred, you will have as a 
+                 result the error value.
+
+       SEE ALSO: @{" dtload()                   " LINK "Super_picture_dtload"}
+                 @{" Bitmapper  / allocbitmap() " LINK "bitmapper.guide/bitmapper_allocbitmap"}
+                 @{" IFFParser  / load()        " LINK "iffparser.guide/iffparser_load"}
+@endnode
+
+@node "Super_Picture_check" "Amiga Foundation Classes: Super_Picture/check()"
+
+           NAME: check(filename : PTR TO CHAR)
+
+    DESCRIPTION: This method checks the given file and says if it is a valid
+                 IFF ILBM file or not.
+
+          INPUT: filename           - Name of the file to check
+
+        RESULTS: TRUE               - It is a valid IFF ILBM file
+            
+                 FALSE              - It is not a valid IFF ILBM file
+
+           NOTE: Usually, you should not use this method, because the 
+                 @{" load() " LINK "Super_Picture_load"} method will do this check for you.
+
+       SEE ALSO: @{" IFFParser / getheader() " LINK "IFFParser.guide/IFFParser_getheader"}
+@endnode
+
+@node "Super_Picture_paltoscr" "Amiga Foundation Classes: Super_Picture/paltoscr()"
+
+           NAME: paltoscr(scr:PTR TO screen)
+
+    DESCRIPTION: This method set up the palette of a screen accordingly to the
+                 picture palette.
+
+          INPUT: scr            - A *valid* screen pointer.
+
+        RESULTS: NONE.
+
+       SEE ALSO:
+@endnode
+
+@node "Super_Picture_bmhd" "Amiga Foundation Classes: Super_Picture/bmhd()"
+
+           NAME: bmhd()
+
+    DESCRIPTION: This method returns the current BitMapHeader.
+
+          INPUT: NONE.
+
+        RESULTS: A pointer to a valid BitMapHeader structure.
+
+       SEE ALSO:
+@endnode
+
+@node "Super_Picture_bitmap" "Amiga Foundation Classes: Super_Picture/bitmap()"
+
+           NAME: bitmap()
+
+    DESCRIPTION: This method returns a pointer to the current bitmap structure.
+
+          INPUT: NONE.
+
+        RESULTS: a pointer to a Bitmap structure. It may be NIL.
+
+       SEE ALSO: @{" bitmapper / bitmap() " LINK "bitmapper.guide/bitmapper_bitmap"}
+@endnode
+
+@node "Super_Picture_numcols" "Amiga Foundation Classes: Super_Picture/numcols()"
+
+           NAME: numcols()
+
+    DESCRIPTION: This method returns the number of colours of the loaded picture.
+
+          INPUT: NONE.
+
+        RESULTS: number of colours of the picture. It may be 0.
+
+       SEE ALSO:
+@endnode
+
+@node "Super_Picture_modeid" "Amiga Foundation Classes: Super_Picture/modeid()"
+
+           NAME: modeid()
+
+    DESCRIPTION: This method returns the default modeid of the picture.
+                 The ModeID is the standard monitor value for displaying the
+                 picture.
+
+          INPUT: NONE.
+
+        RESULTS: a LONG value, containing the ModeID.
+
+       SEE ALSO:
+@endnode
+
+@node "Super_Picture_width" "Amiga Foundation Classes: Super_Picture/width()"
+
+           NAME: width()
+
+    DESCRIPTION: This method returns picture's width.
+
+          INPUT: NONE.
+
+        RESULTS: a INT containing picture's width. It may be 0.
+
+       SEE ALSO: @{" height() " LINK "Super_Picture_height"}
+                 @{" depth()  " LINK "Super_Picture_depth"}
+@endnode
+
+@node "Super_Picture_height" "Amiga Foundation Classes: Super_Picture/height()"
+
+           NAME: height()
+
+    DESCRIPTION: This method return picture's height.
+
+          INPUT: NONE.
+
+        RESULTS: a INT value containing the picture's height. It may be 0.
+
+       SEE ALSO: @{" width() " LINK "Super_Picture_width"}
+                 @{" depth() " LINK "Super_Picture_depth"}
+@endnode
+
+@node "Super_Picture_depth" "Amiga Foundation Classes: Super_Picture/depth()"
+
+           NAME: depth()
+
+    DESCRIPTION: This method returns the picture's depth.
+
+          INPUT: NONE.
+
+        RESULTS: a BYTE value containing the picture depth. It may be 0.
+
+       SEE ALSO: @{" width()  " LINK "Super_Picture_width"}
+                 @{" height() " LINK "Super_Picture_height"}
+@endnode
+
+@node "Super_Picture_Super_Picture" "Amiga Foundation Classes: Super_Picture/Super_Picture()"
+
+           NAME: rastport()
+
+    DESCRIPTION: This method returns a pointer to the picture's rastport.
+
+          INPUT: NONE
+
+        RESULTS: a ptr to the picture's rastport. It may be NIL.
+
+       SEE ALSO: @{" bitmapper / rastport() " LINK "bitmapper.guide/bitmapper_rastport"}
+@endnode
+
+@node "Super_Picture_bmobj" "Amiga Foundation Classes: Super_Picture/bmobj()()"
+
+           NAME: bmobj()
+
+    DESCRIPTION: This method returns a pointer to the embedded bitmapper class.
+
+          INPUT: NONE.
+
+        RESULTS: a ptr to the embedded bitmapper class: USE IT AT YOUR OWN RISK!
+
+       SEE ALSO: @{" bitmapper " LINK "bitmapper.guide/main"}
+@endnode
+
+@node "Super_Picture_palette" "Amiga Foundation Classes: Super_Picture/palette()"
+
+           NAME: palette()
+
+    DESCRIPTION: This method returns picture's palette.
+
+          INPUT: NONE.
+
+        RESULTS: it returns a pointer to picture's palette. Please note, it behaves
+                 differently under OS2.0 and OS3.0: 
+
+                    OS2.0  - It is just a 8 bit palette
+
+                    OS3.0+ - It is a 32Bit palette.
+
+                 Please, note also that this method returns TWO values: the pointer
+                 to the palette and palette bits involved.
+
+                 I.e. under OS2.0  it may return: $10293102, 8
+                      under OS3.0+ it may return: $10293102, 32
+
+       SEE ALSO:
+@endnode
+
+@node "Super_Picture_version" "Amiga Foundation Classes: Super_Picture/version()"
+
+           NAME: version()
+
+    DESCRIPTION: This method returns class version and revision.
+
+          INPUT: NONE.
+
+        RESULTS: This method returns TWO values, version and revision.
+
+       SEE ALSO:
+@endnode
+
+@node "Super_Picture_cludge" "Amiga Foundation Classes: Super_Picture/cludge()"
+
+           NAME: cludge(mem:PTR TO CHAR)
+
+    DESCRIPTION: This method converts a memory area into a bitmap.
+
+          INPUT: mem        - PTR to the starting memory area.
+
+        RESULTS:
+
+           NOTE: this MUST be a _valid_ memory area created using the
+                 @{" dump() " LINK "Super_Picture_dump"} method.
+
+       SEE ALSO: @{" dump()                " LINK "Super_Picture_dump"}
+                 @{" bitmapper / cludge() " LINK "bitmapper.guide/bitmapper_cludge"}
+
+@endnode
+
+@node "Super_Picture_dump" "Amiga Foundation Classes: Super_Picture/Super_Picture()"
+
+           NAME: dump(filename)
+
+    DESCRIPTION: This method dumps the current picture into a file in raw format.
+
+          INPUT: filename           - Name of the file where to dump the picture.
+
+        RESULTS: NONE.
+
+           NOTE: Current version of this method does not save the palette.
+
+       SEE ALSO: @{" cludge()            " LINK "Super_Picture_cludge"}
+                 @{" bitmapper / dump() " LINK "bitmapper.guide/bitmapper_dump"}
+@endnode
+
+@node "Super_Picture_loadraw" "Amiga Foundation Classes: Super_Picture/loadraw()"
+
+           NAME: loadraw(filename)
+
+    DESCRIPTION: This method loads a file created with @{" dump() " LINK "Super_Picture_dump"} method
+                 and creates a picture.
+
+          INPUT: filename               - Name of the raw data file to load.
+
+        RESULTS: The picture will be loaded inside the object.
+
+           NOTE: All data in the object will be lost.
+
+       SEE ALSO: @{" clear()                " LINK "Super_Picture_clear"}
+                 @{" dump()                 " LINK "Super_Picture_dump"}
+                 @{" bitmapper / loadraw() " LINK "bitmapper.guide/bitmapper_loadraw"}
+@endnode
+
+@node "Super_Picture_image" "Amiga Foundation Classes: Super_Picture/image()"
+
+           NAME: image()
+
+    DESCRIPTION: Sometimes, it is usefull to obtain picture Image structure, the one
+                 used by Ituition gadgets. Using this method, you can obtain this
+                 Image structure.
+
+          INPUT: NONE
+
+        RESULTS: a pointer to a valid Image structure.
+
+           NOTE: This method is *slow* the first time you call it, because it has
+                 to create the Image structure and picture. Then, it will be
+                 fastlighting, until you don't load another picture in the class.
+
+       SEE ALSO: @{" Bitmapper / image() " LINK "Bitmapper.guide/Bitmapper_image"}
+
+@endnode
+
+@node "Super_Picture_dtload" "Amiga Foundation Classes: Super_Picture/dtload()"
+
+           NAME: dtload(fname: PTR TO CHAR, layers=FALSE, rastport=FALSE, scr=NIL:PTR TO screen)
+
+    DESCRIPTION: This is a lower level method than the @{" load() " LINK "Super_Picture_Load"} one.
+                 Using this method you will load a picture using DataTypes ONLY.
+                 This means that you can use this only on OS3.0+.
+
+                 This method is faster than the @{" load() " LINK "Super_Picture_Load"} one because
+                 it does not perform the usual "format checking" before trying to load the
+                 picture.
+
+
+
+    This is the biggy. This method will try to dtload a picture in
+                 memory. If the user has OS3.0+, also all picture formats
+                 supported by datatypes can be dtloaded. Under OS2.0+ only ILBM
+                 IFF files will be supported.
+
+          INPUT: fname              - The file name of the picture you wish to dtload.
+
+                 layers             - (DEFAULT: FALSE) If you want to create a layer
+                                      related to the picture you are dtloading,
+                                      set this to TRUE.
+
+                 rastport           - (DEFAULT: FALSE) If you want to create a
+                                      rastport to the picture you are dtloading,
+                                      set this to TRUE.
+
+                 scr                - (DEFAULT: NIL) You can provide a pointer to
+                                      a screen as the last parameter.
+                                      If a screen pointer is passed, then the picture
+                                      will be remapped accordingly to the palette
+                                      attatched to the provided screen.
+
+           NOTE: This method CANNOT be trapped. If an error occurred, it will raise
+                 an error.
+
+        RESULTS: NOTHING.
+
+
+       SEE ALSO: @{" load()                       " LINK "Super_Picture_Load"}
+                 @{" Bitmapper  / allocbitmap()   " LINK "bitmapper.guide/bitmapper_allocbitmap"}
+                 @{" IFFParser  / dtload()        " LINK "iffparser.guide/iffparser_dtload"}
+@endnode
+

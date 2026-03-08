@@ -1,0 +1,813 @@
+@database "Mac2E.guide"
+@NODE Main "Mac2E"
+*******************************************************************************
+
+                                  @{b}Mac2E@{ub} (v3.1)
+                     Macro preprocessor for the E language
+                            Archive of 12 July 1994
+                    © Copyright 1993, 1994, @{b}Lionel Vintenat@{ub}
+
+*******************************************************************************
+
+WARNING ! All the executables in this archive require @{b}Workbench 2.0@{ub} or higher
+to run. Sorry to 1.3 users.
+
+@{" IMPORTANT !!!     "  Link Important         }
+@{" Introduction      "  Link Introduction      }
+@{" What is a macro ? "  Link Présentation_Macro}
+@{" Using Mac2E       "  Link Utilisation_Mac2E }
+@{" Bugs              "  Link Bugs              }
+@{" History           "  Link Historique        }
+@{" Distribution      "  Link Distribution      }
+@{" The author        "  Link Auteur            }
+@{" Acknowledgments   "  Link Les_remerciements }
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Important "IMPORTANT !!!"
+    If you read the "ReadMe.first" file, you know now that Mac2E is a
+macro preprocessor for Amiga E. It can be used for any application where
+macro are needed. But Mac2E is born cause of the need of macros to
+program MUI (the complete story later in this documentation :-)). So
+the orginal archive of Mac2E contains some files related to MUI. But
+of course, Amiga E and MUI are two separate things (both great :-)). So
+including those files inside the Amiga E v3.0 archive would have been
+a bit "stupid", and as Amiga E v3.0 doesn't support macros, Mac2E
+completes it well. So this reduced Mac2E archive is born ! It contains
+all of the original Mac2E v3.1 archive as you can find it on aminet or
+on FD collections, except all the files related to MUI and the French
+and German translations of this documentation. If you want them, get
+the full archive ! Moreover, all the files related to MUI are also
+distributed with MUIBuilder (in addition of course to the full
+archive). Finally, only the full Mac2E archive is regularly updated.
+The files related to MUI distributed with MUIBuilder follow of course
+the releases of this last one, and the reduced archive distributed with
+Amiga will probably do the same (Wouter rules :-)).
+
+    Last thing, Mac2E v3.1 was written with Amiga E v2.1b, so don't
+blame me if it isn't a good Amiga E v3.0 programing example :-)
+
+    Enjoy, Lionel
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Introduction "Introduction"
+    This paragraph answers the 3 essential questions :
+    - Why Mac2E ?
+    - What does Mac2E do ?
+    - How does it do it ?
+
+@{" How it all started   "    Link Comment_tout_a_commencé  }
+@{" General presentation "    Link Présentation_générale    }
+@{" Spirit               "    Link Esprit                   }
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Comment_tout_a_commencé "How it all started..."
+    In the beginning, there was Amiga E and me. It was great, the two of
+us, we wrote wonderful programs in record time. As I didn't have (and still
+don't have) the RKM's, these programs were very ugly, without graphical 
+interfaces, but no matter, they were good times...
+    And then, MUI arrived, and nothing has been the same since between
+Amiga E and me. Why? Well, Amiga E does not permit the use of macros, and
+programming MUI without macros is almost crazy! On the other hand, it was
+inconceivable to pass up something like MUI. So, I retreated for a while to
+the language C: it was the beginning of dark times for my Amiga...
+    Then I got access to the INTERNET. I spoke about my problem with Wouter
+who advised me to use a C preprocessor: there was a great idea! But after
+trying, it turned out to be very tedious to use: compilation times were
+increased by a factor of 100, and the compiler didn't give the correct line
+numbers for errors. It was then that I got the idea for Mac2E...
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Présentation_générale "General Presentation"
+    Mac2E is a preprocessor for the Amiga E compiler by Wouter van Oortmerssen,
+but it only knows how to do one thing: replace macros in an E source. In other
+words, the "conditional compilation" and "file inclusion" aspects, for example,
+are not handled by Mac2E, whereas they are with most C preprocessors.
+
+    Oh! I almost forgot: all the executables in this archive are of course
+written in Amiga E!
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Esprit "Spirit"
+    I designed Mac2E with 3 ideas in mind:
+        - make something easy to use (in the spirit of Amiga E)
+        - solve the problems that I encountered in using a C preprocessor with
+Amiga E (see @{" how it all started... " Link comment_tout_a_commencé})
+        - make a preprocessor whose use doesn't make E sources dependant on it;
+in other words, if another version of Amiga E which contains a preprocessor
+comes out, the conversion of your sources from Mac2E to the new preprocessor
+should require very few modifications
+
+    I think that this version 3.0 effectively implements these 3 ideas,
+in that:
+        - Mac2E remains very close to the level of use of a classical
+C preprocessor, so learning it will be very quick for most programmers
+        - using Mac2E on a file takes about the same amount of time as the
+compilation itself, which, taking into account the speed of Amiga E itself,
+aught to be acceptable even for slow Amigas
+        - Mac2E never introduces line feeds when it replaces a macro, so that
+the compiler always indicates the correct line number when reporting errors
+        - Macro definition is done in separate files from the source, and the
+macro files are passed directly to the command Mac2E without your source
+needing to be modified by a single character, so the passage from Mac2E to the
+future (maybe) Amiga E preprocessor will be very simple and will require a
+minimum of modifications to your source code.
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Présentation_macro "What is a macro ?"
+    In a simple manner, we define a macro by associating an identifier
+(the macro's name) with a chain of characters (the body of the macro). Then,
+instead of putting the body of the macro in your source, you simply put it's
+name and the preprocessor replaces the name of the macro with the body.
+
+    In my opinion, the macros are very useful in 3 cases :
+
+    - to avoid rewriting the same sequence several times
+        -> see @{" example 1 " Link Exemple_1}
+    - to facilitate the use of abstract values
+        -> see @{" example 2 " Link Exemple_2}
+    - to logically regroup a program sequence 
+        -> see @{" example 3 " Link Exemple_3}
+
+    Of course, this is a very superficial view of the notion of macros.
+Macros, as implemented in almost all preprocessors today, permit lots of
+things. The following paragraphs present the use of macros in detail.
+
+@{" Defining a macro "    Link Définir_une_macro    }
+@{" Using a macro    "    Link Utiliser_une_macro   }
+@{" Advanced usage   "    Link Usage_avancé         }
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Exemple_1 "Example 1"
+    Consider the example of a program which reads memory sequentially. For
+this purpose, 2 variables are defined:
+DEF memory_pointer:PTR TO CHAR, character
+    Accessing a byte is done in the following manner:
+character:=Char(memory_pointer++)
+    Without macros, you need to type that line with each read. If you are
+performing reads in several procedures, this can quickly become tedious. The
+solution is to define a macro with the name @{u}ReadMemory@{uu} and the body
+@{u}character:=Char(memory_pointer++)@{uu}. You then need only type ReadMemory
+each time.
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Exemple_2 "Example 2"
+    To open a library, you need to pass it's name in lowercase to the
+function OpenLibrary(). If you write OpenLibrary('Dos.library',0), there will
+be no error during compilation, but the library will not be found during
+execution. The solution is to define a macro with the name @{u}DosLibraryName@{uu} and
+the body @{u}'dos.library'@{uu}. This way, you need only type
+OpenLibrary(DosLibraryName,0) to open the dos library, without worrying about
+making a typing mistake.
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Exemple_3 "Example 3"
+    If you want to be sure that stdout is non null, the Amiga E
+documentation advises placing a WriteF('') at the beginning of your program. A
+more elegant solution is to define a macro with the name @{u}OpenStdout@{uu}
+and the body @{u}WriteF('')@{uu}. You then simply use OpenStdout in your source,
+which is much more eloquent.
+
+    In this simple example, the difference between this case and the 2
+previous ones is not very clear, but what is important to understand is that
+the OpenStdout macro is not local to one program (as in example 1), but can be
+used in all programs where it is necessary for stdout to be non null. In
+addition, OpenStdout behaves like a mini-procedure (as opposed to example 2)
+which accomplishes a task.
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Définir_une_macro "Defining a macro"
+    The following paragraphs explain the different syntaxes for defining
+a macro, from the simplest to the most complex.
+
+@{" Definition of a macro without parameters "  Link Sans_paramètre     }
+@{" Definition of a macro with parameter(s)  "  Link Avec_Paramètres    }
+@{" Advanced definition of a macro           "  Link Définition_avancée }
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Sans_paramètre "Definition of a macro without parameters"
+    A simple macro definition has the following syntax:
+
+@{b}
+#define macro_name macro_body@{ub}
+   |   |     |    |     |    |
+  (1) (2)   (3)  (2)   (4)  (5)
+where
+    (1) #define marks the beginning of the definition and can be found
+anywhere on the line (not necessarily at the beginning)
+    (2) 1 or more spaces and tabs
+    (3) the name of the macro (any combination of numbers, uppercase
+and lowercase letters, and "_" characters)
+    (4) the body of the macro (any combination of characters other than
+carriage returns)
+    (5) carriage return which marks the end of the macro definition
+
+    @{b}Examples :@{ub}
+#define ReadMemory      character:=Char(memory_pointer++)
+#define DosLibraryName  'dos.library'
+#define OpenStdout      WriteF('')
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Avec_paramètres "Definition of a macro with parameter(s)"
+    Like a procedure, a macro can have parameters. The definition syntax is
+then:
+@{b}#define macro_name(parameter1,parameter2,...,parameterN) macro_body@{ub}
+   |   |   |      |    |     |    |     |   |    |     |      |    |
+  (1) (2) (3)    (4)   |    (5)   |    (5) (5)   |    (7)    (8)  (9)
+                       +----------+--------------+
+                                  |
+                                 (6)
+where
+    (1) #define marks the beginning of the definition and can be placed
+anywhere on the line (not necessarily the beginning)
+    (2) 1 or more spaces and tabs
+    (3) the name of the macro (any combination of numbers, uppercase and
+lowercase letters, and "_" characters)
+    (4) opening parenthesis immediately following the macro's name
+    (5) comma separating each parameter
+    (6) 1 or more parameters (any combination of numbers, uppercase and
+lowercase letters, and "_" characters); each parameter can be preceded and
+followed by any number of spaces and tabs
+    (7) closing parenthesis which can be followed by any number of spaces
+and tabs
+    (8) the body of the macro (any combination of characters other than
+carriage returns)
+    (9) carriage return marking the end of the macro definition
+
+    @{b}Examples :@{ub}
+#define Power2( x )                 ((x)*(x))
+#define SwapVariablesXY(X,Y,TEMP)   TEMP:=X; X:=Y; Y:=TEMP
+#define Max( x , y )                (IF (x)>(y) THEN (x) ELSE (y))
+
+    Parameters specified in the macro definition are called formal
+parameters.
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Définition_avancée "Advanced macro definition"
+    It can happen that the body of a macro is too long to fit in one line
+on the screen. It is possible to break the body of the macro into several
+pieces. To tell the preprocessor that the body is continued on the next
+line, place a "\" character before the carriage return ending the line. The
+preprocessor will skip the "\" character and the carriage return and will
+interpret the next line, starting with the first character, as part of the
+body of the macro. A macro can extend over several lines in this manner.
+The definition syntax in this case is:
+
+@{b}#define macro_name(parameters)  body_piece1 \
+                body_piece2 \
+                ...
+                body_pieceN@{ub}
+    Warning: the "\" character must be immediately followed by a carriage
+return for the preprocessor to interpret it correctly.
+
+    @{b}1st example :@{ub}
+@{u}#define SwapVariablesXY(X,Y,TEMP) TEMP:=X; \
+X:=Y; \
+Y:=TEMP@{uu}
+    is a macro which has as it's body @{u}TEMP:=X; X:=Y; Y:=TEMP@{uu}
+(note that the ";" characters are necessary preprocessor skips the carriage
+returns after the "\" characters)
+
+    @{b}2nd example :@{ub}
+@{u}#define SayHello WriteF('Hello, I'm the one who wrote \
+the great program Mac2E (pub) !\n')@{uu}
+    is a macro which has as it's body
+@{u}WriteF('Hello, I'm the one who wrote the great program Mac2E (pub) !\n')@{uu}
+(note that the single "\" character followed by a carriage return was
+interpreted as a signal that the body of the macro is continued)
+
+    @{b}3rd example :@{ub}
+@{u}#define UselessMacro [1 space ->\
+ ][2 spaces ->\
+  ][3 spaces ->\
+   ] and that's all !@{uu}
+    it a macro which has as it's body
+@{u}[1 space -> ][2 spaces ->  ][3 spaces ->   ] and that's all !@{uu}
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Utiliser_une_macro "Using a macro"
+    Defining macros is not everything, we also want to use them! To do
+that, you simply have to place the names of the macros you have defined where
+you need them in your source code the same way you would use normal
+instructions. But be careful, a macro is not an instruction recognized by
+the compiler. Before compiling a program containing macros, you must use
+the preprocessor. The purpose of this program is to find all the macro
+names in a source code file and replace them with the body of the
+associated macro. The body of a macro should contain instructions
+recognized by the compiler! Once the preprocessor is finished, the file can
+be compiled.
+    The following paragraphs explain in detail how the preprocessor
+proceeds to find and replace a macro name.
+
+@{" Identifying a macro name     "    Link Identifier_une_macro   }
+@{" Handling of argument passing "    Link Traiter_arguments      }
+@{" Replacing a macro            "    Link Remplacer_une_macro    }
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Identifier_une_macro "Identifying a macro name"
+    For a macro name to be recognized by the preprocessor, the name which
+you put in the source code file must be:
+    - exactly the same as the one specified in the definition; the
+preprocessor distinguishes between uppercase and lowercase
+    - preceded and followed by a character other than a letter, a number
+or a "_" character
+    If these 2 conditions are met, the preprocessor will recognize the
+macro name.
+
+    @{b}Examples :@{ub}
+    Suppose that you have defined a macro name @{u}toto@{uu} (the body's
+contents don't matter). It will be recognized in the following instruction
+sequences:
+@{u}a:=toto+1@{uu}
+@{u}WriteF('Silly string to introduce \d !\n',toto)@{uu}
+
+    However, the preprocessor will not recognize it in the following
+instructions sequences:
+@{u}a:=different_than_toto+1@{uu}
+@{u}WriteF('Silly string to introduce \d !\n',toto1)@{uu}
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Traiter_arguments "Handling of argument passing"
+    You have seen in a previous section that we can give parameters (called
+formal) to a macro in it's definition, as you would for a procedure.
+Then, as for a procedure, when you use a macro you must provide it with
+arguments (called real parameters). The calling syntax for a macro (I use
+the word call as an analogy to procedures) is the following:
+
+@{b}macro_name(parameter1,parameter2,...,parameterN)@{ub}
+   |      |    |     |    |     |   |    |     |
+  (1)    (2)   |    (4)   |    (4) (4)   |    (5)
+               +----------+--------------+
+                          |
+                         (3)
+where
+    (1) the name of the macro
+    (2) opening parenthesis immediately following the macro name
+    (3) 1 or more parameters (any combination of characters other than
+carriage returns)
+    (4) comma to separate each parameter
+    (5) closing parenthesis
+    Warning: the parameters are bounded by commas and parentheses, and
+between these 2 consecutive symbols, all the characters are taken into
+account and interpreted as being part of a parameter.
+
+    If a macro was defined without parameters, it's calling syntax is
+simply @{b}macro_name@{ub}.
+
+    When the preprocessor analyses a macro call, it naturally expects to
+find as many real parameters as formal parameters! In particular, a macro
+defined without arguments should not be followed by a "(" character, otherwise
+the preprocessor will think that the macro is being called with arguments.
+
+    If the calling syntax for a macro is correct, the preprocessor
+associates each real parameter with the corresponding formal parameter, as the
+compiler does for a procedure.
+
+    @{b}Examples :@{ub}
+    Suppose that you have defined a macro toto like this:
+@{u}#define toto(param1, param2) any_body@{uu}
+    Here's a table of what will happen for several calling sequences:
++---------------------------------------+------------------+------------------+
+|            calling sequence           |assoc'd to param1 |assoc'd to param2 |
++---------------------------------------+------------------+------------------+
+| @{u}toto(a,1)@{uu}                             | @{u}a@{uu}                | @{u}1@{uu}                |
+| @{u}toto(  a  ,  1  )@{uu}                     | @{u}  a  @{uu}            | @{u}  1  @{uu}            |
+| @{u}toto( (3+2)*5 ,WriteF('Ah !\n'))@{uu}      | @{u} (3+2)*5 @{uu}        | @{u}WriteF('Ah !\n')@{uu} |
+| @{u}toto (a,1)@{uu}                            |              E R R O R              |
+| @{u}toto(1,2,3)@{uu}                           |              E R R O R              |
++---------------------------------------+------------------+------------------+
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Remplacer_une_macro "Replacing a macro"
+    If a macro to be replaced was defined without parameters, the
+preprocessor simply substitutes the macro's name with it's body.
+
+    If, on the other hand, the macro to be replaced was defined with
+parameters, the preprocessor still replaces the macro's name with it's
+body, but also substitutes all the formal parameters in the body with the
+corresponding real parameters.
+
+    @{b}1st example:@{ub}
+    Consider the following macro definition:
+@{u}#define DosLibraryName 'dos.library'@{uu}
+    We will then have, for example, the call @{u}OpenLibrary(DosLibraryName@{uu}
+which will be replaced by @{u}OpenLibrary('dos.library')@{uu}.
+
+    @{b}2nd example:@{ub}
+    Consider the following macro definition:
+@{u}#define Square(x) ((x)*(x))
+@{u}#define Max(x,y) (IF (x)>(y) THEN (x) ELSE (y))@{uu}
+    We will then have, for example, the call
+@{u}a:=Square(4+3) * Max(7,2*(8-2))@{uu} which will be replaced by
+@{u}a:=((4+3)*(4+3)) * (IF (7)>(2*(8-2)) THEN (7) ELSE (2*(8-2)))@{uu}
+
+    Note how the many parentheses present in the bodies of these 2 macros
+control the evaluation priority of the expression. Without them, the result
+will not be what was expected. Generally, you must be very careful in
+creating a macro. In effect, even if a macro resembles a procedure or a
+function, it's not exactly the same! The body of a macro is never evaluated
+during a call, it is simply substituted for the macro name. It can
+therefore find itself stuck right next to another expression. The example
+macro Square is a good example of this kind of problem.
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Usage_avancé "Advanced use"
+    By now you should have mastered the definition and the usage of macros.
+If this is not the case, return to the preceding sections.
+    The following paragraphs explain more technical aspects of macro use,
+but they are nonetheless still important to be aware of.
+
+@{" Macros, comments and strings   " Link Macros_et_autres}
+@{" Macros in a macro body         " Link Macro_dans_corps}
+@{" Macro calls as macro arguments " Link Macro_argument  }
+@{" Special characters             " Link Cars_Spéciaux   }
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Macros_et_autres "Macros, comments and character strings"
+    It has been previously stated that a macro call can be placed anywhere
+in a source code file. Well, that's not true! In reality, the preprocessor does
+not look for macro calls in comments (including nested comments) or in
+strings. In effect, macros are there to regroup under one name a section
+of code. There is therefore no reason to put macro calls within comments and
+strings.
+    In practice, this signifies that you can put whatever you want in
+comments and strings, the preprocessor will not touch it.
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Macro_dans_corps "Macros in a macro body"
+    When you define a macro, you can put whatever you want in it's body,
+even calls to other macros. The preprocessor will handle this kind of call
+during the substitution of the surrounding macro's name. In effect, the
+preprocessor makes as many substitutions as possible, and when it is
+finished, there will not be a single macro call left in the source code
+file. Of course, the calling arguments for a macro within the body of
+another macro can be the formal parameters of the outer macro. There is no
+limit to the depth of these imbrications.
+    Warning: the body of a macro cannot contain calls to itself, otherwise
+the preprocessor would make the same substitution infinitely, until all
+free memory is used up... or the user's patience is!
+
+    @{b}1st example :@{ub}
+    Suppose you define 2 macros as follows:
+@{u}#define InfiniteValue $FFFFFFFF@{uu}
+@{u}#define FinitePositiveNumber(x) (((x)>0) AND ((x)<>InfiniteValue))@{uu}
+    Then you can, for example, make the call:
+@{u}IF FinitePositiveNumber(A*B)=FALSE THEN WriteF('Error !\n')@{uu} which will
+be replaced by
+@{u}IF (((A*B)>0) AND ((A*B)<>$FFFFFFFF))=FALSE THEN WriteF('Error !\n')@{uu}.
+
+    @{b}2nd example :@{ub}
+    Suppose you define two macros as follows:
+@{u}#define AbsoluteValue(x) (IF (x)>0 THEN (x) ELSE -(x))@{uu}
+@{u}#define MaxOfAbsoluteValues(x,y) (IF AbsoluteValue(x)>AbsoluteValue(y) THEN 
+(x) ELSE (y))@{uu}
+    You can then, for example, make the call
+@{u}a:=MaxOfAbsoluteValues(5,-(A*B))@{uu} which will be replaced by
+@{u}(IF (IF (5)>0 THEN (5) ELSE -(5))>(IF (-(A*B))>0 THEN (-(A*B)) ELSE -(-(A*B))) 
+THEN (5) ELSE (-(A*B)))@{uu}.
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Macro_argument "Macro calls as macro arguments"
+    In the preceding examples, you probably noticed that the arguments
+passed to a macro can be anything, as long as they are coherent, obviously
+(carriage returns are not, for example, allowed in an argument). You can
+even use a macro call as the argument for another macro. Again, the
+preprocessor will handle first the macro call included in the argument, and
+then afterwards the surrounding macro call with the substituted argument.
+There is no limit to the depth of these imbrications.
+    Remember: the general rule is that the preprocessor handles absolutely
+all the macro calls in a source code file, where it finds them, except
+in comments and strings.
+
+    @{b}1st example :@{ub}
+    Consider the following examples:
+@{u}#define SillyValue 12@{uu}
+@{u}#define Double(x) (2*(x))@{uu}
+    The macro call @{u}Double(SillyValue)@{uu} would be replaced by
+@{u}(2*(12))@{uu}.
+
+    @{b}2nd example :@{ub}
+    Consider the following examples:
+@{u}#define MaskWeightStrong(x) ((x) AND $FFFF)@{uu}
+@{u}#define Average(x,y) (((x)+(y))/2)@{uu}
+    The macro call @{u}Average(100,MaskWeightStrong(100000))@{uu}
+would be replaced by @{u}(((100)+((100000) AND $FFFF))/2)@{uu}.
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Cars_spéciaux "Special Characters"
+    You have no doubt wondered what would happen if a macro's argument
+contained the characters "(", ")" or ",". As they are used to delimit the
+arguments, their presence can cause confusion with their recognition. Well,
+it doesn't matter; the preprocessor is intelligent enough to distinguish
+which of these characters are there to delimit the arguments and which are
+part of the arguments.
+    Warning: the arguments must nonetheless remain coherent! For example,
+every opening parenthesis must have a corresponding closing parenthesis.
+Also, a comma must be enclosed within quotes or in a string enclosed
+within quotes.
+
+    @{b}Examples :@{ub}
+    Consider a macro @{u}toto@{uu} defined as having 2 formal parameters.
+Here is a table of what will happen for different calling sequences:
++-------------------------------------------+----------------+----------------+
+|             calling sequence              | 1st parameter  | 2nd parameter  |
++-------------------------------------------+----------------+----------------+
+| @{u}toto((3+4)*(5-6),'1, 2 et 3')@{uu}             | @{u}(3+4)*(5-6)@{uu}    | @{u}'1, 2 et 3'@{uu}    |
+| @{u}toto(((()())())(),character ",")@{uu}          | @{u}((()())())()@{uu}   |@{u}character ","@{uu}   |
+| @{u}toto(),4)@{uu}                                 |            E R R O R            |
+| @{u}toto(4,,)@{uu}                                 |            E R R O R            |
++-------------------------------------------+----------------+----------------+
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Utilisation_Mac2E "Using Mac2E"
+    To understand what follows, you should know what a macro is, and
+particularly how to define and use a macro as it is done in the language C.
+If this is not the case, return to the section @{" What is a macro? " Link Présentation_macro}.
+If you already know all about C macros before getting this program, reading
+this section is not necessary. However, you should refer to it to verify
+syntax. Basically, the following paragraphs discuss the use of PreMac2E
+and Mac2E only, without recalling anything about macros.
+
+    The goal of these programs is, let me remind you, to permit the use of
+macros in your source code.
+    The first thing to do is therefore to define some macros. This is done
+in a file separate from your source code, called the macro file. Next, you
+should pre-analyze this file with PreMac2E. Finally, you can use Mac2E to
+replace the macro calls in your source code files. The handling of a source
+code file thus requires 3 steps, which are described in detail by the
+following paragraphs.
+
+@{" Macro files      "    Link Fichiers_macros      }
+@{" Calling PreMac2E "    Link Appel_PreMac2E       }
+@{" Calling Mac2E    "    Link Appel_Mac2E          }
+@{" Error messages   "    Link Messages_erreur      }
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Fichiers_macros "Macro files"
+    A macro file is an ASCII file containing only macro definitions. I
+remind you that you cannot define macros in your source code, you must do it
+separately in a macro file.
+    These files may also contain comments. These can be placed anywhere
+except within a macro definition. In other words, the comments are placed
+between the macro definitions. Note that the comments can be placed in the
+file as they are, with neither beginning nor ending delimiters.
+
+    Normally, the macro files are placed in the sub-directory MacroFiles/
+which is in the directory where you installed Amiga E.
+
+    See @{" Defining a macro "  Link Définir_une_macro}
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Appel_PreMac2E "Calling PreMac2E"
+    When you have defined a macro file, it is not directly usable by Mac2E,
+the preprocessor in this archive. In effect, you must first pre-analyze
+it. This is done by PreMac2E, which is called as follows:
+@{b}PreMac2E macro_file pre_analyzed_macro_file@{ub}
+where
+    - macro_file designates the macro file (eventually with path)
+    - pre_analyzed_macro_file designates the file (eventually with path)
+resulting from the pre-analysis
+    For example, to pre-analyze the macro file mui.e provided with this
+archive, I typed @{u}PreMac2E MacroFiles/mui.e PreAnalysedMacroFiles/mui.e@{uu}.
+    Normally, the pre-analyzed macro files are placed in the sub-directory
+PreAnalysedMacroFiles/ which is in the directory where you installed Amiga E.
+
+    During a pre-analysis, PreMac2E tries to replace all macro calls within
+the bodies of other macros. In addition, it sorts the macros and classes
+them in a hash-coded table. Finally, it writes the contents of this table to
+the output file. Thus, when Mac2E processes a source code file, it will
+not use the original macro file but rather the pre-analyzed macro file. The
+speed increase is enormous.
+
+    The pre-analysis of a macro file is thus done only once (assuming there
+are no errors in the file, of course). Afterwards, you use only the
+pre-analyzed file. If you modify the original macro file, you must
+obviously redo the pre-analysis with PreMac2E for the changes to take
+effect.
+
+    The exact usage for PreMac2E is
+"FROM/A,TO/A,VER=VERBOSE/S,KS=KEEPSPACES/S". You can specify 2 supplementary
+parameters when calling it.
+    VERBOSE is explained in the section on @{" error messages " Link
+Messages_erreur}.
+    KEEPSPACES forces PreMac2E to conserve within the body of a macro the
+spaces and tabs at the start of the line, when the body of the macro spans
+several lines. By default, PreMac2E eliminates them, reducing the size of
+the pre-analyzed file and accelerating handling by Mac2E.
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Appel_Mac2E "Calling Mac2E"
+    Mac2E is the actual preprocessor in this archive. It is, in reality,
+the one that looks after replacing the macro calls in your source code file
+with the appropriate body. It has the following syntax:
+@{b}Mac2E e_source_file e_destination_file pre_analyzed_file_list@{ub}
+where
+    - e_source_file is a source file (eventually with path) which contains
+the macro calls to be processed
+    - e_destination_file is the file (eventually with path) which will
+contain the e_source_file code but with the processed macro calls
+    - pre_analyzed_file_list is a list of 1 or more files of pre-analyzed
+macros (eventually with path)
+    The exact usage for Mac2E is "FROM/A,TO/A,WITH/A/M".
+    Called like this, Mac2E loads all the pre-analyzed macro files
+specified on the command line and, according to the macros defined within them,
+processes the source file accordingly.
+
+    See @{" using a macro " Link Utiliser_une_macro} and @{" advanced use " Link Usage_avancé}
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Messages_erreur "Error messages"
+    All the error messages returned by PreMac2E and Mac2E are sufficiently
+self-explanatory. The line number where the error was found is also given.
+    The only exception to this is when PreMac2E processes macro calls
+within the bodies of other macros in a macro file. This phase of the
+pre-analysis is done after all the macro definitions are recorded.
+Therefore, PreMac2E is no longer working with line numbers. To find the
+location of an error reported during this phase, you must rerun PreMac2E
+with the VERBOSE option. This will force PreMac2E to show the name of every
+macro who's body it is processing. Thus, when it gives an error, you simply
+look at the name of the macro which was being processed when the error
+occurred, and find that macro in the file. The error is in the actual body of
+that macro.
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Bugs "Bugs"
+    Don't panic, none of the following points are bugs, but rather
+limitations.
+
+    * PreMac2E does not verify if the macro declarations are recursive, if
+they are, PreMac2E will fail
+    * PreMac2E and Mac2E do not verify if a macro is defined more than
+once. In this case, Mac2E will use one of them, but the question is, which
+one?!?!
+    * The length of a macro name is limited to 255 characters.
+    * The number of arguments is limited to 32.
+    * The length of a macro body before pre-analysis is limited to 4Kb. If
+this is not sufficient, you don't need a macro, you need a procedure!
+    * The length of a macro body after pre-analysis is limited to 64Kb, and
+that should be sufficient, should it not?
+    * PreMac2E does not verify that the 4 preceding limitations are
+respected.
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Historique "History"
+@{b}Version 1.0@{ub} :  - 1st functional version (VERY VERY SLOW...)
+@{b}Version 2.0@{ub} :  - modified version of v1.0 with lots of assembly
+                   optimizations in the E source (10 times faster!)
+               - addition of OptiMUI2E v1.0
+               - 1st distributed version
+@{b}Version 3.0@{ub} :  - addition of PreMac2E v1.0 to pre-analyze macro
+                   files
+               - use of an encoded hash-table (14 times faster!)
+               - PreMac2E and Mac2E now give explicit error messages
+               - verification of all memory allocations
+               - a few minor bugs fixed
+               - OptiMUI2E v1.1 works with 68000
+               - mui.e is now commented
+               - source for the function doMethod() supplied
+               - source to all executables supplied
+               - better documentation
+               - mui.e updated according to MUI v2.0
+@{b}Version 3.1@{ub} :  - a few minor bugs fixed
+               - mui.e updated according to MUI v2.1
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Distribution "Distribution"
+    I repeat again : this reduced archive is ONLY for Amiga E v3.0
+distribution and can't be separated from this last one in any way !
+    It must contain the following file structure:
+
+    Bin/Mac2E
+    Bin/PreMac2E
+
+    Tools/Mac2E/Mac2E.guide
+    Tools/Mac2E/Sources/Mac2E.e
+    Tools/Mac2E/Sources/PreMac2E.e
+    Tools/Mac2E/ReadMe.first
+
+    All of these files are copyrighted by the author.
+None of them can be modified without my permission.
+
+    I cannot be held responsible for the use of this program and any
+damages that it may cause: @{b}use it at your own risk!@{ub}
+
+    This program is distributed according to the @{b}Freeware@{ub} concept,
+that is to say, you are not obligated to send me anything! However, I would
+be happy to receive something, from an Amiga 4000/40 to a simple postal
+card from your holidays, 20FF or a simple letter! (see @{" The author " Link Auteur})
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Auteur "The author"
+    You can reach me by mail at:
+
+        - my student address, up to and including July 1994 
+
+            @{b}Lionel Vintenat@{ub}
+            appartement 21
+            11 rue François Oulié
+            31500 TOULOUSE
+            FRANCE
+
+        - my family address:
+
+            @{b}Lionel Vintenat@{ub}
+            3 impasse Boileau
+            Lotissement Les Termes
+            87270 COUZEIX
+            FRANCE
+
+    Write to me at my student address until July 1994 as I'm there much
+more often than at my family address.
+
+    You can also reach me on the INTERNET. My e-mail address is
+@{b}vintenat@irit.fr@{ub}. I would prefer that you contact me by e-mail
+rather than  mail. I will reply to all questions that are sent to me by
+e-mail, but don't expect a reply by mail (I am very lazy when it comes to
+picking up a pen...).
+@ENDNODE
+
+-------------------------------------------------------------------------------
+
+@NODE Les_remerciements "Acknowledgments"
+    A big thank you:
+        - to the @{b}Amiga@{ub} for being the best personal computer
+        - to @{b}Wouter van Oortmerssen@{ub} for his work in the field
+of compilers (try his FALSE, guaranteed surprise!) in general and for
+@{b}Amiga E@{ub} in particular
+        - to @{b}Brian Mury@{ub} for the English translation of the documentation
+        - to @{b}Marc Schröer@{ub} for the German translation of the documentation
+        - to @{b}Xavier Billault@{ub} for his help in the conception
+of this documentation
+        - to all those on the @{b}French Amiga mailing list@{ub} who
+have helped me
+        - to all those who write public domain programs in general
+
+    Finally, thank you to all those who alert me to @{" bugs " Link Bugs} or
+send me suggestions, or who send me corrections or translations of this
+document (see @{" The author " Link Auteur})
+
+    Happy E programming and...
+
+        @{b}NEVER FORGET, ONLY AMIGA MAKES IT POSSIBLE!@{ub}
+@ENDNODE

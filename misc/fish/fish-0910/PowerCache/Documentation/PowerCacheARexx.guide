@@ -1,0 +1,1153 @@
+@Database "PowerCache"
+@Rem $VER: PowerCacheARexx.guide 37.58 (18.7.93)
+@Node Main "PowerCache ARexx Documentation (18-Jul-1993)"
+
+
+                             Documentation for
+
+                             @{b}PowerCache v37.58@{ub}
+
+                       @{i}A Flexible and Powerful Disk
+                       Caching System for the Amiga@{ui}
+
+                          Written by Michael Berg
+                    Copyright (C) 1993 by Michael Berg
+                           All rights reserved.
+
+                      @{u}Subsection: The ARexx Interface@{uu}
+
+
+This  document  describes the various ARexx commands currently incorporated
+into PowerCache.  Please select any one of the following items:
+
+
+    @{" Brief Introduction to ARexx " LINK "Intro"}  General Information
+    @{" PowerCache and ARexx        " LINK "PCARexx"}  Further details..
+
+
+                         @{u}Available ARexx Commands@{uu}
+
+    @{" ADDCACHE            " LINK "RexxAddcache"}  Add a cache to an AmigaDOS device
+    @{" BEEP                " LINK "RexxBeep"}  Change BEEP mode
+    @{" CACHEABLE           " LINK "RexxCacheable"}  List cacheable AmigaDOS devices
+    @{" CREATEICONS         " LINK "RexxCreateicons"}  Set create-icons mode
+    @{" DEFAULTPREFS        " LINK "RexxDefaultprefs"}  Use default preferences
+    @{" DISABLECACHES       " LINK "RexxDisablecaches"}  Disable all caches
+    @{" EDITCACHE           " LINK "RexxEditcache"}  Change cache characteristics
+    @{" ENABLECACHES        " LINK "RexxEnablecaches"}  Enable all caches
+    @{" GETCACHEINFO        " LINK "RexxGetcacheinfo"}  Get cache info
+    @{" GETDEVICEINFO       " LINK "RexxGetdeviceinfo"}  Get extensive device info
+    @{" GETSTATS            " LINK "RexxGetstats"}  Get statistics info on a cache
+    @{" HIDE                " LINK "RexxHide"}  Hide PowerCache's window
+    @{" LASTSAVED           " LINK "RexxLastsaved"}  Load last saved preferences
+    @{" LISTCURRENTLYCACHED " LINK "RexxListcurrentlycached"}  List cached devices
+    @{" LOADPREFS           " LINK "RexxLoadprefs"}  Load preferences
+    @{" POPUP               " LINK "RexxPopup"}  Set POPUP mode
+    @{" REMOVECACHE         " LINK "RexxRemovecache"}  Remove a cache
+    @{" RESCAN              " LINK "RexxRescan"}  Rescan AmigaDOS device list
+    @{" SAVEPREFS           " LINK "RexxSaveprefs"}  Save preferences
+    @{" SETENABLEKEY        " LINK "RexxSetenablekey"}  Define enable-caches hotkey
+    @{" SETDISABLEKEY       " LINK "RexxSetdisablekey"}  Define disable-caches hotkey
+    @{" SETSHOWKEY          " LINK "RexxSetshowkey"}  Define show-window hotkey
+    @{" SHOW                " LINK "RexxShow"}  Show PowerCache's window
+    @{" USEHELP             " LINK "RexxUseHelp"}  Enable or disable online help feature
+    @{" VERSION             " LINK "RexxVersion"}  Return a version string in RESULT
+    @{" QUIT                " LINK "RexxQuit"}  Quit PowerCache
+
+    @{" Run Test Program    " RX "ARexx Examples/Test.rexx"}  Requires PowerCache to be running
+@EndNode
+
+@Node Intro "Introduction"
+
+For  those  of you who haven't got a clue what ARexx is, let me just try to
+outline the general idea.
+
+When  someone  writes  a  program,  the  programmer  implements a number of
+features  in  it.  These features are all avaliable when using the program.
+For example, in a drawing program, you would have functions to plot a point
+when the user clicks somewhere on the screen, plus functions to draw lines,
+circles,  squares,  polygons and filled shapes.  All these functions can be
+activated by the user, in an @{i}interactive@{ui} session.
+
+And  interactive  is indeed the keyword here.  Suppose that the user wanted
+to draw a shape from a huge list of (x,y) coordinates (geographic data, for
+example).   The  only  way  to  do  this would be for the user to read each
+coordinate  individually, and then use the mouse to accurately click in the
+point on the screen.
+
+As  you  can well imagine, this would take almost forever.  And even if our
+poor user ever finishes, the problem will still be there the next time such
+a situation occurs.
+
+Luckily, there's @{b}ARexx@{ub}.  If the programmer is clever enough to implement an
+ARexx  interface  in  his  drawing  program,  the  plotting  could  be done
+automatically, assuming the presense of a @{b}PLOT@{ub} command.
+
+Here is an example of an ARexx script that could pull this off:
+
+@{i}01 /* PlotTest.rexx - plot lots of coordinates stored in a file */
+02 /* Author: John Doe */
+03 /* Date: 4 feb 1993 */
+04
+05 /* Talk to the drawing program */
+06 address 'SuperDuperDraw'
+07
+08 /* Open up the coordinates file */
+09 if open('inputfile','dh1:coords.dat','r') then do
+11   do while ~eof('inputfile')
+12     xcoord = readln('inputfile')
+13     ycoord = readln('inputfile')
+14
+15     /* Now, tell SuperDuperDraw to plot this pair of coordinates */
+16     plot xcoord ycoord
+17   end
+18 end
+19 else say 'Cannot open input file!'@{ui}
+
+The numbers to the left (in the beginning of each line) denote line numbers
+and are for your viewing pleasure only.  They would not be entered into the
+actual ARexx script.
+
+The  command  in  line 6 tells the ARexx server that we want to talk to the
+program  that  has  an  ARexx  @{b}port@{ub}  named @{i}SuperDuperDraw@{ui}.  In a real ARexx
+script,  you  would have to check if SuperDuperDraw was actually running or
+not,  but this part is omitted for the sake of clearity and simplicity.  In
+any  event,  if  the  ARexx server cannot find the program, the script will
+abort with an error message.
+
+Next,  in  line 9, the coordinate file is opened, and read until the end of
+file marker is reached.  The coordinate file is supposed to have one number
+per line, in pairs of alternating X and Y coordinates.
+
+The  command  in  line  16  does  all  the magic.  There is no "real" ARexx
+command  called PLOT, so the server forwards this command to whoever we are
+@{i}adressing@{ui},  asking  it  to  process  that  command.  Command names are case
+insensitive,  so  it makes no difference if we say "plot" or "PLOT" or even
+"pLoT".
+
+As  it  happens,  our  SuperDuperProgram  does have an ARexx command called
+PLOT,  so  it responds to the request by plotting the coordinate pair given
+as parameters to the PLOT command.
+
+By now you must have realized that using the ARexx interface would save our
+user  a  lot  of work, and also speed up the process tremendously.  This is
+the  real advantage of ARexx:  It automates sequences of actions that would
+otherwise  have  to  be carried out interactively.  This is also the reason
+why ARexx scripts are sometimes called @{i}macros@{ui}.
+
+Enough  about  drawing  programs.   Let's  get back on track and talk about
+PowerCache's  ARexx  interface.   Please  go  on  and  read  the section on
+"PowerCache and ARexx".  @{" Take me there! " LINK PCARexx}
+@EndNode
+
+@Node PCARexx "PowerCache and ARexx"
+
+PowerCache  has  a complete ARexx interface, and there is virtually nothing
+you can't make it do with ARexx commands.  Be it adding or removing caches,
+inquiring about AmigaDOS devices, or obtaining statistical information from
+running caches, it's all there.
+
+PowerCache's ARexx port name is @{b}POWERCACHE@{ub} (note the all capital letters).
+
+Most of the ARexx commands return values.  Error messages are also returned
+in  case  something  goes  wrong.  PowerCache uses the @{b}RC@{ub} ARexx variable to
+return  success  or  failure.   A  value of 0 means the command executed as
+expected and a value of 10 indicates an error of some kind.
+
+In  accordance  with  the  suggestions  made  by  C=  in  the  @{b}Style Guide@{ub},
+PowerCache  returns  secondary error codes in the ARexx variable @{b}RC2@{ub}.  This
+variable may contain either a number or a string.  In case of a number, the
+DOS  command @{b}Fault@{ub} can be used to discover the meaning of it.  For example,
+if  @{b}RC2@{ub}  is  103, this means that not enough memory as available to execute
+the  command  (103  =  No  free  store).   Please  refer  to  your AmigaDOS
+documentation  for  more  information on how to use the Fault command (it's
+pretty simple:  @{i}1> Fault 103@{ui}).
+
+If  there isn't any numeric code that matches a particular error condition,
+then  PowerCache  will  set  @{b}RC2@{ub}  to  a string describing the nature of the
+error.   If you are using locale, then this message will even appear in the
+appropriate language (as will all output from PowerCache).
+
+
+You  can  control  which  variable  receives  the  return value of an ARexx
+command.   If  you  do  not  do this, then PowerCache will simply place the
+result in the @{b}RESULT@{ub} variable.
+
+To put a return value in the variable @{b}PREVIOUSKEY@{ub}, use this:
+
+	@{b}SETSHOWKEY@{ub} '"alt s"' @{b}VAR PREVIOUSKEY@{ub}
+
+After  this  call  returns  successfully, @{b}PREVIOUSKEY@{ub} (and not @{b}RESULT@{ub}) will
+contain the previous hotkey.
+
+
+Some  commands  return  record-like variables.  Unless otherwise specified,
+the return values will be placed in the @{b}RESULT@{ub} variable, which isn't always
+a  Good  Thing.   For  example,  the @{b}GETCACHEINFO@{ub} command (which is used to
+return  characteristics  about  installed  caches),  returns  device, sets,
+lines,  prefetch,  type,  algorithm,  purgetime, free after purge (yes/no),
+cachebuffer, buffersize and overhead all at once.  The call
+
+@{b}GETCACHEINFO@{ub} 'DF0:'
+
+will  return  ALL  these  variables  in  the @{b}RESULT@{ub} variable.  @{b}RESULT@{ub} may
+then contain something like this:
+
+@{b}RESULT@{ub} = 'df0: 8 32 4 R/O LRU 2 NOFREEAFTERPURGE MEMORY 655210 7006'
+
+It can be quite hard to seperate and extract individual values when you get
+it all in a single string.  So here's what you do:
+
+@{b}GETCACHEINFO@{ub} 'DF0:' @{b}STEM RESULT.@{ub}
+                               ^ The period is important
+
+Now,  in stead of returning everything in @{b}RESULT@{ub}, you get individual values
+as "sub-variables" of @{b}RESULT@{ub}.  The above string will now be returned as:
+
+@{b}RESULT.DEVICE@{ub}   = DF0:
+@{b}RESULT.SETS@{ub}     = 8
+@{b}RESULT.LINES@{ub}    = 32
+@{b}RESULT.PREFETCH@{ub} = 4
+@{b}RESULT.TYPE@{ub}     = 'R/O'
+...and so on.
+
+You  will  agree  with  me that this method is a bit more convenient to use
+than simply having everything in one variable.
+
+
+The  method  for  supplying  parameters  for  the individual ARexx commands
+mimics  that which is used by most normal DOS commands.  Each command has a
+@{i}template@{ui} that describes allowable parameters, and each individual parameter
+may  or  may not have @{i}options@{ui} attached.  These options consist of a / and a
+letter.  For example, the @{b}/A@{ub} option means that a parameter is required, and
+that  the  command  will  fail  if  you  do  not  supply  it.   The command
+GetCacheInfo has a template like this:
+
+@{b}GETCACHEINFO@{ub} @{u}DRIVE/A@{uu}
+
+This  means that you MUST supply a specification of a drive (like @{b}DH1:@{ub}), or
+an error will be returned.
+
+Here is a brief description of what some of the template options mean:
+
+@{b}/A@{ub}	- Required
+@{b}/N@{ub}	- Numeric input expected
+@{b}/S@{ub}	- Parameter is a switch
+
+There  are a couple of other parameter options that are used extensively by
+many AmigaDOS commands.  You'll find a detailed description of the template
+format in your AmigaDOS manuals.
+
+If  no  options  are appended to a parameter, it means that string input is
+@{u}optionally@{uu}  expected  (that is, you may leave it out).  Some parameters may
+have  more  than  one  option  (like  @{b}/N/A@{ub}  which  means  that this numeric
+parameter is required).
+
+When  you  have  a command that has several, optional parameters, it may be
+necessary  to  tell  the template parser exactly what's what.  Consider the
+following command:
+
+@{b}ConvertFile@{ub} @{u}SOURCENAME@{uu} @{u}TARGETNAME@{uu} @{u}TEMPORARYFILE@{uu}
+
+This  imaginary  command  would  read  the file specified as @{b}SOURCENAME@{ub}, do
+something  with  it  using  @{b}TEMPORARYFILE@{ub}  as a temporary file, and finally
+write  the  result  to  @{b}TARGETNAME@{ub}.  Since all parameters are optional, the
+following command will be legal, but very confusing to the parser:
+
+@{b}ConvertFile@{ub} @{u}dh1:data.txt@{uu} @{u}ram:bank.cvg@{uu}
+
+Is  RAM:bank.cvg  the  name of the destination file, or the temporary file?
+The grammar is ambiguous.  What you have to do is this:
+
+@{b}ConvertFile@{ub} @{u}dh1:data.txt@{uu} @{u}TEMPORARYFILE=ram:bank.cvg@{uu}
+
+The  template parser understands this format, which clears up the confusion
+about  what  is what.  The "=" may be left out, and you are free to shuffle
+parameters  around  on  the command line, as long as you remember to denote
+each  one  with  the  correct tag.  For example, the following commands are
+identical to the parser:
+
+@{b}ConvertFile@{ub} @{u}TEMPORARYFILE=dh1:data.txt@{uu} @{u}TARGETNAME=ram:bank.cvg@{uu}
+@{b}ConvertFile@{ub} @{u}TARGETNAME=ram:bank.cvg@{uu} @{u}TEMPORARYFILE=dh1:data.txt@{uu}
+@{b}ConvertFile@{ub} @{u}TARGETNAME=ram:bank.cvg@{uu} @{u}TEMPORARYFILE dh1:data.txt@{uu}
+
+As  previously  mentioned,  this  ConvertFile  is  an  imaginative command.
+PowerCache  doesn't  have  a  ConvertFile  command.  It serves merely as an
+illustration of parameter passing, and nothing else.
+
+If you need to supply a parameter that contains blanks, you must do it like
+this:
+
+@{b}ConvertFile@{ub} @{u}'TEMPORARYFILE="dh1:my file"'@{uu} @{u}TARGETNAME=dh1:newfile.dat@{uu}
+
+Did you notice the double quotes?  This is necessary because of the way the
+command  line is first interpreted by ARexx, and then PowerCache.  It looks
+strange,  but  it  works.   The  importance  of this becomes obvious in the
+context  of the SETxxxKEY commands, which are used to redefine PowerCache's
+hotkeys.   Since  a  hotkey  is  often  something like "shift alt i" (which
+contains blanks), you have to use double-quoting.
+
+Here's how to change the popup-window hotkey:
+
+@{b}SETSHOWKEY@{ub} @{u}'"shift alt i"'@{uu}
+
+I apologise for this.  PowerCache's ARexx interface code is largely created
+by  @{"ARexxBox" ALINK "Glossary.guide/ARexxBox"},  which  has  some  inherent  problems with strings containing
+blanks (other than that, @{b}ARexxBox@{ub} is a fantastic program!)
+@EndNode
+
+@Node RexxCreateicons "ARexx Command: CREATEICONS"
+@{b}NAME@{ub}
+    CREATEICONS - Set "Create Icons" mode
+
+@{b}SYNOPSIS@{ub}
+    CREATEICONS @{u}ON/S@{uu} @{u}OFF/S@{uu}
+
+@{b}FUNCTION@{ub}
+    This function is used to control if PowerCache should create icons when
+    preferences are saved. Specify @{b}ON@{ub} to enable icon creation, and @{b}OFF@{ub}
+    otherwise.
+
+@{b}INPUTS@{ub}
+    ON/S	- Specify this to activate icon creation
+    OFF/S	- Specify this to deactivate icon creation
+
+@{b}OUTPUTS@{ub}
+    @{b}RESULT@{ub} will contain the previous state (either 'ON' or 'OFF')
+
+@{b}NOTES@{ub}
+    Although it doesn't make much sense, it is allowable to specify both ON
+    and OFF, in which case OFF will override ON. Also, you can toggle the
+    current state by omitting both ON and OFF.
+
+@{b}SEE ALSO@{ub}
+@EndNode
+
+@Node RexxVersion "ARexx Command: VERSION"
+@{b}NAME@{ub}
+    VERSION - Give out version information
+
+@{b}SYNOPSIS@{ub}
+    VERSION
+
+@{b}FUNCTION@{ub}
+    This command gives out the same kind of version information that you
+    would get if you used the AmigaDOS "Version" command.
+
+@{b}INPUTS@{ub}
+    None.
+
+@{b}OUTPUTS@{ub}
+    Returns version string in the RESULT variable.
+
+@{b}NOTES@{ub}
+    Remember to put "options results" in your script, or you won't get
+    anything back.
+
+@{b}SEE ALSO@{ub}
+@EndNode
+
+@Node RexxEnablecaches "ARexx Command: ENABLECACHES"
+@{b}NAME@{ub}
+    ENABLECACHES - Enable all installed caches
+
+@{b}SYNOPSIS@{ub}
+    ENABLECACHES
+
+@{b}FUNCTION@{ub}
+    Enable all installed caches. If these are already enabled, this
+    function is a no-op.
+
+@{b}INPUTS@{ub}
+    None.
+
+@{b}OUTPUTS@{ub}
+    None.
+
+@{b}NOTES@{ub}
+    A future version of PowerCache may support enabling and disabling
+    of individual caches.
+
+@{b}SEE ALSO@{ub}
+    @{"DISABLECACHES" LINK RexxDisablecaches}
+@EndNode
+
+@Node RexxDisablecaches "ARexx Command: DISABLECACHES"
+@{b}NAME@{ub}
+    DISABLECACHES - Temporarily disable all installed caches
+
+@{b}SYNOPSIS@{ub}
+    DISABLECACHES
+
+@{b}FUNCTION@{ub}
+    Disable all caches that are currently installed. If the caches
+    have already been disabled, this command is a no-op.
+
+@{b}INPUTS@{ub}
+    None.
+
+@{b}OUTPUTS@{ub}
+    None yet.
+
+@{b}NOTES@{ub}
+    Disabling a read/write cache may involve having to flush it out to
+    disk. This may take some time. Expect this.
+
+    You should disable all caches before commencing such relatively
+    dangerous operations as disk reorganization or repair. PowerCache
+    will handle such situations, but should be disabled -- just to be
+    on the safe side. Better safe than sorry :-)
+
+    A future version of PowerCache may support enabling and disabling
+    of individual caches.
+
+@{b}SEE ALSO@{ub}
+    @{"ENABLECACHES" LINK RexxEnablecaches}
+@EndNode
+
+@Node RexxListcurrentlycached "ARexx Command: LISTCURRENTLYCACHED"
+@{b}NAME@{ub}
+    LISTCURRENTLYCACHED - List all caches
+
+@{b}SYNOPSIS@{ub}
+    LISTCURRENTLYCACHED
+
+@{b}FUNCTION@{ub}
+    Return information on every installed cache.
+
+@{b}INPUTS@{ub}
+    None.
+
+@{b}OUTPUTS@{ub}
+    'LISTCURRENTLYCACHED STEM RESULT.' will return the following:
+
+	RESULT.DEVICE.COUNT	Number of installed caches
+
+	RESULT.DEVICE.0		AmigaDos device name ('DF0:' for example)
+
+	RESULT.SETS.0		Number of sets
+
+	RESULT.LINES.0		Number of lines
+
+	RESULT.PREFETCH.0	Prefetch value
+
+	RESULT.TYPE.0		'R/O' for read-only caches
+				'R/W' for read/write caches
+
+	RESULT.ALGORITHM.0	'LRU' for LRU cache algorithm
+				'SPC' for SPC cache algorithm
+
+	RESULT.PURGETIME.0	Purge time in seconds
+
+	RESULT.FREEAFTERPURGE.0	'FREEAFTERPURGE' or 'NOFREEAFTERPURGE'
+
+	RESULT.CACHEBUFFER.0	'MEMORY' for a general memory cache
+				'CHIPMEM' for a cache using chip-memory
+				'FASTMEM' for a cache using fast-memory
+				'FILE filename' for a file cache
+
+	RESULT.BUFFERSIZE.0	Size of main cache buffer (in bytes)
+
+	RESULT.OVERHEAD.0	Administrative overhead (in bytes)
+
+    Information about the next installed cache can be found by replacing
+    the ".0" with ".1". Typically you would use a DO loop to process each
+    cache information entry - like this:
+
+	OPTIONS RESULTS
+
+	LISTCURRENTLYCACHED STEM RESULT.
+
+	DO i = 0 TO RESULT.DEVICE.COUNT-1
+	    SAY i': ' RESULT.DEVICE.i RESULT.PREFETCH.i
+	END
+
+    This tiny ARexx program would list the prefetch value for every
+    installed cache to the console.
+
+@{b}NOTES@{ub}
+    Remember to enclose the device parameter in quotes, so the ARexx
+    command parser won't be confused about the colon after the device
+    name.
+
+    Purge delays of zero or lower will be truncated to 1.
+
+@{b}SEE ALSO@{ub}
+    @{"GETCACHEINFO" LINK RexxGetcacheinfo}
+@EndNode
+
+@Node RexxGetcacheinfo "ARexx Command: GETCACHEINFO"
+@{b}NAME@{ub}
+    GETCACHEINFO - List details about a cache
+
+@{b}SYNOPSIS@{ub}
+    GETCACHEINFO @{u}DRIVE/A@{uu}
+
+@{b}FUNCTION@{ub}
+    This function resembles the LISTCURRENTLYCACHED command very closely.
+    The only difference between the two is that this one only returns
+    information about a single installed cache.
+
+@{b}INPUTS@{ub}
+    DRIVE/A	- A cached AmigaDOS device (example: 'DF0:')
+
+@{b}OUTPUTS@{ub}
+    "GETCACHEINFO 'DF0:' STEM RESULT." will return the following:
+
+	RESULT.DEVICE		AmigaDos device name ('DF0:' for example)
+
+	RESULT.SETS		Number of sets
+
+	RESULT.LINES		Number of lines
+
+	RESULT.PREFETCH		Prefetch value
+
+	RESULT.TYPE		'R/O' for read-only caches
+				'R/W' for read/write caches
+
+	RESULT.ALGORITHM	'LRU' for LRU cache algorithm
+				'SPC' for SPC cache algorithm
+
+	RESULT.PURGETIME	Purge time in seconds
+
+	RESULT.FREEAFTERPURGE	'FREEAFTERPURGE' or 'NOFREEAFTERPURGE'
+
+	RESULT.CACHEBUFFER	'MEMORY' for a general memory cache
+				'CHIPMEM' for a cache using chip-memory
+				'FASTMEM' for a cache using fast-memory
+				'FILE filename' for a file cache
+
+	RESULT.BUFFERSIZE	Size of main cache buffer (in bytes)
+
+	RESULT.OVERHEAD		Administrative overhead (in bytes)
+
+@{b}NOTES@{ub}
+    Remember to enclose the device parameter in quotes, so the ARexx
+    command parser won't be confused about the colon after the device
+    name.
+
+    Purge delays of zero or lower will be truncated to 1.
+
+@{b}SEE ALSO@{ub}
+    @{"LISTCURRENTLYCACHED" LINK RexxListcurrentlycached}
+@EndNode
+
+@Node RexxCacheable "ARexx Command: CACHEABLE"
+@{b}NAME@{ub}
+    CACHEABLE - List all cacheable devices in the system
+
+@{b}SYNOPSIS@{ub}
+    CACHEABLE
+
+@{b}FUNCTION@{ub}
+    This function will scan the AmigaDOS device list for devices that
+    appear to be cacheable. Actually, it more or less returns the contents
+    of the "Cacheable Devices" listview gadget, and as such, a RESCAN
+    operation may be required.
+
+@{b}INPUTS@{ub}
+    None.
+
+@{b}OUTPUTS@{ub}
+    'CACHEABLE STEM RESULT.' will return the following:
+
+	RESULT.DEVICE.COUNT	Number of cacheable devices found
+	RESULT.DEVICE.0		AmigaDOS device name (example: 'DF0:')
+
+    The name of the next cacheable device can be found by replacing
+    the ".0" with ".1". Typically you would use a DO loop to process
+    each device entry - like this:
+
+	OPTIONS RESULTS
+
+	CACHEABLE STEM RESULT.
+
+	DO i = 0 TO RESULT.DEVICE.COUNT-1
+	    SAY i': ' RESULT.DEVICE.i
+	END
+
+    This tiny ARexx program would list all cacheable devices to the
+    console.
+
+@{b}NOTES@{ub}
+
+@{b}SEE ALSO@{ub}
+@EndNode
+
+@Node RexxRescan "ARexx Command: RESCAN"
+@{b}NAME@{ub}
+    RESCAN - Rescan the AmigaDOS device list for cacheable devices
+
+@{b}SYNOPSIS@{ub}
+    RESCAN
+
+@{b}FUNCTION@{ub}
+    This function will do a physical re-scan of all installed AmigaDOS
+    devices. If PowerCache's window is open, the "Cacheable Devices"
+    listview will also be updated by this operation.
+
+    Rescanning may be necessary if you mount additional devices AFTER you
+    start PowerCache.
+
+@{b}INPUTS@{ub}
+    None.
+
+@{b}OUTPUTS@{ub}
+    None.
+
+@{b}NOTES@{ub}
+    Funtionally equivalent to pressing the Rescan gadget in PowerCache's
+    main window.
+
+@{b}SEE ALSO@{ub}
+@EndNode
+
+@Node RexxGetdeviceinfo "ARexx Command: GETDEVICEINFO"
+@{b}NAME@{ub}
+    GETDEVICEINFO - List detailed information about an AmigaDOS device
+
+@{b}SYNOPSIS@{ub}
+    GETDEVICEINFO @{u}DRIVE/A@{uu}
+
+@{b}FUNCTION@{ub}
+    This function will return a heap of information about an AmigaDOS
+    device.
+
+@{b}INPUTS@{ub}
+    DRIVE/A	- Any cacheable AmigaDOS device (example: 'DF0:')
+
+@{b}OUTPUTS@{ub}
+    "GETDEVICEINFO 'DF0:' STEM RESULT." will return the following:
+
+	RESULT.LOGICALDRIVE	AmigaDOS logical device ('DF0:')
+	RESULT.DEVICENAME	Device driver name ('trackdisk.device')
+	RESULT.UNIT		Unit number (expect a zero here)
+	RESULT.TASKTCB		Address of controlling task (null=no task)
+	RESULT.SECTORSIZE	Sector size (almost always 512 bytes)
+	RESULT.SURFACES		Device surfaces (floppy = 2, hd > 2)
+	RESULT.BLOCKSPERTRACK	Blocks per track (floppy = 11)
+	RESULT.CAPACITY		Total unit capacity (in bytes)
+	RESULT.RESERVEDSTART	Blocks reserved by AmigaDOS (start)
+	RESULT.RESERVEDEND	Blocks reserved by AmigaDOS (end)
+	RESULT.INTERLEAVE	Interleave value
+	RESULT.LOWCYL		Cylinder at which this unit begins
+	RESULT.HIGHCYL		Cylinder at which this unit ends
+	RESULT.INITIALDOSBUFFERSInitial AmigaDOS buffers (typically 30)
+	RESULT.BUFMEMTYPE	AmigaDOS buffer memory type
+	RESULT.MAXTRANSFER	Max number of bytes to transfer per request
+	RESULT.MASK		Address mask
+	RESULT.BOOTPRI		Device and unit boot priority
+	RESULT.FILESYSTEM	File system type
+	RESULT.BOOTBLOCKS	Number of boot blocks
+
+@{b}NOTES@{ub}
+    Address mask is returned as an integer. You can translate it to
+    hexadecimal with ARexx and compare it with the comment made by
+    PowerCache in the Info window.
+
+    File system type is returned as an integer. You can translate it
+    to hexadecimal with ARexx and compare it with the comment made by
+    PowerCache in the Info window.
+
+    The 'boot blocks' value is only valid for bootable devices, and may
+    contain garbage even so.
+
+    GETDEVICEINFO is functionally equivalent to pressing the 'Info' gadget
+    below the "Cacheable Devices" listview gadget in PowerCache's main
+    window.
+
+@{b}SEE ALSO@{ub}
+    @{"CACHEABLE" LINK RexxCacheable}, @{"RESCAN" LINK RexxRescan}
+@EndNode
+
+@Node RexxAddcache "ARexx Command: ADDCACHE"
+@{b}NAME@{ub}
+    ADDCACHE - Add a cache to an AmigaDOS device
+
+@{b}SYNOPSIS@{ub}
+    ADDCACHE @{u}DRIVE/A@{uu} @{u}SETS/N/A@{uu} @{u}LINES/N/A@{uu} @{u}PREFETCH/N/A@{uu} @{u}MODE/A@{uu}
+	     @{u}ALGORITHM/A@{uu} @{u}PURGETIME/N/A@{uu} @{u}FREEAFTERPURGE/S@{uu} @{u}CACHEBUFFER/A@{uu}
+
+@{b}FUNCTION@{ub}
+    This is the big one. You can use this function to install a cache to a
+    cacheable AmigaDOS device.
+
+@{b}INPUTS@{ub}
+    DRIVE/A		- The AmigaDOS device to add the cache to ('DF0:')
+    SETS/N/A		- Cache sets
+    LINES/N/A		- Cache lines
+    PREFETCH/N/A	- Prefetch value
+    MODE/A		- 'R/O' for read-only mode, and 'R/W' for read/write
+    ALGORITHM/A		- 'LRU' for LRU algorithm, 'SPC' for SPC algorithm
+    PURGETIME/N/A	- Purge time delay in seconds
+    FREEAFTERPURGE/S	- Omit if you don't want buffers freed after a purge
+
+    CACHEBUFFER/A	- 'MEMORY' for a general memory cache,
+			  'FASTMEM' for a fast-memory cache
+			  'CHIPMEM' for a chip-memory cache
+			  'FILE filename' for a file-cache
+
+@{b}OUTPUTS@{ub}
+    None.
+
+@{b}EXAMPLE@{ub}
+    The following calls all add various types of 512k cache buffers to df0:
+
+    ADDCACHE 'DF0:' 8 32 4 'R/W' LRU 2 'FASTMEMORY'
+    ADDCACHE 'DF0:' 8 32 4 'R/O' LRU 10 'MEMORY'
+    ADDCACHE 'DF0:' 8 32 4 'R/W' SPC 1 FREEAFTERPURGE 'MEMORY'
+    ADDCACHE 'DF0:' 4 64 4 'R/W' LRU 3 'FILE dh1:t/df0_cache'
+
+@{b}NOTES@{ub}
+    This call will fail if you attempt to add a cache to a device which
+    already has one.
+
+    Purge delays of zero or lower will be truncated to 1.
+
+@{b}SEE ALSO@{ub}
+    @{"CACHEABLE" LINK RexxCacheable}, @{"EDITCACHE" LINK RexxEditcache}, @{"REMOVECACHE" LINK RexxRemovecache}
+@EndNode
+
+@Node RexxRemovecache "ARexx Command: REMOVECACHE"
+@{b}NAME@{ub}
+    REMOVECACHE - Remove a cache
+
+@{b}SYNOPSIS@{ub}
+    REMOVECACHE @{u}DRIVE/A@{uu}
+
+@{b}FUNCTION@{ub}
+    Turn a cached device back to normal operation.
+
+@{b}INPUTS@{ub}
+    DRIVE/A	- The AmigaDOS device to be restored (example: 'DF0:')
+
+@{b}OUTPUTS@{ub}
+    None
+
+@{b}NOTES@{ub}
+    Obviously, you cannot remove a cache from a device which doesn't have
+    one.
+
+@{b}SEE ALSO@{ub}
+    @{"ADDCACHE" LINK RexxAddcache}, @{"EDITCACHE" LINK RexxEditcache}
+@EndNode
+
+@Node RexxEditcache "ARexx Command: EDITCACHE"
+@{b}NAME@{ub}
+    EDITCACHE - Modify the characteristics of a cache
+
+@{b}SYNOPSIS@{ub}
+    EDITCACHE @{u}DRIVE/A@{uu} @{u}SETS/N@{uu} @{u}LINES/N@{uu} @{u}PREFETCH/N@{uu} @{u}MODE@{uu} @{u}ALGORITHM@{uu}
+	      @{u}PURGETIME/N@{uu} @{u}FREEAFTERPURGE/S@{uu} @{u}CACHEBUFFER@{uu}
+
+@{b}FUNCTION@{ub}
+    This function allows you to change the characteristics of any installed
+    cache. It does so by first removing the cache, then adding a new one
+    with the changes you request.
+
+@{b}INPUTS@{ub}
+    DRIVE/A		- Cached AmigaDOS drive name (example: 'DF0:')
+    SETS/N		- New number of sets
+    LINES/N		- New number of lines
+    PREFETCH/N		- New prefetch value
+    MODE		- New mode ('R/O' or 'R/W')
+    ALGORITHM		- New algorithm ('LRU' or 'SPC')
+    PURGETIME/N		- New purge time delay (specified in seconds)
+    FREEAFTERPURGE/S	- Specify (or omit) this flag to change purge mode
+    CACHEBUFFER		- New buffering mode
+			  'MEMORY' for a general memory cache
+			  'FASTMEM' for a fast-memory cache
+			  'CHIPMEM' for a chip-memory cache
+			  'FILE filename' for a file-cache
+
+@{b}OUTPUTS@{ub}
+    None.
+
+@{b}NOTES@{ub}
+    Note that only DRIVE is required. To change the number of sets for the
+    cache installed on DF0:, use either of the following:
+
+	EDITCACHE 'DF0:' SETS=6
+	EDITCACHE 'DF0:' SETS 6
+
+    To change both the number of sets, the number of prefetch and also
+    change the purge mode to 'free after purge', use
+
+	EDITCACHE 'DF0:' SETS=6 PREFETCH=8 FREEAFTERPURGE
+
+    Purge delays of zero or lower will be truncated to 1.
+
+@{b}SEE ALSO@{ub}
+    @{"ADDCACHE" LINK RexxAddcache}, @{"REMOVECACHE" LINK RexxRemovecache}, @{"GETCACHEINFO" LINK RexxGetcacheinfo}
+@EndNode
+
+@Node RexxGetstats "ARexx Command: GETSTATS"
+@{b}NAME@{ub}
+    GETSTATS - List current cache statistics
+
+@{b}SYNOPSIS@{ub}
+    GETSTATS @{u}DRIVE/A@{uu}
+
+@{b}FUNCTION@{ub}
+    Return the current statistics for an installed cache.
+
+@{b}INPUTS@{ub}
+    DRIVE/A	- AmigaDOS device name of cache to examine (ex: 'DF0:')
+
+@{b}OUTPUTS@{ub}
+    "GETSTATS 'DF0:' STEM RESULT." will return the following:
+
+	RESULT.EFFICIENCY	= Current cache efficiency (in %)
+	RESULT.USED		= Current cache buffer usage (in %)
+
+	RESULT.UPDATEFREQ	= Current update frequency for statistics
+				  window for this cache (in 1/10 sec)
+
+@{b}NOTES@{ub}
+    This function will fail if a statistics window is not showing for the
+    cache you wish to examine. Since there is no ARexx command to open such
+    a statistics window for a cache, this may well turn out to be a problem.
+    A future version of PowerCache will contain ARexx commands to control
+    statistics windows.
+
+@{b}SEE ALSO@{ub}
+@EndNode
+
+@Node RexxSetshowkey "ARexx Command: SETSHOWKEY"
+@{b}NAME@{ub}
+    SETSHOWKEY - Define the hotkey to show PowerCache's window
+
+@{b}SYNOPSIS@{ub}
+    SETSHOWKEY @{u}HOTKEY/A@{uu}
+
+@{b}FUNCTION@{ub}
+    Change the hotkey used for popping up PowerCache's main window.
+
+@{b}INPUTS@{ub}
+    HOTKEY/A	- A valid hotkey specification
+
+@{b}OUTPUTS@{ub}
+    The old hotkey is returned in @{b}RESULT@{ub}.
+
+@{b}NOTES@{ub}
+    The new hotkey will be active as soon as this command returns.
+
+@{b}SEE ALSO@{ub}
+    @{"SETENABLEKEY" LINK RexxSetenablekey}, @{"SETDISABLEKEY" LINK RexxSetdisablekey}
+@EndNode
+
+@Node RexxSetenablekey "ARexx Command: SETENABLEKEY"
+@{b}NAME@{ub}
+    SETENABLEKEY - Define the hotkey to enable all caches
+
+@{b}SYNOPSIS@{ub}
+    SETENABLEKEY @{u}HOTKEY/A@{uu}
+
+@{b}FUNCTION@{ub}
+    Change the hotkey which is used to enable all caches.
+
+@{b}INPUTS@{ub}
+    HOTKEY/A	- A valid hotkey specification
+
+@{b}OUTPUTS@{ub}
+    The old hotkey is returned in @{b}RESULT@{ub}.
+
+@{b}NOTES@{ub}
+    The new hotkey will be active as soon as this command returns.
+
+@{b}SEE ALSO@{ub}
+    @{"SETSHOWKEY" LINK RexxSetshowkey}, @{"SETDISABLEKEY" LINK RexxSetdisablekey}
+@EndNode
+
+@Node RexxSetdisablekey "ARexx Command: SETDISABLEKEY"
+@{b}NAME@{ub}
+    SETDISABLEKEY - Define the hotkey to disable all caches
+
+@{b}SYNOPSIS@{ub}
+    SETDISABLEKEY
+
+@{b}FUNCTION@{ub}
+    Change the hotkey which is used to disable all caches.
+
+@{b}INPUTS@{ub}
+    HOTKEY/A	- A valid hotkey specification
+
+@{b}OUTPUTS@{ub}
+    The old hotkey is returned in @{b}RESULT@{ub}.
+
+@{b}NOTES@{ub}
+    The new hotkey will be active as soon as this command returns.
+
+@{b}SEE ALSO@{ub}
+    @{"SETSHOWKEY" LINK RexxSetshowkey}, @{"SETENABLEKEY" LINK RexxSetenablekey}
+@EndNode
+
+@Node RexxLoadprefs "ARexx Command: LOADPREFS"
+@{b}NAME@{ub}
+    LOADPREFS - Load a set of preferences
+
+@{b}SYNOPSIS@{ub}
+    LOADPREFS @{u}PREFSFILE@{uu} @{u}REQUEST/S@{uu}
+
+@{b}FUNCTION@{ub}
+    Surprisingly enough, this command loads a set of preferences from disk.
+    The filename is optional, and if you leave it out, the default
+    preferences filename will be used.
+
+@{b}INPUTS@{ub}
+    PREFSFILE	- The filename of the file you wish to load. Omit this if
+		  you wish to load the default preferences file.
+    REQUEST/S	- Specify REQUEST to verify the operation by popping up a
+		  file requester allowing the user to change the name. This
+		  will also work if you leave out the PREFSFILE (filename).
+
+@{b}OUTPUTS@{ub}
+    None.
+
+@{b}NOTES@{ub}
+    If you leave out both PREFSFILE (the filename) and REQUEST, then this
+    function is 100% identical in operation to the LASTSAVED command.
+
+@{b}SEE ALSO@{ub}
+    @{"SAVEPREFS" LINK RexxSaveprefs}, @{"DEFAULTPREFS" LINK RexxDefaultprefs}, @{"LASTSAVED" LINK RexxLastsaved}
+@EndNode
+
+@Node RexxSaveprefs "ARexx Command: SAVEPREFS"
+@{b}NAME@{ub}
+    SAVEPREFS - Save current preferences
+
+@{b}SYNOPSIS@{ub}
+    SAVEPREFS @{u}PREFSFILE@{uu} @{u}REQUEST/S@{uu}
+
+@{b}FUNCTION@{ub}
+    Save the current set of preferences in a file. The filename is optional,
+    and if you leave it out, the default preferences filename will be used.
+
+@{b}INPUTS@{ub}
+    PREFSFILE	- The filename of the file you wish to save. Omit this if
+		  you wish to save the current preferences as the default
+		  preferences file.
+    REQUEST/S	- Specify REQUEST to verify the operation by popping up a
+		  file requester allowing the user to change the name. This
+		  will also work if you leave out the PREFSFILE (filename).
+
+@{b}OUTPUTS@{ub}
+    None.
+
+@{b}NOTES@{ub}
+    If you leave out both PREFSFILE (the filename) and REQUEST, then this
+    function is 100% identical in operation to clicking the Save gadget in
+    PowerCache's main window.
+
+@{b}SEE ALSO@{ub}
+    @{"LOADPREFS" LINK RexxLoadprefs}, @{"DEFAULTPREFS" LINK RexxDefaultprefs}, @{"LASTSAVED" LINK RexxLastsaved}
+@EndNode
+
+@Node RexxHide "ARexx Command: HIDE"
+@{b}NAME@{ub}
+    HIDE - Hide PowerCache's main window
+
+@{b}SYNOPSIS@{ub}
+    HIDE
+
+@{b}FUNCTION@{ub}
+    If PowerCache's main window is showing, then hide it. Otherwise, this
+    function is a no-op.
+
+@{b}INPUTS@{ub}
+    None.
+
+@{b}OUTPUTS@{ub}
+    None.
+
+@{b}NOTES@{ub}
+    This function will fail if the cache editing window is showing.
+
+@{b}SEE ALSO@{ub}
+    @{"SHOW" LINK RexxShow}
+@EndNode
+
+@Node RexxShow "ARexx Command: SHOW"
+@{b}NAME@{ub}
+    SHOW - Show PowerCache's main window
+
+@{b}SYNOPSIS@{ub}
+    SHOW
+
+@{b}FUNCTION@{ub}
+    If PowerCache's window is currently hidden, then show it. Otherwise,
+    this function is a no-op.
+
+@{b}INPUTS@{ub}
+    None.
+
+@{b}OUTPUTS@{ub}
+    None.
+
+@{b}NOTES@{ub}
+
+@{b}SEE ALSO@{ub}
+    @{"HIDE" LINK RexxHide}
+@EndNode
+
+@Node RexxDefaultprefs "ARexx Command: DEFAULTPREFS"
+@{b}NAME@{ub}
+    DEFAULTPREFS - Reset preferences to defaults
+
+@{b}SYNOPSIS@{ub}
+    DEFAULTPREFS
+
+@{b}FUNCTION@{ub}
+    This function will reset the entire set of preferences to some neutral
+    startup values. This involves resetting all hotkeys and global flags,
+    as well as removing all installed caches.
+
+@{b}INPUTS@{ub}
+    None.
+
+@{b}OUTPUTS@{ub}
+    None.
+
+@{b}NOTES@{ub}
+    Since this function will remove all installed caches, there may be some
+    disk activity. This is because read/write caches need flushing before
+    they can be successfully removed.
+
+@{b}SEE ALSO@{ub}
+    @{"LOADPREFS" LINK RexxLoadprefs}, @{"SAVEPREFS" LINK RexxSaveprefs}, @{"LASTSAVED" LINK RexxLastsaved}
+@EndNode
+
+@Node RexxLastsaved "ARexx Command: LASTSAVED"
+@{b}NAME@{ub}
+    LASTSAVED - Load the last saved set of preferences
+
+@{b}SYNOPSIS@{ub}
+    LASTSAVED
+
+@{b}FUNCTION@{ub}
+    This function will load the set of preferences that were last saved
+    using the Save gadget in PowerCache's main window.
+
+@{b}INPUTS@{ub}
+    None.
+
+@{b}OUTPUTS@{ub}
+    None.
+
+@{b}NOTES@{ub}
+    This operation involves removing existing caches, and installing new
+    ones, so some amount of disk activity can be expected. This is caused
+    when dirty read/write caches are flushed back onto disk.
+
+@{b}SEE ALSO@{ub}
+    @{"SAVEPREFS" LINK RexxSaveprefs}, @{"LOADPREFS" LINK RexxLoadprefs}, @{"DEFAULTPREFS" LINK RexxDefaultprefs}
+@EndNode
+
+@Node RexxBeep "ARexx Command: BEEP"
+@{b}NAME@{ub}
+    BEEP - Change beep mode
+
+@{b}SYNOPSIS@{ub}
+    BEEP @{u}ON/S@{uu} @{u}OFF/S@{uu}
+
+@{b}FUNCTION@{ub}
+    Set the BEEP mode. If BEEP is set to ON, then PowerCache will flash all
+    screens and make a beep when caches are disabled or enabled with
+    hotkeys.
+
+@{b}INPUTS@{ub}
+    ON/S	- Specify this to activate BEEP mode
+    OFF/S	- Specify this to deactivate BEEP mode
+
+@{b}OUTPUTS@{ub}
+    @{b}RESULT@{ub} will contain the previous state (either 'ON' or 'OFF')
+
+@{b}NOTES@{ub}
+    Although it doesn't make much sense, it is allowable to specify both ON
+    and OFF, in which case OFF will override ON. Also, you can toggle the
+    current state by omitting both ON and OFF.
+
+@{b}SEE ALSO@{ub}
+@EndNode
+
+@Node RexxPopup "ARexx Command: POPUP"
+@{b}NAME@{ub}
+    POPUP - Change popup mode
+
+@{b}SYNOPSIS@{ub}
+    POPUP @{u}ON/S@{uu} @{u}OFF/S@{uu}
+
+@{b}FUNCTION@{ub}
+    Set the popup mode. When popup mode is active, PowerCache will show its
+    main window everytime it is started.
+
+@{b}INPUTS@{ub}
+    ON/S	- Specify this to activate POPUP mode
+    OFF/S	- Specify this to deactivate POPUP mode
+
+@{b}OUTPUTS@{ub}
+    @{b}RESULT@{ub} will contain the previous state (either 'ON' or 'OFF')
+
+@{b}NOTES@{ub}
+    Although it doesn't make much sense, it is allowable to specify both ON
+    and OFF, in which case OFF will override ON. Also, you can toggle the
+    current state by omitting both ON and OFF.
+
+@{b}SEE ALSO@{ub}
+@EndNode
+
+@Node RexxQuit "ARexx Command: QUIT"
+@{b}NAME@{ub}
+    QUIT - Quit PowerCache
+
+@{b}SYNOPSIS@{ub}
+    QUIT
+
+@{b}FUNCTION@{ub}
+    Make PowerCache clean up and exit.
+
+@{b}INPUTS@{ub}
+    None.
+
+@{b}OUTPUTS@{ub}
+    None.
+
+@{b}NOTES@{ub}
+    This operation involves removing existing caches, so some amount of
+    disk activity can be expected. This is caused when dirty read/write
+    caches are flushed back onto disk.
+
+    When PowerCache exits, a copy of the current set of preferences is
+    always saved to 'ENV:PowerCache.prefs'. There is no need to use
+    SAVEPREFS before exiting, if you only want PowerCache to go away
+    temporarily.
+
+@{b}SEE ALSO@{ub}
+@EndNode
+
+@Node RexxUseHelp "ARexx Command: USEHELP"
+@{b}NAME@{ub}
+    USEHELP - enable or disable online help
+
+@{b}SYNOPSIS@{ub}
+    USEHELP @{u}ON/S@{uu} @{u}OFF/S@{uu}
+
+@{b}FUNCTION@{ub}
+    This command can be used to either enable or disable the online help
+    facility, and is functionally equivalent to the 'Use Help?' checkbox
+    gadget in PowerCache's main window.
+
+@{b}INPUTS@{ub}
+    ON/S	- Specify this to activate online help
+    OFF/S	- Specify this to deactivate online help
+
+@{b}OUTPUTS@{ub}
+    @{b}RESULT@{ub} will contain the previous state (either 'ON' or 'OFF')
+
+@{b}NOTES@{ub}
+    Although it doesn't make much sense, it is allowable to specify both ON
+    and OFF, in which case OFF will override ON. Also, you can toggle the
+    current state by omitting both ON and OFF.
+
+@{b}SEE ALSO@{ub}
+@EndNode

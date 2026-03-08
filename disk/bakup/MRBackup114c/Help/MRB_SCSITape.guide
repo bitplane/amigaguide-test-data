@@ -1,0 +1,158 @@
+@database "MRBackup"
+@master "MRBackup:Help/MRB_SCSITape.guide"
+
+@node main "MRBackup SCSI Tape Support"
+If you are regularly backing up more than 20MB of data, you really should
+consider the purchase of a streaming SCSI tape drive.  Chances are, you
+already have the requisite SCSI interface controller (to interface and
+control your hard disk drive) so you will only need to aquire a tape drive.
+SCSI tape drives are becoming more and more affordable, with several good
+quality units available in the under $300 price range.  Tape cartridges
+cost about $20 each.  The time and aggravation you'll save are inestimable
+in their value.  Also, since you'll be much more likely to perform regular
+backups with such a painless medium, your system will be much more secure.
+Do yourself a favor!
+
+A SCSI tape handler is provided with MRBackup and is installed as a part of
+the standard MRBackup installation procedure.  To use it, you must perform
+the following steps:
+
+·   If it isn't already present, copy the MRBackup tape handler,
+    MRTape-Handler to the L: directory:
+
+    COPY MRBackup:L/mrtape-handler to L:
+
+·   Add the supplied device mountlist entry to your DEVS:Mountlist file,
+    using a text editor or, if you are running WorkBench 2.04 or above,
+    just copy the mountlist entry file to the DEVS:  directory.  The
+    mountlist entry provided with MRBackup is named "mountlist.mrtape". 
+    It contains the following:
+
+        MRTAPE: Handler = l:mrtape-handler
+            StartUp = "128/scsi.device/4/0/3"
+            Stacksize = 4000
+            Priority = 5
+            GlobVec = -1
+        #
+
+You  may need to change the "Startup" line.  The expression to the right of
+the equal sign (=) has the following format:
+
+    "<buffer_size>/<device_driver>/<device_number>/<luno>/<flags>"
+
+The  beginning  and  ending double quotes are required if you are using the
+standard AmigaDOS Mount command (not required with the ARP mount command).
+
+The  <buffer_size>  parameter is specified in multiples of K (K=1024).  The
+example  value  of  128,  above,  provides double-buffering for the WangTek
+model 5XXX-ES tape drives, which have an internal 64K buffer.
+
+The  <device_driver>  parameter  specifies  the device driver to be used to
+talk  to the device.  Use "scsi.device" with the CBM A2091 SCSI controller.
+Consult  your  owner's  manual  if  you  are  using  a  non-Commodore  SCSI
+controller.   Also, note that this field is case-sensitive.  If your device
+driver's name has upper case or mixed-case letters in its name, be sure you
+specify this field exactly as the driver is named.
+
+The  <device_number>  parameter  specifies  the SCSI device number, usually
+established by jumpers or DIP switches or jumpers on your tape drive.
+
+The  <luno> (logical unit number) field is not currently supported and must
+be zero.
+
+The  <flags>  parameter  is a specially encoded value which selects certain
+features of the tape drive.  Each bit position in the <flags> parameter has
+a  unique value (1, 2, 4, etc.).  Various feature selections can be made by
+adding these values together.  The current feature values are:
+
+1 - asynchronous mode
+2 - use on-board hardware buffering
+
+Thus,  to  select  both asynchronous mode and on-board buffering, you would
+add these values together for a <flags> value of 3.
+
+Once  the  above  steps  have  been  performed,  you must mount the MRTAPE:
+device.  This is done with the following command:
+
+    MOUNT MRTAPE:   or
+
+    MOUNT MRTAPE: FROM DEVS:mountlist.mrtape (AmigaDOS 2.04)
+
+You  may  then specify MRTAPE:  as your Backup Path.  You may also automate
+the   device  mounting  process  by  placing  the  above  command  in  your
+S:Startup-Sequence (or S:StartupII) file.
+
+Special Features of MRTape-Handler
+The  tape  handler  provided  with MRBackup, MRTape-Handler, is designed to
+work with a wide array of tape devices from many different vendors.  Though
+you  many  not  redistribute  this  handler, you are welcome to use it with
+other  Amiga  applications.   When  used  with MRBackup, MRTape-Handler can
+communicate certain information to MRBackup which will allow dynamic tuning
+of the buffers used to transfer data between the two processes.
+
+    @{" Asynchronous vs. Synchronous Mode " 
+        Link "Asynchronous vs. Synchronous Mode" }
+
+    @{" Multiple Save Sets on One Tape " 
+        Link "Multiple Save Sets on One Tape" }
+
+    @{" Using MRBackup with Other Handlers " 
+        Link "Using MRBackup with Other Handlers" }
+
+    @{" Go to Top Level " Link "MRBackup:Help/MRBackup.guide/main" }
+
+@endnode main
+
+@node "Asynchronous vs. Synchronous Mode"
+MRTape-Handler  supports both synchronous and asynchronous tape access.  In
+synchronous  mode,  the program requesting a tape operation must wait until
+that  operation  completes  before  it can continue.  In asynchronous mode,
+MRTape-Handler will attempt to complete the operation "on its own time", in
+parallel  with  the requesting program's activity.  Thus, asynchronous mode
+generally  yields better performance.  However, we do not live in a perfect
+world.   Certain combinations of tape drive and SCSI controller can lock up
+(hang)  the  Amiga  when  run  in  asynchronous mode.  We have yet to see a
+definitive  solution  to the problem though many hardware "hacks" have been
+offered.  Synchronous mode seems to fare better in these situations.
+@endnode "Asynchronous vs. Synchronous Mode"
+
+@node "Multiple Save Sets on One Tape"
+MRTape-Handler  has  the  ability  to "stack" multiple savesets on a single
+tape  cartridge.   This  is achieved by a slight modification to the device
+naming  conventions used by the MRTape-Handler.  Normally, when you specify
+the  tape  device name as "MRTape:", the tape is rewound prior to the start
+of  the  backup  and  any  information  previously  written  to the tape is
+overwritten.   To append a new saveset to the end of a tape cartridge which
+already  contains  one  or  more savesets, simply append an "A" to the tape
+device name (e.g.  "MRTape:A").  Prior to writing the new saveset, the tape
+is positioned past the end of the last saveset on the tape.
+
+To  restore  from a saveset which is not the first saveset on the tape, you
+must  append  the  saveset number to the tape device name.  Saveset numbers
+begin with zero.  Therefore, to retrieve the third saveset, you must append
+a  "2" to the tape device name.  Example:  "MRTape:2".  The only "trick" to
+all  of this is to remember the order of your savesets.  MRBackup currently
+doesn't  provide  any  means  to record this information.  Thus, you should
+keep  this  information  in  a  notebook  or in a text file on your system.
+Should  you forget, however, this information is very easily retrieved with
+MRBackup's  Scan Tape command.  Improvements on this capability are planned
+for  a  future  release of MRBackup Professional.  You should also be aware
+that  this  capability only exists for "sequential access" tape drives such
+as the Tandberg, WangTek, Sony, etc.  This is because MRBackup depends upon
+tape  marks to separate its savesets.  Drives which employ "direct access",
+such as the 3M drive, will not support this feature.
+@endnode "Multiple Save Sets on One Tape"
+
+@node "Using MRBackup with Other Handlers"
+The  decision  to  use  a tape handler, rather than embedding tape-specific
+code in MRBackup was an important one.  Though there may be a minor penalty
+in  performance,  the  net  result  is  that MRBackup is adaptable to other
+third-party  handlers (public domain, shareware or commercial) which may be
+developed  for  specific devices suitable for backups.  If the tape handler
+supplied  with  MRBackup  Professional  doesn't  appear  to  be  performing
+optimally  with  your  particular  device,  don't  hesitate  to try another
+handler  which  you suspect might work better.  Of course, we would be very
+grateful  for  any  information  you  pass  back  to  us with regard to any
+problems  you  might  encounter.  We are constantly striving to improve the
+quality of MRBackup Professional.
+@endnode "Using MRBackup with Other Handlers"

@@ -1,0 +1,1337 @@
+@database "BackUp"
+@$VER: 1.90
+@author "Deniil 715! - daniel@onyxsoft.se"
+@node main "BackUp by Deniil 715!"
+
+   @{fg shine}@{b}BackUp v1.90  by  Deniil 715!
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~@{ub}@{fg text}
+
+
+     @{fg fill}Made in 2014-10-22@{fg text}
+
+
+    @{" Introduction   " link intro}
+    @{" Disclaimer     " link disc}
+    @{" Requirements   " link req}
+
+    @{" News & Changes " link news}
+
+    @{" Usage          " link usage}   @{" Log file codes " link logcodes} @{" Error codes    " link errorcodes}
+    @{" CLI Usage      " link cli}
+
+    @{" Author         " link auth}
+    @{" OnyxSoft       " link onyx}
+
+      @{fg shine}This program has been successfully tested on AmigaOS 4.1.
+
+
+@endnode
+
+@node intro "Introduction.."
+
+  @{fg shine}@{b}Intro
+  ~~~~~@{ub}@{fg text}
+
+   This is a simple but quite useful backup tool. It simply copies
+   files and links from one directory to another. Of cource it only
+   copies files that are different in some way, like size or date etc.
+   It does not scan the file contents for differencies. A separate
+   verify byte-by-byte function is available for that.
+
+   It also has a skiplist where you can add directories and/or big
+   files (512kB+) that you don't want to be backed up. Useful to prevent
+   backing up temp files or cache directories.
+
+   It also has another feature; cleaning, that makes it possible to
+   remove old files from the backup unit (Target) by comparing all
+   files on the backup with the files on the work unit (Source) and
+   delete the files that no longer exist on the work unit from the
+   backup.
+
+   BackUp has a GUI which is used by default, but it can also be
+   executed completely automated from shell scripts.
+
+   BackUp does not use any lowlevel access to the disks, only
+   standard OS-functions are used so if your current configuration
+   of your computer can handle big partitions and files >4GB, so
+   can BackUp. I have backed up 34GB of data without problems.
+   Since BackUp is written for OS2/68k it may report wrong statistics
+   for single files over 2GB but the backup itself is good.
+
+
+@endnode
+
+@node req "Requirements.."
+
+  @{fg shine}@{b}Requirements
+  ~~~~~~~~~~~~@{ub}@{fg text}
+
+   OS version 37+
+   Asl.library v37+
+   GadTools.library v37+
+   512kB of memory for the copy buffer. 1MB when verifying.
+
+   Can be run even before/without startup-sequence to make emergency
+   backup or restore in case of emergency. Does not depend on any
+   external, 3rd-party libraries.
+
+
+@endnode
+
+@node disc "Disclaimer.."
+
+  @{fg shine}@{b}Disclaimer
+  ~~~~~~~~~~@{ub}@{fg text}
+
+   I WILL NOT BE HELD RESPONSIBLE FOR ANY DAMAGE OR LOSS OF DATA THAT
+   THIS PROGRAM MIGHT CAUSE YOUR SYSTEM OR DATA!
+
+   I have put a lot of energy to make that actual backup and cleaning
+   procedures completely error-free. I believe that is very important
+   for a backup tool. The GUI, the inter-process communication, and
+   the statistics calculations might have some bugs though, but this
+   should not affect the actual operation.
+
+
+@endnode
+
+@node usage "Usage.."
+
+  @{fg shine}@{b}Usage
+  ~~~~~@{ub}@{fg text}
+
+  Start the program, it has a GUI in GadTools.
+
+  Or start it from CLI with @{"arguments" link cli}.
+
+  There is a lister with some information in. This will be updated
+  during the backup and some statistics will be shown at the end
+  of the backup process.
+
+  @{b}Source@{ub}
+    This is where to copy from. Enter a directory here or pick one
+    using the "Asl"-button. Everything in this directory including
+    all subdirectories will be copied except entries found in the
+    skiplist.
+
+    CLI: SOURCE/K
+    Default is what was previously saved from the GUI.
+
+  @{b}Target@{ub}
+    This is where to copy everything from the Source to.
+
+    CLI: TARGET/K
+    Default is what was previously saved from the GUI.
+
+  @{b}Skiplist...@{ub}
+    This will open a window with a list in which you can add directories,
+    and files that are larger than 512kB, that you don't want to be included
+    in your backup, or be removed when cleaning the Target.
+
+    There is a switch to allow directories in the skiplist to be created even
+    though their contents will not be copied. Useful when backing up programs
+    that have a logs/ or cache/ directory for example, where the directories
+    themselves are important, but not their contents.
+
+    Note: If the cleaner finds delete protected files and you say you want
+    to leave those files, they will temporarely be added to the skiplist.
+    You can observe this if you press Pause when cleaning and enter the skiplist.
+    Do not worry, they will be removed when the cleaning is finished.
+    Therefore you should not be confused if you find unknown directories in
+    the skiplist during a cleaning process.
+
+    The unit names for the dirs/files in this skiplist must be the same as the
+    one in the Source (or the Target when cleaning)!
+    Ex. If you have a path "Work:Stuff/" in the skiplist, you cannot write
+    "DH1:" in the Source (or Target), you must write "Work:" else the files
+    and directoies will not be recognized by the filter. Also using assigns
+    in the skiplist will not work because of the same reason unless you also
+    use the same assign in the Source (or Target) of course.
+
+    CLI: SKIPFILE/K
+    Default is what was previously saved from the GUI.
+
+      @{b}Add file@{ub}   - Get a file requester where you can pick files larger
+                   than 512kB to add to the list.
+                   The requester will keep opening until you click Cancel
+                   to make it easy to add several files.
+
+                   The reason not to be able to filter smaller files is
+                   because the backup process would be very slow if every
+                   tiny file needed to be checked against the skiplist.
+
+      @{b}Add dir@{ub}    - Get a file requester where you can pick a directory to
+                   add to the list. The requester will keep opening until
+                   you click Cancel to make it easy to add several files.
+
+      @{b}Remove@{ub}     - Remove the selected entry from the list.
+
+      @{b}Clear list@{ub} - Clear the whole list.
+
+      @{b}Load a list@{ub}
+        This opens an Asl-requester for you to choose a textfile to load
+        as skiplist.
+
+        CLI: SKIPFILE/K
+
+      @{b}Save the list@{ub}
+        This opens an Asl-requester for you to choose a place to save
+        the skiplist.
+
+      @{b}Close@{ub}      - Close the skiplist window.
+
+
+        @{fg shine}@{u}The menu for the skiplist window@{uu}@{fg text}
+
+      @{b}Load skiplist...@{ub}
+        This opens an Asl-requester for you to choose a textfile to load
+        as skiplist.
+
+        CLI: SKIPFILE/K
+
+      @{b}Save skiplist...@{ub}
+        This opens an Asl-requester for you to choose a place to save
+        he skiplist.
+
+      @{b}Set paths to match the Source for backup@{ub}
+        This will change the paths in the skiplist to match the Source
+        path so that they can be used when backing up. Typically needed
+        after cleaning. BackUp will also detect this and do it automatically.
+
+      @{b}Set paths to match the Target for cleaning@{ub}
+        This will change the paths in the skiplist to match the Target
+        path so that they can be used when cleaning.
+        BackUp will detect this and do it automatically.
+
+      @{b}About@{ub}
+        This will just show the about-requester.
+
+      @{b}Close@{ub}
+        This will close the skiplist window.
+
+
+  @{b}Clean@{ub}
+    This will scan the Target and remove all files and directories from
+    the Target that does not exists in the Source anymore. This is useful
+    as you probably often rename or remove files from the source as you
+    are working, and when you then backup, all the renamed and deleted
+    files will still be present in the Target (if you have made earlier
+    backups) and in time the Target will grow a lot larger than the Source.
+
+    Use Clean to remove all old files from the Target, then make a new backup.
+    If you click Clean first, before Backup, you will be asked if a backup
+    should be run automatically when the cleaning has finished.
+
+    Files and directories that have been added to the skiplist will not be
+    removed from the Target by the cleaner. Be sure to set the paths in the
+    skiplist to correspond to the Target instead of the Source when cleaning.
+    You will be asked about this, but can also be done manually from the menu
+    within the Skiplist window.
+
+    CLI: CLEAN/S
+    Default is to not start cleaning automatically.
+
+  @{b}BackUp@{ub}
+    This will start the actual backup by copying all files and directories
+    from the Source to the Target.
+
+    See the skiplist if there are files and directories you do not want to backup.
+
+    CLI: BACKUP/S
+    Default is to not start backing up automatically.
+
+  @{b}Stop@{ub}
+    This will stop the backup or cleaning process.
+
+  @{b}Pause@{ub}
+    This will pause the backup, cleaning or verify process until you press
+    Backup or Clean again, or select verify byte-by-byte again from the menu.
+    Then it will continue were it was.
+
+    Note: When pausing in the middle of a large file, this file can
+    be changed or deleted in both the Source and the Target, but when you
+    continue the backup this file will be skipped and deleted from the
+    target if it has been altered during pause.
+
+    Also note that pausing a backup or verify while processing a huge file
+    (over 4GB), it may not be able to continue correctly, depending on the
+    file system 32bit<->64bit interface implementation. Untested.
+
+  @{b}Quit@{ub}
+    This will exit the program.
+
+    CLI: AUTOQUIT/S
+    Default is false.
+
+    @{fg shine}@{u}The menu for the main window@{uu}@{fg text}
+
+  @{i}Project@{ui}
+
+    @{b}Pick Source...@{ub}
+      Pick a source path using an Asl-requester.
+
+    @{b}Pick Target...@{ub}
+      Pick a Target path using an Asl-requester.
+
+
+    @{b}Save preferences@{ub}
+      This will save the Source- and Target paths, and all other paths and
+      the main window position.
+
+
+    @{b}Help@{ub}
+      This will display the message shown when the program is started.
+
+    @{b}About...@{ub}
+      Show some info about the program.
+
+    @{b}OnyxSoft...@{ub}
+      Show some info about OnyxSoft.
+
+    @{b}Quit@{ub}
+      This will exit the program.
+
+      CLI: AUTOQUIT/S
+
+
+
+  @{i}Backup@{ui}
+
+    @{b}Backup by the archive-bit@{ub}
+      Use this switch if you would like BackUp to only copy files
+      that do not have the archive bit set in the source, and
+      then set the archive bit on source files and directories that
+      were successfully copied.
+
+      This is how many backup tools work. I chose a slightly different
+      approach as the default method (not using this switch) in BackUp
+      because I didn't want BackUp to alter the source files in any way.
+
+      CLI: USEARCHIVE/S
+      Default is false.
+
+    @{b}Copy archived files that don't exist on target@{ub}
+      This switch is useful if any files have been removed from the
+      target, or if this is the first backup attempt. It will ensure
+      that all files are copied if they do not exist in the target from
+      a previous backup, even if they already have the archive bit set.
+
+      Without this switch BackUp only looks at the archive bit on the
+      source files and ignores every file on the source that has the
+      archive bit already set.
+
+      With this switch the logic is this:
+        If a file or dir does not exist on the target -> Copy the file/dir.
+        If a file or dir does not have the archive bit set -> Copy the file/dir.
+        Set the archive bit on the source file or directory.
+
+      Without this switch the logic is this:
+        If a file or dir does not have the archive bit set -> Copy the file/dir.
+        Set the archive bit on the source file or directory.
+        Completely ignore al files that already have the archive bit set.
+
+
+    @{b}Never copy Amiga protection bits@{ub}
+      Prevents BackUp from setting the protection bits after backing up
+      files. Sometimes useful when backing up over Samba or USB or some
+      other way to any non-Amiga file system.
+
+      CLI: NOPROTBITS/S
+      Default is false.
+
+    @{b}Never copy Amiga file comments@{ub}
+      Prevents BackUp from setting the file comment after backing up
+      files. Sometimes useful when backing up over Samba or USB or some
+      other way to any non-Amiga file system.
+
+      CLI: NOFILECOMMENTS/S
+      Default is false.
+
+    @{b}Only copy newer files@{ub}
+      Sometimes it may be desirable to only copy files from the Source
+      that are newer than the files in the Target.
+
+      CLI: COPYONLYNEWER/S
+
+    @{b}Copy softlinks as files and directories@{ub}
+      Since v1.50 BackUp will follow and copy all softlinks and tries
+      to recreate them as good as possible on the backup.
+      With this switch you can make BackUp instead follow the softlinks
+      and copy the actual files and directories the links point to instead
+      of copying the softlink itself.
+
+      Very useful if you like to make a copy of a directory or partition
+      without links in it to be able to burn it on a CD.
+
+      Note: A warning must be issued because following directory links
+      can be dangerous if there are any link loops! BackUp will handle
+      link loops by not recursing indefinately, but the backup will
+      not be an equal copy of the source. Use Verify byte-by-byte to
+      find out.
+
+      Note 2: Since the actual file will be copied several times when
+      using this switch (since both the original file and any links
+      pointing to it will be copied as files), the backup may become
+      significantly larger than the source!
+
+      CLI: FOLLOWLINKS/S
+      Default is false.
+
+    @{b}Ignore all links@{ub}
+      Since v1.50 BackUp will copy softlinks also. This switch makes
+      BackUp ignore all links as if they didn't exist. Before v1.50
+      BackUp didn't understand links and generated error messages
+      when they were encountered.
+
+      @{u}Note well again:@{uu} The only protection against link loops is
+      that BackUp has a maximum depth of 100 directories. If a link
+      loop is encountered, BackUp will be stuck in this loop until
+      it reaches the maximum depth before it retracts and continues.
+      (A link loop is a directory link connected further up in the tree.
+       Ex: "Work:prog/data/dirlink/" is a link directory that points to
+       f.ex. "Work:prog/". The resulting backed up tree will be this:
+       "Work:prog/data/dirlink/data/dirlink/data/dirlink/data/dirlink/[...]x100")
+
+      CLI: IGNORELINKS/S
+      Default is false.
+
+    @{b}Ignore all read errors@{ub}
+      This switch will disable the checking of all read errors that may
+      occur during the backup. This can be very useful when trying to
+      use BackUp to salvage files from a crashed harddisk or something.
+      In this case BackUp will force reading of the complete files
+      ignoring all read errors and just write whatever it could get
+      instead of just stop with an error message.
+
+    @{b}Create skipped directories@{ub}
+      Directories that have been added to the skiplist will normally
+      not be created (since v1.44). But if it is desired to have these
+      directories created too, but remain empty, this switch can be used.
+
+      A practical example would be when a program is backed up that has
+      two driectories in which it stores logs and a disk cache. The
+      logs and the cache will be obsolete when the backup is eventually
+      needed, but the directories must still exist or the program may
+      not work properly.
+
+      CLI: CREATESKIPDIRS/S
+      Default is false.
+
+    @{b}Target is FAT file system@{ub}
+      Select this when making backing up to a disk/partition with a FAT
+      file system on it. This will make BackUp understand that it does
+      not need to copy all files with only one second difference in the
+      file timestamp. It is effective when making an incremental/second
+      backup when there are many old unchanged files already on the backup
+      disk.
+
+      If this flag is off, BackUp will auto-detect if the partition is
+      FAT and ask you after 20 files or so. In shell mode it will not ask
+      but just enable the flag silently.
+
+      There is little harm in having this enabled all the time. There is
+      no magic, only slightly looser detection of the change of a file's
+      timestamp.
+
+      CLI: TARGETISFAT/S
+      Default is false.
+
+    @{b}Do not copy files larger than N bytes@{ub}
+      When this flag is selected only files that have a file size equal
+      or smaller than the "file size limit for large files" (see below)
+      will be copied.
+
+      Useful to backup for example your e-mail archive but not huge e-mails,
+      or digicam pictures if you have mixed original pictures with scaled
+      down version and only want to backup the scaled down versions.
+
+      CLI: (see below)
+
+    @{b}Set file size limit for skipping large files...@{ub}
+      Opens a window where you can set a maximum size of files that should
+      be copied. Only files with a size larger than this number will be
+      copied if the flag @{b}Do not copy files larger than N bytes@{ub} is also
+      selected in the menu.
+
+      NOTE: This program is pure 32-bit and will not recognize the correct
+      size for files 4GB and larger. You need to put any such files into
+      the skiplist manually if you do not want them to be copied.
+
+      CLI: SIZELIMIT/N
+      Default is what was previously saved from the GUI. To disable this
+      feature (if it was saved as enabled), supply a negative value.
+
+    @{b}Test mode!@{ub}
+      This enabled/disables the test mode. Enabling test mode means
+      that a backup or cleaning will not take place. It will just
+      be simulated if you press Backup or Clean. This is useful if
+      you are uncertain about how much space that will be required, or
+      if you just want a log over what BackUp would do in case of a
+      real backup or cleaning.
+
+      Ignored when verifying.
+
+      CLI: TESTMODE/S
+      Default is false.
+
+
+
+  @{i}Misc@{ui}
+
+    @{b}Load a skiplist...@{ub}
+      Use an Asl-requester to pick a (new) skiplist file.
+
+    @{b}Edit the Skiplist...@{ub}
+      This will just open the skiplist window.
+
+    @{b}Save stats as...@{ub}
+      This will save whatever is in the listview in the main window
+      to a textfile that you choose with and Asl-requester.
+
+      CLI: STATFILE/K
+      Default is what was previously saved from the GUI.
+
+    @{b}Save errors as...@{ub}
+      This will open an asl-requester so that you can pick a file
+      to save the error list.
+
+      CLI: ERRFILE/K
+      Default is what was previously saved from the GUI.
+
+    @{b}Don't clear stat window@{ub}
+      Normally BackUp clears the stats in the window when you
+      start an operation and again after an operation is finished.
+      With this option you can prevent this so that you can get
+      a history over what you have done.
+
+      CLI: DONTCLRSTAT/S
+      Default is false.
+
+    @{b}Clear stats window now@{ub}
+      This will simply clear the main window's listview.
+
+    @{b}Verify byte-by-byte after backup@{ub}
+      Automatically read and compare all files after a backup has been run.
+
+      See the next section for more info.
+
+      CLI note: When starting BackUp from CLI with BACKUP/S or VERIFY/S,
+      this switch will be ignored. If you want verify after backup when
+      starting from CLI you need to specify BACKUP VERIFY on the commandline.
+
+    @{b}Verify byte-by-byte@{ub}
+      Run a byte-by-byte verification of the source againste the target
+      to check for any differences in any file. Verify will detect all
+      differences, such as different date, comments, protection bits,
+      size and also file contents (if the file size is equal).
+
+      This is a rather slow process and does not normally have to be run,
+      but it can be useful if you suspect there are errors in the backup.
+      Non-detectable errors can be caused by transmission bit-errors over
+      the IDE cable if it is set to operate too fast. UDMA133 can sometimes
+      cause transmission errors with wierd crashes and misbehavior as a
+      consequence.
+
+      If you suspect errors, use this function. Make a backup and then run
+      Verify to test. If there are differences in file contents (see the log),
+      then run verify again to see if the difference is now in another file.
+      If that is the case you have IDE transfer errors or you have bad RAM.
+      Try lowering the IDE transfer speed, backup and verify again. Repeat
+      until there are no errors.
+
+      Note: If you have enabled "Copy links as files and directories", then
+      verify will tell you there is a difference in file type between your
+      links in the source and the files in the target. That is ok.
+
+      CLI: VERIFY/S
+
+
+
+  @{i}Log @{ui}
+
+    Logging can be done to up to three different places simultanously.
+    This log is what directories BackUp traverse and what files it
+    encouters and copies or deletes. Statistics are written to the end
+    of the log file with a blank line as a separator.
+
+    A line in the log will contain a character followed by a space
+    followed by a file or directory name. See @{"log file codes" link logcodes}.
+
+
+    @{b}Log to stat window@{ub}
+      If this is enabled logging will be made to the main window's
+      stats list.
+
+      CLI: LOGSTAT/S
+      Default is false.
+
+    @{b}Log to file@{ub}
+      This will log to a file. Specify what file with @{b}Pick log file...@{ub}
+      or with the CLI argument.
+
+      CLI: LOGFILE/K
+      Default is false.
+
+    @{b}Log to console@{ub}
+      This will log to the shell that BackUp was started from.
+
+      CLI: LOGCON/S
+      Default is false.
+
+    @{b}Verbose logging@{ub}
+      Log every file that is copied or deleted too, not just
+      directories and large (512kB+) files.
+
+      CLI: VERBOSELOG/S
+      Default is false.
+
+    @{b}Pick log file...@{ub}
+      Use this to select a file to use as logfile.
+
+      CLI: LOGFILE/K
+      Default is what was previously saved from the GUI,
+      but no logging will be done.
+
+    @{b}Open the error list...@{ub}
+      This will open the window which will display all errors that might
+      have been encountered during an operation. The windows opens
+      automatically if there were any errors.
+
+        @{b}Sort@{ub}  - This will sort the error list.
+
+        @{b}Save log...@{ub}  - This will open an asl-requester so that you can pick
+                a file to save the error list in.
+
+        @{b}Clear@{ub} - This will clear the error list.
+
+        @{b}Help@{ub} - Show a list with descriptions of the error codes.
+
+        @{b}Close@{ub} - Close the error list window.
+
+
+          @{fg shine}@{u}The menu for the error list window@{uu}@{fg text}
+
+        @{b}Save error list@{ub}
+          The same as the Save button.
+
+        @{b}Error codes@{ub}
+          This will open a requester explaining all error
+          codes for the files in the error list. You can
+          also print this error code list to a console from
+          within this requester if you want to save it.
+
+          See @{"error codes" link errorcodes}.
+
+        @{b}About@{ub}
+          This will just show the about-requester.
+
+        @{b}Close@{ub}
+          This will close the error list window.
+
+
+
+@endnode
+
+@node errorcodes "Error codes"
+
+  @{fg shine}@{b}List of error codes in the error window
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~@{ub}@{fg text}
+
+     Arch:      Could not set the archive bit on a source file or dir.
+
+     OpenR:     Could not open a file for reading during backup or verify.
+
+     OpenW:     Could not open a file for writing during backup.
+
+     OpenV:     Could not open a target file for reading during verify.
+
+     Read:      Read error during file copying.
+
+     Write:     Write error during file copying.
+
+
+     LockDir:   Could not lock a directory.
+
+     ExDir:     Could not examine a directory.
+
+     CreateDir: Could not create a directory.
+
+     SkipDir:   Could not create a directory that was in the skiplist.
+
+
+     DelDir:    Could not delete a directory.
+
+     DelFile:   Could not delete a file.
+
+     DelLink:   Could not delete a link.
+
+     Unprot:    Could not unprotect a dir or file.
+
+     Skipped:   Skipped deleting a dir or file due to protection.
+
+
+     MetaC:     Could not update file comment on a target file or directory.
+
+     MetaD:     Could not update the file date on a target file or directory.
+
+     MetaP:     Could not update protection bits on a target file or directory.
+
+
+     LockLink:  Unable to lock a softlink target and "Copy links as
+                files" have been selected.
+
+     MakeLink:  Unable to create a softlink.
+
+     ReadLink:  Unable to read a softlink.
+
+     SoftLink:  A softlink points to another softlink and "Copy links
+                as files" have been selected.
+
+     Dir?File:  Could not determine if it was a file or directory.
+                It is probably a link of some sort.
+
+
+@endnode
+
+@node logcodes "Logfile code explanation"
+
+  @{fg shine}@{b}Codes in the logfile
+  ~~~~~~~~~~~~~~~~~~~~@{ub}@{fg text}
+
+  Here is an explanation of the different character codes in the logfile:
+
+     @{u}Generic codes:@{uu}
+     » - A directory was entered (verbose only)
+     S - A file or directory was skipped because it was in the skiplist.
+     s - A file was skipped because it was larger than the file size limit.
+     F - A large file encountered (over 512kB).
+     R - A file reads beyond end-of-file. Probably over 4GB.
+     d - A file was deleted if the backup was interrupted while
+         copying a large file.
+     l - A link was ignored.
+     . - The SFS/2,JXFS ".recycled" dir was skipped.
+     E - There was an error reading or creating a directory.
+     e - There was an error backing up or cleaning a file.
+
+     @{u}Backup specific codes:@{uu}
+     f - A small file copied during backup.
+     F - A large file copied.
+     C - A directory created during backup.
+     L - A link was created during backup.
+     d - A target file deleted after stop or error.
+     A - Set the archive bit on a backup'ed directory in the source.
+         (verbose only)
+     a - Set the archive bit on a backup'ed file in the source.
+         (verbose only)
+     M - Metadata (protection bits, file comment, filedate) was set
+         on a file or deirectory. (verbose only)
+     m - Failed setting metadata (protection bits, file comment,
+         filedate) on a file or directory. (verbose only)
+
+     @{u}Cleaning specific codes:@{uu}
+     D - A directory deleted.
+     d - A file deleted.
+     L - A link was deleted.
+
+     @{u}Verifying specific codes:@{uu}
+     Z - File size was different.
+     M - Metadata was different.
+     C - File contents is different.
+     f - A file does not exist on the target.
+     d - A directory does not exist on the target.
+     t - Not the same type. For example source is a file but target
+         is a directory or link.
+
+
+@endnode
+
+@node cli "CLI usage.."
+
+  @{fg shine}@{b}How to use BackUp from CLI
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~@{ub}@{fg text}
+
+  BackUp has a number of CLI-arguments that you can specify if
+  you start BackUp from a shell.
+
+  Note that if you start BackUp from a shell without any arguments
+  it will behave exactly as if it was started from Workbench and
+  load all settings. Only when at least one arguments is supplied
+  it will not load the settings for the switches (/S arguments)
+  but leave all switches off so you can decide with CLI arguments
+  which switches you would like to use.
+
+  SOURCE/K
+    Used to specify the source that shall be backed up.
+    If omitted the default path saved in the GUI will be used.
+
+  TARGET/K
+    Used to specify the target to copy the source to.
+    If omitted the default path saved in the GUI will be used.
+
+  BACKUP/S
+    If you specify this then the backup process will start
+    immediately when BackUp is started. The GUI will still be
+    opened.
+
+  CLEAN/S
+    If you specify this then the cleaning process will start
+    immediately when BackUp is started. The GUI will still be
+    opened. If you specify both CLEAN and BACKUP the cleaning
+    will be performed first, then the backup.
+
+  VERIFY/S
+    Runs a byte-by-byte verification of the file contents  between
+    the source and the target. If CLEAN and/or BACKUP is specified
+    as well, VERIFY will run last.
+
+  AUTOQUIT/S
+    If you specify this together with BACKUP and/or CLEAN or VERIFY,
+    BackUp will quit immediately when the process has completed and
+    eventual logs have been saved. If you don't specify neither
+    BACKUP nor CLEAN nor VERIFY then AUTOQUIT will be ignored.
+
+    This is useful if you want to use BackUp in a script and
+    run BackUp several times automatically after each other for
+    backing up many different locations.
+
+  SHELLMODE/S
+    If you specify this together with BACKUP and/or CLEAN, BackUp
+    will not open its GUI until it has finished. Adding AUTOQUIT
+    will prevent the GUI from ever opening. Therefore, the
+    combination of SHELLMODE and AUTOQUIT is useful for backing
+    up in the background.
+
+    When in shell mode, the process can be interrupted by pressing
+    Ctrl-C. The GUI can be opened by pressing Ctrl-D.
+
+    Do not forget to add FORCEDELETE or SKIPDELETE when cleaning
+    to be sure there will not be any interaction during the clean
+    process. However, if you are uncertain if you have any delete
+    protected files it may be wise to let the requester open by
+    not specifying any of these two switches.
+
+  USEARCHIVE/S
+    Use this switch if you would like BackUp to only copy files
+    which does not have the archive bit set in the source, and
+    then set the archive bit on source files that were successfully
+    copied. This is how many backup tools work.
+    
+    I chose a slightly different approach as the default method
+    (i.e. when not using this switch) in BackUp because I didn't
+    want BackUp to alter the source files in any way.
+
+  COPYONLYNEWER/S
+    This will only copy newer files from the source to the target,
+    based on the file date.
+
+  TARGETISFAT/S
+    Enables the FAT file system timestamp recognition.
+
+    Use this when making backing up to a disk/partition with a FAT
+    file system on it. This will make BackUp understand that it does
+    not need to copy all files with only one second difference in the
+    file timestamp. It is effective when making an incremental/second
+    backup when there are many old unchanged files already on the backup
+    disk.
+
+    If this parameter is not used, BackUp will auto-detect if the
+    partition is FAT and ask you after 20 files or so. In shell mode it
+    will not ask but just enable the flag silently.
+
+    NOTE: File comments will not be set when using this mode.
+
+  TESTMODE/S
+    Specify that backup or clean should be run in test mode without
+    affecting any data on disk.
+
+  FOLLOWLINKS/S
+    Instead of recreate softlinks on the target, BackUp will follow
+    softlinks and copy them as files. This means that BackUp
+    will not create links, it will instead copy the file or
+    directory each link points to to the target.
+
+  IGNORELINKS/S
+    This switch will make BackUp ignore links. Default is to
+    recreate the link on the target
+
+  NOPROTBITS/S
+    Do not copy and set any Amiga protection bits when backing up.
+
+  NOFILECOMMENTS/S
+    Do not copy and set any Amiga file comments when backing up.
+
+  CREATESKIPDIRS/S
+    Create empty directories for those directories that are in the
+    skiplist instead of ignoring them completely.
+
+  SIZELIMIT/N
+    This is used both as a switch to enable the file size limitation
+    feature and to specify the file size limit. Using a file size
+    limit will prevent backup of files that are larger than this size.
+
+    By default this feature will be used if it has been saved in the
+    preference. To disable this feature from shell you can specify a
+    negative size, such as SIZELIMIT = -1.
+
+  FORCEDELETE/S
+    During the cleaning process BackUp normally asks you if you like
+    to unprotect and delete any delete protected files it encounters.
+    This is not practical when running BackUp from a script.
+    This switch automatically makes BackUp unprotect and delete all
+    delete protected files it encounters.
+
+    FORCEDELETE is mutually exclusive with SKIPDELETE.
+
+  SKIPDELETE/S
+    During the cleaning process BackUp normally asks you if you
+    like to skip or delete any delete protected files it encounters.
+    This is not practical when running BackUp from a script.
+    This switch automatically makes BackUp skip all delete
+    protected files it encounters.
+
+    SKIPDELETE is mutually exclusive with FORCEDELETE.
+
+  VERBOSELOG/S
+    Specify this to produce a verbose log. This will be ignored
+    if no logging method was specified.
+    Verbose log will add logging of all directories that BackUp
+    enters. The complete path of all files and directories will
+    not be displayed in verbose mode, instead a sort of graphical
+    tree will be displayed.
+
+  DONTCLRSTAT/S
+    This prevents the stats window from being cleared between
+    messages. This is useful if you run both CLEAN and BACKUP
+    automatically and then save the stats.
+    If omitted the stats window will be cleared as usual, ignoring
+    saved prefs.
+
+  LOGSTAT/S
+    Enable logging to the stats window. This also causes the
+    stats window to not be cleared before the finished message
+    is displayed.
+    If omitted, no logging to the stats window will be done
+    even if this is saved in the prefs.
+
+  LOGCON/S
+    Enable logging to the console that BackUp was started from.
+    If omitted, no logging to the console will be done even if
+    this is saved in the prefs.
+
+  LOGFILE/K
+    This is used both as a switch to enable logging to a file
+    and to specify that file. If omitted, there will be no logging
+    to a log file even if that is saved in the prefs.
+
+  SKIPFILE/K
+    Use this to specify a skiplist file to load.
+    If omitted the skiplist file saved in the GUI will be used.
+    If you have specified a default skiplist in the prefs but
+    don't want to use any skipfile you can simply specify a
+    skiplist file that does not exists, f.ex: SKIPLIST=0.
+
+  ERRFILE/K
+    This is used both as a switch to enable automatic saving of
+    the error list to a file and to specify that file.
+
+  STATFILE/K
+    This is used both as a switch to enable automatic saving of
+    the stats window to a file and to specify that file.
+
+
+  See @{"Usage/The main menu/Log" link usage 452} for more details about the logging
+  and test mode parameters.
+
+
+@endnode
+
+@node news "News.."
+
+  @{fg shine}@{b}News and Changes
+  ~~~~~~~~~~~~~~~~@{ub}@{fg text}
+
+  @{fg fill}* NEW *@{fg text} Added a verify byte-by-byte funciton in the Misc menu.
+          Useful to test if a backup is truly perfect, or if
+          it has bit errors.
+
+  @{fg fill}* NEW *@{fg text} Better and more accurate speed calculation that tries
+          to only calculate the actual copy time.
+
+  @{fg fill}* NEW *@{fg text} Added "Copy only newer" files as an option.
+
+  @{fg fill}* FIX *@{fg text} Fixed some link recognition. It always found unresolvable
+          links as different and recreated them, even if they were equal.
+
+  @{fg fill}* FIX *@{fg text} Fixed not logging files in test mode.
+
+  @{fg fill}* FIX *@{fg text} Human readable timestamps in the log and fixed printing
+          of protection bits.
+
+  @{fg fill}* FIX *@{fg text} Don't print data speed in cleaning mode. It is pointless.
+
+  @{fg fill}* FIX *@{fg text} Don't clear the stats window when running more than one
+          process in a row, like backup after cleaning.
+
+  @{b}v1.80@{ub} (140606)
+  @{fg fill}**@{fg text} Fixed crash when copying 2GB+ files.
+  
+  @{fg fill}**@{fg text} Added a menu item: "Target is FAT file system". Use this when
+     backing up to a partition with FAT file system to prevent
+     BackUp from copying existing files over and over. The reason
+     is that FAT can only store even seconds (0,2,4,6,..) in the
+     file timestamp so it will not match the Amiga file timestamp.
+   
+  @{fg fill}**@{fg text} Also added auto-detection of FAT file system when doing an
+     incremental backup.
+   
+  @{fg fill}**@{fg text} Added a synchronize mode. When clicking Clean first you will be
+     asked if it should automatically backup when finished. Saves
+     you some time when synchronizing backups.
+   
+  @{fg fill}**@{fg text} BackUp will automatically skip the ".recycled" dir when present
+     in the root of a SFS/2 or JXFS partition. No need to manually
+     put it in the skiplist anymore.
+   
+  @{fg fill}**@{fg text} Fixed size calculation for big files (2-4GB). Files over 4GB
+     will be correctly copied and calculated, except in test mode.
+     The "N bytes extra space was needed" may be wrong with 4GB+ files.
+  
+  @{fg fill}**@{fg text} Made it possible to select files over 2GB for the skiplist.
+  
+  @{fg fill}**@{fg text} Fixed some menu text entries.
+
+  @{b}v1.71@{ub} (110919)
+  @{fg fill}*@{fg text} Added an average copying speed in kB or MB/s that will show after
+    it is finished. Mostly interesting when you make the first complete
+    backup since all time is considered, not just during actual copying.
+
+  @{b}v1.70@{ub} (091103)
+  @{fg fill}*@{fg text} Added file size limitation so that you can select that files over
+    a given size should not be copied. The new option is in the Backup
+    menu.
+
+  @{fg fill}*@{fg text} Added two options to prevent the setting of Amiga protection bits
+    and Amiga file comments. Useful if you are backing up to a file
+    system that cannot save these attributes, such as an USB memory
+    or over Samba network.
+
+  @{fg fill}*@{fg text} Restructured the menu a bit to be overviewable.
+
+  @{fg fill}*@{fg text} Enabled multi-select to the skip file requester used when adding
+    large files to be skipped.
+
+  @{fg fill}*@{fg text} Fixed an exit failure if the CLI arguments were incorrect. Now
+    BackUp should exit cleanly even if there was an error during
+    startup, such as if incorrect CLI arguments were given.
+
+  @{fg fill}*@{fg text} Fixed a bug with the file size filter in the ASL requester
+    being left enabled sometimes when picking a log file name
+    for example.
+
+  @{b}v1.63@{ub}
+  @{fg fill}*@{fg text} Replaced the ever buggy AFC tasker class, which was used for the backup
+    sub process, for custom code. People noticing an exit problem on OS4.1
+    beta versions should be fine now.
+
+  @{fg fill}*@{fg text} When creating a local relative softlink an additional slash was added
+    to the path.
+
+  @{b}v1.62@{ub}
+  @{fg fill}*@{fg text} Fix for reading softlinks on MorphOS which has a slightly different
+    implementation of dos/ReadLink(). This problem could show itself
+    when cleaning as BackUp thought everything was softlinks and cleaned
+    away your entired backup everytime a clean was performed.
+  
+  @{fg fill}*@{fg text} Cleaning softlinks didn't work as they were incorrectly interpreted
+    as directories.
+
+  @{b}v1.61@{ub}
+  @{fg fill}*@{fg text} BackUp always set the archive bit on directories it had searched
+    even if they already had the archive bit set when copying by the
+    archive bit.
+
+  @{fg fill}*@{fg text} If BackUp was interrupted using Ctrl-C when in shellmode and
+    logging to a logfile was used, the file was not closed.
+
+  @{fg fill}*@{fg text} If you did not have any config saved from the GUI, BackUp would not
+    read the skipfile if you used BackUp from CLI with the SKIPFILE
+    parameter.
+
+  @{fg fill}*@{fg text} Changed the file date qualification to compare for whole seconds
+    only, not ticks. This may help when backing up to USB sticks which
+    don't use an Amiga file system.
+
+  @{fg fill}*@{fg text} Changed the output in verbose/non verbose log mode. Now all files
+    that were copied or deleted will always be displayed. No distinction
+    between small and large files. In normal mode they will be displayed
+    with complete path.
+    In verbose mode, all directories BackUp enters will be logged and
+    the files will not have a path but instead be displayed using an
+    ASCII graphical tree. In verbose mode all changes to protection bits,
+    file comments and file dates will also be logged.
+
+  @{fg fill}*@{fg text} Changes in protection bits no longer qualifies for a backup of a file.
+    Instead only the bits will be updated unless size or date also differs.
+
+  @{fg fill}*@{fg text} BackUp didn't update file comments, date or protection bits on
+    directories that was only searched, not created.
+
+  @{fg fill}*@{fg text} A side effect of running BackUp from shell was that the task
+    priority of the shell was raised by 1 for every run. This made
+    BackUp behave strangely after a few runs when the priority got
+    high enough.
+
+  @{fg fill}*@{fg text} Better logging of various errors.
+
+  @{fg fill}*@{fg text} Fixed a small bug in the "Set path from Source/Target ..."
+    code and made it more logical.
+
+  @{b}v1.60@{ub}
+  @{fg fill}*@{fg text} Now BackUp recreates real softlinks on the target instead of always
+    copying the files and directories the files points to. Copy the link
+    targets as real files and dirs is still available as an option though
+    to make it possible to create link-less backups.
+
+  @{fg fill}*@{fg text} Added an option to create emtpy directories for those directories
+    that were put in the skiplist.
+
+  @{fg fill}*@{fg text} BackUp is now able to replace an old file or softlink with a new
+    directory when backing up a second time. In the same sense a
+    file can be replaced by a softlink, and a softlink can be replaced
+    by a file or directory.
+    Even an (empty) directory can be replaced with a file or softlink
+    without producing an error message.
+    Replacing a non-empty directory with a file is not possible without
+    performing a Clean operation first though.
+
+  @{fg fill}*@{fg text} Clean is able to delete anything that is not exactly the same as
+    on the source. For example if a backup contains a file, but
+    the source now contains a link with the same name instead,
+    the file will be deleted during a clean.
+
+  @{fg fill}*@{fg text} Does not set the archive bit on directories that were copied unless
+    "Backup by the archive bit" is selected.
+
+  @{fg fill}*@{fg text} When picking large files and directories for the skiplist the file
+    requester will keep opening automatically for selection of more
+    files and directories to add to the skiplist until you are done
+    and click Cancel in the file requester.
+
+  @{fg fill}*@{fg text} Tried to reduce the graphics updates a bit by removing the
+    printing of directory names when exiting directories.
+
+  @{b}v1.50@{ub}
+  @{fg fill}*@{fg text} Now BackUp can follow and backup links, or ignore links completely.
+    Note: Links will be copied as real files and directories!
+
+  @{fg fill}*@{fg text} Added the argument SHELLMODE/S which will prevent the window
+    from opening until the clean/backup has finished. If AUTOQUIT/S
+    is used together with SHELLMODE the window will never open.
+
+  @{fg fill}*@{fg text} Added FORCEDELETE/S and SKIPDELETE/S to prevent the requester
+    from appearing during the clean process if any delete protected
+    files is encountered.
+
+  @{b}v1.45@{ub}
+  @{fg fill}*@{fg text} Corrected the bug which sometimes caused a Grim Reaper on
+    startup when used on OS4.
+
+  @{b}v1.44@{ub}
+  @{fg fill}*@{fg text} BackUp no longer creates empty directories for directories that
+    are in the skiplist.
+  
+  @{fg fill}*@{fg text} Made CLI argument error handling more rubust with a few bugs
+    fixed and more error messages. (If you accidently misspelled
+    an argument before, strange things could happen.)
+    Now BackUp quits if there was an error during argument parsing
+    instead of continuing with the argumens it actually could parse.
+  
+  @{fg fill}*@{fg text} Suppressed the requester about converting paths in skipfiles
+    when run with arguments from CLI to make CLI scripts run
+    without user interaction.
+  
+  @{fg fill}*@{fg text} The requester about not all paths could be converted in the
+    skiplist now has an Abort option.
+  
+  @{fg fill}*@{fg text} Fixed a crash when continuing from pause that I introduced in
+    v1.43 when I actually though I fix a possible crash!
+  
+  @{fg fill}*@{fg text} Made the logging menu a bit more intuitive: Now Verbose log
+    cannot be selected unless you also select somewhere to put this
+    verbose log.
+
+  @{fg fill}*@{fg text} The priority of the GUI is now set to 1 more than the sub process
+    to make it optimally responsive. I noticed that when starting
+    BackUp with a priority lower than 0, it didn't respond to pause
+    or stop until after a while due to the subprocess still having
+    priority 0.
+
+  @{fg fill}*@{fg text} Added an option to copy files that do not exist in the target
+    even though the archive bit is set in the source when backing
+    up using the archive bit. Without this, files that accidently
+    have the archive bit set won't ever be backed up.
+
+  @{b}v1.43@{ub}
+  @{fg fill}*@{fg text} Added the option to backup depending on the archive bit
+    instead of comparing size, date and protection bits in
+    general.
+
+  @{fg fill}*@{fg text} If something was hogging the CPU and you clicked on some
+    button more than once before anything happened BackUp might
+    have crashed due to the subprocess getting out of synch
+    with the main program. This should be more rubust now.
+
+  @{fg fill}*@{fg text} Fixed a bug that calculated the created new files size.
+    incorrectly.
+
+  @{b}v1.42@{ub}
+  @{fg fill}*@{fg text} Now it is possible to browse a directory BackUp has just
+    created and is working in. This was not possible before.
+
+  @{fg fill}*@{fg text} Now the closegadget in the window works to quit BackUp.
+    The bug in MorphOS that had me disable it a long time
+    ago has been fixed now. Please report any problems!!
+
+  @{fg fill}*@{fg text} Made it possible to pause or stop while copying a large
+    file. I noticed that when backing up video files it could
+    be quite useful to be able to stop or pause immediately.
+
+  @{fg fill}*@{fg text} Now only logging the entering of a directory in verbose mode.
+
+  @{fg fill}*@{fg text} Now logging creation of directories in non-verbose mode.
+
+  @{b}v1.41@{ub}
+  @{fg fill}*@{fg text} If a path to something was empty a random string
+    could have appeard in for example an ASL-requester.
+
+  @{b}v1.4@{ub}
+  @{fg fill}*@{fg text} I have changed the communication between the main
+    process and the backup process to use message ports
+    instead of just a signal and shared memory.
+    Most other parts still use shared memory though
+    as both processes is part of the same executable.
+    Please report any malfunctioning with emulated
+    systems (MOS/OS4/Amithlon/..)!
+  
+  @{fg fill}*@{fg text} The time doesn't use battclock resource anymore
+    but dos.library so people without a battery
+    clock will be able to see how long it took
+    now too.
+  
+  @{fg fill}*@{fg text} Now BackUp can be used in a script to automatically
+    backup many different directories or partitions as
+    I have added a couple of CLI-arguments which can
+    make BackUp start and operation immediately and
+    then quit automatically allowing a script to
+    execute BackUp for many different locations at
+    once without user-intervention!
+  
+  @{fg fill}*@{fg text} Added a safety requester before cleaning as I
+    accidently cleaned my GeekGadgets GCC-installation
+    when betatesting! :-(   (Not used when compiling
+    BackUp though :))
+  
+  @{fg fill}*@{fg text} Now you can see how many bytes were deleted
+    after a Clean operation.
+  
+  @{fg fill}*@{fg text} Added a Test Mode so that you can simulate
+    a backup or cleaning to see how many bytes that
+    would be copied and how much space that would be
+    required before you start for real.
+  
+  @{fg fill}*@{fg text} Added some more info to the stats in the main
+    window including how much space was actually
+    required, not just how much was copied which
+    usually is alot more.
+  
+  @{fg fill}*@{fg text} Made it possible to not clear the list between
+    every operation but keep old info.
+  
+  @{fg fill}*@{fg text} Added the possibility to log all directories
+    and files that BackUp traverses or skips. This
+    can be logged to the stats window, the console
+    or a file in verbose or normal mode.
+  
+  @{fg fill}*@{fg text} Now BackUp remembers the paths for different
+    things, not just use the latest path picked
+    in an ASL-requester.
+  
+  @{fg fill}*@{fg text} The protection bits, date and comment was not
+    set correctly for directories other than those
+    in the root during a backup operation.
+  
+  @{fg fill}*@{fg text} Doesn't ask to unprotect an undeletable file
+    while cleaning anymore unless the file actually
+    is delete protected.
+  
+  @{fg fill}*@{fg text} Changing the skiplist during a paused operation
+    didn't work quite as expected before.
+  
+  @{fg fill}*@{fg text} Changing the source and target while backing up
+    does not cause the backup or clean to change its
+    root directory too as it did in pre v1.4.
+  
+  @{fg fill}*@{fg text} Pressing Stop while paused will not require you
+    to press continue (Backup/Clean) anymore to make
+    the stop take effect.
+
+  @{b}v1.31@{ub}
+  @{fg fill}*@{fg text} Added a byte counter so that you can see how many
+    bytes were copied or updated, not just how many files.
+
+  @{fg fill}*@{fg text} Added a Help entry in the menu which will bring
+    up the text shown at startup of the program.
+
+  @{b}v1.3@{ub}
+  @{fg fill}*@{fg text} Now you can see how many files has been scanned,
+    copied and failed during an operation.
+
+  @{fg fill}*@{fg text} Now all errors are listed in a window so that you
+    can see exactly what files that failed, if any.
+
+  @{b}v1.2@{ub}
+  @{fg fill}*@{fg text} There is a clean function which makes you able to
+    remove all old files from your backup unit without the need
+    to manually spend hours tracking down files that are old!
+    By "old" I mean not existing on the primary unit any more.
+
+  @{fg fill}*@{fg text} The time for an operation, like the backing up,
+    is displayed when the operation is finished.
+
+
+@endnode
+
+@node auth "Author.."
+
+  @{fg shine}@{b}Author
+  ~~~~~~@{ub}@{fg text}
+
+   @{u}Daniel Westerberg:@{uu}  daniel@onyxsoft.se
+   My homepage: http://www.algonet.se/~deniil/
+
+NOTE: Please, NEVER publish this e-mail on a web page or similar
+      unless spam-encrypted like this: daniel / onyxsoft se
+      Thankyou.
+
+
+@endnode
+
+@node onyx "OnyxSoft.."
+
+  @{fg shine}@{b}OnyxSoft support
+  ~~~~~~~~~~~~~~~~@{ub}@{fg text}
+
+   If you like our products, found bugs, have complains or
+   ideas etc. etc. Don't hesitate to contact us..
+
+   OnyxSoft productions can be found on our HomePage.
+   Updates and new releases will be there first.. (hopefully ;))
+
+   My OnyxSoft e-mail: daniel@onyxsoft.se
+   OnyxSoft HomePage : http://www.onyxsoft.se
+
+   We just love to get response from other Amiga-freaks!!
+
+
+@endnode
+

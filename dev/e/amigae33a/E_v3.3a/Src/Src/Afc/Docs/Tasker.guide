@@ -1,0 +1,452 @@
+@database Tasker.guide
+
+@$VER: Tasker V1.02 - by Andrea Galimberti - (C) Brighting Brain Brothers
+
+This guide file has been created using AutoGuide V1.05 - By Fabio Rotondo (fsoft@intercom.it).
+
+@node main "AFC Module: tasker/Main"
+
+
+                ** Tasker V1.02 - Original By Andrea Galimberti **
+
+                         Part of Amiga Foundation Classes
+
+                            
+
+
+    @{" Introduction  " LINK task_intro}       @{" Author(s) Info " LINK author}
+
+
+    Requires:
+
+    Base: $8004
+
+    COMMANDS                          BRIEF DESCRIPTION
+    -----------------------------------------------------------------------
+    @{" tasker()                         " LINK tasker} Initialises the object
+    @{" code()                           " LINK task_code} Selects the task code
+    @{" stack()                          " LINK task_stack} Sets the task stack dimension
+    @{" start()                          " LINK task_start} Starts a TASK
+    @{" stop()                           " LINK task_stop} Stops a task or a process
+    @{" process()                        " LINK task_process} Starts a PROCESS
+    @{" buildport()                      " LINK task_buildport} Creates a port for the TASK
+    @{" endport()                        " LINK task_endport} Kills the task message port
+    @{" port()                           " LINK task_port} Returns the task port
+    @{" dosport()                        " LINK task_dosport} Returns the process DOS port
+    @{" send()                           " LINK task_send} Sends a message to the task
+    @{" dossend()                        " LINK task_dossend} Sends a message to the process' DOS port
+    @{" version()                        " LINK task_version} Returns tasker version
+
+   Procedures:
+
+    @{" storea4()                        " LINK t_storea4} Stores the E global data pointer
+    @{" geta4()                          " LINK t_geta4} Gets the E global data pointer
+    @{" buildPort()                      " LINK t_buildport} Creates a message port
+    @{" endPort()                        " LINK t_endport} Kills a message port
+    @{" setupMsg()                       " LINK t_setupmsg} Prepares a message to be sent
+    @{" sendMsg()                        " LINK t_sendmsg} Safely sends a message to a port
+
+
+    @{" ERROR TABLE " LINK Error_Table}
+
+@endnode
+
+@node author "Author(s) Info"
+
+    Original By:  Andrea Galimberti
+
+    E Version By: Andrea Galimberti
+
+
+@endnode
+
+@node task_intro "Tasker / Introduction"
+
+   Tasker.
+
+
+   This module allows you to transform a procedure in an independent task
+that runs asynchronously to the main program.  You can choose if you want
+to start a task or a process, and how big the task's stack must be, and so
+on...  A task can also be terminated by the main program.  Instructions are
+also supplied to create message ports to communicate between the main
+program and the tasks.
+
+   Remember: a TASK cannot access disks and, in general, all resources
+managed by the dos.library, while a PROCESS can. Tasks and processes share
+with the main program only variables that have been defined as global.
+
+@endnode
+
+@node Error_Table "Tasker / Error Table"
+
+Val (Hex)  | Description
+-----------+------------------------------------------------------
+  $0000    | No Memory
+  $0001    | Cannot get E code for the task
+  $0002    | Cannot start the task
+  $0003    | Cannot start the process
+  $0004    | Cannot create the message port
+
+@endnode
+
+@node t_storea4 "procedure / storea4()"
+
+          NAME: storea4()
+
+   DESCRIPTION: memorizes the E global data pointer. You MUST call this
+                procedure (only once) at the beginning of your main program
+                before you start any process or task.  Then, in the task body,
+                you MUST call the @{"geta4()" LINK t_geta4} procedure before accessing any
+                global variable or calling a procedure.
+
+        INPUTS: NONE
+
+       RESULTS: NONE
+
+      SEE ALSO: @{" geta4() " LINK t_geta4}
+
+@endnode
+
+@node t_geta4 "procedure / geta4()"
+
+          NAME: geta4()
+
+   DESCRIPTION: gets the E global data pointer. You MUST call this
+                procedure in the body of your process or task before you
+                access any global variable or call a procedure.
+
+        INPUTS: NONE
+
+       RESULTS: NONE
+
+      SEE ALSO: @{" storea4() " LINK t_storea4}
+
+@endnode
+
+@node tasker "AFC module: tasker / tasker()"
+
+          NAME: tasker(name, kill=TRUE)
+
+   DESCRIPTION: this method creates a task object: name is the name
+                (possibly unique) the task will have when started. Some
+                values are set to their defaults:  the stack allocated for
+                the task will be of 4000 bytes if not specified with the
+                @{"stack()" LINK task_stack} method.
+                  If the kill flag is TRUE then the task (or process) will
+                be stopped and its port (if it has been created with
+                @{"buildport()" LINK task_buildport}) will be closed when the tasker object
+                is disposed; if the kill flag is FALSE then it's your duty
+                to close the port (with @{"endport()" LINK task_endport}) and @{"stop()" LINK task_stop} the task
+                before disposing of the object.
+
+        INPUTS: name: name of the task.
+                kill: if TRUE the task and its port are killed before
+                      disposing the object
+
+       RESULTS: NONE
+
+      SEE ALSO:
+
+@endnode
+
+@node task_code "AFC module: tasker / code()"
+
+          NAME: code(procedure)
+
+   DESCRIPTION: chooses the code that will be executed when the task is
+                started.
+
+        INPUTS: procedure is the ADDRESS of the procedure you want to start
+                as a separate task.
+
+       RESULTS: NONE
+
+      SEE ALSO: @{" start() " LINK task_start}
+
+@endnode
+
+@node task_stack "AFC module: tasker / stack()"
+
+          NAME: stack(bytes)
+
+   DESCRIPTION: with this method you enter the dimension of the stack (in
+                bytes) to be allocated when the task is started.
+
+        INPUTS: the dimension in bytes of the task's stack: this defaults
+                to the value of 4000 bytes.
+
+       RESULTS: NONE
+
+      SEE ALSO:
+
+@endnode
+
+@node task_start "AFC module: tasker / start()"
+
+          NAME: start(priority=0)
+
+   DESCRIPTION: starts a TASK. The task ends if stopped with the @{"stop()" LINK task_stop}
+                method, or if the task object is ENDed, or if the task code
+                terminates its job.
+
+        INPUTS: the priority of the task: default is 0 (normal priority).
+
+       RESULTS: raises an exception if it's not been able to create the
+                task. (see @{"Error Table" LINK Error_Table})
+
+      SEE ALSO: @{" stop() " LINK task_stop}
+
+@endnode
+
+@node task_process "AFC module: tasker / process()"
+
+          NAME: process(priority=0)
+
+   DESCRIPTION: starts a PROCESS: remember that a process is a task that
+                can access the Dos resources (e.g., drives) because it is
+                managed by the dos.library. The process' code and stack are
+                entered with the same methods used with tasks.
+                  The process ends when it has finished its job (just as
+                any other program does), or when it is stopped with the
+                @{"stop()" LINK task_stop} method, or when the tasker associated with it is
+                ENDed.
+
+        INPUTS: priority of the process: default is 0.
+
+       RESULTS: raises an exception if it cannot create the process.
+                (see @{"Error Table" LINK Error_Table})
+
+      SEE ALSO: @{" code()  " LINK task_code}
+                @{" stack() " LINK task_stack}
+                @{" stop()  " LINK task_stop}
+
+                Important: see @{" storea4() " LINK t_storea4}
+                               @{" geta4()   " LINK t_geta4}
+
+@endnode
+
+@node task_stop "AFC module: tasker / stop()"
+
+          NAME: stop()
+
+   DESCRIPTION: terminates the TASK: Exec will remove the task from its
+                list and will automatically deallocate the task's stack.
+                Remember that you have to free yourself all resources you
+                have allocated for this task. The task object is not
+                modified, so you can start again the same task by calling
+                the @{"start()" LINK task_start} method once again.
+                  This works also with a process (only you call the
+                @{"process()" LINK task_process} method to restart it).
+
+        INPUTS: NONE
+
+       RESULTS: NONE
+
+      SEE ALSO: @{" start() " LINK task_start}
+
+@endnode
+
+@node task_buildport "AFC module: tasker / buildport()"
+
+          NAME: buildport(name=NIL, priority=0)
+
+   DESCRIPTION: this method creates a message port associated with the
+                task.  Important:  the port is associated to the task that
+                created it, so make sure that this method is called by the
+                procedure that constitutes the task, not by the main
+                program.
+                  If you supply a name the port will be made public, and in
+                such a case you can even choose the priority of your public
+                port.
+
+        INPUTS: name: <>NIL if you want the port to be public
+                priority: only needed if the port is a public port.
+
+       RESULTS: raises an exception if unable to create the port
+                (see @{"Error Table" LINK Error_Table})
+
+      SEE ALSO: @{" endport() " LINK task_endport}
+
+@endnode
+
+@node task_endport "AFC module: tasker / endport()"
+
+          NAME: endport()
+
+   DESCRIPTION: removes the task's message port created with @{"buildport()" LINK task_buildport}.
+                Remember to get all the messages (and to reply) before
+                ending the port (if you are sure that the port is empty you
+                needn't do this).  The method cannot do it for you because
+                it can't know if the task that sent the message is still
+                present or not (replying to an unexisting task will cause a
+                guru).
+
+        INPUTS: NONE
+
+       RESULTS: NONE
+
+      SEE ALSO: @{" buildport() " LINK task_buildport}
+
+@endnode
+
+@node task_port "AFC module: tasker / port()"
+
+          NAME: port()
+
+   DESCRIPTION: returns the address of the port created by @{"buildport()" LINK task_buildport},
+                or NIL if the port doesn't exist.
+
+        INPUTS: NONE
+
+       RESULTS: the port address.
+
+      SEE ALSO: @{" buildport() " LINK task_buildport}
+
+@endnode
+
+@node task_dosport "AFC module: tasker / dosport()"
+
+          NAME: dosport()
+
+   DESCRIPTION: returns the address of the port associated to the process:
+                this port is created by AmigaDOS when the process is
+                started and is reserved to exclusive use of AmigaDOS, so
+                you are invited to create your own port with the
+                @{"buildport()" LINK task_buildport} method if you need one.
+
+        INPUTS: NONE
+
+       RESULTS: the port address, or NIL if the task is not a process.
+
+      SEE ALSO: @{" buildport() " LINK task_buildport}
+
+@endnode
+
+@node task_send "AFC module: tasker / send()"
+
+          NAME: send(message)
+
+   DESCRIPTION: sends an Exec message to the port created with the
+                @{"buildport()" LINK task_buildport} method.
+
+        INPUTS: the message address.
+
+       RESULTS: TRUE if message sent, otherwise FALSE.
+
+      SEE ALSO: @{" buildport() " LINK task_buildport}
+                @{" port()      " LINK task_port}
+
+@endnode
+
+@node task_dossend "AFC module: tasker / dossend()"
+
+          NAME: dossend(message)
+
+   DESCRIPTION: sends an Exec message to the port associated with the
+                process (the one created by and reserved to AmigaDOS).
+
+        INPUTS: the message address.
+
+       RESULTS: TRUE if message sent, otherwise FALSE.
+
+      SEE ALSO: @{" dosport() " LINK task_dosport}
+
+@endnode
+
+@node task_version "AFC module: tasker / version()"
+
+          NAME: version()
+
+   DESCRIPTION: returns version and revision of tasker code.
+
+        INPUTS: NONE
+
+       RESULTS: version, revision
+
+      SEE ALSO:
+
+@endnode
+
+@node t_buildPort "procedure / buildPort()"
+
+          NAME: buildPort(name=NIL, priority=0)
+
+   DESCRIPTION: creates a message port: this port will be associated to the
+                task that creates it.  The port will be made public if you
+                supply a name for it.
+
+        INPUTS: name: if <>NIL the port will be made public.
+                priority: only needed if the port is a public port.
+
+       RESULTS: address of the port or NIL if failure.
+
+      SEE ALSO: @{" endPort() " LINK t_endport}
+
+@endnode
+
+@node t_endport "procedure / endPort()"
+
+          NAME: endPort(port)
+
+   DESCRIPTION: kills a message port. Remember to get and reply to all
+                messages contained in the port before destroying it.
+
+        INPUTS: port address
+
+       RESULTS: NONE
+
+      SEE ALSO: @{" buildPort() " LINK t_buildport}
+
+@endnode
+
+@node t_setupmsg "procedure / setupMsg()"
+
+          NAME: setupMsg(message, sizeof, replyport=NIL)
+
+   DESCRIPTION: after you have allocated the memory needed for your
+                message, you pass the message pointer to this procedure
+                specifying its size and the address of the port to which
+                the message must be replyed.  The MessageNode part will be
+                filled; then, it's up to you to fill the extra information
+                you want to send within this message.  Always remember to
+                free the memory allocated for the message before ending the
+                program.
+                  Your message structure must be defined as follows:
+
+                           OBJECT mymessage
+                             mnode:mn
+                             .
+                             .      -> extra fields (your private datas)
+                             .
+                           ENDOBJECT
+
+        INPUTS: message: pointer to message memory
+                sizeof: size of the message (e.g., SIZEOF mymessage)
+                replyport: port to which the message is to be replyed, or
+                           NIL if an answer is not needed.
+
+       RESULTS: the message pointer (the same you passed as first
+                parameter) or NIL if something went wrong.
+
+      SEE ALSO:
+
+@endnode
+
+@node t_sendmsg "procedure / sendMsg()"
+
+          NAME: sendMsg(message, port)
+
+   DESCRIPTION: sends message to the port specified; if such a port is
+                public then the procedure checks if the port is still
+                present before sending anything
+
+        INPUTS: message: pointer to the message to be sent
+                port: destination port
+
+       RESULTS: TRUE if successful, otherwise FALSE
+
+      SEE ALSO: @{" send() " LINK task_send}
+
+@endnode
+

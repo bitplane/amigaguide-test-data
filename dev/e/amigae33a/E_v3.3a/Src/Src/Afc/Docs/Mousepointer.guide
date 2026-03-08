@@ -1,0 +1,289 @@
+@database Mousepointer.guide
+
+@$VER: Mousepointer V1.00 - by Andrea Galimberti - (C) Brighting Brain Brothers
+
+This guide file has been created using AutoGuide V1.05 - By Fabio Rotondo (fsoft@intercom.it).
+
+@node main "AFC Module: mousepointer / Main"
+
+
+                 ** Mousepointer V1.00 - Original By Andrea Galiberti **
+
+                         Part of Amiga Foundation Classes
+
+                            
+
+
+    @{"  Introduction  " LINK obj_intro}       @{" Author(s) Info " LINK author}
+
+
+    Requires: @{" Hardsprite " LINK "hardsprite.guide/Main"}, @{" Displayer " LINK "displayer.guide/Main"}, @{" nodemaster " LINK "Nodemaster.guide/Main"}
+
+    Base: $8002
+
+    COMMANDS                          BRIEF DESCRIPTION
+    -----------------------------------------------------------------------
+    @{" mousepointer()                   " LINK mousepointer} Initialises the mousepointer object
+    @{" image()                          " LINK mouse_image} Stores the mouse image
+    @{" changeImage()                    " LINK mouse_changeimage} Changes the mouse image
+    @{" hotspot()                        " LINK mouse_hotspot} Sets the hotspot
+    @{" move()                           " LINK mouse_move} Moves the mouse
+    @{" x()                              " LINK mouse_x} Returns x coordinate
+    @{" y()                              " LINK mouse_y} Returns y coordinate
+    @{" update()                         " LINK mouse_update} Updates mouse position
+    @{" auto()                           " LINK mouse_auto} Auto updates mouse position
+    @{" vp()                             " LINK mouse_vp} Returns mouse viewport
+    @{" version()                        " LINK mouse_version} Gets mousepointer version
+
+    @{" ERROR TABLE " LINK Error_Table}
+
+@endnode
+
+@node author "Author(s) Info"
+
+    Original By:  Andrea Galimberti
+
+    E Version By: Andrea Galimberti
+
+@endnode
+
+@node obj_intro "Mousepointer / Introduction"
+
+   Mousepointer.
+
+
+   This MODULE exploits the Hardsprite MODULE TO move a pointer around a
+viewport.  You can move the pointer sprite by hand, or allow the module do
+it for you by reading the mouse hardware registers (update() method).  The
+mouse sprite can be automatically clipped to a chosen viewport.  If you use
+this module in conjunction with the Displayer module, you can have your
+mouse sprite automatically pass from one viewport to another taking care of
+the changing resolution of the different viewports (auto() method).  Of
+course the mouse sprite image can be changed at your will.
+
+@endnode
+
+@node Error_Table "Mousepointer / Error Table"
+
+Val (Hex)  | Description
+-----------+------------------------------------------------------
+  none     |
+
+@endnode
+
+@node mousepointer "AFC module: mousepointer / mousepointer()"
+
+          NAME: mousepointer(number=-1)
+
+   DESCRIPTION: Initialises a mousepointer object.
+
+        INPUTS: number of the (hardware) sprite (from 0 to 7) to be used to
+                represent the pointer on the screen.  The default value of
+                -1 means that it will be allocated the first sprite
+                available.
+
+       RESULTS: FALSE if the requested sprite is already in use and so it
+                couldn't be allocated.
+                TRUE otherwise.
+
+      SEE ALSO: @{" hardsprite / hardsprite() " LINK "hardsprite.guide/hardsprite"}
+
+@endnode
+
+@node mouse_image "AFC module: mousepointer / image()"
+
+          NAME: image(height, list:PTR TO INT)
+
+   DESCRIPTION: this method stores the image to be used with the mouse
+                sprite.  Whenever this method is called, it will discard
+                the previous image.
+
+        INPUTS: height (in lines) of the image,
+                a typed list (it MUST be typed to INT) in the following
+                form:
+
+                           [ $0000, $0000,
+                             $0000, $0000,
+                             ...          ]:INT
+
+                               ^      ^
+                               |      |
+                               |      second bitplane (16 bits wide)
+                               |
+                               first bitplane (16 bits wide)
+
+                This way you can select one of 4 colours for each pixel of
+                the sprite's image.
+
+       RESULTS: returns FALSE if: sprite non allocated (with mousepointer()),
+                                  height<=0,
+                                  pointer to list =NIL.
+                The hardsprite will raise "No Memory" if it cannot allocate
+                the (CHIP) memory for the image.
+
+     SEE ALSO: @{" hardsprite / image() " LINK "hardsprite.guide/sprite_image"}
+
+@endnode
+
+@node mouse_changeimage "AFC module: mousepointer / changeImage()"
+
+          NAME: changeImage(viewport)
+
+   DESCRIPTION: changes the mouse sprite image to the stored one.
+
+        INPUTS: pointer to a viewport structure.  If this pointer is <>NIL
+                then the change will affect only the chosen viewport; if
+                pointer=NIL then the change is relative to the current
+                view.
+
+       RESULTS: FALSE if viewport<0 or mouse not allocated.
+                Otherwise TRUE.
+
+      SEE ALSO: @{" image() " LINK mouse_image}
+                @{" hardsprite / changeImage() " LINK "hardsprite.guide/sprite_changeimage"}
+@endnode
+
+@node mouse_hotspot "AFC module: mousepointer / hotspot()"
+
+          NAME: hotspot(x,y)
+
+   DESCRIPTION: sets the mouse hotspot
+
+        INPUTS: x and y coordinates of the mouse hotspot: these coordinates
+                are relative to the top-left hand corner of the mouse
+                image.  (Negative values are allowed.)
+
+       RESULTS: NONE
+
+      SEE ALSO:
+
+@endnode
+
+@node mouse_update "AFC module: mousepointer / update()"
+
+          NAME: update(viewport, hclip=TRUE, vclip=TRUE)
+
+   DESCRIPTION: when called, this method moves the pointer hotspot to the
+                new mouse coordinates relative to the top-left hand corner
+                of the chosen viewport.
+
+        INPUTS: viewport: pointer to a viewport structure; if this pointer
+                is NIL then the pointer movements are relative to the
+                current view.
+
+                hclip: TRUE= pointer hotspot cannot exceed the horizontal
+                dimensions of the viewport (this flag is switched
+                automatically to FALSE if viewport=NIL, because in this
+                case there aren't any bounds to check for).
+
+                vclip: same as hclip, but for the vertical direction.
+
+       RESULTS: NONE
+
+      SEE ALSO: @{" auto() " LINK mouse_auto}
+
+@endnode
+
+@node mouse_move "AFC module: mousepointer / move()"
+
+          NAME: move(viewport, x,y)
+
+   DESCRIPTION: moves the mouse image to the desired location on a
+                viewport (either Intuition or hand made), taking care of
+                the hotspot position.
+
+        INPUTS: viewport: pointer to a viewport structure,
+                x and y coordinates of the site where to move the mouse
+                hotspot.
+
+       RESULTS: NONE
+
+      SEE ALSO:
+
+@endnode
+
+@node mouse_x "AFC module: mousepointer / x()"
+
+          NAME: x()
+
+   DESCRIPTION: returns the x coordinate of the mouse hotspot
+
+        INPUTS: NONE
+
+       RESULTS: x coordinate of mouse hotspot
+
+      SEE ALSO: @{" y() " LINK mouse_y}
+
+@endnode
+
+@node mouse_y "AFC module: mousepointer / y()"
+
+          NAME: y()
+
+   DESCRIPTION: returns the y coordinate of the mouse hotspot.
+
+        INPUTS: NONE
+
+       RESULTS: y coordinate of mouse hotspot
+
+      SEE ALSO: @{" x() " LINK mouse_x}
+
+@endnode
+
+@node mouse_auto "AFC module: mousepointer / auto()"
+
+          NAME: auto(vo:PTR TO displayer, hclip=TRUE)
+
+   DESCRIPTION: when called, moves the pointer hotspot to the new
+                coordinates, taking care of changing viewport if necessary
+                and automatically switching to the new resolution.  One
+                thing you must be aware of:  when you position the mouse
+                sprite in the first viewport you have also to set the
+                correct mouse hotspot for that resolution; the auto()
+                method then takes care of rescaling the hotspot coordinates
+                when the resolution changes.
+
+        INPUTS: vo: pointer to a displayer (see the BuildView module
+                documentation); this pointer contains all the information
+                concerning dimensions and resolutions of all the viewports
+                displayed in the current view.
+
+                hclip: TRUE= pointer hotspot cannot exceed the horizontal
+                dimensions of the current viewport.
+
+       RESULTS: NONE
+
+      SEE ALSO: @{" update() " LINK mouse_update}
+
+@endnode
+
+@node mouse_vp "AFC module: mousepointer / vp()"
+
+          NAME: vp()
+
+   DESCRIPTION: returns the number (starting from 0) of the viewport the
+                mouse sprite is in.  This value is meaningful only if you
+                are using the auto() method to move the mouse.
+
+        INPUTS: NONE
+
+       RESULTS: number of viewport the mouse is in
+
+      SEE ALSO: @{" auto() " LINK mouse_auto}
+
+@endnode
+
+@node mouse_version "AFC module: mousepointer / version()"
+
+          NAME: version()
+
+   DESCRIPTION: returns the version number of the Mouse module.
+
+        INPUTS: NONE
+
+       RESULTS: version, revision of mousepointer
+
+      SEE ALSO:
+
+@endnode
+

@@ -1,0 +1,923 @@
+@DATABASE CardTrickEVD.guide
+@AUTHOR "Niels Knoop"
+@(C) "Copyright © 1996-99 Niels Knoop"
+@$VER: CardTrickEVD.guide 1.2 (10.01.99)
+
+@NODE Main "CardTrickEVD"
+
+                             @{U}CardTrickEVD 1.2@{UU}
+
+                    ShapeShifter External Video Driver
+                        for CyberGraphX & Picasso96
+                           © 1996-99 Niels Knoop
+                                 @{U}Mailware@{UU}
+
+                             @{" Introduction  " LINK Introduction}
+                             @{" Features      " LINK Features}
+                             @{" Requirements  " LINK Requirements}
+                             @{" History       " LINK History}
+
+                             @{" Installation  " LINK Installation}
+                             @{" Configuration " LINK Configuration}
+                             @{" Usage         " LINK Usage}
+                             @{" Options       " LINK Options}
+
+                             @{" Hints         " LINK Hints}
+                             @{" Errors        " LINK Errors}
+                             @{" Bugs          " LINK Bugs}
+
+                             @{" Copyright     " LINK Copyright}
+                             @{" Credits       " LINK Credits}
+                             @{" Author        " LINK Author}
+@ENDNODE Main
+
+
+@NODE Introduction "CardTrickEVD"
+
+@{U}Introduction@{UU}
+
+CardTrickEVD, as its name suggests, is a ShapeShifter driver for graphics
+cards. It is meant to be an universal driver for nearly all cards, color
+depths, pixel formats and refresh types.
+
+But why use an external driver when ShapeShifter already comes with built-
+in support for CyberGraphX and Picasso96? Well, as its name also suggests,
+CardTrickEVD is full of tricks and thus offers a number of new abilities.
+
+Considering that CardTrickEVD basically supports, enhances or improves
+everything the internal driver can do, the decision should be an easy one.
+@ENDNODE
+
+
+@NODE Features "CardTrickEVD"
+
+@{U}Features@{UU}
+
+@{"  " LINK Boards } Support for most Amiga graphics cards
+@{"  " LINK Depths } Mac displays with 1, 2, 4, 8, 15, or 24 bits per pixel
+@{"  " LINK Formats} Fast refresh routines for all pixelformats
+@{"  " LINK Delta  } Delta-buffering
+@{"  " LINK MMU    } MMU-refresh
+@{"  " LINK Lock   } Bitmap locking during refreshes
+@{"  " LINK Economy} Screens without memory buffers
+@{"  " LINK Direct } Direct displays without refresh
+@{"  " LINK Remap  } Remapping of direct displays
+@{"  " LINK Accel  } Blitter acceleration support
+@{"  " LINK RGBA   } Special RGBA truecolor displays
+@{"  " LINK Scroll } Switchable AutoScroll
+@ENDNODE
+
+
+@NODE Boards "CardTrickEVD Features"
+
+@{U}Graphics cards@{UU}
+
+CardTrickEVD uses the CyberGraphX API and, if available, some additional
+features of Picasso96, but no undocumented things. Thus it should work
+with all Amiga graphics cards running a CyberGraphX-compatible driver.
+
+If the driver you are using isn't CyberGraphX-compatible you should look
+for a replacement. CyberGraphX itself and compatible driver systems like
+Picasso96 support a wide range of Amiga graphics cards including rather
+old ones.
+
+Certain very old cards like the A2410 don't allow direct access to their
+video memory. Even though refreshed CardTrickEVD displays might still work
+with them, the resulting performance will probably be discouraging because
+the driver has to do an additional refresh procedure itself. In such cases
+specific EVDs for these cards can do a much better job.
+@ENDNODE
+
+
+@NODE Depths "CardTrickEVD Features"
+
+@{U}Display modes@{UU}
+
+CardTrickEVD supports all Mac display modes you can use with ShapeShifter:
+1, 2, 4, 8, 15 and 24 bit per pixel. This means in first place that if
+you want Mac displays with 2, 4 or 16 colors for compatibility or other
+reasons, you can now use them on your graphics card, too.
+@ENDNODE
+
+
+@NODE Formats "CardTrickEVD Features"
+
+@{U}Refresh routines@{UU}
+
+Amiga graphics cards use a large number of different pixelformats for
+their screens in high- and truecolor. CardTrickEVD provides fast refresh
+routines for all pixelformats known by CyberGraphX, so you are free to
+select any 15- or 16-bit screenmode for highcolor and any 24- or 32-bit
+screenmode for truecolor displays. For ShapeShifter displays with 2 to
+256 colors CardTrickEVD uses the 8-bit chunky-pixel screenmodes all
+graphics cards support.
+@ENDNODE
+
+
+@NODE Delta "CardTrickEVD Features"
+
+@{U}Delta-buffering@{UU}
+
+Refresh involves keeping a display buffer for ShapeShifter in Fast-RAM and
+periodically updating its contents into the Amiga screen and thus into the
+video memory of the graphics card. This costs a considerable performance
+penalty especially because the bus between CPU and graphics card, even
+if it is Zorro-III, usually forms a bottleneck.
+
+To reduce the refresh overhead CardTrickEVD offers delta-buffering. This
+technique needs a second refresh buffer in Fast-RAM and thus consumes
+more memory, but reduces the bus load by updating only those parts of the
+display which really have changed. The benefit depends on the ratio between
+memory and bus speed of the Amiga.
+@ENDNODE
+
+
+@NODE MMU "CardTrickEVD Features"
+
+@{U}MMU-refresh@{UU}
+
+MMU-refresh means to use the MMU to watch over the refresh buffer and keep
+track of which parts of it are written to by the emulated Mac. As with
+delta-buffering the goal is to keep untouched parts of the display out of
+the refresh procedure.
+
+The advantage of doing it with the MMU is that it needs no extra buffer in
+Fast-RAM and only negligible amounts of time. This enables the emulation to
+run at almost full speed as long as nothing much happens on the display.
+On the other hand, the MMU records the changes only in rather coarse memory
+blocks called MMU pages. It may thus select large partitions of the display
+to be refreshed although only a few pixels were really affected.
+
+Generally speaking MMU-refresh is more powerful than delta-buffering, but
+for best results both techniques can be combined.
+
+CardTrickEVD's MMU routines require a 68040 or 68060 CPU and support both
+4K and 8K pagesize. The MMU tables must already be set up and enabled which
+is usually done by the 68040.library at the time SetPatch is executed.
+@ENDNODE
+
+
+@NODE Lock "CardTrickEVD Features"
+
+@{U}Locking during refreshes@{UU}
+
+If ShapeShifter's screen is flipped to back while being refreshed, another
+screen possibly taking its place in the video memory will be overwritten.
+CardTrickEVD avoids this by locking the screen bitmap during refreshes.
+Doing so also ensures correct operation on graphics cards which can switch
+between different byteswapping modes for different pixelformats.
+@ENDNODE
+
+
+@NODE Economy "CardTrickEVD Features"
+
+@{U}Screens without memory buffers@{UU}
+
+Usually all graphics card screens have a buffer in memory to store their
+data if they need to be swapped out of the actual video memory to make room
+for other screens. This is not necessary with refreshed displays because
+their contents is derived and can be restored from the Mac display buffer
+at any time.
+
+Picasso96 offers a special kind of screen without backup memory for such
+purposes. CardTrickEVD uses it for all refreshed displays and thus can
+save a considerable amount of memory.
+@ENDNODE
+
+
+@NODE Direct "CardTrickEVD Features"
+
+@{U}Direct displays@{UU}
+
+In terms of visual appearance and emulation speed, the best refresh method
+is no refresh at all, meaning that the emulated Mac directly writes into
+the Amiga screen. This requires the graphics card to support the pixel
+format the Mac uses. Directly Mac-compatible formats are CLUT8 for 8-bit,
+RGB15 for 15-bit and ARGB32 for 24-bit Mac displays. With a trick RGBA32
+works, too.
+
+CardTrickEVD allows direct displays in all these pixel formats as far as
+the graphics card supports them.
+@ENDNODE
+
+
+@NODE Remap "CardTrickEVD Features"
+
+@{U}Remapping of direct displays@{UU}
+
+Unarbitrated access of the video memory as done by ShapeShifter in direct
+display modes is a very tricky thing. If the screen is swapped out of the
+video memory after starting the emulation, the emulated Mac will continue
+to use the old address and thus corrupt both its own screen and whatever
+took its place in the video memory. In the worst case the Mac display is
+lost forever if the screen is later moved back into the video memory at a
+different address.
+
+CardTrickEVD's solution to this problem is to remap the Mac display with
+the MMU whenever the screen changes its address. Doing so ensures that
+writes to the Mac display memory always hit the right spot and never trash
+other screens. This feature requires Picasso96 and a working 040/060 MMU.
+@ENDNODE
+
+
+@NODE Accel "CardTrickEVD Features"
+
+@{U}Blitter acceleration support@{UU}
+
+Starting with version 3.6, ShapeShifter provides blitter acceleration
+support on direct CyberGraphX/Picasso96 displays. This means that certain
+graphical operations are performed by the graphics card blitter instead
+of the CPU which can speed up some things like scrolling dramatically.
+
+CardTrickEVD activates these acceleration routines as well. This requires
+applying a few run-time patches to ShapeShifter's code because the current
+EVD interface does not offer this feature yet. CardTrickEVD 1.2 supports
+the release versions 3.6 to 3.10 of ShapeShifter. Others will work too,
+but not be accelerated.
+@ENDNODE
+
+
+@NODE RGBA "CardTrickEVD Features"
+
+@{U}Direct RGBA32 displays@{UU}
+
+The RGBA32 pixelformat (24 bit truecolor & 8 bit alpha channel) as used on
+the Piccolo-SD64 is quite similar to the Mac's ARGB format. In fact it is
+just shifted one byte to the left if you disregard the unused alpha channel
+byte.
+
+This observation has led to the following trick which was first implemented
+in RGBAevd: Shift the complete Mac display one byte to the left relative to
+the screen so that the bytes containing the color values for red, green and
+blue match those of the screen. To avoid trashing the byte in front of the
+actual screen enlarge the latter by one line on top. The following figure
+should give an idea:
+
+Mac-Display:        [aRGBaRGBaRGB....aRGB] 
+RGBA screen: [RGBa...|RGBaRGBaRGBa....RGBa]
+
+This trick works because the M68020 and later processors of the M68000
+family (which are required to run ShapeShifter anyhow) support word and
+longword operations on odd addresses. However such misaligned accesses
+cost a significant performance penalty. In effect this method trades in
+display memory bandwidth for direct access.
+
+CardTrickEVD supports this kind of direct RGBA display. Even ShapeShifter's
+blitter acceleration routines are activated which speeds up and fixes some
+Mac routines which naturally do not expect the display address to be an
+uneven one.
+@ENDNODE
+
+
+@NODE Scroll "CardTrickEVD Features"
+
+@{U}Switchable AutoScroll@{UU}
+
+CardTrickEVD optionally deactivates the automatic AutoScroll on oversized
+displays. This little feature is meant for Mac games. Many of them allow to
+reduce the actual game display size to speed up the gameplay, but cannot
+change the resolution of the entire Mac display. To play such shrunk games
+in full-screen rather than stamp size, ShapeShifter users can easily resort
+to virtual screens like 640x480 on a 320x240 screenmode. Once adjusted to
+the right position, the visible part of the screen should remain fixed and
+especially not jump around every time the mouse pointer is moved out of it.
+@ENDNODE
+
+
+@NODE Requirements "CardTrickEVD"
+
+@{U}Requirements@{UU}
+
+In order to run CardTrickEVD you need:
+
+- An Amiga with a graphics card
+- ShapeShifter 3.1 or later
+- CyberGraphX 2.10 or later or a compatible driver system
+
+Optional, but highly recommended:
+
+- A 68040 or 68060 processor with MMU for @{"MMU-refresh" LINK MMU}
+- ShapeShifter 3.6 to 3.10 for @{"blitter acceleration" LINK Accel}
+- Picasso96 1.27 or later for @{"direct display remapping" LINK Remap}
+@ENDNODE
+
+
+@NODE History "CardTrickEVD"
+
+@{U}History@{UU}
+
+Version 1.0 (01.04.98)
+
+- First public release
+
+Version 1.1 (17.08.98)
+
+- Added blitter acceleration support for ShapeShifter 3.9
+
+Version 1.2 (10.01.99)
+
+- Added blitter acceleration support for ShapeShifter 3.10
+@ENDNODE
+
+
+@NODE Installation "CardTrickEVD"
+
+@{U}Installation@{UU}
+
+Simply copy CardTrickEVD into the "Video Drivers" drawer inside your
+ShapeShifter drawer.
+@ENDNODE
+
+
+@NODE Configuration "CardTrickEVD"
+
+@{U}Configuration@{UU}
+
+Start ShapeShifter and go to the @{B}Graphics Settings@{UB} window. Set @{B}Screen type@{UB}
+to @{B}External@{UB} and select CardTrickEVD as @{B}External driver@{UB}.
+
+Choose the @{B}Color depth@{UB} you want to use and then select an appropriate
+@{B}Screen mode@{UB} for it:
+
+Mac Color Depth    Amiga RTG Screenmode
+1, 2, 4 or 8 bit   8 bit Chunky-Pixel
+15 bit             15 or 16 bit Highcolor
+24 bit             24 or 32 bit Truecolor
+
+The display dimensions will automatically adjust to the screen. If you want
+a different size you can enter your own values next to @{B}Size@{UB}. Oversized
+displays will enable AutoScroll. Using a display which is smaller than the
+screen is possible, but not recommended. I suggest to create a screenmode
+with the desired dimensions instead.
+
+Selecting a @{B}Refresh rate@{UB} value basically means to find the best compromise
+between display update speed and emulation performance. Lower values will
+improve the visual impression, but leave less power for the emulated Mac.
+When using @{"MMU-refresh" LINK MMU}, only actual graphical operations cause slowdowns,
+making it possible to use the minimum refresh rate of 1. The refresh rate
+has no meaning if you use @{"direct" LINK Direct} displays.
+
+You can decide to use the @{B}Amiga mouse pointer@{UB} instead of ShapeShifter's
+own software cursor to improve the visual appearance of the mouse pointer
+in slow refresh modes. This is also recommended when using AutoScroll
+screens because the visible part of the screen follows the Amiga pointer.
+However the Amiga pointer sprite will not reflect the real Mac pointer
+images.
+
+The state of the check box @{B}Black border@{UB} is not passed on to the EVD and
+therefore has no effect with it. The same is true for @{B}Refresh always@{UB} and
+@{B}MMU refresh@{UB}. The actual refresh mode will be selected later when the
+emulation is @{"started" LINK Usage}.
+
+In ShapeShifter's @{B}Memory Settings@{UB}, it's usually not a good idea to select
+the @{B}Largest free block@{UB} option, because it might leave only slower memory
+or none at all for CardTrickEVD's refresh buffers. You should disable it
+and enter a reduced @{B}Mac memory@{UB} value instead. For best performance the
+option @{B}Allocate Mac ROM memory first@{UB} should be enabled and the @{B}ROM memory
+type@{UB} set to @{B}Any@{UB}.
+
+If you often use different settings for different EVDs and screenmodes,
+I suggest to save them into individual projects using @{B}Save As...@{UB} from
+the main menu.
+
+For more information about ShapeShifter's settings please refer to the
+ShapeShifter manual.
+@ENDNODE
+
+
+@NODE Usage "CardTrickEVD"
+
+@{U}Usage@{UU}
+
+After selecting CardTrickEVD as external driver in ShapeShifter's @{"settings" LINK Configuration},
+CardTrickEVD is automatically run when you start the emulation. By default
+it will open a requester asking you to select a refresh mode. Depending on
+your system configuration, graphics card and selected screenmode you can
+choose between some or all of the following (in order of performance):
+
+@{B}Direct@{UB}
+@{"Direct" LINK direct}, @{"blitter-accelerated" LINK Accel} display without refresh.
+
+@{B}MMU&Delta@{UB}
+Display refresh, accelerated by the @{"MMU" LINK MMU} and by @{"delta-buffering" LINK Delta}.
+
+@{B}MMU@{UB}
+Display refresh, accelerated by the MMU.
+
+@{B}Delta@{UB}
+Display refresh, accelerated by delta-buffering.
+
+@{B}Simple@{UB}
+Simple display refresh.
+
+@{B}Abort@{UB}
+Quit the emulation if you changed your mind.
+
+It is also possible to let CardTrickEVD select the best posssible refresh
+mode automatically and thus avoid the requester. This feature is enabled
+and controlled by a set of @{"options" LINK Options}.
+
+Even if automatic selection is activated, you can still force CardTrickEVD
+to open its requester by turning on capslock or holding down either shift
+key while starting the emulation.
+@ENDNODE
+
+
+@NODE Options "CardTrickEVD"
+
+@{U}Options@{UU}
+
+CardTrickEVD provides a number of options to control some of its features.
+Their settings are stored as an argument string in the environment variable
+ENV:CardTrickEVD.config. If you want to enable certain options (most of
+them work as switches and are disabled by default), create or edit that
+file and specify all the options you want in a single line separated with
+spaces.
+
+For example, to set some options from an Amiga shell window you could type:
+  Echo >ENV:CardTrickEVD.config "AUTOSELECT NOAUTOSCROLL BLOCKSIZE=64"
+To make your changes permanent, also copy the file over to ENVARC:.
+
+The options are:
+
+@{"  " LINK AUTOSELECT   } AUTOSELECT
+@{"  " LINK NODIRECT     } NODIRECT
+@{"  " LINK NORGBA       } NORGBA
+@{"  " LINK NOMMU        } NOMMU
+@{"  " LINK NODELTA      } NODELTA
+@{"  " LINK NOREMAP      } NOREMAP
+@{"  " LINK NOAUTOSCROLL } NOAUTOSCROLL
+@{"  " LINK BLOCKSIZE    } BLOCKSIZE
+@ENDNODE
+
+
+@NODE AUTOSELECT "CardTrickEVD Options"
+
+@{U}AUTOSELECT@{UU}
+
+By default, CardTrickEVD always pops up a @{"requester" LINK Usage} to let you choose the
+refresh mode you want. This requires just one additional mouse click and
+has the advantage that you always know what's going on. However, if you
+don't like to get the requester every time, probably because you don't
+change your settings very often and use ShapeShifter's QUICKSTART tooltype,
+you might want to use the AUTOSELECT option.
+
+In this mode, CardTrickEVD will automatically select the best refresh mode
+according to what the actual ShapeShifter settings, system resources and
+CardTrickEVD options permit. By default it will use a direct display
+whenever the chosen screen's pixelformat allows it. Refreshed displays
+will be accelerated by the MMU if an enabled 040 or 060 MMU is found and
+by delta-buffering if there is enough memory available.
+
+If you have AUTOSELECT enabled, but still want to make a different choice
+now and then, you can force the requester to open by holding down either
+shift key or having capslock enabled while starting the emulation.
+@ENDNODE
+
+
+@NODE NODIRECT "CardTrickEVD Options"
+
+@{U}NODIRECT@{UU}
+
+CardTrickEVD's automatic refresh mode selection will use a @{"direct" LINK Direct} display
+whenever possible. If you prefer a refreshed display you can enforce it by
+means of the NODIRECT option, which is CardTrickEVD's equivalent to the
+@{B}Refresh always@{UB} checkbox in the ShapeShifter settings.
+
+Usually even the fastest refresh works slower and doesn't look as smooth
+as a direct display, but is safer if you can't use @{"display remapping" LINK Remap} and
+has no problems with byteswapping issues like direct displays have in
+certain configurations.
+@ENDNODE
+
+
+@NODE NORGBA "CardTrickEVD Options"
+
+@{U}NORGBA@{UU}
+
+Using a direct Mac 24 bit display on a @{"RGBA32" LINK RGBA} screen requires shifting the
+display address to an odd address which can confuse certain Mac routines
+and thus cause artefacts on the screen. Setting the NORGBA option will
+cause the automatic refresh mode selection to use a refreshed display
+instead. Other, truely Mac-compatible pixelformats can still be used for
+direct displays.
+@ENDNODE
+
+
+@NODE NOMMU "CardTrickEVD Options"
+
+@{U}NOMMU@{UU}
+
+If this option is activated, the automatic refresh mode selection will not
+use the @{"MMU" LINK MMU} to reduce the refresh overhead. This is meant for test
+purposes only; it should never be necessary to enable it unless you have
+problems with your MMU.
+@ENDNODE
+
+
+@NODE NODELTA "CardTrickEVD Options"
+
+@{U}NODELTA@{UU}
+
+Activating this option will tell CardTrickEVD not to select a refresh mode
+with @{"delta-buffering" LINK Delta}. This means that the driver will perform simple
+refresh and not allocate a second refresh buffer. Use this option if you
+find that the speedup accomplished by delta-buffering is not worth the
+additional memory on your system. Even if this option is not enabled,
+CardTrickEVD will automatically disable delta-buffering if there is not
+enough memory for it.
+@ENDNODE
+
+
+@NODE NOREMAP "CardTrickEVD Options"
+
+@{U}NOREMAP@{UU}
+
+CardTrickEVD usually @{"remaps" LINK Remap} direct PIP displays with the MMU to prevent
+the emulation from trashing other screens if the display address changes.
+Normally this is a desirable feature. However, should you ever encounter
+problems with it, possibly because of a defective MMU or a conflict with
+other software using it, you can disable it with the option NOREMAP.
+@ENDNODE
+
+
+@NODE NOAUTOSCROLL "CardTrickEVD Options"
+
+@{U}NOAUTOSCROLL@{UU}
+
+This option @{"disables AutoScroll" LINK Scroll} on oversized displays. Adjusting the
+screen position is still possible by dragging the screen with the mouse
+while holding down the screen drag qualifier(s) selected in the IControl
+preferences program (usually the left Amiga key).
+@ENDNODE
+
+
+@NODE BLOCKSIZE "CardTrickEVD Options"
+
+@{U}BLOCKSIZE@{UU}
+
+To avoid trashing other screens CardTrickEVD @{"locks" LINK Lock} the screen during the
+refresh using a function of the graphics board driver system. Unfortunately
+this lock can temporarily block other system functions as well, which might
+result in a jerkily moving Amiga mouse pointer and other unpleasant effects
+if the lock is kept for a long period of time. For this reason CardTrickEVD
+splits eachs refresh cycle into a number of blocks and releases the lock in
+between. Naturally this method causes some overhead.
+
+The option BLOCKSIZE=<n> allows you to tune the refresh performance by
+setting the amount of display data refreshed in one part to <n> Kbytes.
+The default size is 8 KB which should guarantee smooth operation even on
+slow systems. Users with fast systems might want to experiment with higher
+blocksizes to get more speed. This option has no meaning with direct
+displays.
+@ENDNODE
+
+
+@NODE Hints "CardTrickEVD"
+
+@{U}Questions & Answers@{UU}
+
+Q: If I use the Amiga mouse pointer for ShapeShifter in 8 bit, it is
+   colored strangely. Why?
+A: The Amiga doesn't have seperate color registers for sprites, but uses
+   certain entries of the view's palette. Although graphics cards don't
+   share this limitation, they inherit it through their RTG driver for
+   compatibility reasons. This is no problem with screens which use only
+   the first part of the palette (1 to 4 bit) or no palette at all (15 to
+   32 bit), but every time the emulation loads the complete palette of 256
+   colors in 8 bit, the hardware cursor colors are overwritten along with
+   it.
+
+Q: In some modes the Amiga mouse pointer flickers or leaves garbage on
+   the display. What is going on?
+A: These effects reveal that the Amiga mouse pointer is actually a software
+   cursor. Such cursors are drawn by the graphics card driver software and
+   have to blanked while the screen is being refreshed. As a result the
+   pointer will flicker. If you use a direct display with such a cursor,
+   display and mouse updates will collide and produce trash on the screen.
+   If your graphics card supports it and your driver software gives you a
+   choice, always use the hardware cursor whereever possible. Otherwise you
+   should use ShapeShifter's own software cursor instead which doesn't
+   suffer from these problems and also displays the correct images.
+
+Q: The Amiga mouse pointer moves rather jerkily on refreshed displays. Why?
+A: For safety reasons CardTrickEVD locks the screen while refreshing it.
+   Depending on the way the graphics card driver software implements the
+   locking it can block other system activities and thus prevent the mouse
+   pointer position from being updated. To avoid this problem, CardTrickEVD
+   does not lock the screen for a complete refresh cycle but on intervals
+   instead. If you experience a jumping Amiga mouse pointer, try a lower
+   @{"block size" LINK BlockSize} for the refresh.
+
+Q: When I use a direct display, parts of the Mac mouse pointer are left on
+   the screen occasionally, especially when using menus and scroll bars.
+   What can I do to prevent this?
+A: This problem is caused by a collision between ShapeShifter's blitter
+   acceleration and software cursor routines. If you experience it (on the
+   PicassoII and probably on other cards using older CirrusLogic chips as
+   well), either switch to using the Amiga mouse pointer or turn off the
+   acceleration by means of the tooltype NOQDACCEL.
+
+Q: Sometimes the Mac starts drawing all wrong colors or swapping adjacent
+   pixels on direct displays. What is going on?
+A: Some graphics cards offer pixel formats with different byteswapping
+   modes which - especially in Zorro-II configurations - can't be used in
+   parallel but must be switched between. If ShapeShifter writes to the
+   video memory while the wrong mode is active the mentioned effects
+   appear. One way to prevent this (other than using display refresh with
+   proper locking of the destination bitmap) is to disallow bitmaps with
+   incompatible pixel formats to share the video memory. The Picasso96
+   monitor tooltype GRANTDIRECTACCESS=Yes will enforce this.
+@ENDNODE
+
+
+@NODE Errors "CardTrickEVD"
+
+@{U}Warnings and Errors@{UU}
+
+CardTrickEVD does a lot of safety checks in various fields and usually pops
+up a requester with a warning or error message if anything goes wrong. You
+don't need to bother about this until you actually get such a message and
+don't know what to make of it. Then you can look it up in the following
+alphabetically ordered tables to get more information about it.
+
+Warnings:
+
+@{"  " LINK WDelta } Not enough Fast-RAM for delta buffer
+@{"  " LINK WChip  } Refresh buffer in Chip-RAM
+
+Errors:
+
+@{"  " LINK ELock  } Could not lock display
+@{"  " LINK ECGfx  } Could not open cybergraphics.library V40.60
+@{"  " LINK EDos   } Could not open dos.library V37
+@{"  " LINK EGfx   } Could not open graphics.library V39
+@{"  " LINK EScreen} Could not open screen
+@{"  " LINK ERemap } Could not remap direct display
+@{"  " LINK ERGBA  } Direct RGBA display must match screen size
+@{"  " LINK ELarge } Display too large
+@{"  " LINK ETag   } Mandatory output tag missing
+@{"  " LINK ESmall } Minimum display size 320x200
+@{"  " LINK EWidth } Monochrome display width must be multiple of 32
+@{"  " LINK EID    } Not a CyberGraphX/Picasso96 screenmode
+@{"  " LINK EBuffer} Not enough memory left for refresh buffer
+@{"  " LINK EVMode } Screenmode and color depth do not fit
+@{"  " LINK EPixFmt} Unknown pixelformat
+@{"  " LINK EWink  } Your Amiga isn't DIN-compatible
+@ENDNODE
+
+
+@NODE WDelta "CardTrickEVD Warnings"
+
+@{U}Not enough Fast-RAM for delta buffer@{UU}
+
+CardTrickEVD usually tries to allocate a delta buffer to speed up refreshed
+displays. To be of real use this buffer needs to be in fast memory. If
+there isn't enough Fast-RAM left for it, CardTrickEVD will display this
+warning. You can choose to continue anyhow (without delta-buffering) or
+abort in order to free some memory or reduce the @{B}Mac memory@{UB} setting.
+@ENDNODE
+
+
+@NODE WChip "CardTrickEVD Warnings"
+
+@{U}Refresh buffer in Chip-RAM@{UU}
+
+Refreshed displays need a display buffer in memory. If there is not enough
+Fast-RAM left this buffer will be forced into the slow Chip-RAM which will
+hurt the performance. If you accept or even want this (because you want to
+have as much memory as possible for the emulation) you can continue anyhow
+(in this case CardTrickEVD will also not attempt to use delta-buffering),
+but probably you will prefer to abort and try again after lowering the
+@{B}Mac memory@{UB} setting or freeing some RAM by closing other applications.
+@ENDNODE
+
+
+@NODE ELock "CardTrickEVD Errors"
+
+@{U}Could not lock display@{UU}
+
+An attempt to lock the newly opened screen and get some information about
+it failed. This should never occur under normal circumstances.
+@ENDNODE
+
+
+@NODE ECGfx "CardTrickEVD Errors"
+
+@{U}Could not open cybergraphics.library V40.60@{UU}
+
+Running CardTrickEVD requires cybergraphics.library version 40.60 or later
+(CyberGraphX 2.10). Compatible driver systems should provide a replacement
+with equal or higher version and revision number. This doesn't necessarily
+mean that a file of this name must exist in your LIBS: directory, though.
+Check your installation if you get this error.
+@ENDNODE
+
+
+@NODE EDos "CardTrickEVD Errors"
+
+@{U}Could not open dos.library V37@{UU}
+
+CardTrickEVD needs at least V37 of the dos.library. This should not be an
+issue because ShapeShifter needs OS 2.1 (V38) anyhow.
+@ENDNODE
+
+
+@NODE EGfx "CardTrickEVD Errors"
+
+@{U}Could not open graphics.library V39@{UU}
+
+CardTrickEVD needs at least V39 of the graphics.library. This is usually
+no restriction because CyberGraphX & Co. require OS 3.0 (V39) anyhow.
+@ENDNODE
+
+
+@NODE EScreen "CardTrickEVD Errors"
+
+@{U}Could not open screen@{UU}
+
+If opening the screen fails it is most likely due to lack of memory.
+If you often get this error you should reduce the amount of memory
+assigned to the emulated Mac in ShapeShifter's @{B}Memory settings@{UB}.
+@ENDNODE
+
+
+@NODE ERemap "CardTrickEVD Errors"
+
+@{U}Could not remap direct display@{UU}
+
+Remapping a direct CardTrickEVD display with the MMU fails if the screen
+bitmap and its backup in memory do not match in size or if either is
+already remapped with the MMU. In this case you should use the option
+@{"NOREMAP" LINK NOREMAP}.
+@ENDNODE
+
+
+@NODE ERGBA "CardTrickEVD Errors"
+
+@{U}Direct RGBA display must match screen size@{UU}
+
+To hide the offset line required for direct RGBA displays, the @{B}Size@{UB}
+of the Mac display must match that of the @{B}Screen mode@{UB}.
+@ENDNODE
+
+
+@NODE ELarge "CardTrickEVD Errors"
+
+@{U}Display too large@{UU}
+
+For technical reasons CardTrickEVD needs to impose an upper limit to the
+display size. I have set it to 16 MB and guess that this should be
+enough for now.
+@ENDNODE
+
+
+@NODE ETag "CardTrickEVD Errors"
+
+@{U}Mandatory output tag missing@{UU}
+
+This is another internal error which should never occur. If ShapeShifter
+fails to ask for vital data CardTrickEVD aborts rather than letting it
+guess.
+@ENDNODE
+
+
+@NODE ESmall "CardTrickEVD Errors"
+
+@{U}Minimum display size 320x200@{UU}
+
+To avoid trouble if the user accidently sets too small display dimensions,
+CardTrickEVD checks for a minium display size of 320x200 pixels.
+@ENDNODE
+
+
+@NODE EWidth "CardTrickEVD Errors"
+
+@{U}Monochrome display width must be multiple of 32@{UU}
+
+CardTrickEVD requires the display line width to be a multiple of longwords
+or 32 bits. Usually this is the case because ShapeShifter automatically
+rounds up the display width to multiples of 16. However in the rare case
+of a monochrome (1 bit) ShapeShifter display with an uneven multiple of 16
+as width CardTrickEVD will issue this complaint. Simply adjust your display
+size then.
+@ENDNODE
+
+
+@NODE EID "CardTrickEVD Errors"
+
+@{U}Not a CyberGraphX/Picasso96 screenmode@{UU}
+
+This message means that you have accidently selected a native Amiga
+screenmode or that the driver software providing the selected mode
+is not CyberGraphX-compatible.
+@ENDNODE
+
+
+@NODE EBuffer "CardTrickEVD Errors"
+
+@{U}Not enough memory left for refresh buffer@{UU}
+
+ShapeShifter allocates its own memory for the emulation, ROM etc. before
+calling CardTrickEVD. For this reason CardTrickEVD might not find enough
+RAM left to allocate a display buffer for a refreshed display. If this
+happens, you should disable the @{B}Largest free block@{UB} option and lower the
+@{B}Mac memory@{UB} value in ShapeShifter's @{B}Memory settings@{UB}.
+@ENDNODE
+
+
+@NODE EVMode "CardTrickEVD Errors"
+
+@{U}Screenmode and color depth do not fit@{UU}
+
+Although CardTrickEVD supports all color depths and screenmodes, not all
+combinations make sense. Correct configurations are 1/2/4/8 bit depth on
+8 bit screens, 15 bit depth on 15/16 bit screens and 24 bit depth on
+24/32 bit screens.
+@ENDNODE
+
+
+@NODE EPixFmt "CardTrickEVD Errors"
+
+@{U}Unknown pixelformat@{UU}
+
+CardTrickEVD supports all pixelformats known by CyberGraphX today, but it
+is possible that new cards and drivers add new ones in the future.
+@ENDNODE
+
+
+@NODE EWink "CardTrickEVD Errors"
+
+@{U}Your Amiga isn't DIN-compatible@{UU}
+
+Didn't I tell you that it's no use browsing through the list of errors
+unless you are looking for one which actually occured? I guarantee that
+you'll never see this one. ;-)
+@ENDNODE
+
+
+@NODE Bugs "CardTrickEVD"
+
+@{U}Bugs@{UU}
+
+   "Crashing tells the user nothing. It is uncouth and barbarian and
+   entirely in line with the (overly) stereotypical German mindset."
+                           - Joanne Dow in comp.sys.amiga.programmer
+
+Well, of course I hope that CardTrickEVD will not crash your machine. :-)
+If anything goes wrong, CardTrickEVD will always try to @{"tell" LINK Errors} you the
+reason. But although I tried my best to avoid dangers and hunt down bugs,
+it is not impossible that some are still lurking somewhere.
+
+So if you encounter barbarian crashes or other uncouth behaviour of
+CardTrickEVD, please let @{"me" LINK Author} know.
+@ENDNODE
+
+
+@NODE Copyright "CardTrickEVD"
+
+@{U}Copyright@{UU}
+
+CardTrickEVD is Mailware. If you like and use it, please send @{"me" LINK Author} some mail
+of any kind. A few lines of e-mail will do, but I would prefer paperwork,
+i.e. nice picture postcards (I collect those), letters, parcels, ... :-)
+
+Program and documentation are freely distributable as long as the archive
+remains complete and unchanged.
+
+This software is provided "as is" without warranty of any kind, either
+expressed or implied. You use it entirely at your own risk.
+@ENDNODE
+
+
+@NODE Credits "CardTrickEVD"
+
+@{U}Credits@{UU}
+
+I would like to thank the following people:
+
+- Francesco Doro for encouragement, advice, beta-testing
+  and the acceleration activation trick
+- Oliver Blumert for beta-testing
+- Christian Bauer for ShapeShifter and its EVD interface
+- Frank Mariak & Thomas Sontowski for CyberGraphX
+- Tobias Abt & Alexander Kneer for Picasso96
+- Frank Wille for PhxAss and PhxLnk
+@ENDNODE
+
+
+@NODE Author "CardTrickEVD"
+
+@{U}Author@{UU}
+
+Send comments, questions, bugreports or whatever to:
+
+  Niels Knoop
+  Hainstr. 21a
+  D-61476 Kronberg
+  Germany
+
+E-mail:
+
+  niels@rbg.informatik.tu-darmstadt.de
+@ENDNODE

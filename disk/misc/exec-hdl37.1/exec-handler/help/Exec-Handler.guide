@@ -1,0 +1,309 @@
+@Database "exec-handler"
+@Author "Marius Gröger"
+@(c) "Copyright © 1995 by Marius Gröger"
+@$VER: exec-handler.guide 34.1 (25.06.95)
+
+@Node Main "Exec-Handler"
+@{fg highlight}
+   Raw Execution handler - Written by Marius Gröger.
+@{fg text}
+   This software requires AmigaOS 2.0 (V37) or higher.
+
+      @{" PLEASE READ THIS FIRST!     " link "Warning"}
+
+      @{" Features                    " link "Features"}
+
+      @{" Requirements                " link "Requirements"}
+      @{" Motivation                  " link "Motivation"}
+      @{" Installation                " link "Installation"}
+      @{" Usage / Stream names        " link "Usage"}
+      @{" Caveats                     " link "Caveats"}
+
+      @{" Future plans                " link "Future"}
+      @{" History                     " link "History"}
+      @{" Copyright / Author          " link "Author"}
+
+@EndNode
+
+@Node Warning "Exec-Handler - WARNING"
+@next Features
+@prev Main
+
+  This software is intended mainly for developers, who wish to improve
+  their development environment a bit. I don't suppose there is any other
+  sensitive application for this handler, if there is, let @{"me" link "Author"} know.
+
+  The source file "loadseg.asm" was taken and adapted from the PCMCIA
+  example code of the 3.1 Developer Kit distributed by Commodore-Amiga,
+  Inc. I don't feel of doing something illegal because this source doesn't
+  contain any magic, but is only a better version of the dos.library/-
+  InternalLoadSeg() system call.
+
+  This software is freeware. It is provided as-is and is subject to
+  change; no warranties are made. All use is at your own risk. No
+  liability or responsibility is assumed.
+
+  @{ub}
+@EndNode
+
+@Node Features "Exec-Handler - Feaures"
+@prev Warning
+@next Requirements
+
+  @{b}Features@{ub}
+
+  · Supports any linker that creates the executable in one go
+    (i.e. that doesn't Seek())
+
+  · Full blown CLI environment
+
+  · Completely pure code
+
+  · Distributed as Freeware, complete source code is supplied
+
+@EndNode
+
+@Node Requirements "Exec-Handler - Requirements"
+@next Motivation
+@prev Warning
+
+  @{b}Requirements@{ub}
+
+  This package requires AmigaOS Release 2.04 or higher. However, the
+  supplied Installer script assumes an AmigaOS Release 2.1, and tries to
+  install a DOSDriver file in EXECS:DOSDrivers.
+
+  I don't suppose that there are potential users out there running 2.0 who
+  want to use the Exec-Handler. If I'm wrong, though, it shouldn't be a
+  major problem for such people to create a Mountlist entry themselves.
+
+@EndNode
+
+
+@Node Motivation "Exec-Handler - Motivation"
+@next Installation
+@prev Requirements
+
+  @{b}Motivation@{ub}
+
+  A major advantage of popular development systems found for example in
+  the MS-DOS world is the ability to compile directly to memory. This
+  reduces disk access, saves time and is quite user-friendly as well.
+  Funny enough, this is very rarely found on the Amiga, which was my
+  incentive to fill this gap.
+
+  Further more, playing around with processes is always fun (well, most of
+  the time...).
+
+@EndNode
+
+@Node Installation "Exec-Handler - Installation"
+@next Usage
+@prev Main
+
+  @{b}Installation@{ub}
+
+  It is best to use the supplied installer script in order to install
+  the exec-handler properly. If you still want to do the installation
+  manually then follow the steps listed below.
+
+  As usual for any AmigaDOS-Handler, the actuall handler code is best
+  copied to "L:":
+
+      @{b}AmigaShell> copy exec-handler l:@{ub}
+
+  The mount specification entry may be copied to "EXECS:DOSDrivers" in
+  order to have it always mounted during system startup:
+
+      @{b}AmigaShell> copy EXEC EXEC.info EXECS:DOSDrivers@{ub}
+
+  Copy it to "SYS:Storage/DOSDrivers", if you want to use it more rarely:
+
+      @{b}AmigaShell> copy EXEC EXEC.info SYS:Storage/DOSDrivers@{ub}
+
+  This way you will have to mount it manually in order to use it,
+  though.
+
+  Note that the EXEC icon has set the tooltype 'ACTIVATE' set to 0, which
+  tells AmigaDOS to defer the actual loading of the handler-code until the
+  first usage. Therefore you only loose some memory for the
+  AmigaDOS-internal representation of the DOS-driver, if you don't use it.
+
+@EndNode
+
+@Node Usage "Exec-Handler - Usage / Stream names"
+@next Caveats
+@prev Usage
+
+  @{b}Usage and the construction of stream names@{ub}
+
+  When using the exec-handler, you have to construct a so-called
+  stream-name which contains all the information needed to access the
+  raw exec in question.
+
+  First, a @{"Stream name conversion" link StreamConversion } will be done.
+
+  Next, the following ReadArgs() template is applied the the stream name.
+
+  NAME,S=STACKSIZE/K/N,CWD=CURRENTWORKDIR/K,WIN=WINDOW/K,ARGS=ARGUMENTS/K,
+  HOME=HOMEDIR/K,PRI=PRIORITY/K/N"
+
+  @{b}NAME@{ub}
+     This is an arbitrary string. It is used as the CLI program name as
+     you get it via dos.library/GetProgramName().
+     Defaults to "Object".
+
+  @{b}STACKSIZE@{ub}
+     Size of the stack for the executed program.
+     Defaults to 4096 bytes.
+
+  @{b}CURRENTWORKDIR@{ub}
+     Current working directory for the executed program.
+     Defaults to "".
+
+  @{b}HOMEDIR@{ub}
+     PROGDIR: for the executed program.
+     Defaults to "".
+
+  @{b}WINDOW@{ub}
+     Input and Output console window specification. Syntactically, this
+     parameter is treated {"specially" link StreamConversion }.
+     Defaults to "CON:0/0/640/150/Output/AUTO/WAIT/CLOSE".
+
+  @{b}PRIORITY@{ub}
+     Exec task priority for the executed program.
+     Defaults to 0.
+
+  @{b}ARGUMENTS@{ub}
+     Arguments for the executed program.
+     Defaults to "".
+
+  Some example stream names, which are all valid (but which do not mean
+  the same, though)
+
+     EXEC:Job/PRI.1/ARGS.Arg1
+     "EXEC:Job/PRI=1/ARGS=*"Arg1 Arg2 Arg3*""
+
+   Please read also the @{"Caveats" link Caveats} section.
+
+@EndNode
+
+@Node Caveats "Exec-Handler - Caveats"
+@next Future
+@prev Usage
+
+  @{b}Caveats@{ub}
+
+  This section tries to address some known problems.
+
+  I will always try to give the user the necessary technical background to
+  understand the problem and, if possible, to include a work-around.
+
+  If any user has found a similar problem which is not mentioned in this
+  document, he or she should contact @{"me" link Author} in order to append it to this
+  section.
+
+  @{b}exec-handler and overlays@{ub}
+
+     As for this version (and probably all future ones) the exec-handler
+     does not support overlaid files.
+
+  @{b}exec-handler and special linkers@{ub}
+
+     During development, I tested the exec-handler with blink/slink. At
+     least for small programs this linker seems to write it's output
+     in one go, i.e. it does not do any Seek() operation. However, I
+     can well imagine that not all linkers are that decent with respect
+     to my handler. For this version, the exec-handler does only
+     implement a very small set of AmigaDOS packets, particularly @{i} not @{ui}
+     including ACTION_SEEK.
+
+@EndNode
+
+@Node Future "Exec-Handler - Future plans"
+@next History
+@prev Caveats
+
+  @{b}Future plans@{ub}
+
+  Perhaps I will implement some more features:
+
+  · Workbench style startup
+
+  · provide a path for the created CLI environment
+
+  · control of local variables
+
+  If you have any suggestions, contact @{"me" link Author}.
+
+@EndNode
+
+@Node History "Exec-Handler - History"
+@next Author
+@prev Future
+
+  @{b}Development history of "exec-handler"@{ub}
+
+  Release 37.1
+
+    · initial release
+
+  @{b}Technical history of "exec-handler"@{ub}
+
+  For more technical details, please refer to the source code. In the
+  header section of each source file, you find the pseudo-keyword
+  $HISTORY: after which follows the complete revision history of this
+  file.
+
+@EndNode
+
+@Node Author "Exec-Handler - Copyright / Author"
+@prev History
+
+  @{b}Copyright and author information@{ub}
+
+  This software is freeware. It is provided as-is and is subject to
+  change; no warranties are made. All use is at your own risk. No
+  liability or responsibility is assumed.
+
+  It's strictly forbidden to include this archive in any kind of
+  software collection except Fred Fish's AmigaLibrary, Aminet, Aminet
+  CD's and BBS fileareas.
+
+  You may make any changes to the source for your own use. If you
+  consider them useful for everybody, please get in touch with me. This
+  way I can try to include them in the next public release.
+
+  If you like this software, or have any suggestion how to improve
+  it, or just want to complain about it, feel free to email me.
+
+  @{b}Home address:@{ub}
+     @{fg highlight}Marius Gröger,
+     Bärstadter Str. 4
+     65307 Bad Schwalbach (GERMANY)@{fg text}
+
+  @{b}Internet email addresses:@{ub}
+     @{fg highlight}mag@sysgo.de
+     i409@informatik.fh-wiesbaden.de@{fg text}
+
+@EndNode
+
+
+@Node StreamConversion "Exec-Handler - Stream name conversion"
+
+  @{b}Stream name conversion@{ub}
+
+  The following steps are performed during stream name conversion:
+
+  1. All slashes are removed and replaced by blanks.
+
+  2. All backslashes are converted to slashes. This is neccessary for
+     the "embedded" console window stream name.
+
+  3. All dots ('.'), which are not part of a quoted text, are substituted
+     by an equation symbol ('='). AmigaDOS strips all equations that are
+     not quoted. So, either use the dot or quote the whole stream
+     specification, if you want to pass arguments to the keywords.
+
+@EndNode
+

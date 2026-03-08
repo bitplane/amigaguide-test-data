@@ -1,0 +1,545 @@
+@DATABASE PippinEVD.guide
+@AUTHOR "Niels Knoop"
+@(C) "Copyright © 1998-99 Niels Knoop"
+@$VER: PippinEVD.guide 1.1 (10.01.99)
+
+@NODE Main "PippinEVD"
+
+                               @{U}PippinEVD 1.1@{UU}
+
+                    ShapeShifter External Video Driver
+                     with picture-in-picture display
+                          © 1998-99 Niels Knoop
+                                 @{U}Mailware@{UU}
+
+                             @{" Introduction  " LINK Introduction}
+                             @{" Features      " LINK Features}
+                             @{" Requirements  " LINK Requirements}
+                             @{" Limitations   " LINK Limitations}
+                             @{" History       " LINK History}
+
+                             @{" Installation  " LINK Installation}
+                             @{" Configuration " LINK Configuration}
+                             @{" Usage         " LINK Usage}
+                             @{" Options       " LINK Options}
+
+                             @{" Copyright     " LINK Copyright}
+                             @{" Credits       " LINK Credits}
+                             @{" Author        " LINK Author}
+@ENDNODE Main
+
+
+@NODE Introduction "PippinEVD"
+
+@{U}Introduction@{UU}
+
+PippinEVD is an external ShapeShifter driver for picture-in-picture display
+on graphics cards which support this by hardware.
+
+Wouldn't it be a nifty thing to have, say, a direct, accelerated 8-bit Mac
+display neatly stuffed into a scalable Intuition window on your highcolor
+Workbench screen? A fancy dream? Well, not any longer! :-)
+@ENDNODE
+
+
+@NODE Features "PippinEVD"
+
+@{U}Features@{UU}
+
+@{"  " LINK PIP    } ShapeShifter display in a picture-in-picture window
+@{"  " LINK Refresh} Fast refresh routines for all color depths and pixel formats
+@{"  " LINK Delta  } Delta-buffering
+@{"  " LINK MMU    } MMU-refresh
+@{"  " LINK Direct } Direct displays without refresh
+@{"  " LINK Remap  } Remapping of direct displays
+@{"  " LINK Accel  } Blitter acceleration support
+@ENDNODE
+
+
+@NODE PIP "PippinEVD Features"
+
+@{U}Picture-in-picture display@{UU}
+
+PippinEVD uses the PIP support functions of Picasso96 to show the Mac
+display inside a window on the Workbench or default public screen. This
+window looks and behaves like a normal Intuition window, but its contents
+is actually kept in a seperate area of the video memory which resembles a
+screen of its own.
+
+This picture-in-picture display can have a different color depth and
+pixel format than the screen it is displayed on and can even be scaled
+on the fly with the size gadget. The underlying technique which makes it
+possible is the hardware video window of modern graphics cards like the
+PicassoIV.
+
+It should be noted that due to limitations of the current EVD interface
+a few minor patches are necessary to make this kind of driver possible.
+PippinEVD automatically applies them to ShapeShifter's code in memory at
+runtime. Hopefully future versions of ShapeShifter will extend the EVD
+interface to make this little stunt superfluous.
+@ENDNODE
+
+
+@NODE Refresh "PippinEVD Features"
+
+@{U}Refresh Routines@{UU}
+
+PippinEVD provides fast refresh routines for all Mac color depths from
+1 bit to 24 bit and supports all suitable pixel formats.
+
+Like screens, PIPs may be swapped out of the video memory while they are
+not on display to make room for other screens. To avoid corrupting the
+video memory, PippinEVD locks the PIP bitmap during each refresh cycle.
+
+For refreshed displays PippinEVD uses PIPs without backup buffers to save
+memory. Every time they enter the video memory their contents is restored
+from the Mac display buffer.
+@ENDNODE
+
+
+@NODE Delta "PippinEVD Features"
+
+@{U}Delta-buffering@{UU}
+
+Refresh involves keeping a display buffer for ShapeShifter in Fast-RAM and
+periodically updating its contents into the video memory of the graphics
+card. This costs a considerable performance penalty especially because the
+bus between CPU and graphics card, even if it is Zorro-III, usually forms
+a bottleneck.
+
+To reduce the refresh overhead PippinEVD offers delta-buffering. This
+technique needs a second refresh buffer in Fast-RAM and thus consumes
+more memory, but reduces the bus load by updating only those parts of the
+display which really have changed. The benefit depends on the ratio between
+memory and bus speed of the Amiga.
+@ENDNODE
+
+
+@NODE MMU "PippinEVD Features"
+
+@{U}MMU-refresh@{UU}
+
+MMU-refresh means to use the MMU to watch over the refresh buffer and keep
+track of which parts of it are written to by the emulated Mac. As with
+delta-buffering the goal is to keep untouched parts of the display out of
+the refresh procedure.
+
+The advantage of doing it with the MMU is that it needs no extra buffer in
+Fast-RAM and only negligible amounts of time. This enables the emulation to
+run at almost full speed as long as nothing much happens on the display.
+On the other hand, the MMU records the changes only in rather coarse memory
+blocks called MMU pages. It may thus select large partitions of the display
+to be refreshed although only a few pixels were really affected.
+
+Generally speaking MMU-refresh is more powerful than delta-buffering, but
+for best results both techniques can be combined.
+
+PippinEVD's MMU routines require a 68040 or 68060 CPU and support both 4K
+and 8K pagesize. The MMU tables must already be set up and enabled which is
+usually done by the 68040.library at the time SetPatch is executed.
+@ENDNODE
+
+
+@NODE Direct "PippinEVD Features"
+
+@{U}Direct displays@{UU}
+
+In terms of visual appearance and emulation speed, the best refresh method
+is no refresh at all, meaning that the emulated Mac directly writes into
+the video memory. This requires the graphics card to support the pixel
+format the Mac uses. Directly Mac-compatible formats are CLUT8 for 8-bit,
+RGB15 for 15-bit and ARGB32 for 24-bit Mac displays.
+
+PippinEVD allows direct displays in all these pixel formats as far as the
+video window supports them.
+@ENDNODE
+
+
+@NODE Remap "PippinEVD Features"
+
+@{U}Remapping of direct displays@{UU}
+
+Unarbitrated access of the video memory as done by ShapeShifter in direct
+display modes is a very tricky thing. If the bitmap is swapped out of the
+video memory after starting the emulation, the emulated Mac will continue
+to use the old address and thus corrupt both its own display and whatever
+took its place in the video memory. In the worst case the Mac display is
+lost forever if the bitmap is later moved back into the video memory at a
+different address.
+
+PippinEVD's solution to this problem is to remap the Mac display with
+the MMU whenever the PIP bitmap changes its address. Doing so ensures that
+writes to the Mac display memory always hit the right spot and never trash
+other screens. This feature requires a working and initialized 68040 or
+68060 MMU.
+@ENDNODE
+
+
+@NODE Accel "PippinEVD Features"
+
+@{U}Blitter acceleration support@{UU}
+
+Starting with version 3.6, ShapeShifter provides blitter acceleration
+support on direct CyberGraphX/Picasso96 displays. This means that certain
+graphical operations are performed by the graphics card blitter instead
+of the CPU which can speed up some things like scrolling dramatically.
+PippinEVD activates these acceleration routines for direct PIP displays
+as well.
+@ENDNODE
+
+
+@NODE Requirements "PippinEVD"
+
+@{U}Requirements@{UU}
+
+In order to run PippinEVD you need:
+
+- An Amiga
+- A graphics card with hardware video window support, e.g. PicassoIV
+  or Cybervision64/3D (untested)
+- Picasso96 including a driver with PIP support for your graphics card
+  (1.38 or later for PicassoIV, 1.42 or later for CV64/3D)
+- ShapeShifter version 3.2 to 3.10
+
+Optional, but highly recommended:
+
+- A 68040 or 68060 processor with MMU for @{"MMU-refresh" LINK MMU}
+- ShapeShifter version 3.6 to 3.10 for @{"blitter acceleration" LINK Accel}
+@ENDNODE
+
+
+@NODE Limitations "PippinEVD"
+
+@{U}Limitations@{UU}
+
+As PippinEVD relies on the hardware for the video window display, it
+necessarily shares the limitations of the different graphics cards and
+chips in this area. Most of them are due to bandwidth limitations and the
+fact that the video window, as its name already implies, was primarily
+designed for video playback in special YUV pixel formats.
+
+  PicassoIV (CirrusLogic GD5446)
+
+- There can only be one PIP window on a screen at a time
+- PIP displays can only be scaled up, not down
+- 24-bit truecolor PIP displays are not possible
+- No 8-bit CLUT PIP on an 8-bit screen because there is only one palette
+- Vertical interpolation and occlusion are mutually exclusive
+- Vertical interpolation requires a horizontal zoom factor of at least 2
+- Doubleclock mode (8-bit screens with a pixelclock beyond 85 MHz) also
+  doubles the horizontal zoom factor of the PIP
+- Neither vertical interpolation nor occlusion work on 24-bit screens
+- Screen/PIP combinations consuming much bandwidth may disable occlusion,
+  enforce a certain minimum zoom factor, or not work at all
+- In Zorro-II mode use of direct displays is limited and may produce wrong
+  colors due to byteswapping issues
+
+  Cybervision64/3D (S3 Virge)
+
+I can say little about this card because I don't have one and could not
+test PippinEVD on it yet. The restrictions are probably similar to those
+of the PicassoIV. The PIP support of Picasso96 for this card is also still
+in an early state. I would like to get some @{"feedback" LINK Author} on how PippinEVD
+works on this card.
+@ENDNODE
+
+
+@NODE History "PippinEVD"
+
+@{U}History@{UU}
+
+Version 1.0 (31.12.98)
+
+- First public release
+
+Version 1.1 (10.01.99)
+
+- Added support for ShapeShifter 3.10
+@ENDNODE
+
+
+@NODE Installation "PippinEVD"
+
+@{U}Installation@{UU}
+
+Simply copy PippinEVD into the "Video Drivers" drawer inside your
+ShapeShifter drawer.
+@ENDNODE
+
+
+@NODE Configuration "PippinEVD"
+
+@{U}Configuration@{UU}
+
+Start ShapeShifter and go to the @{B}Graphics Settings@{UB} window. Set @{B}Screen type@{UB}
+to @{B}External@{UB} and select PippinEVD as @{B}External driver@{UB}.
+
+Choose the @{B}Color depth@{UB} you want to use and then select an appropriate
+@{B}Screen mode@{UB} for it:
+
+Mac Color Depth    Picasso96 Pixel Format
+1, 2, 4 or 8 bit   8 bit (preferable); 15 or 16 bit highcolor
+15 bit             15 or 16 bit highcolor
+24 bit             24 or 32 bit truecolor
+
+PippinEVD will not actually open a screen, but the screenmode selection
+will determine the pixel format used in the video window and also is a
+convenient way to set the display dimensions. If you want a different
+size you can enter your own values next to @{B}Size@{UB}. Of course the dimensions
+should always be adjusted to fit on the screen the video window opens on.
+
+Selecting a @{B}Refresh rate@{UB} value basically means to find the best compromise
+between display update speed and emulation performance. Lower values will
+improve the visual impression, but leave less power for the emulated Mac.
+When using @{"MMU-refresh" LINK MMU}, only actual graphical operations cause slowdowns,
+making it possible to use the minimum refresh rate of 1. The refresh rate
+has no meaning if you use a @{"direct" LINK Direct} display.
+
+With PippinEVD you should always select the @{B}Amiga mouse pointer@{UB}. If you use
+ShapeShifter's own software cursor, the Amiga mousepointer will be blanked,
+but still be active and moving independantly; unintentional mouseclicks
+outside the emulation window will deactivate it or cause other unpleasant
+effects.
+
+The state of the check box @{B}Black border@{UB} is not passed on to the EVD and
+therefore has no effect on it. The same is true for @{B}Refresh always@{UB} and
+@{B}MMU refresh@{UB}. The actual refresh mode will be selected later when the
+emulation is @{"started" LINK Usage}.
+
+In ShapeShifter's @{B}Memory Settings@{UB}, it's usually not a good idea to select
+the @{B}Largest free block@{UB} option, because it might leave only slower memory
+or none at all for PippinEVD's refresh buffers. You should disable it and
+enter a reduced @{B}Mac memory@{UB} value instead. For best performance the option
+@{B}Allocate Mac ROM memory first@{UB} should be enabled and the @{B}ROM memory type@{UB}
+set to @{B}Any@{UB}.
+
+If you often use different settings for different EVDs and displays, I
+suggest to save them into individual projects using @{B}Save As...@{UB} from the
+main menu.
+
+For more information about ShapeShifter's settings please refer to the
+ShapeShifter manual.
+@ENDNODE
+
+
+@NODE Usage "PippinEVD"
+
+@{U}Usage@{UU}
+
+After selecting PippinEVD as external driver in ShapeShifter's @{"settings" LINK Configuration},
+PippinEVD is automatically run when you start the emulation. By default it
+will open a requester asking you to select a refresh mode. Depending on
+your system configuration, graphics card and selected screenmode you can
+choose between some or all of the following (in order of performance):
+
+@{B}Direct@{UB}
+@{"Direct" LINK direct}, @{"blitter-accelerated" LINK Accel} display without refresh.
+
+@{B}MMU&Delta@{UB}
+Display refresh, accelerated by the @{"MMU" LINK MMU} and by @{"delta-buffering" LINK Delta}.
+
+@{B}MMU@{UB}
+Display refresh, accelerated by the MMU.
+
+@{B}Delta@{UB}
+Display refresh, accelerated by delta-buffering.
+
+@{B}Simple@{UB}
+Simple display refresh.
+
+@{B}Abort@{UB}
+Quit the emulation if you changed your mind.
+
+It is also possible to let PippinEVD select the best posssible refresh mode
+automatically and thus avoid the requester. This feature is enabled and
+controlled by a set of @{"options" LINK Options}.
+
+Even if automatic selection is activated, you can still force PippinEVD
+to open its requester by turning on capslock or holding down either shift
+key while starting the emulation.
+@ENDNODE
+
+
+@NODE Options "PippinEVD"
+
+@{U}Options@{UU}
+
+PippinEVD provides a number of options to control some of its features.
+Their settings are stored as an argument string in the environment variable
+ENV:PippinEVD.config. If you want to enable certain options (most of them
+work as switches and are disabled by default), create or edit that file and
+enter all the options you want in a single line separated with spaces.
+
+For example, to set some options from an Amiga shell window you could type:
+  Echo >ENV:PippinEVD.config "AUTOSELECT NODIRECT BLOCKSIZE=64"
+To make your changes permanent, also copy the file over to ENVARC:.
+
+The options are:
+
+@{"  " LINK AUTOSELECT} AUTOSELECT
+@{"  " LINK NODIRECT  } NODIRECT
+@{"  " LINK NOMMU     } NOMMU
+@{"  " LINK NODELTA   } NODELTA
+@{"  " LINK NOREMAP   } NOREMAP
+@{"  " LINK BLOCKSIZE } BLOCKSIZE
+@{"  " LINK PUBSCREEN } PUBSCREEN
+@ENDNODE
+
+
+@NODE AUTOSELECT "PippinEVD Options"
+
+@{U}AUTOSELECT@{UU}
+
+By default, PippinEVD always pops up a @{"requester" LINK Usage} to let you choose the
+refresh mode you want. This requires just one additional mouse click and
+has the advantage that you always know what's going on. However, if you
+don't like having to answer the requester every time, probably because you
+don't change your settings very often and use ShapeShifter's QUICKSTART
+tooltype, you might want to use the AUTOSELECT option.
+
+In this mode, PippinEVD will automatically select the best refresh mode
+according to what the actual ShapeShifter settings, system resources and
+PippinEVD options permit. By default it will use a direct display whenever
+the chosen pixel format allows it. Refreshed displays will be accelerated
+by the MMU if an enabled 040 or 060 MMU is found and by delta-buffering if
+there is enough memory available.
+
+If you have AUTOSELECT enabled, but still want to make a different choice
+now and then, you can force the requester to open by holding down either
+shift key or having capslock enabled while starting the emulation.
+@ENDNODE
+
+
+@NODE NODIRECT "PippinEVD Options"
+
+@{U}NODIRECT@{UU}
+
+PippinEVD's automatic refresh mode selection will use a @{"direct" LINK Direct} display
+whenever possible. If you prefer a refreshed display you can enforce it by
+means of the NODIRECT option, which is PippinEVD's equivalent to the
+@{B}Refresh always@{UB} checkbox in the ShapeShifter settings.
+
+Usually even the fastest refresh works slower and doesn't look as smooth
+as a direct display, but is safer if you can't use @{"display remapping" LINK Remap} and
+has no problems with byteswapping issues like direct displays typically
+have in Zorro-II configurations.
+@ENDNODE
+
+
+@NODE NOMMU "PippinEVD Options"
+
+@{U}NOMMU@{UU}
+
+If this option is activated, the automatic refresh mode selection will not
+use the @{"MMU" LINK MMU} to reduce the refresh overhead. This is meant for test
+purposes only; it should never be necessary to enable it unless you have
+problems with your MMU.
+@ENDNODE
+
+
+@NODE NODELTA "PippinEVD Options"
+
+@{U}NODELTA@{UU}
+
+Activating this option will tell PippinEVD not to select a refresh mode
+with @{"delta-buffering" LINK Delta}. This means that the driver will perform simple
+refresh and not allocate a second refresh buffer. Use this option if you
+find that the speedup accomplished by delta-buffering is not worth the
+additional memory on your system. Even if this option is not enabled,
+PippinEVD will automatically disable delta-buffering if there is not
+enough memory for it.
+@ENDNODE
+
+
+@NODE NOREMAP "PippinEVD Options"
+
+@{U}NOREMAP@{UU}
+
+PippinEVD usually @{"remaps" LINK Remap} direct PIP displays with the MMU to prevent the
+emulation from trashing other screens if the display address changes.
+Normally this is a desirable feature. However, should you ever encounter
+problems with it, possibly because of a defective MMU or a conflict with
+other software using it, you can disable it with the option NOREMAP.
+@ENDNODE
+
+
+@NODE BLOCKSIZE "PippinEVD Options"
+
+@{U}BLOCKSIZE@{UU}
+
+To avoid trashing other screens PippinEVD @{"locks" LINK Refresh} the PIP bitmap in the
+video memory while refreshing it. Unfortunately this step can temporarily
+block other system functions as well, which may result in a jerkily moving
+Amiga mouse pointer and other unpleasant effects if the lock is kept for a
+long period of time. For this reason PippinEVD splits eachs refresh cycle
+into a number of blocks and releases the lock in between. Naturally this
+method causes some overhead.
+
+The option BLOCKSIZE=<n> allows you to tune the refresh performance by
+setting the amount of display data refreshed in one part to <n> Kbytes.
+The default size is 8 KB which should guarantee smooth operation even on
+slow systems. Users with fast systems might want to experiment with higher
+blocksizes to get more speed. This option has no meaning with direct
+displays.
+@ENDNODE
+
+
+@NODE PUBSCREEN "PippinEVD Options"
+
+@{U}PUBSCREEN@{UU}
+
+By default, PippinEVD opens its window on the default public screen which
+is usually the Workbench screen. If you prefer another screen as host of
+your PippinEVD display, you can either use one of the numerous pubscreen
+managers to change the default public screen or directly tell PippinEVD
+the name of your favorite public screen. To do so, put the PUBSCREEN option
+and the public screen name into the configuration string, for example
+"PUBSCREEN=BlueScreen". If PippinEVD cannot find this screen, it will fall
+back on the default public screen.
+@ENDNODE
+
+
+@NODE Copyright "PippinEVD"
+
+@{U}Copyright@{UU}
+
+PippinEVD is Mailware. If you like and use it, please send @{"me" LINK Author} some mail
+of any kind. A few lines of e-mail will do, but I would prefer paperwork,
+i.e. nice picture postcards (I collect those), letters, parcels, ... :-)
+
+Program and documentation are freely distributable as long as the archive
+remains complete and unchanged.
+
+This software is provided "as is" without warranty of any kind, either
+expressed or implied. You use it entirely at your own risk.
+@ENDNODE
+
+
+@NODE Credits "PippinEVD"
+
+@{U}Credits@{UU}
+
+I would like to thank the following people:
+
+- Francesco Doro for the acceleration activation trick
+- Christian Bauer for ShapeShifter and its EVD interface
+- Tobias Abt & Alexander Kneer for Picasso96
+- Frank Wille for PhxAss and PhxLnk
+@ENDNODE
+
+
+@NODE Author "PippinEVD"
+
+@{U}Author@{UU}
+
+Send comments, questions, bugreports or whatever to:
+
+  Niels Knoop
+  Hainstr. 21a
+  D-61476 Kronberg
+  Germany
+
+E-mail:
+
+  niels@rbg.informatik.tu-darmstadt.de
+@ENDNODE

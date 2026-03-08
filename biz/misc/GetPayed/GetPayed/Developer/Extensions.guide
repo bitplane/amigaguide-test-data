@@ -1,0 +1,361 @@
+@database "Extensions.guide"
+@author "Thomas Graff Thøger"
+@remark "$VER: Extensions developer Guide 1.0 (23. May 1998)"
+@remark "Created with GoldED 4.7.0 (23.5.98)"
+
+@node MAIN "Welcome"
+
+GetPayed extensions developer guide
+
+@{"Introduction" link Intro}
+@{"The extension library" link ExtLib}
+@{"The extension descriptor" link ExtDescriptor}
+@{"Installing the extension" link Installing}
+@{"Are you stuck?" link Help}
+
+@endnode
+@node Intro "Introduction"
+
+@{b}So what is all this about?@{ub}
+
+GetPayed has two builtin APIs, one for extending the fileformat capabilities
+and one for extending the number of payment rule types.
+The purpose of this developer guide is to explain how to develop extensions
+for these two APIs, and thus expand the capabilities of GetPayed.
+
+Looking at the extensions (IO or rule extensions) in general they are much the
+same. Both extension types are built upon the same basic structures - those of
+the AmigaOS DataType interface.
+Once this has been said, the similarities starts to wear off. And to make it
+absolutely clear: Do not use ordinary datatypes as GetPayed extensions, and do
+not use GetPayed extensions as ordinary datatypes!
+
+The actual extensions are merely Exec style libraries with a specific set of
+function calls (see the fd and autodoc files for more info). To give GetPayed
+an idea of which extension libraries exist each extension also has a descriptor
+file. This file equals a DataType descriptor file, and is therefore built using
+the same utility (Commodores DTDescr program). However GetPayed has some extra
+bits defined which are controlled using the supplied GPExtFlags program.
+
+This was just the beginning. Are you still game??
+
+@endnode
+
+@node ExtLib "The extension library"
+
+@{b}The extension library@{ub}
+
+Each GetPayed extension is basically an Exec library. This means that you have
+to program your own library. Don't worry, it's not as difficult as it sounds.
+
+Depending on the type of extension you are making a specific set of functions
+should be available in the library:
+
+ @{"IO extension library" link IOExtLib}
+ @{"Rule extension library" link RuleExtLib}
+
+@endnode
+@node IOExtLib "IO extension library"
+
+An IO extension library must contain the following functions:
+
+ioCreatePrefs
+ioCreateRawPrefs
+ioDeletePrefs
+ioDeleteRawPrefs
+ioLoadProject
+ioLoadReport
+ioPreferences
+ioSaveProject
+ioSaveReport
+
+(for more info, read the AutoDocs)
+
+These functions are used to perform three sepperate tasks:
+ · IO and editing of your extensions preferences.
+ · IO of GetPayed projects.
+ · IO of GetPayed payment reports.
+
+@{b}Preferences IO and editing@{ub}
+
+Each of the extensions in GetPayed can have its own settings. These will be
+stored whenever the user chooses to save the settings in GetPayed.
+
+When GetPayed opens a new project it will read the default preferences for use
+in the project. While doing this GetPayed will call your extension when a raw
+preferences block is found which belongs to it, to create preferences usable
+by your extension. This is done by calling ioCreatePrefs() with a pointer to
+the raw preferences block. The raw preferences block is simply a continuous
+block of memory holding the preferences for your extension - it was created by
+a call to your extension's ioCreateRawPrefs() function, so you should know the
+format of the data :)
+
+If the user later on chooses to edit the your extension's settings, then
+GetPayed will create a new dos process and run the ioPreferences() routine
+in its context. Once run all communication between the ioPreferences() routine
+and GetPayed is performed by sending Exec messages back and forth.
+
+When the preferences are to be written GetPayed will need your extension's
+preferences in one continuous block of memory. This is what the
+ioCreateRawPrefs() routine must do. Once the raw preferences are written
+GetPayed will call your ioDeleteRawPrefs() function to free the object returned
+by ioCreateRawPrefs().
+
+Whenever GetPayed needs to dispose of a preferences object from your extension
+it will call your ioDeletePrefs() function.
+
+The life cycle of the extension prefences @{i}could@{ui} look like this
+
+ ioCreatePrefs(); // Default preferences is being read
+   ...
+   ioCreateRawPrefs(); // Raw prefs for e.g. writing prefs
+     ...
+   ioDeleteRawPrefs(); // Done using raw prefs
+   ...
+ ioDeletePrefs(); // Done using preferences
+
+
+@{b}GetPayed project IO@{ub}
+
+When GetPayed is to save a project it will use the file format selected by the
+user. The IO extension library for the file format will then be opened, and
+used for the IO.
+The only library function used by GetPayed for this is ioSaveProject(). Once
+invoked it is up to the library function to get hold of the project data and
+to save it. All the project data can be obtained using functions in the
+getpayed_prj.libray, so check out its autodoc for more info. Bare in mind that
+your ioSaveProject function is called from GetPayed, and is therefore running
+in the same Process as GetPayed. This means that you have access to @{i}all@{ui} the
+functionality of getpayed_prj.library.
+
+When trying to read a file using your IO extension library GetPayed will simply
+call your ioLoadProject() function. From here on it is up to the library
+function to insert the project data into the given project. Again this is done
+using library calls in getpayed_prj.library, where all functions are available
+to you.
+One more thing needs to be said about ioLoadProject(). GetPayed will give this
+function a DataTypes Hook Context (DTHookContext) structure pointer. This
+structure is borrowed from the DataTypes system of the Amiga OS, and works in
+the exact same manner (I'm talking AmigaOS V39 here). See the io_module.doc for
+more information.
+
+@{b}GetPayed report IO@{ub}
+
+The report IO scheme is much the same as the project IO scheme.
+When GetPayed is to save a payment report it will call the ioSaveReport()
+function of the IO extension to be used. This function will then have to do
+all the dirty work with obtaining the report data from the project (using
+getpayed_prj.library functions) and write it to the supplied file.
+
+When loading a payment report using your extension GetPayed will call the
+ioLoadReport() function in your library. Your function will then have to read
+data from the report file and insert it in the given project using functions
+in getpayed_prj.library.
+
+@endnode
+@node RuleExtLib "Rule extension library"
+
+An rule extension library must contain the following functions:
+
+rhApplyRule
+rhCreateRawRule
+rhCreateRule
+rhDeleteRawRule
+rhDeleteRule
+rhFreeDescriptions
+rhGetDescriptions
+rhGetRuleRate
+rhResetRule
+rhPreferences
+
+(for more info, read the AutoDocs)
+
+These functions are used to perform three sepperate tasks:
+ · Create/delete payment rule objects.
+ · Perform payroll calculations.
+ · Edit a payment rule object.
+
+@{b}Payment rule object management@{ub}
+
+GetPayed has two schemes for creating payment rule objects - one for
+creating new rule objects, and one for creating rule objects when reading
+a payment rules file. These two methods differ a little in their approach.
+
+@{i}Creating new rule objects@{ui}
+When creating a new rule object GetPayed will call rhCreateRule() with a
+NULL ruledata pointer, which signals that a rule object with default
+settings should be returned. As one rule extension is allowed to handle
+more than one rule type GetPayed will give a rule type ID number so you
+can find out which of your extenion's rule types is to be created. This
+ID number is the index number into the rule type name array returned by
+your rhGetDescriptions() function of the name of the rule type to create.
+
+@{i}Creating rule objects from raw data@{ui}
+When GetPayed is reading a rules file and encounters a rule description
+made with you extension it will call the rhCreateRule() function with a
+pointer to the raw data from the rule file. This raw data was originally
+created by your extension's rhCreateRawRule() function when the rule file
+was saved - you therefore know the exact format of the raw rule data.
+
+@{i}Deleting payment rule objects@{ui}
+Once a payment rule is removed from a project GetPayed will call the
+rhDeleteRule() function of your rule extension. This function must then
+free all resources allocated for the rule.
+
+@{b}Payroll calculations@{ub}
+
+Before GetPayed begins a new payroll calculation it will reset all the
+rules in the project so they are prepared for a new calculation. This is
+done by calling the rhResetRule() function for all rules handled by your
+extension.
+Once rules has been reset GetPayed starts to go through the workdata
+entries of the project one by one. Every entry will be checked against
+the payment program of the project, and it will therefore be checked
+against some payment rules. When GetPayed is checking a workdata entry
+against a rule it actually calls the rhApplyRule() function in the
+rule's extension library. It is then the responsability of this function
+to find out how many hours of the work described by the workdata entry
+will actually release some payment for the rule, and return this hour
+count to the caller (GetPayed) as a function return value.
+After checking all workdata entries against the payment program the payroll
+calculation has finished. Now GetPayed runs through the list of payment
+rules in the project to find out which rules has actually been used, how
+much they've been used, and the payment rate for them. From this data
+GetPayed will finally add a payment report to the project.
+To obtain the information each rule which has been used in the payroll
+calculation (the usage duration is summed up by GetPayed) will have the
+rhGetRuleRate() function of their extension library called. This
+function must then look in the rule object to find the payment rate and
+return it to GetPayed. Now that GetPayed has both the duration and the
+payment rate it generates a report entry for the rule.
+
+@{b}Payment rule editing@{ub}
+When the user chooses to edit a payment rule GetPayed will call the
+rhPreferences() routine in the rule's extension library. The function
+will, however, be run in another AmigaDOS Process, and will thus be
+fully multitasking with GetPayed. When the rhPreferences() routine is
+called it is given a pointer to a startup message holding various
+information needed for communication with GetPayed (see extprefs.h for
+more info).
+The actual function to be carried out by rhPreferences() is to open a
+configuration window for the rule in question. In this window the user
+should be able to setup the rule as needed. One thing you must keep in
+mind is, that the rhPreferences() routine must never modify the rule
+object it was given in the startup message - it is read only! This may
+seem strange, but remember that your editor and GetPayed is running
+simultaneously. Imagine that GetPayed is doing a payroll calculation
+while your rhPreferences() routine modifies the payment rule - that
+wouldn't be nice. So to secure data access you can only read from the
+rule.
+Once the user is happy with the rule settings and closes the editor you
+create a @{i}new @{ui}rule object and return that to GetPayed - still leaving the
+old rule untouched. Now GetPayed will delete the old rule object using
+the rhDeleteRule() function of your extension library. Doing it this way
+ensures that once a rule object has been added to GetPayed's rule list
+it will only be modified in the context of the GetPayed Process - thus
+escaping a lot of Real-Time problems.
+If the user cancels the changes he made to the rule you simply don't
+return a new rule object, and GetPayed will keep working with the old one.
+
+While running, the rhPreferecnes() routine must check for messages from
+GetPayed. On certain events you will receive messages instructing you to
+do certain things. Forinstance when GetPayed is iconified you will receive
+a hide message instructing you to close your GUI. When GetPayed is
+uniconified you will receive a show message instructing you to reopen the
+GUI again. By acting on these messages your rule editor will become an
+integrated part of GetPayed, instead of just being an external extension.
+See the rhPreferences() section in the AutoDoc for more information on
+messages and their required actions.
+
+@endnode
+
+@node ExtDescriptor "The extension descriptor"
+
+So you've got yourself a ready-made extension library?
+Well, you'll need an extension descriptor to use it in GetPayed.
+
+As mentioned earlier the extension system owes a lot to the AmigaOS
+Datatypes system. And just like that system you will need a descriptor
+file for every extension you make.
+
+An extension descriptor holds some basic information on the fileformat
+handled, in case of an IO extension, and can also hold a small executable
+program for doing complex fileformat recognition. Just like with
+datatypes. However, some extra bits has been defined in the datatype
+descriptor file:
+
+@{i}PrefsPrg @{ui}
+Set this bit to inform GetPayed that your extension library has a
+preferences routine (rhPreferences() in case of a rule extension,
+ioPreferences() in case of an IO extension).
+If this bit is not set GetPayed will never use the xxPreferences() vector
+in the library base.
+
+@{i}Loader @{ui}
+This bit is set to inform GetPayed that this IO extension supports loading
+of files. If not set GetPayed will never use the ioLoadXXX() vector in the
+IO extension library base (ioLoadReport for a ReportIO extension
+descriptor file, ioLoadProject for a ProjectIO extension descriptor file).
+
+@{i}Saver @{ui}
+This bit is set to inform GetPayed that this IO extension can save files.
+If not set GetPayed will never try to use this extension for saving, and
+will thus never call the ioSaveXXX() vector in the IO extension library
+base (ioSaveReport for a ReportIO extension descriptor file, ioSaveProject
+for a ProjectIO extension descriptor file).
+
+The basic datataypes descriptor file is created using e.g. the Commodore
+dtdesc program. After creating the descriptor you modify the extra bits
+using the supplied GPExtFlags program.
+
+One thing I don't think I've mentioned yet is that an IO extension
+actually must have two descriptor files! One for the Report IO part and
+one for the Project IO part.
+This also makes it possible to create an IO extension which only has
+functions to either handle Report or Project IO - simply don't create a
+descriptor file for the functionality not programed.
+
+@endnode
+@node Installing "Installing the extension"
+
+Now that you have your extension and the desciptor(s) for it you will
+also need to know how to install it so GetPayed can use it.
+
+This is simply done by copying the actual extension library to the
+"extensions" subdirectory of the GetPayed directory, and the descriptor
+file(s) into the appropriate subdirectory in there.
+Descriptors for payment rules must go into the "rules" drawer, report IO
+descriptors must go into the "report" drawer, and project IO descriptors
+must go into the "project" drawer.
+Also, when installing the extension library it must have the correct
+filename prefix. For rule extensions it is ".rule" and for IO extensions
+it is ".io". If this is not obeyed GetPayed cannot locate the extension
+library.
+
+When you install extensions a running GetPayed program will have to be
+quit and restarted to make use of the new extensions.
+
+@{b}Using localization@{ub}
+Are you using localized strings in your extension? No problem!
+You are always guaranteed to have the GetPayed directory as your
+"PROGDIR:". So all you have to do is copy your locale catalogs into the
+"catalogs" drawer of the GetPayed drawer, and locale.library will be
+able to find them.
+
+@{b}Online help@{ub}
+Online help is also no problem. You just copy the help document into the
+"docs" drawer of the GetPayed directory. In your extension library you
+then reference the document as "PROGDIR:docs/<document name>" and you'll
+get to it.
+
+@endnode
+@node Help "Are you stuck?"
+
+Since you are reading this you must be stuck!
+
+Are you into deep troubles with the development of your extension?
+Uhh, it looks serious! you better contact me then...
+
+E-mail: @{b}tigersoft@get2net.dk @{ub}
+
+@endnode

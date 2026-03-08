@@ -1,0 +1,375 @@
+@Database "memory"
+@Author "Marius Gröger"
+@(c) "Copyright © 1996 Marius Gröger, All Rights Reserved."
+@$VER: memory.guide 34.3 (09.04.96)
+
+@node Main "Memory-Device"
+@{fg highlight}@{b}
+   Memory-Device -- Exec device driver for direct memory access
+@{ub}@{fg text}
+   (C) Copyright 1996 Marius Gröger.
+@{fg highlight}@{i}
+   WARNING: THIS SOFTWARE SHOULD ONLY BE INSTALLED AND USED BY EXPERIENCED
+   USERS! IT IS A LICENSE TO CRASH THE SYSTEM!
+@{ui}@{fg text}
+   @{b}TABLE OF CONTENTS@{ub}
+
+   @{b}Intro@{ub}
+
+      @{" Description           " link "Description"} Why You need it!
+      @{" Features              " link "Features"} All in one glance
+      @{" Requirements          " link "Requirements"} What you need
+
+   @{b}Device Operation@{ub}
+
+      @{" Installation          " link "Installation"} What's needed to be done
+      @{" Example with VMM      " link "Example"} How to use it with VMM
+      @{" MakeDisk              " link "MakeDisk"} The RAM disk generator
+      @{" Bugs                  " link "Bugs"} Known Bugs
+
+   @{b}Appendices@{ub}
+
+      @{" History               " link "History"} What's been done already
+      @{" Copyright / Author    " link "Author"} Legal stuff, credits, my addresses
+
+@endnode
+
+@node Description "Memory-Device - Description"
+@next Features
+@prev Main
+
+@{fg highlight}@{b}Description@{ub}@{fg text}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  @{b}What is memory.device?@{ub}
+
+  This special device simulates a trackdisk compliant block device in any
+  region of memory. Unlike the RAM DISK (which is in fact not even a device)
+  or the ramdrive.device, memory.device allows the exact definition of the
+  memory to use for data storage.
+
+  The purpose memory.device has been developed for is to use it on systems
+  equipped with different RAM chips or local memory busses. In conjunction with
+  VMM or similar virtual memory packages, a memory region with slower RAM chips
+  may be used as swap area. This idea originates from the z2ram device which
+  has been written for Linux/68k/Amiga.
+
+  I tried to use the MEM-handler before writing memory.device, but it seems
+  that VMM actually needs a real Exec device, even when told to use a plain
+  page file. I believe nobody has ever been struck by this because probably
+  nobody ever tried to swap to RAM:pagefile :-)
+
+  Other applications with memory.device are conceivable, ranging from whitty,
+  over funny to perverted. Use it on your own risk.
+
+@endnode
+@node Features "Memory-Device - Feaures"
+@prev Description
+@next Requirements
+
+@{fg highlight}@{b}Features@{ub}@{fg text}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  · Very fast raw memory access
+
+  · Compatible with trackdisk's command set
+
+  · Can be used as RAM disk, see @{" MakeDisk " link MakeDisk}
+
+  · Distributed as Freeware, complete source code is supplied
+
+@endnode
+@node Requirements "Memory-Device - Requirements"
+@next Installation
+@prev Features
+
+@{fg highlight}@{b}Requirements@{ub}@{fg text}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  · AmigaOS Release 2.04 or better
+
+  · VMM if you want to use memory.device for swapping
+
+@endnode
+
+@node Installation "Memory-Device - Installation"
+@next Example
+@prev Requirements
+
+@{fg highlight}@{b}Installation@{ub}@{fg text}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  1. Copy the file @{b}memory.device@{ub} to the system devices directory @{b}DEVS:@{ub}
+
+  2. Copy the AmigaDOS Driver Descriptor @{b}MEMORY@{ub} to @{b}DEVS:DOSDrivers/@{ub}
+
+  3. @{fg highlight}This step should be performed with maximum attention. Any mistake
+     will in 99% of all cases lead to an unpleasant system shutdown.
+     @{fg text}
+     Edit the AmigaDOS Driver Descriptor to match your needs. It is not
+     important how you organize the @{i}geometry @{ui}of the device, only
+     the SectorSize should not be too odd. Probably it's best to stick
+     with a value of 512 bytes. Choose the values to match the following
+     equastions:
+     @{b}
+     LowCyl × Surfaces × SectorsPerTrack × SectorSize == Starting-Address
+
+     SectorsPerTrack + HighCyl × Surfaces × SectorsPerTrack × SectorSize ==
+                                                          Ending-Address
+     @{ub}
+     This leads to:
+     @{b}
+     LowCyl := Starting-Address / (Surfaces × SectorsPerTrack × SectorSize)
+
+     HighCyl := (Ending-Address-SectorsPerTrack) /
+                                     (Surfaces × SectorsPerTrack × SectorSize)
+     @{ub}
+     When dealing with RAM addresses, take care of not to confuse Hexadecimal
+     and decimal addresses.
+
+  4. Depending on your application the most tricky bit might be the task
+     of convincing the operations system (namely exec.library or
+     expansion.library) not to configure a certain memory region to be used.
+     For instance, a GVP Series II RAM expansion needs to be configured by
+     expansion.library, otherwise the RAM won't even appear on the bus.
+
+     However, once configured by expansion, any RAM will also be added
+     to Exec's memory lists. There are several tools available on Aminet
+     which seem to deal with RAM expansion boards.
+
+     One way might for example be to configure the RAM (e.g. by hardware
+     jumpering) not to auto-configure at boot-time. In startup-sequence, an
+     addmem command or similar could configure the RAM, and an AllocAbs()
+     following right after this could eat the complete new block.
+
+@endnode
+@node Example "Memory-Device - Example for VMM usage"
+@next MakeDisk
+@prev Installation
+
+@{fg highlight}@{b}An example to use memory.device as VMM swap space@{ub}@{fg text}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  @{fg highlight}
+  Important Note: Before you actually start toying around with VMM, you
+  should have installed the memory.device and found a working methond to hide
+  some of your RAM from the system. It is most important that the region of
+  memory you intend to use with memory.device is either completetly
+  unconfigured or completely allocated in an Exec-safe manner. It is
+  impossible to describe how to archive this on your system, you simply must
+  have the required knowledge about the Amiga's internal way of memory and
+  expansion handling. See @{" Installation " link "Installation"} for further detail.
+  @{fg text}
+  @{b}The idea of it@{ub}
+
+  Memory.device has been developed to be used as swap space with VMM. This is
+  realised in a similar way as done in Linux/68k/Amiga's z2ram device.
+
+  Usually any harddisk partition is driven by some scsi.device which provides
+  for the low-level device functions, namely to read and write blocks of
+  data. The idea is just to pretend the slow RAM portion being a very small
+  harddisk, and VMM won't notice anything.
+
+  Now let's get into the details.
+
+  @{b}System examination@{ub}
+
+  A typical configuration is an A2000 system with a A2630 turbo board
+  providing 4 megs 32bit RAM, and another 4megs on a 16bit RAM expansion
+  (such as a dedicated RAM board, or a SCSI host adapter with a RAM option).
+
+  First you should figure out the memory map to avoid sacrifycing innocent
+  memory. The memory map of the above configuration looks like this:
+
+      +----------------------+--$0000 0000
+      |    512k Chip RAM     |
+      +----------------------+--$0080 0000
+      | 512k Chip RAM (opt.) |
+      +----------------------+--$0100 0000
+      |    1meg Chip RAM     |
+      |        (opt.)        |
+      +----------------------+--$0200 0000
+      |                      |
+      |       4megs of       |
+      |    fast 32bit RAM    |
+      |                      |
+      +----------------------+--$0600 0000  \\
+      |                      |              |
+      |       4megs of       |              | Should be used
+      |    slow 16bit RAM    |              | for swapping
+      |                      |              |
+      +----------------------+--$0A00 0000  /
+      |                      |
+      |  IO and ROM follows  |
+      |                      |
+      |  |  |  |  |  |  |  | |
+
+  @{b}2. The DOSDriver entry@{ub}
+
+  The DOSDriver entry ``MEMORY'' must be modified to meet the above
+  considerations. The following values should (at least for calculation
+  simplicity) always chosen like this:
+
+      Surfaces  := 1
+      SectorsPerTrack := 1
+      SectorSize := 512
+
+  Low- and High-Cylinder will determine the actual RAM area:
+
+      LowCyl := $600000 / (1 × 1 × 512) = @{b}12288@{ub}
+      HighCyl := ($A00000-512) / (1 × 1 × 512) = @{b}20479@{ub}
+
+  Note that both hexadecimal and decimal values are used.
+
+  @{b}3. VMM configuration@{ub}
+
+  Finally start the VMM configure utility and put VMM in the mode ``Swap to
+  Partition''. Enter ``MEMORY'' in the text-field which controls the
+  partition to be used.
+
+  VMM should soon start swapping, since half of your RAM seems to be vanished
+  for your system.
+
+@endnode
+@node MakeDisk "Memory-Device - MakeDisk"
+@next Bugs
+@prev Example
+
+@{fg highlight}@{b}The ``MakeDisk'' tool@{ub}@{fg text}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  The MakeDisk tool serves to create a RAM disk based on the memory.device.
+  Such a RAM disk has the following advantages compared to the standard RAM
+  Disk (ram-handler) and RAD (ramdrive.device).
+
+  · Very few overhead
+  · You may specify if chip RAM should be used
+  · No need to write a Mountlist or 2.1 style DosDriver entry
+
+  The disadvantages are
+
+  · Static size, will be alway 1K to less
+  · Static size, can't be shrinked by just deleting some file
+  · Can't be dismounted
+
+  If you want a more flexible solution, use some other RAM disk, there are a
+  lot flowing through the Net. I definitely won't support MakeDisk very much,
+  for me it suits fine (BTW: I keep my ENV: in this RAM disk, as my fast RAM
+  is too precious).
+
+  The template of MakeDisk is
+
+  @{b}DRIVE/A,NAME/K,B=BLOCKS/K/A,C=CHIP/S@{ub}
+
+  DRIVE -- Name of DOS device @{i}without @{ui}trailing colon (:).
+
+  NAME -- Name of formatted volume @{i}without @{ui}trailing colon (:).
+
+  BLOCKS -- size of drive in blocks. Each block holds 512 bytes.
+
+  CHIP -- RAM should be allocated from chip RAM.
+
+  Example:
+
+  AmigaShell> MakeDisk DRIVE="CHIPENV" NAME="Chip-Env" BLOCKS=300 CHIP
+
+  This creates a DOS drive CHIPENV: with the volume name Chip-Env. The size
+  of the drive is about 150 KBytes, the RAM is allocated from chip RAM.
+
+@endnode
+@node Bugs "Memory-Device - Known Bugs"
+@next History
+@prev MakeDisk
+@{fg highlight}@{b}Known Bugs@{ub}@{fg text}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Currently things seems to work quite well.
+
+  If you know bugs, contact @{" me " link Author}.
+
+@endnode
+
+@node History "Memory-Device - History"
+@next Author
+@prev Bugs
+
+@{fg highlight}@{b}Development history of SANA2Meter@{ub}@{fg text}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  Release 37.4
+
+    · trackdisk emulation improved, now suitable for RAM disk usage
+
+    · MakeDisk tool for RAM disk creation
+
+  Release 37.3
+
+    · missing DOSDriver included
+
+    · minor changes
+
+  Release 37.2
+
+    · Faster block copy routine
+
+    · support for CMD_UPDATE
+
+  Release 37.1
+
+    · initial release
+
+  @{b}Technical history of Memory-Device@{ub}
+
+  For more technical details, please refer to the source code. In the
+  header section of each source file, you find the pseudo-keyword
+  $HISTORY: after which follows the complete revision history of this
+  file.
+
+@endnode
+@node Author "Memory-Device - Copyright / Credits / Legal stuff / Contacting"
+@prev History
+
+@{fg highlight}@{b}Copyright, Credits and Author Information@{ub}@{fg text}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  @{b}Credits@{ub}
+
+  The technical idea behind the memory.device was insipired by the z2ram
+  device written for Linux/68k/Amiga.
+
+  @{b}Legal stuff@{ub}
+
+  memory.device
+  (C) Copyright 1996 Marius Gröger. All Rights Reserved.
+
+  This software is freeware. It is provided as-is and is subject to
+  change; no warranties are made. All use is at your own risk. No
+  liability or responsibility is assumed.
+
+  It's strictly forbidden to include this archive in any kind of software
+  collection except @{fg highlight}Fred Fish's AmigaLibrary@{fg text}, @{fg highlight}Meeting Pearls CD's@{fg text}, @{fg highlight}Aminet@{fg text},
+  @{fg highlight}Aminet CD's@{fg text} and @{fg highlight}BBS fileareas@{fg text}.
+
+  You may make any changes to the source for your own use. If you
+  consider them useful for everybody, please get in touch with me. This
+  way I can try to include them in the next public release.
+
+  AmigaGuide, AmigaGuide.info, amigaguide.library, WDisplay, WDisplay.info
+  (c) Copyright 1991-93 Commodore-Amiga, Inc.  All Rights Reserved.
+  Reproduced and distributed under license from Commodore.
+
+  @{b}Contact@{ub}
+
+  If you like this software, or have any suggestion how to improve
+  it, or just want to complain about it, feel free to email me.
+
+  @{b}Home address:@{ub}
+     @{fg highlight}Marius Gröger,
+     Bärstadter Str. 4
+     65307 Bad Schwalbach (GERMANY)@{fg text}
+
+  @{b}Internet email addresses:@{ub}
+     @{fg highlight}mag@sysgo.de
+     groeger@goofy.zdv.uni-mainz.de@{fg text}
+
+@endnode
+

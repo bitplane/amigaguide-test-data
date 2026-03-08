@@ -1,0 +1,220 @@
+@database CopyLockDecoder.guide
+@rem translation to english done by Czeslaw Maron
+@Master CopyLockDecoder.texinfo
+
+@Width 77
+
+@Node Main "CopyLockDecoder.guide"
+
+  =======================
+   @{b}CopyLockDecoder v1.33@{ub}
+  =======================
+
+ @{"Introduction      " Link "Introduction"}
+
+ @{"Requirements      " Link "Requirements"}
+
+ @{"Installation      " Link "Instalation"}
+
+ @{"Copylock usage    " Link "Copylock usage"}
+
+ @{"Program history   " Link "Program history"}
+
+ @{"Greetings         " Link "Greetings"}
+
+ @{"From Author       " Link "From Author"}
+
+@EndNode
+
+@Node "Introduction" "CopyLockDecoder.guide/Introduction"
+
+  Purpose of CopyLockDecoder is how was coded copylocks which have
+protected by many commercial games.
+
+  My util isn't exactly decoder, but patcher. Why ? It simply patch
+decode procedures and get decoded data.
+
+  This util can only decode only Rob Northen Copylock NEW type.
+Why not OLD ? Because OLD type works good only on Motorola 68000.
+Anyway OLD type have problems with stack frame format. So, games
+protected by that copylocks cann't run on 68020+ processors if copylock
+isn't removed.
+
+  CopyLockDecoder is FREEWARE. Program and documentation must be spread in
+unchanged form (archive). Any modifications are forbidden.
+
+@EndNode
+
+@Node "Requirements" "CopyLockDecoder.guide/Requirements"
+        
+  CopyLockDecoder requires any Amiga with processor 68020 or higher.
+
+@EndNode
+
+@Node "Instalation" "CopyLockDecoder.guide/Installation"
+
+  Copy CopyLockDecoder, it's icon and documentation to any directory.
+
+@EndNode
+
+@Node "Copylock usage" "CopyLockDecoder.guide/Copylock usage"
+
+  Copylock usage:
+
+ @{"Input values   " Link "Input values"}
+
+ @{"Calculate ID   " Link "Calculate ID"}
+
+ @{"Output values  " Link "Output values"}
+
+@EndNode
+
+@Node "Input values" "CopyLockDecoder.guide/Input values"
+
+@EndNode
+
+@Node "Calculate ID" "CopyLockDecoder.guide/Calculate ID"
+
+   Perhaps you was think how Copylock calculate ID value?
+   Yes? Ok, I show you how this is easy can be done by hand.
+
+   First, you must read data from disk track 1 by RawDIC with SYNC $8914.
+   After sync must be $44A9 word (for first type of New Copylock). I show
+   how it's done in game Photon Storm
+
+   lea data,a0
+   and.w  #$5555,$12(a0)
+   moveq  #$14,d0
+   move.l d0,d1
+   lsr.l  #2,d1
+   moveq  #0,d0
+.loop
+   sub.l  (a0)+,d0
+   subq.l #1,d1
+   bne.b  .loop
+   rts
+
+sync	dc.w	$8914
+data	dc.w	$44A9
+	dc.w	$5155,$5292,$A925,$1252,$5129,$4929,$4A94,$9115
+	dc.w	$2AAA
+
+   In D0 register you will have value $7C3369C9 and it's correct ID.
+
+   Some copylocks used another instruction to calculate ID value
+   instead sub.l (a0)+,d0 eg.:
+
+   add.l (a0)+,d0   ; game Cyberball
+
+-------------------------------------------------------------------------
+
+   How it's done in second type of New Copylocks ? You must read data via
+   RawDIC from track 1 with sync $8914. I show you how it's done in game
+   Cool Spot.
+
+   lea data,a0
+   moveq #0,d0
+   moveq #7,d1
+.loop
+   sub.l (a0)+,d0
+   dbf   d1,.loop
+   cmp.l #$A573632C,d0
+   bne.b .error
+
+   lea data,a0
+   moveq #11,d1
+   moveq #0,d6
+.loop2
+   add.l d6,d6
+   sub.l (a0)+,d6
+   dbf   d1,.loop2
+.error
+   rts
+
+sync	dc.w	$8914
+data	dc.l	$AA949124,$945514A4,$A4AA9254,$94551524,$9512944A
+	dc.l	$94911454,$A4AA92A5,$14551451,$152AAAA4,$AA92AA49
+	dc.l	$29252495,$12554955
+
+   Procedure return value $1C781F8D in D6 register as ID.
+
+   Many copylocks (second type) used different instructions to calc ID
+   instead of add.l d6,d6 ; sub.l (a0)+,d6 eg.:
+
+   add.l (a0)+,d6   ; game Advanced Ski Simulator
+
+   add.l (a0)+,d6
+   swap  d6         ; game Arcade Trivia Quiz
+
+   add.l d6,d6
+   sub.l (a0)+,d6
+   dbf   d1,.loop2
+   eor.l #$71895A65,d6
+   move.l d6,$60.w  ; game Archer Maclean Pool
+
+   sub.l (a0)+,d6   ; game Battle Command
+
+   add.l d6,d6
+   add.l (a0)+,d6   ; game Big Run
+
+   add.l d6,d6
+   sub.l (a0)+,d6
+   dbf   d1,.loop2
+   add.l d6,$80.w   ; game Curse Of Enchantia
+
+   add.l d6,d6
+   sub.l (a0)+,d6
+   dbf   d1,.loop2
+   move.l d6,$80.w
+   not.l $80.w      ; game Krusty's Super Fun House
+
+   add.l d6,d6
+   sub.l (a0)+,d6
+   dbf   d1,.loop2
+   move.l d6,$100.w ; game Lethal Weapon
+
+   add.l d6,d6
+   add.l (a0)+,d6
+   dbf   d1,.loop2
+   move.b #$FF,$100.w ; game Putty
+
+@EndNode
+
+@Node "Output values" "CopyLockDecoder.guide/Output values"
+
+@EndNode
+
+@Node "Program history" "CopyLockDecoder.guide/Program history"
+
+  @{b}@{u}Version 1.32  (29.03.99) - first official public release@{uu}@{ub}
+
+@EndNode
+
+@Node "From Author" "CopyLockDecoder.guide/From author"
+
+  CopyLockDecoder is written in assembly language using Devpac v3.14. It
+  was tested on Amiga 1200 + Blizzard IV 50 MHz + 16 MB Fast Ram + 2.5 GB
+  Caviar HDD + CD Rom * 4.
+
+  If you have any ideas or you have found any bugs, write to me on address:
+
+                       Mr.Larmer of Wanted Team
+                            Czeslaw Maron
+                           ul.sw.Anny 45/17
+                           42-700 Lubliniec
+                                POLAND
+
+                         tel. +48-(0)34-3530421
+
+                               Internet:
+
+                     e-mail: mrlarmer@polbox.com
+
+@EndNode
+
+
+@Node "Greetings" "CopyLockDecoder.guide/Greetings"
+
+ Special greetings from me go to:
+
+@EndNode

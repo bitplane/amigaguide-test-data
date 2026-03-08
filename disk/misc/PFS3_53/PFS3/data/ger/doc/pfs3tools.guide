@@ -1,0 +1,391 @@
+@database "Professional File System 3 documentation"
+@author "Michiel Pelt"
+@(c) "Copyright 1998 by Great Effects Development"
+@$VER: pfs3tools.guide 1.2 (01/07/1999)
+@master pfs3tools.guide
+
+@rem --------------------------------------------------------------------
+@node "Main" "PFS3 Tools"
+
+@{jcenter}@{b}PFS3 Tools@{ub}
+
+Rollover File Tools
+@{"MakeRollover" link makerollover}
+@{"SetRollover" link setrollover}
+
+Formatieren und Configuration
+@{"PFSFormat" link format}
+@{"SetFnSize" link setfnsize}
+@{"SetDeldir" link setdeldir}
+
+Sonstiges
+@{"Makelink" link makelink}
+@{"RemoveDirEntry" link removedirentry}
+
+AFS2LS, PFSDoctor und DiskValid
+@{"PFS3LS" link pfsls.guide/main}
+@{"PFSDoctor" link pfsdoctor}
+@{"DiskValid" link diskvalid.guide/main}
+
+@{"PFS3 Dokumentation" link pfs3.guide/main}
+
+@endnode
+@rem --------------------------------------------------------------------
+@node "MakeRollover" "MakeRollover"
+
+@{jcenter}@{b}MakeRollover@{ub}
+Version 1.1
+Copyright (c) 1998 by GREat Effects Development
+@{jleft}
+
+Mit MakeRollover werden @{"Rollover Files" Link pfs3.guide/rollover} erzeugt.
+
+Die Syntax für MakeRollover ist:
+
+Format:     MakeRollover <file> <size>
+Template:   FILE/A,SIZE/N/A
+
+Optionen:
+<file>      Der Name des neuen Rollover Files.
+<size>      Die 'Rollover Size' des neuen Rollover Files in Blocks.
+
+Zunächst wird das neue Rollover File leer sein und die Länge 0 haben.
+Die Rollover Size ist die maximale Größe des neuen Rollover Files und ist
+stets ein Vielfaches der Blockgröße minus 1 für den EOF Marker.
+
+Beispiel:
+1.Workbench:> MakeRollover mylogfile 2
+
+erzeugt ein Rollover File namens 'mylogfile' mit einer RollOver Size
+von 2*512-1 = 1023 Bytes.
+
+MakeRollover erzeugt immer eine neue Datei, es kann keine vorhandenen
+Dateien in Rollover Files verwandeln. Um eine normale Datei umzuwandeln
+müssen Sie den Inhalt in ein Rollover File kopieren.
+
+Beispiel: Umwandeln von 'mybiglog' in ein 1023 Byte Rollover File:
+1.Workbench:> rename mybiglog temp
+1.Workbench:> makerollover mybiglog 2
+1.Workbench:> copy temp mybiglog
+1.Workbench:> delete temp
+
+MakeRollover funktioniert nur mit PFS3, PFS2 oder AFS Volumes.
+
+@endnode
+@rem --------------------------------------------------------------------
+@node "SetRollover" "SetRollover"
+
+@{jcenter}@{b}SetRollover@{ub}
+Version 1.1
+Copyright (c) 1998 by GREat Effects Development
+@{jleft}
+
+SetRollover ist ein Tool zum Manipulieren von @{"Rollover Files" Link pfs3.guide/rollover}.
+Dieses Tool ist nur für fortgeschrittene Anwender gedacht!
+
+Die Syntax für SetRollover ist:
+
+Format:     SetRollover <rolloverfile> [SET]
+            [REALSIZE <realsize>] [VIRTUALSIZE <virtualsize>]
+            [ROLLPOINTER] <rollpointer>
+
+Template:   ROLLOVERFILE/A,SET/S,REALSIZE/K/N,VIRTUALSIZE/K/N,ROLLPOINTER/K/N
+
+Optionen:
+SET         Zum Setzen von REALSIZE, VIRTUALSIZE und ROLLPOINTER,
+            andernfalls werden die Parameter nur gelesen.
+
+REALSIZE    Setzt die tatsächliche Größe der Datei in Bytes, also Rollover
+            Size plus 1. Der Parameter muß ein Vielfaches der Blockgröße
+            sein, andernfalls wird er auf den nächsten gültigen Wert
+            abgerundet. VIRTUALSIZE und ROLLPOINTER werden gelöscht wenn
+            sie nicht ebenfalls neu spezifiziert werden.
+
+VIRZUALSIZE Setzt die Anzahl der tatsächlich benutzten Bytes, der Parameter
+            kann also maximal gleich der Rollover Size sein. ROLLPOINTER
+            wird gelöscht falls er nicht ebenfalls neu festgelegt wird.
+
+ROLLPOINTER Der RollPointer ist der aktuelle Offset vom Start der Datei.
+            VIRTUALSIZE wird gelöscht falls nicht ebenfalls spezifiziert.
+
+
+Examples:
+1.Workbench:> setrollover foo
+real size = 1024
+virtual size = 400
+rollpointer = 12
+
+1.Workbench:> setrollover foo set virtualsize 200 rollpointer 220
+real size = 1024
+virtual size = 200
+rollpointer = 220
+
+1.Workbench:> setrollover foo set realsize = 512
+real size = 512
+virtual size = 0
+rollpointer = 0
+
+SetRollover funktioniert nur mit PFS3, PFS2 und AFS Volumes.
+
+@endnode
+@rem --------------------------------------------------------------------
+@node "Format" "Formatieren"
+
+@{jcenter}@{b}PFSFormat@{ub}
+Version 1.1
+Copyright (c) 1999 by GREat Effects Development
+@{jleft}
+
+PFSFormat ist ein Ersatz für den Formatierbefehl des AmigaDOS. Sie können ihn
+nutzen, um jegliche PFS2-Disk zu formatieren. Zudem werden die volle
+Formatierung auf großen Disks und die speziellen PFS2 Features wie
+DelDir-Größe und Dateinamenlänge unterstützt.
+
+Die Syntax für PFSFormat ist:
+
+Format:     PFSFormat DEVICE <Gerätename> NAME <Name>
+            [NOICONS] [QUICK] [DELDIRBLOCKS <DelDirgröße>]
+            [FILENAMESIZE <Dsteinamenlänge>] [VERIFY]
+
+Schablone:  DEVICE=DRIVE/K/A,NAME/K/A,NOICONS/S,QUICK/S,DELDIRBLOCKS=DD/K/N,
+            FILENAMESIZE=FNSIZE/K/N,VERIFY/S
+
+Optionen:
+
+DEVICE      Name des zu formatierenden Gerätes
+
+NAME        Benennung der neuen Partition
+
+NOICONS     Standardmäßig werden das "Trashcan"-Verzeichnis, "disk.info"
+            und "trashcan.info" erzeugt. Hiermit können Sie dies verhindern.
+
+QUICK       Schnelle Formatierung. Die Disk wird direkt neuinitilisiert,
+            ohne vorheriges Komplettlöschen oder Überprüfen.
+
+DELDIRBLOCKS    Die Anzahl der zu erzeugenden DelDir-Blöcke. Dies kann ein
+            Wert zwischen 0 und 32 sein. Ein DelDirBlock enthält 31 DelDir-
+            Einträge. Wenn also 32 angegeben wird, so wird das DelDir eine
+            Kapazität von 31*32 = 992 Dateien haben. Durch Angabe von 0
+            DelDir-Blöcken kann es komplett deaktiviert werden.
+            Standardeinstellung ist 2. Die Anzahl der DelDir-Blöcke kann
+            auch auf einem bereits formatierten Medium mittels des Befehls
+            "SetDeldir" geändert werden.
+
+FILENAMESIZE    Die maximale Länge der Dateinamen. Höchstwert ist 107.
+            Warnung: Nach dem Formatieren kann die Dateinamenlänge nur
+            erhöht, aber nicht mehr veringert werden. Standard ist 31.
+
+VERIFY      Schaltet das Überprüfen bei voller Formatierung an.
+            Funktioniert nicht zusammen mit der Option "QUICK"
+            
+
+@endnode
+@rem --------------------------------------------------------------------
+@node "SetFnSize" "SetFnSize"
+
+@{jcenter}@{b}SetFnSize@{ub}
+Version 1.1
+Copyright (c) 1999 by GREat Effects Development
+@{jleft}
+
+Mit SetFnSize können Sie siw maximale Länge von Dateinamen setzen oder
+abfragen. Benutzen Sie diesen Befehl mit Bedacht! Die Dateinamenlänge kann
+nur erhöht, nicht verrringert werden. Die einzige Möglichkeit die
+Dateinamenlänge zurück auf das Minimum von 31 zu setzen, nachdem der Wert
+erhöht wurde, ist eine Neuformatierung der Partition.
+
+Die Syntax für SetFnSize ist:
+
+Format:     SetFnSize <volume> [<filenamesize>]
+
+Schablone:  VOLUME/A,FILENAMESIZE/N
+
+Optionen:
+
+VOLUME      Das Gerät, auf dem die Dateinamenlänge geändert oder von dem
+            sie angezeigt werden soll.
+
+FILENAMESIZE    Die neue Dateinamenlänge. Muß zwischen 31 und 107 liegen
+            und muß größer oder gleich der aktuellen Länge sein. Wenn Sie
+            hier keinen Wert angeben, so wird die aktuelle Dateinamenlänge
+            angezeigt.
+
+@endnode
+@rem --------------------------------------------------------------------
+@node "SetDeldir" "SetDeldir"
+
+@{jcenter}@{b}SetDeldir@{ub}
+Version 1.2
+Copyright (c) 1999 by GREat Effects Development
+@{jleft}
+
+Mit SetDelDir können Sie die Größe des Löschverzeichnisses (DelDir)
+einstellen oder anzeigen lassen. Die Größe kann zwischen 0 und 32
+DelDir-Blöcken frei gewählt werden. jeder DelDir-Block kann 31
+DelDir-Einträge beinhalten. Bei einem Maximalwert von 32 DelDir-Blöcken
+kommen Sie so auf bis zu 992 DelDir-Einträge. Mit einem Wert von 0
+DelDir-Blöcken wird das Löschverzeichnis deaktiviert.
+
+Die Syntax für SetDeldir ist:
+
+Format:     SetDeldir <device> [<deldirsize>]
+
+Schablone:  DEVICE/A,DELDIRSIZE/N
+
+Optionen:
+
+DEVICE      Das Gerät/Partition, dessen DelDir-Größe Sie einstellen oder
+            anzeigen lassen wollen.
+
+DELDIRSIZE  Die neue Größe in DelDir-Blöcken. Muß zwischen 0 (inaktiv) und
+            32 (Maximum von 992 Einträgen) liegen. Wird hier kein Wert
+            angegeben, werden die aktuellen Einstellungen angezeigt.
+
+
+@endnode
+@rem --------------------------------------------------------------------
+@node "Makelink" "Makelink"
+
+@{jcenter}@{b}Makelink@{ub}
+Version 1.2
+Copyright (c) 1998 by Great Effects Development
+@{jleft}
+
+Makelink ist ein Ersatz für den normalen Makelink Befehl der Workbench.
+Dieser hat leider Probleme mit Softlinks, deshalb sollte immer diese
+Version benutzt werden.
+
+Die Syntax für Makelink ist:
+
+Format:     Makelink <from> <to> [SOFT] [HARD] [FORCE]
+Template:   FROM/A,TO/A,SOFT/S,HARD/S,FORCE/S
+
+Makelink erzeugt einen Link von <from> nach <to>.
+
+Options:
+SOFT        Erzeugt einen Softlink
+
+HARD        Erzeugt einen Hardlink (Default)
+
+FORCE       Normalerweise weigert sich Makelink Links auf Verzeichnisse
+            zu erzeugen, mit dieser Option wird er dazu gezwungen.
+
+Für weitere Informationen schauen Sie bitte in das AmigaDOS Handbuch.
+Makelink funktioniert mit jedem Filesystem, das Hard- und Softlinks
+unterstützt, also auch mit PFS2 und AFS.
+
+@endnode
+@rem --------------------------------------------------------------------
+@node "RemoveDirEntry" "RemoveDirEntry"
+
+@{jcenter}@{b}RemoveDirEntry@{ub}
+Version 1.0
+Copyright (c) 1998 by Great Effects Development
+@{jleft}
+
+Mit RemoveDirEntry können Dateien gelöscht werden, wenn der normale Delete
+Befehl versagt.
+
+Format:     RemoveDirEntry <file>
+Template:   FILE/A
+
+Das angegebene File oder Verzeichnis wird gelöscht. PFS3 führt herbei keinerlei
+Fehlerkontrolle durch.
+
+WARNUNG: Der von der Datei oder dem Verzeichnis belegte Platz auf dem Datenträger
+wird NICHT wieder freigegeben und ist für immer verloren! Er kann nur durch
+Diskvalid oder eine Neuformatierung wiedergewonnen werden.
+
+RemoveDirEntry funktioniert nur mit PFS3, PFS2 und AFS Volumes.
+
+@endnode
+@rem --------------------------------------------------------------------
+@node "PFSDoctor" "PFSDoctor"
+
+@{jcenter}@{b}PFSDoctor@{ub}
+Version 1.3
+Copyright (c) 1999 by GREat Effects Development
+@{jleft}
+
+PFSDoctor ist das neue Reparatur- und Rettungsprogramm für PFS-formatierte
+Laufwerke. Es kann nahezu alle defekten Disks reparieren und sogar
+verlorengegangene Partitionen wiederfinden. Dieses werkzeug arbeitet mit
+einer komfortablen grafischen Benutzeroberfläche.
+
+@{b}Startfenster@{ub}
+
+Hier können Sie wählen, ob Sie eine Disks reparieren oder prüfen wollen.
+Im Prüfmodus wird die Disk während des Durchsuchens schreibgeschützt, so
+daß Fehler zwar angezeigt, aber nicht repariert werden. Im Reparaturmodus
+wir die Disk direkt repariert.
+
+@{b}Geräte-/Partitionsfenster@{ub}
+
+Hier können Sie das zu prüfende Laufwerk oder die Partition wählen. Der
+"Zurück"-Knopf bringt Sie wieder ins Startfenster.
+
+@{b}Optionenfenster@{ub}
+
+Im Optionenfenster können Sie einige Einstellungen konfigurieren.
+
+Zugriffsart  Bestimmt die Zugriffsmethode auf die Disk. Dies ist nur
+             relevant bei Disks größer 4G.
+
+-AUTO        Automatische Erkennung. Doctor erkennt automatisch, ob TD64
+             oder DirectSCSI benötigt wird. Diese Einstellung wird für die
+             meisten Fälle empfohlen.
+             most cases.
+-TD64        Doctor benutzt TD64-Befehle.
+-DirectSCSI  Doctor benutzt DirectSCSI-Befehle.
+
+Verbose      Ausführlicher Modus. Sie erhalten mehr Rückmeldungen, wenn
+             diese Option aktiviert ist. Wir empfehlen Ihnen, diese Option
+             @{i}nicht@{ui} zu aktivieren, es sei denn die regulären
+             Rückmeldungen des Programms genügen ihnen nicht.
+
+Logdatei     Schaltet eine Logdatei an. Die spezigizierte Logdatei wnthält
+aktiv        dann alle Meldungen, die auch im Reparaturfenster zu sehen
+             waren. Bei jeder Benutzung wird die alte Logdatei
+             überschrieben, wenn Sie denselben Dateinamen nutzen. Achten
+             Sie unbedingt darauf, daß Ihre Logdatei nicht auf der
+             Partition liegt, die Sie gerade prüfen wollen !!!
+
+Die Reparatur/Prüfung wird durch Druck auf den START-Knopf in Gang gesetzt.
+
+@{b}Prüf- und Reparaturfenster@{ub}
+
+Das Prüf- und Reparaturfenster enthält einige Zähler und
+Fortschrittsanzeigen sowie ein Rückmeldungsfeld. Die Größe dieses
+Rückmeldungsfeldes kann mit dem Größengadget in der rechten unteren Ecke
+geändert werden. Die einzelnen Komponenten sind:
+
+Pass         Jedes Durchsuchen der Disk ist ein 'Pass' oder Durchgang.
+             Üblicherweise sollte ein Duchgang ausreichen. Wenn mehr
+             Durchgänge nötig sind, so wird dies durch die Passnummer
+             angezeigt.
+
+Fortschritts-   Die obere Fortschrittsanzeige zeigt den Fortgang des
+anzeigen     Überprüfungsprozesses an. Das aktuell geprüfte Objekt wird
+             über der Fortschrittsanzeige dargestellt. Die untere
+             Fortschrittsanzeige wird nur für spezielle Reparatur-/Rettungs-
+             operationen benötigt, wie z.B. die Suche nach verlorenen
+             Blöcken.
+
+Checked      Die Anzahl der bisher geprüften Blöcke
+Errors       Die Anzahl der bisher gefundenen Fehler
+Fixed        Die Anzahl der bisher reparierten Fehler
+Files        Die Anzahl der bisher gefundenen Dateien
+Dirs         Die Anzahl der bisher gefundenen Verzeichnisse
+Hardl        Die Anzahl der bisher gefundenen Hardlinks
+Softl        Die Anzahl der bisher gefundenen Softlinks
+Roll         Die Anzahl der bisher gefundenen Rollover-Dateien
+
+Rückmeldungs-   Im Rückmeldungsfeld werden Informationen über den
+feld         reparaturprozess, die Disk und die Fehler angezeigt.
+
+Sobald die reparatur abgeschlossen ist, wird dies in einem Requester
+angezeigt. Bestätigen Sie hier mit "OK". Sie können nun zum Startfenster
+zurückkehren, indem Sie das Reparaturfenster schliessen oder es mittels
+"Verlassen" aus dem Menü beenden.
+
+@endnode

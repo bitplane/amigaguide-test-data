@@ -1,0 +1,578 @@
+@database Savage060magyar.guide
+@master Savage060magyar.guide
+@$VER:  2.0
+@author "László Török"
+@font phxmagyar.font 8
+@(c) "20.07.96"
+
+@node "Main" "Savage060 Fõmenü"
+
+                          Savage-videodriver 060 AGA Amigákra
+                        
+                         A ShapeShifter Macintosh Emulátorhoz
+
+                                    2.00-ás verzió
+
+
+
+@{"  Mi a csuda ez?         " link "micsoda" }      Részletes leírás a driverrõl
+@{"  Mi kell hozzá?         " link "kell" }      A szükséges hardware és software
+@{"  Mi a csuda az az MMU?  " link "MMU" }      Egy kis technikai info az MMU-ról
+@{"  Technikai információk  " link "tech" }      A driver technikai leírása
+@{"  Konfigurálás           " link "konf" }      A driverek beállítása ShapeShifter alá
+@{"  Frissítési érték       " link "fris" }      A Frissítési érték beállításáról
+@{"  Teszteredmények 15bit  " link "tes15" }      15bites tesztek & eredmények
+@{"  Teszteredmények  8bit  " link "tests" }      256 színû tesztek & eredmények
+@{"  Teszteredmények  4bit  " link "tes4b" }      16 színû tesztek & eredmények
+@{"  Felhasznált cuccok     " link "felha" }      A felhasznált soft és hardware
+@{"  Ki követte ezt el?     " link "keszit" }      A készítõrõl néhány info...
+@{"  Hol van az új verzió?  " link "supp" }      A legújabb verziók lelõhelyei
+@{"  Kellene még ...        " link "kellmeg" }      Hát biza még fejleszteni kell...
+@{"  Eddigi verziók         " link "revlist" }      Az eddigi verziók közötti különbségek
+@{"  Köszönetek             " link "koszi" }      A készítõ köszöni címû mûsor
+@{"  Copyright&regisztáció  " link "legal" }      Copyright szöveg és registráció
+
+@endnode
+
+@node "kell" "A szükséges hard- és software"
+
+Nakéremszépen kell hozzá:
+
+KickStart 3.0+ (a 16 színû módokhoz is!!)
+
+AGA chipsetes Amiga 
+
+060-as procikártya/proci  
+Lehet hogy müxik 040en is de csak akkor ha az MMU config megegyezik... 
+
+ShapShifter3.2 vagy annál újabb...  (Csak 3.5 ön teszteltem de máshol is futnia kell...
+elvileg :)
+
+És még természetesen nagyon nagyon sok memória..... 
+
+@endnode
+
+@node "micsoda" "Mi a csuda ez?"
+
+
+Naszóval.... 
+A Shape belsõ MMU drivere kicsit tetü, és a kiadott nem MMUs driverek akkor is
+lassítják az emulációt ha nem változik egy pixel sem.
+ 
+Ezért lett ez a driver kifejlesztve, mivel az MMU segítségével csak azokat a sorokat
+kell frissíteni amelyek tényleg változtak az utolsó frissítés óta...  És mivel ez
+teljesen hardware úton történik, nyugodtan lehet 1-es frissítéssel is nyomulni a
+Shapevel!!
+
+@endnode
+
+@node "MMU" "Egy kicsi technikai info az MMU-ról "
+
+Na szóval kezdjük talán a nevével ...
+MMU = Memory Management Unit
+
+(magyarra ferdítve kb. memória kezelõ egység)
+
+A névbõl is látszik az õ feladata a memória kezelésével kapcsolatos néhány dolog
+elvégzése.  (pl:  írásvédelem, cache letiltás, memória változás megmutatása, stb.)
+
+Azonban a jelenlegi AmigaOS még nem támogatja a memória evvel az egységgel történõ
+kezelését és ezért nincs is rá nagyon szükség.
+
+Csupán néhány olyan alkalmazás (brr...  ez olyan windózerosan hangzik...) használja
+ahol erre tényleg szükség van:  enforcer, VMM, a cpu parancs fastrom opciója, illetve
+az összes "normálisabb" UNIX és UNIX-klón.  Mivel az MMU-t szinte lehetetlen softwares
+úton emulálni..  (ki is lehetne jelenteni hogy lehetetlen....)
+
+Mint ebbõl is látszik az MMU memóriakezelõ egység, tehát ezen kivül nemigen képes más
+feladatot elvégezni.  (pl:  chunky->planar konverziót....) Mivel azt gondolhatják a
+ShapeShifter MMU frissítés opciójából (az angol erdetiben MMU refresh) , hogy az MMU
+végzi a frissítést, de ez NEM így van!
+
+A 68060-as boot után a 68060-as libraryból (asszem a 68040es is) bekapcsolja az MMU-t,
+és a driver ehhez alkalmazkodik. (ha tud...)
+
+És most már láthatjuk hogy ha a Macintosh videomemóriát osztjuk fel pl:  4k-s darabokra
+akkor az MMU jelezni tudja hogy ebben a lapban volt-e változás vagy sem, és ha volt
+akkor csak ezt a darabot kell konvertálni.
+
+Na az MMU-ról ennyit...  Ha érdekel még valami technikai info a driverrõl akkor nézd
+meg a @{"Technikai információk" link "tech" } -at !
+
+
+@endnode
+
+@node "tech" "A Driver technikai leírása (mélyvíz csak úszóknak ... :)"
+
+Mint már az @{"MMU" link "MMU" } résznél említettem a driver technikailag nem csinál
+mást, mint az MMU által jelzett (változott) részt lekonvertálja a maces chunky
+formátumról Amigán használatos planar formátumra...
+
+Ez a driver csak akkor mûködik ha a haszált proci/procikártya a következõ MMU configot
+használja:
+
+RootPageTable 32 Megabyte
+LevelA PageTable 256 Kbyte
+LevelB PageTable 4 Kbyte
+
+(gondolom sokan értik hogy mi lehet ez... szóval azt jelenti, hogy ha nem megy nálad
+akkor nem ilyen az MMU configod ;)
+
+@endnode
+
+
+@node "konf" "A driverek bekonfigurálása ShapeShifter alá:"
+
+A drivereket illik felmásolni a ShapeShifter "Video Drivers" könyvtárba, mivel ez a
+alap keresési útvonala a külsõ video-vezérlõknek.
+
+Mint látható háromféle driver van:  mindegyik 640x480as felbontású, ezen belül van 4, 8
+illetve 15 bites verzió.
+
+Ennek egyszerû a magyarázata, hogy miért:  mivel csak ezek a legális macen használható
+felbontások.  (nincs macen pl: 640x512, 640x400 stb...)
+Evvel lehet elérni a legnagyobb kompatibilitást mac alatt!
+
+8bites driver:
+
+A külsÖ videovezérlõkhöz be kell állítani a kívánt drivert, a felbontást - amelynek
+jelen esetben mindig 640x480 nak kell lennie -, az amiga képernyõ módot, és a színek
+számát 256 színre kell állítani.
+
+
+4bites driver:
+
+Itt is minden úgy van mint a 256 színû drivernél csak itt -természetesen- 16 színt
+kell beállítani.
+
+15bites driver:
+
+Itt is 640x480-as felbontás van és természetesen a 15bit-et kell beállítani a színek
+számához. (Amit ham8-ra fog konvertálni)
+
+
+A memória igények:
+A legfontosabb hogy kapcsoljuk ki a legnagyobb szabad blokk lefoglalást és kézzel
+állítsuk be a memóriát. Az egyes driverek maximális memória igényei a következõk:
+
+
+Savage_640x480_8bit     856 kb  ( 640x480 = 300kb+256kb az MMU page miatt+300kb dbuff)
+Savage_640x480_4bit     556 kb  ( 640x480 = 150kb+256kb+150kb)
+Savage_640x480_15bit   1488 kb  ( 640x480 = 600kb+256kb+600kb+32kb ham8convtab )
+
+Sajnos (ez látható is ...) az MMU page könyebb kezelése miatt kell mindig 256 kb-rammal
+több mint ahogy egyébként kellene... 
+
+Tehát ezeket a memóriaértékeket vonjuk ki a maximális memóriából és írjuk be az így
+kapott eredményt a mac memóriához...
+(Ha a mac videoram vagy akármelyik fontos puffer a chipramba kerül akkor a driver nem
+fog elindulni és kilép.  Tehát ezeknél az értékeknél mindíg egy kicsit nagyobbat
+vonjunk le ha biztosra akarunk menni!)
+
+Azonban a fennt írt értékek a lehetõ legnagyobb memória igények, és elképzelhetõ, hogy
+100-200 kb-al kevesebb memórián is elindulnak. (Attól függ, hogy az mac videómem
+kezdõcíme osztható-e 256kb-al)
+
+Végül @{"Frissítési érték" link "fris" } beállítása következik.
+
+@endnode
+
+
+@node "Fris" "A frissítési érték beállítása:"
+
+Mivel a driver MMU-t használ nyugodtan próbálkozhatunk az 1-es értékkel.
+(még 15 bites módban is!!)
+Ez javasolt addig míg kb egy 320x256-os nagyságú mezõ változik 1/50 sec alatt, és
+emelett gyors CPU teljesítményre van szükség pl: kisebb képernyõs játékok, emulátorok,
+(Hi Louise!), képfeldolgozók.  Vagy csak simán nagy proci teljesítmény kell pl:
+szövegszerkesztõk, ray-tracerek.
+
+Azonban ha olyan programot szeretnénk használni ami sok grafikai mûvelettel jár
+(pl:640x480-as teljesképernyõs játékok) akkor próbálkozatunk 2-es értékkel.
+
+Megjegyzés:A fenti összes érték 50 Mhz-s 68060-ra vonatkozik 256 színû módban!
+
+@endnode
+
+@node "tests" "Teszteredmények-8bit"
+
+Tesztgép: A1200-68060/50 Mhz 2meg Chip+16meg Fast
+Software:Mac System7.5 (magyar) 80 meg hd - ShapeShifter 3.5
+(a macintosh rom mindenhol a fastramban volt... max sebesség tehát mindenhol)
+
+A tesztek Speedometer 4.0-val készültek. 
+Mindenhol 640x480 256 szín a felbontás
+(az amiga8bit a ShapeShifter 3.5 belsõ alap drivere, a többi külsõ driver)
+
+1.0=Mac Quadra 605 (68040/25Mhz)
+
+Driver:          Savage  Savage Amiga8bit Aga-Evd AGAboost
+Verzió:             2.0     2.0       3.5     1.2      0.9
+Frissítés:            1       2         1       2        2
+----------------------------------------------------------
+CPU:              3.232   3.254     2.867   2.283    2.708
+MATH:            30.404  30.503    26.985  21.020   25.738
+Benchmark Aver:   3.361   3.375     2.817   2.343    2.845
+Color Quickdraw:  0.614   0.762     0.145   0.656    0.658
+
+Mint látható ez a driver a lehetõ legnagyobb CPU teljesítményt nyújtja, valamint a
+color quickdraw érték is a legmagasabb (fõleg ha úgy nézzük, hogy 1-es frissítéssel
+van..)
+
+Itt van még néhány teszteredmény egy BenchmarkV1.0B3 nevû progival is.  (olyan szép
+homokóra ikonja van)
+
+Csak a fontosabb teszteket írom le, ahol minden érték másodpercben van megadva és tehát
+a kisebb a jobb:
+
+
+Driver:          Savage  Savage Amiga8bit Aga-Evd AGAboost
+Verzió:             2.0     2.0       3.5     1.2      0.9
+Frissítés:            1       2         1       2        2
+----------------------------------------------------------
+Moire:              2.33   2.13     11.28    2.28     2.17
+Ripples:            5.72   5.62     14.42    7.18     6.87
+
+
+@endnode
+
+
+@node "tes4b" "Teszteredmények-4bit"
+
+Tesztgép: A1200-68060/50 Mhz 2meg Chip+16meg Fast
+Software:Mac System7.5 (magyar) 80 meg hd - ShapeShifter 3.5
+(a macintosh rom mindenhol a fastramban volt... max sebesség tehát mindenhol)
+
+A tesztek Speedometer 4.0-val készültek. 
+Mindenhol 640x480 256 szín a felbontás
+(az amiga8bit a ShapeShifter 3.5 belsõ alap drivere, a többi külsõ driver)
+
+
+1.0=Mac Quadra 605 (68040/25Mhz)
+
+Driver:          Savage Savage Aga-Evd Amiga4bit
+Verzió:             2.0    2.0     1.2       3.5
+Frissítés:            1      2       2         1
+------------------------------------------------
+CPU:              3.231  3.238   2.685     2.950
+MATH:            30.433 30.536  25.321    27.818
+Benchmark Aver:   3.368  3.376   2.815     3.007
+Color Quickdraw:  1.043  1.182   1.087     0.443
+
+
+Mint látható ez a driver a lehetõ legnagyobb CPU teljesítményt nyújtja, valamint a
+color quickdraw érték is legmagasabb.
+
+Itt van még néhány teszteredmény egy BenchmarkV1.0B3 nevû progival is.  (olyan szép
+homokóra ikonja van)
+
+Csak a fontosabb teszteket írom le, ahol minden érték másodpercben van megadva és tehát
+a kisebb a jobb:
+
+
+Driver:          Savage Savage  Aga-Evd Amiga4bit
+Verzió:             2.0    2.0      1.2       3.5
+Frissítés:            1      2        2         1
+-------------------------------------------------
+Moire:              1.67   1.53    1.63      3.93
+Ripples:            4.83   4.75    5.62      7.53
+
+
+@endnode
+
+@node "tes15" "Teszteredmények-15bit"
+
+
+Tesztgép: A1200-68060/50 Mhz 2meg Chip+16meg Fast
+Software:Mac System7.5 (magyar) 80 meg hd - ShapeShifter 3.5
+(a macintosh rom mindenhol a fastramban volt... max sebesség tehát mindenhol)
+
+A tesztek Speedometer 4.0-val készültek. 
+Mindenhol 640x480 15bit a felbontás
+(az amiga8bit a ShapeShifter 3.5 belsõ alap drivere, a többi külsõ driver)
+
+
+1.0=Mac Quadra 605 (68040/25Mhz)
+
+Driver:          Savage Aga-Evd
+Verzió:             2.0     1.2
+Frissítés:            2       2
+-------------------------------
+CPU:              3.202   1.666
+MATH:            30.129  15.867
+Benchmark Aver:   3.298   1.774
+Color Quickdraw:  0.552   0.322
+
+
+
+Mint látható ez a driver a lehetõ legnagyobb CPU teljesítményt nyújtja, valamint a
+color quickdraw érték is legmagasabb.
+
+Itt van még néhány teszteredmény egy BenchmarkV1.0B3 nevû progival is.  (olyan szép
+homokóra ikonja van)
+
+Csak a fontosabb teszteket írom le, ahol minden érték másodpercben van megadva és tehát
+a kisebb a jobb:
+
+Driver:          Savage Aga-Evd 
+Verzió:             2.0     1.2 
+Frissítés:            2       2 
+-------------------------------
+Moire:              3.23   5.88
+Ripples:            6.00  11.00
+
+@endnode
+
+
+@node "keszit" "Az elkövetõ...."
+
+Ha valami problémád van ezzel a driverrel nyugodtan megkereshetsz a következõ címen:
+(valamint a regisztrációs díjat is ide küldd)
+
+mezei tetû posta:       Török László (pH03N1x/CDi)
+                        8900 Zalaegerszeg 
+                        Cserfa út 31.
+telefon:                +36 92 310 396 (estefelé)
+
+E-Mail : phoenix@master.fok.hu
+vagy:    phoenix@fok.hu         (elvileg a kettõ egy és ugyanaz...)
+vagy:    torokl@orso.dfmk.hu    <- munkahelyi
+
+Ja asszem mostantól van egy accum a @{"Dark Millennium BBS" link "supp" }-en is phoenix
+néven, tehát oda is írhatsz!  (kösz Dark!)
+
+nagyritkán iRC-zni is szoktam: pH03N1x@iRC (#magyar, #amiga vagy #amigahu csati)
+
+van egy fenomén homepagem is (már elég régi..): http://www.fok.hu/~phoenix
+(lehet hogy nincs mert a home volume beszart asszem)
+
+@endnode
+
+
+@node "supp" "A driver legújabb verzióinak lelõhelye:"
+
+A driver legújabb verziói megtalálhatóak:
+Amineten: A misc/emu könyvtárban
+valamint
+
+A Dark Millennium BBS-en:        (CDi WHQ/Crimson Jihad Distro)
+
+tel: +36 93 320 679
+
+HW: A1200-68060/50 18 meg ram 1.3GHD 6xCD-ROM 14.4k
+Nyitva: minden nap 22.00-06.00
+
+Sysop: Dark/CDi
+
+@endnode
+@{"  Ki követte ezt el?     " link "keszit" }      A készítõrõl néhány info...
+
+@node "revlist" "Az eddigi verziók"
+
+2.0 (20.07.1996)       Elsõ 060-as verzió (lehet hogy mûködik 040-en is)
+
+@endnode
+
+@node "kellmeg" "Na kellene még a következõkön fejleszteni:"
+
+Várhatóan ki lesz cserélve a c2p rutin egy cpu+blitteresre, mivel jelenleg teljesen
+CPU-val van minden konvertálva... (CPU+Blitter rules ... Amigán vagyunk nem? ;)
+
+Gyors 15bit->256 colors (332 dither) ill. 15bit->256 szürke konv.
+
+16 színû Workbench-ablak verzió
+
+Gyorsabb refresh Graffityn 15bit ill.  24bit módokban..  (na mondjuk ehhez kellene
+elõbb egy Graffity is...)
+
+@endnode
+
+@node "felha" "Felhasznált hard-és software:"
+
+Hardware:
+
+A1200-68060/50 (Blizzard1260) 2meg Chip + 16 meg Fast <- ez a Dark Milennium server
+
+1084s monitor.... (ez fontos... :)
+
+2x80watt audio.... (ez a legfontosabb... :)
+
+Pioneer PD-S503 Cd player
+
+Pioneer SX-303RDS erõsítõ
+
+
+Eme verzió a CDi meetingen készült (1996.07.14-1996.07.21-ig tartott BalatonMárián)
+
+Ezen résztvevõ emberkék:
+Toxin/CDi (az amcsi szekció)
+Dæ®k/CDi&C^J (az a nagy magas ficek...)
+DarkSide/CDi (kübli colourer)
+CaveM@N/CDi (az elméleti coderszekció alapítója)
+G®æ$$/CDi (Slamtilt tester/grafikus)
+Flex/Frame18 & CDi (aki a CD-ket hallgatta&kübli tracer)
+Józsi/CDi (brrr... PC-s szekció.... & transporter )
+Ja meg én: pH03N1x/CDi
+
+A meetingen felhasznált dolgok listája:
+Kaja:   30 db konzerv
+        15 db tojás
+        12 kg kenyér
+        40 Liter Cola/Fanta stb.
+        Tej, Paprika, Paradicsom
+        20 kg sárgabarack (a közeli barackfáról)
+        Némi alkohol.... (hukkkk...)
+        Az üres üvegekbõl két napig kajáltunk - még jó hogy akció volt a boltban
+
+Szemét: kb 30kg szemét
+        2db telefonkártya
+        1db robogó (smashed by Flex... -3000Ft 8( )
+        210 MegHd partició (Darkside's DH1: virus sux)
+
+        Kurvasok Worms+Dogfight party (5 óra folyamatos DogFight compo)
+        Párezer Demó megtekintése
+        "ketteskék" megtekintése (uhhhhhuuuuuuuu volt egypár)
+        Klotyó Debugger V1.0 (ez már HW kategória)
+        Szúnyogkiller V1.0 (egyik by Flex ..)
+        Arab terroristák a Balaton-parton (törülközõ a fejen)
+        elméleti SW/HW fejlesztés (memória védelem & egy kurvajó HW megtervezése) 
+        Egy felkész AVI player codeolása (no sound)
+
+Best beszólások:
+-"Darkside már alszol?" - éjjel kettõkor
+-.... 
+
+-Mikor megyünk megint motorozni? (miután Flex elbaffant...)
+
+-Ki itta meg a Colámat? 
+-Este még megvolt!
+
+-Stored MPEG anim az egész!
+
+-Hogy lehet lassítani az MPEG-et?
+
+-A tied millen?
+-Öttusa?
+-Az enyém is! (Aranyláz rulez) 
+
+-Hüjje vagy! 
+
+-Darkside nyisd meg a csapot! (közben Toxa felé tartotta a slagot....)
+
+-Huuuuhuuuuuuuuu -kerekes bagoly! (a bigék megtekintése közben..)
+
+-Hol van a papucsom?
+
+-Ki akar mosogatni?
+
+-Adod vissza a szúnyogirtót!
+
+-Itt egy pók! Kinél van gyufásdoboz? (kb. 3kmre a nyaralótól egy kihalt úton)
+
+-Balfasz vagy!
+
+-Jump jump! (csak így simán magyrul kiejtve) Mire egy német szemlélõdõ:
+-Alles Klar?
+
+-Fingomcsing!
+
+-Megvan a szúnyog!
+
+Discóban:
+
+-Hazavigyelek?
+-Meg hát!
+
+-Táncolunk elõtte?
+
+stb. (még ezt mind le kell angolra is fordítani...)
+
+Egyéb:
+Ehh!, Kübli
+
+KUUUURRRVVVVÁÁÁÁÁRRRRRRRRA UUUUNNNNNOOOOMMMMM A ROOOOOBBBBEEERRRRTTTT MMIIIILLLEEEESSS
+CCCCCCCCCCCCCCCCDDDDDDDDDDDDDDDDDDDDDDDDDTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT!
+(vagy 100x szor kellett meghallgatni...... a Flex mijjatttt!)
+
+
+Software:
+
+Shapeshifter-ExeternalVideodriver manual level2 by Christian Bauer
+                (Ez egy nagyon jól megszerkesztett manuál és driverspecifikáció leírás)
+
+Asm-one 1.20 ..         kb. 4 új hibát találtunk benne
+
+HippoPlayer 2.23        kell valami zene a fejlesztéshez....
+
+D68k 2.0.7              A legjobb resourcer (jobb mint a resource szerintem)
+                        (Teljes MMU,FPU,68000-68060 támogatás!)
+
+19db Guru (MCP gurureport szerint...) (MMU config errortól corrupt memory list in
+freememen át az illegal instructionig minden... Amiga rulez... )
+
+
+@endnode
+
+
+@node "koszi" "Köszönet a következõknek:"
+
+Köszönet a következõknek:
+
+Christian Bauer-nek             A világ legjobb mac emujáért, valamint a profi külsõ
+                                videodriver specifikációkért...
+
+K-P Koljonen-nek                A Hippoplayer-ért
+
+Psycho@master.fok.hu            Az accountért,illetve az ingyen HD-ért.. (olyan is.. ;) 
+
+Pawel Hernik-nek                az AGA-EVD-ért, illetve a c2p rutinért (a 4 bitesért
+                                is!), valamint a 15bit->ham8 konverziós rutinért!
+                                (ez egy qrva gyors&jó rutin!!)
+
+Peter McGavin-nek               a c2p rutinért 
+
+Chris Brennernek                A FastECS-ért 
+
+Michael 'Xanth' Spenner-nek     A 2x2-es verzió ötletéért
+
+Dennis Arketyd-nek              Az Agaboost driverért
+
+Valamint: Az összes REGISZTRÁLT Felhasználónák!
+
+Néhány nem a fejlesztéshez kapcsolodó greetx:
+
+Amiga:  Dark/CDi, Shamen/CDi, Flex/Frame18, Anorganic/Promise, Pogi/Crimson Jihad
+        Hanzi/???, Chexum
+
+        Louise/Amiga Only       -       A kis ShapeShifter mániás... ;) (mint én...)
+        All members of Amiga Only       <- A legjobb magyar Amiga user-mag
+
+PC:     Basq/Tsi Alive, Trajic/Hydrogen, Hamster/???, Dada
+
+Végül.. de nem utolsó stb:  az Amiga és az AmigaOS fejlesztõinek ... (igen ez egy igazi
+operációs rendszer... ugyan vannak hibái, de akkor is ÖRÖM fejleszteni alá!!)
+
+Fuck minden olyan PC-snek akik szerint az Amiga egy játékgép....
+
+@endnode
+
+@node "legal" "Copyright & regisztráció..."
+
+A driver jelenlegi verziója SHAREWARE.  Ez a demo verzió kb.  3 percig mûködik utána
+megáll (Ezután csak a következõ gombok lenyomásával tudsz a Shapeból kilépni:
+LAlt+LShift+Control+ESC), és csak 256 szinû verzió van az archiveban (gondolom
+észrevehetõ volt...)
+
+A regisztráció díj 300 kemény magyar valuta... izé Forint.
+Az update meg 150 FT.
+
+Amit kéretik bankjegyekben a @{"postacímemre" link "keszit" } küldeni, ha valaki
+regisztrálni akarja.  (kell még egy !mûködõképes!  lemez valamint egy felbélyegzett
+válaszboríték is)
+
+Amiga & AmigaOS a Viscorp vagy az Amiga Technologies védjegye... (most nemigazán tudom,
+hogy melyiké...  van ez így... túl gyakran változik..)
+
+A Macintosh az Apple Computer bejegyzett védjegye
+
+@endnode

@@ -1,0 +1,1820 @@
+@DATABASE Football
+@$VER: Football.guide (04.03.01)
+@AUTHOR   Mark Naughton
+@(C) Mark Naughton 1996-2001.
+@WIDTH 80
+@NODE main "Football Index"
+
+                  @{b}@{u} FOOTBALL v2.6@{ub}   @{i}Copyright Mark Naughton 1996-2001 @{ui}@{uu}
+
+  @{" Introduction      " LINK intro}   Ladies and Gentlemen...
+
+  @{" Requirements      " LINK Req}   What do I need to run this?
+  @{" Supplied Programs " LINK supprogs}   What programs do I need?
+  @{" How It Works...   " LINK howitw}   How it runs.
+
+  @{" Installation      " LINK install}   How to install FOOTBALL.
+  @{" Tool Types        " LINK tooltyp}   A wrench, a screwdriver...
+  @{" Options           " LINK options}   Detailed descriptions.
+  @{" External Scripts  " LINK extscrpt}   External power!
+  @{" Writing Your Own  " LINK writeyo}   How to tap that power!
+  @{" Hints And Tips    " LINK tips}   Solutions for everyday problems...
+
+  @{" History           " LINK history}   This program's life.
+  @{" Future            " LINK future}   What's in store soon...
+  @{" Credits           " LINK credits}   Where credits due...
+@ENDNODE
+@NODE intro "What is FOOTBALL all about?"
+
+
+           I decided to write a few REXX programs to display various types
+  of information about football matches that I played with a certain football
+  game. This allowed me to display the league, statistics about my team and
+  all the results. Problem was, I had to run all these from the Shell and
+  after a while, it became a pain in the butt. Hence, FOOTBALL was born.
+
+   The purpose of FOOTBALL is a central point where all these programs can
+  be run from and to display the information without using the Shell. Before
+  all leagues had to be created manually and now, you can create a league and
+  maintain it, without quitting one program and running another. FOOTBALL
+  solves all these problems.
+
+   The program can only look after one league/division. Multiple leagues can
+  be setup and teams can be transferred between them, for promotion and
+  relegation using an external AREXX script. Cups can also be set-up and
+  played, using Extra Time, Penalties and Replays. See  @{" Set Up Cup " LINK setcup}.
+
+   Football can now store player and match information such as referees,
+  attendances, goal scorers, bookings, substitutes and man of the match
+  awards. New options include renaming files, changing team names, changing
+  match scores and locale support.
+
+
+   Football has been tested with Workbench 2.04, 3.0, 3.1 and 3.5.
+  It also works with BoingBag 1 and 2a. It has not been tested with 3.9 so
+  let me know.
+
+
+  Points To Note:
+
+  The selector that allows you to select a team, is font adaptable. If the
+  current font is too big to display the data, then the selector will use
+  the default font, ie. topaz 8.
+
+
+
+  Copyright Information
+  ---------------------
+
+    Football is released as Freeware for everyone to use and love but should
+  you use the information generated, then consider COURTESY-WARE; add a note
+  saying the data was created by Football along with the author's name. Then
+  drop me an email and I'll include your website or name in the next update.
+
+
+  @{" Index " LINK main}
+@ENDNODE
+@NODE Req "Requirements"
+
+
+  You need the following to run Football :
+
+      -   Workbench 2 and above
+
+      -   AREXX to be up and running
+                              (make sure 'rexxsupport.library' is present)
+
+      -   AmigaGuide or MultiView to view this file
+
+      -   AmigaDOS program 'Sort' to be in the 'C:' directory
+
+      -   AmigaDOS program 'Delete' to be in the 'C:' directory
+
+      -   AmigaDOS program 'Rename' to be in the 'C:' directory
+
+
+      -   RexxTricks library by Jürgen Kohrmeyer
+                              (found in 'libs/' - copy to LIBS:)
+
+
+  For script 'HTMLTemplates', you need the following programs :
+
+      -   RequestFile   - supplied.
+
+      -   RequestChoice - supplied.
+
+      -   RequestString - supplied.
+
+
+  @{" Index " LINK main}
+@ENDNODE
+@NODE supprogs "Programs Supplied"
+
+
+   The following programs should be present. If not they will affect the
+  operation of the program. They are :
+
+  Stats.rexx
+  CupScheduler.rexx
+  UpdateSettings.rexx
+  WriteMatch.rexx
+  Results.rexx
+  LStats.rexx
+  League.rexx
+  Footsort
+  CupScheduleNextRound.rexx
+  CupReadMatchData.rexx
+  Alt_Results.rexx
+  Alt_League.rexx
+  Alt_ViewCupResults.rexx
+  ViewCupResults.rexx
+  Alt_ViewCupCurRound.rexx
+  ViewCupCurRound.rexx
+  Sort5Chars
+  Sort7Chars
+  UpdateCupTeamName.rexx
+  CupUpdateMatches.rexx
+  Games.rexx
+  UpdateTeamName.rexx
+  Sort4Chars
+  Scheduler.rexx
+  SortWkDts
+  DupMatches
+  ReadMatchData.rexx
+  ChangeMatchScore.rexx
+  CupReadMatchData.rexx
+  ReadMatchData.rexx
+  FOOTBALL
+
+
+   And Where They Should Be...
+  -----------------------------
+
+   FOOTBALL should be in the directory where you've installed it and then
+  the program files should reside in a subdirectory named 'Exec' and the
+  external scripts/programs in a subdirectory named 'User'.
+
+  The datafiles can now now be put into directories (only one subdirectory
+  of 'Data' though). Schedules reside in 'Data/Schedules'.
+
+  Locales reside in subdirectory 'Locale'. The only required one is 'english'.
+
+
+  @{" Index " LINK main}
+@ENDNODE
+@NODE howitw "How It All Works And Fits Together"
+
+
+   The suite of programs are used to create, update and maintain a football
+  league. First the league is created and saved to "<filename>.df". This is
+  then used by SCHEDULER to create the schedule and stats files -
+  "<filename>.sf" and "<filename>.stats". The stats file contains all the
+  data about each team such as PLAYED, WIN, DRAWN, LOST etc. This file is
+  not updated as its used as a base for the league. This has the advantage
+  of starting a league mid-season (by updating these values) if the scores
+  are not known but the table is. Obviously certain statistics will be
+  incorrect because of this.
+  See @{" Hints And Tips " LINK tips}.
+
+   By using GAMEPLAY, a file containing the matches in the order they are
+  played is stored - "<filename>.sflearn". This data is used for display
+  options when you require the matches for a team, in the order they were
+  played. When GAMEPLAY is used, and if the match entered is a valid one
+  then "<filename>.sf" and "<filename>.sflearn" are updated.
+
+   When the league is displayed, "<filename>.stats" is read in and stored.
+  This is then updated with the scores from "<filename>.sf". The table is
+  sent to a temporary file which is sorted into the correct order and
+  is then checked again, before being displayed.
+
+
+  @{" Index " LINK main}
+@ENDNODE
+@NODE install "Installing FOOTBALL"
+
+
+  To install FOOTBALL :
+
+  - Make a directory on a hard-disk or format a disk.
+  - Then copy then the contents of the directory where FOOTBALL
+    currently sits, to the one you just created.
+  - You should then have FOOTBALL and its icon in the directory and
+    three subdirectories named :
+
+    Data/           (holds all the datafiles)
+    Exec/           (contains main REXX and other programs)
+    User/           (holds all the external user scripts)
+    Locale/         (holds locale catalogs)
+    HTML/           (holds HTML output files)
+    HTMLTemplates/  (holds HTML templates)
+    Tools/          (Tools for scripts)
+
+  - Next select the icon and @{i}Information @{ui} from the Workbench
+    menu @{b}Icons@{ub}. Change the tool types for GUIDE and VIEWR,
+    remembering the full path.
+
+  - In the Data/ directory, there are several examples :
+
+    @{b}Shiva2@{ub}         - Leagues that have been used with a certain
+    @{b}Shiva3@{ub}           football game.
+
+    @{b}League_OddSched@{ub}- An example of using the new schedule options to
+                     play teams an odd number of matches.
+    @{b}OddTeams@{ub}       - Datafiles showing odd number of teams in a league.
+    @{b}Players@{ub}        - Test datafile for handling player and match
+                     information.
+
+
+    @{b}FAPrem_9798@{ub}    - Last season's FA Carling Premiership.
+    @{b}FAPrem_9899@{ub}    - The current season's FA Carling Premiership.
+    @{b}FAPrem_9900@{ub}    - The latest season with goal scorers etc....
+
+
+    @{b}EMKval@{ub}         - The next three datafiles have been supplied by
+                     Jan Allan Andersen. This one, Denmark's qualifying group
+                     for Euro 2000.
+    @{b}SuperLiga9899@{ub}  - Danish Super League for 98/99.
+    @{b}SuperLiga9900@{ub}  - Danish Super League for 99/00.
+
+
+    @{b}1BL_98-99@{ub}      - Supplied by Heiko Schroder. The German Bundesliga
+                     for 98/99.
+
+    @{b}WC98_Grp@{ub}       - The Groups from this year's World Cup in France.
+
+    @{b}WorldCup_Jul98@{ub} - The final stages of the World Cup in France.
+    @{b}FACT@{ub}           - A finished sample Cup which was used to test the
+                     features.
+    @{b}FACT2@{ub}          - A finished sample Cup which had scorers and other
+                     stats added.
+
+  - Then sit back, double click (or whatever) and .......
+
+
+  @{" Index " LINK main}
+@ENDNODE
+@NODE options "Options"
+
+
+    A variety of options to choose from :
+
+  @{" Create League     " LINK createl}
+  @{" Open League       " LINK openl}
+  @{" Documentation     " LINK docs}
+
+  @{" Display League    " LINK displeag}
+  @{" League Results    " LINK leagres}
+  @{" Team Results      " LINK teamres}
+  @{" Team Statistics   " LINK teamsta}
+  @{" Enter Scores      " LINK escores}
+  @{" League Information" LINK linfo}
+
+  More Options ------------->>>@{" Update League Settings " LINK updset}
+                               @{" Rename League Datafile " LINK renldf}
+                               @{" Change Team Name       " LINK chgtnm}
+                               @{" Change Match Score     " LINK chgms}
+                               @{" Update Stats File      " LINK updsf}
+                               @{" Change Locale          " LINK chgloc}
+                               @{" League Notes           " LINK clnotes}
+                               @{" Team Information       " LINK teaminf}
+                               @{" Players & Referees     " LINK playref}
+                               @{" Recreate Schedule      " LINK recreat}
+
+
+  @{" Configure Scripts " LINK configs}
+
+
+  @{" Create Cup        " LINK setcup}
+  @{" Play Cup Games    " LINK playcup}------------------->>> @{" Open Cup          " LINK opencup}
+                                             @{" Enter Scores      " LINK entercs}
+                                             @{" View Curr.Round   " LINK viewcurr}
+                                             @{" View Cup Results  " LINK viewres}
+                                             @{" Configure Scripts " LINK configs}
+
+
+  More Options ------------->>>@{" Change Cup Team Name " LINK chgtnm}
+                               @{" Rename Cup Datafile  " LINK renldf}
+                               @{" Cup Notes            " LINK clnotes}
+                               @{" Team Information     " LINK teaminf}
+                               @{" Players & Referees   " LINK playref}
+                               @{" Change Locale        " LINK chgloc}
+
+
+
+  @{" Index " LINK main}
+@ENDNODE
+@NODE createl "Create A League..."
+
+
+   This is where a league is first set up. You can setup how many points for
+  a win, loss and a draw. You can setup how many times each team plays each
+  other, how many teams are relegated and if you so desire, how many points
+  are awarded for each goal scored. Teams Promoted, if a league of multiple
+  divisions is being set up, can be set. You can also specify the schedule
+  file to be used. Click "?" to select one. If a league of multiple divisions
+  is being setup and this is the final division being setup but is the first
+  one, change the number of divisions and then selecting "?", you can specify
+  the other division filenames.
+
+   You can enter your name, the title of the league and what the file should
+  be called. Then you can enter the teams (up to 50).
+
+   Click on Add_Team, type the name, hit ENTER. To change a team, click on the
+  team in the listview, edit it and then hit ENTER. To delete a team, click on
+  the team then click on Delete_Team. To import all the data from a previous
+  league, click on Import_League. Then select the league from the list, and
+  the details will be displayed on the window. When finished, click SAVE to
+  create the league.
+
+   I use Import_League to read a previous league, then I delete the bottom six
+  teams in the table and add six new ones. Then I change the league and
+  filename and then SAVE it.
+
+
+   Football now gives you the option to set up the statistics file
+  for the league just created. You can click 'No Way!' for an
+  automatic setup or 'Okay' for manual setup. Click on the teams
+  then change the settings below. Click 'Save Stats' to create the
+  file - this is useful when starting a season mid way. To revert
+  back to an automatic setup, click 'Close'.
+
+          See @{" Starting Mid-Season   " LINK mtips}
+
+
+   Football now checks to see if the schedule definition file supplied
+ has the correct number of matches set up for the league to run with
+ the number of teams and the number of times they play each other.
+
+
+  As Football can now handle datafiles in subdirectories of 'Data/',
+ there is a "?" to the left of the filename for selecting the
+ directory.
+
+
+  @{" Back   " LINK options}
+@ENDNODE
+@NODE recreat "Recreate Schedule..."
+
+
+   After updating the schedule, for example changing the date of a match,
+  you will want to make sure your schedule file is up to date. This option
+  will recreate the schedule, updating the scores, for the currently
+  loaded datafile.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE teaminf "Team Information..."
+
+
+   This option will allow you to record details for your teams such as
+  ground name, when formed, country and the manager. Then when you are
+  in Leagues (click Home Team or Away Team) or in Cups (click Matches To
+  Be Played) and the information will be displayed. Hitting ESCAPE or the
+  right mouse button will close it.
+
+  Click on ADD TEAM then on STORE TEAM to store your data. DELETE TEAM
+  will do as it says and CLOSE will close the option.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE playref "Players & Referees..."
+
+
+   This option allows you to keep a database of players and referees so
+  that you can select from then when you enter the data for the matches
+  saving you from typing all the time. Click on ADD then select whether
+  the person is a player or referee, enter their name and click STORE.
+  DELETE works the same as elsewhere and CLOSE will close the option.
+
+
+  To use these names, click on the gadget next to the input boxes for the
+  player and referee in Player Information, Enter Scores and Match Stats.
+  This small menu will 'Add' the name in the box to the database, 'Get'
+  will prompt you with a list of players OR referees for you to select
+  and 'Clear' will erase the contents of the input box.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE updset "Update League Settings..."
+
+
+   The principle is the same as CREATE LEAGUE except you can change the points
+   awarded, numbers of promoted/relegated teams, the title and author. Follow
+   on-screen messages.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE updsf "Update Stats Datafile..."
+
+
+   You can also update the statistics file, useful for starting a season
+   mid way. See @{" Starting Mid-Season   " LINK mtips}. Click on a team
+   then adjust the points, matches, wins, draws etc. Click on 'Save Stats'
+   will do what it says.
+
+    You can set the points to a negative value up to -20. This will handle
+   teams who have had points deducted.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE renldf "Rename Datafile..."
+
+
+   As there are a number of datafiles used for each league and cup, it made
+   sense to implement this. Upon selecting the option, you pick a team from
+   the file requester and a string requester appears prompting you to change
+   it. The directory path will be retained.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE chgtnm "Change Team Name..."
+
+
+   One option that was missing was the ability to change team names whether
+   in Leagues or Cups. Select a team from the list, change it and all files
+   will correctly reflect the new team.
+
+   * Be careful as if the newly renamed team has a different position in the
+     schedule file (Leagues only), the league's schedules will all be wrong
+     but only if you run one of the 'Update...' scripts.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE chgms "Change Match Score..."
+
+
+   This option has been missing for a very long time. After several requests,
+   its here. When selected, a list of played matches will be shown. Click on
+   the match and then on READ MATCH. Now the details can be changed the same
+   way as they are entered in ENTER SCORES. When you've finished, click on
+   SAVE MATCH - the same checks as ENTER SCORES are performed so you cannot
+   enter more goal scorers than there are goals.
+
+   To unplay a match (or reset it if you like), select the match, read it and
+   then click UNPLAY MATCH.
+
+   When a match is updated, a report is shown, displaying the previous match
+   and the new one, what action was done (player info updated, match updated or
+   match unplayed).
+
+   If there are duplicate matches (same home/away, teams and score), then
+   a requester will appear, displaying a list of the duplicates. Select the
+   match to change it.
+
+   If you've read a match but wish to read another, click on RESET OPTION then
+   select the other match that you want to read.
+
+   At any time you want to quit the option, click EXIT.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE clnotes "League & Cup Notes..."
+
+
+   You can now add notes to Leagues (select League Notes from More Options)
+  and to Cups (select Cup Notes from More Cup Options). It uses the tooltype
+  EDITOR to allow you to edit the file. Here you can add notes about point
+  deductions or teams being banned etc.
+
+  Selecting SAVE from the editor will return you back to the program.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE configs "Configure Scripts..."
+
+
+   This option has been changed to allow more flexibility with Scripts and
+  applies to both League and Cups. When you select Scripts, the options
+  window appears, allowing you to select a pre-selected script, MORE SCRIPTS
+  and CONFIGURE.
+
+   MORE SCRIPTS will open the file requester on the scripts directory as
+  before. CONFIGURE will allow you to adjust which scripts you want to appear
+  in the options window. Click on an entry then on '?' to select a script.
+  The script's name will appear in the 'Name' allowing you to change it.
+  Click on STORE to store the entry or RESET to reset to a neutral state.
+  USE SETTINGS will save the settings to a file while CLOSE will not save.
+
+   When Football is first started up (under 2.5.4 and above), it will check
+  for this settings file and will create one if necessary.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE chgloc "Change Locale..."
+
+
+
+   With v2.5, you can now change the locale for the AREXX scripts. In a later
+   version, the main program will be converted over.
+
+
+   The beauty of this though, is that all those OS2.04 users who haven't
+   upgraded to OS2.1, can now view the datafiles in their language, if written.
+
+   Selecting this option, will allow you to change between the available
+   locales. If you want to write your own, see 'Locale.docs' in the 'Locale'
+   directory.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE openl "Open A League..."
+
+
+   A list of leagues are read from the 'Data' directory and are displayed in a
+  file requester, for you to choose.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE docs "Documentation..."
+
+
+   Pressing HELP displays the amigaguide file that you are now reading or
+   the HTML documentation.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE escores "Enter Scores..."
+
+
+   After opening a league, you can enter the scores for matches that have been
+  played. There are two listview gadgets for the teams in league, playing HOME
+  and AWAY. Click on the team, click in the slider gadget to change the score
+  and click SAVE MATCH to save it. The screen will then beep and flash
+  (depending on how you've set up your Workbench) and the scores will be reset
+  to zero. The number of matches stored while this option is active, is
+  displayed and the last match stored is displayed at the bottom. If the match
+  that you have entered has already been played, then an error message will be
+  displayed.
+
+   To exit the option, click on the close gadget, or press ESCAPE.
+
+
+
+  If you want to store the match statistics and information then :
+
+
+  - Enter the referee and attendance on the main panel. If these are not filled
+    in, they will not get recorded in the datafile.
+
+  - To enter player information, click on 'Players' beneath the associated team.
+    Again, if the information is not filled in, then it will not get recorded.
+    The program will handle the information you put in.
+
+
+  The window will appear ONLY after you have selected two teams.
+
+
+
+  Player Information
+  ------------------
+
+  Click on 'Add Player' and make a selection from 'Goal!', Penalty, Own Goal
+  Yellow card, Yellow-Red card, Red card, Substitute and Man of the Match.
+  You can now select a previously entered player and hit 'Clone' so the labour
+  of typing in a 20 letter name is taken away or use the gadget next to the
+  input box for the player. 'Clear Plyr' will reset the panel.
+
+  The panel now has Position or Action. The former allows you to set the
+  position the player is in during this match. Action allows you to select
+  numerous actions associated with the match.
+
+  Now you can store players and referees, Player Information has now been
+  updated and Enter Scores, to allow you to select them. To the right of the
+  input box, click on the gadget for these options. 'Add' will add the
+  name in the input box to the database, 'Get' will ask you to select a
+  player from the database and 'Clear' will erase the contents of the input
+  box.
+
+  The time value can be entered if you so wish for all options, except
+  Man of the Match although it is not required for any selection.
+
+
+  Click on 'Enter Details' to store. Normal rules apply for 'Delete Player'.
+  When finished, click 'Close' or press ESCAPE.
+
+
+  *IMPORTANT* If you enter goal scorers, the program will check to see if you
+              have entered the right number of scorers compared to the number
+              of goals scored. If not, you will be shown an error. Re-enter
+              or adjust the player listing to suit. Penalty takers after
+              extra time are not counted.
+
+
+  ***************************** IMPROVEMENT *****************************
+
+
+    Using RexxTricks by Jürgen Kohrmeyer, Heiko Schroder has improved the
+   Arexx script that updated the datafiles with the scores and has made it
+   run at least 400% faster!!
+
+
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE linfo "League Information..."
+
+
+   This will display the various settings for the league, the number of matches
+  played and the number of home/away wins, the highest home and away wins and
+  the teams with the best record.
+
+   If the information is stored, this option will display the top 10 scorers,
+  the highest/lowest attendances, the fastest goal and the Fair Play table.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE displeag "Display League..."
+
+
+   As well as the league being displayed, the top team will be displayed in
+  capitals. A promotion line will show those teams which qualify for promotion
+  where as at the bottom, the relegation line will show those liable for
+  relegation. Any team under this line in capitals has already been relegated.
+
+
+  **NEW** See @{" External Scripts " LINK extscrpt} for details on changing the format of the table.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE leagres "League Results..."
+
+
+   This will display all the results from the league so far, in the order that
+  they were played in.
+
+
+   If you are storing player and match information, you might want to
+  see @{" External Scripts " LINK extscrpt} for details on changing to a different
+  display, showing scorers etc.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE teamres "Team Results..."
+
+
+   Select a team from the list. It will show each match that has been played
+  and whether it was played at HOME or AWAY, the score (Selected teams score is
+  always first) and whether it was a Home or Away win, a loss or a draw.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE teamsta "Team Statistics..."
+
+
+   Select a team from the list. It will show the data for the team's home and
+  away record, its current and longest undefeated run.
+
+
+   Depending on the information stored, it will also display the highest and
+  lowest attendances and the top scorers.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE setcup "Create Cup..."
+
+
+   Cups can be set-up to run from 2 teams upto a maximum of 256. On the main
+  window, you can enter the title of the Cup and the filename. The gadget to
+  the left allows you to select which directory in 'Data' you wish to save
+  the datafiles to. The number of rounds can be changed which updates the
+  display labelled 'Teams'. The number on the left is the number of teams
+  to get and the right hand number is the maximum number of teams allowed.
+
+   Changing the rounds will update the listview. Each line of this has the
+  round name and two settings for Extra Time and Penalties. Clicking on one
+  of these lines will change the cycle gadgets at the bottom. The round name
+  will be displayed along with the current settings for Extra Time and
+  Penalties and Legs. These can be changed and will update the listview.
+
+   If you set a round to two legs, then the settings for Extra Time and
+  Penalties will be just Extra Time and Penalties. Away Goals can also be
+  set but only apply to two legged matches.
+
+   You can select if there is to be a Third Place Play-Off and if Cup
+  history is to be stored. BUT...the filename has to be the same
+  otherwise a history will not be built up over progressive seasons.
+  Next to all of this is the listview where you enter the teams. Operation
+  is the same as CREATE LEAGUE except that selecting IMPORT TEAMS and
+  IMPORT CUP will stop and only import the number of teams that it
+  requires. You can import teams from league and cup files. Clicking on
+  SAVE runs the Cup Scheduler which produces a report and schedules the
+  first round.
+
+   A new feature is random (default) and manual scheduling of matches.
+  If manual scheduling is selected, you will be given another panel where
+  you set up the matches. The panel shows the cup name, the current round,
+  the total number of matches and two listview gadgets. The bottom one
+  contains the matches, the top one contains the teams. To store a match,
+  click on it, then click a team and click STORE. This will store this
+  first team as the home team. Click another team and STORE and this will
+  be the away team. Then repeat for the other matches. To return the
+  teams back into the top listview, click on the match and click
+  RESET MATCH. At this point, you may also click STORE to leave the match
+  as it is. When finished, click on SAVE SCHEDULE and if all matches have
+  been played, they will be written to the schedule file and the report
+  will be produced.
+
+
+  Please note :
+
+   Seedings have not been implemented and probably never will. The
+  reasons behind this are :
+
+   - Different types of Seed exist so it would be impractical to
+     attempt to implement them all.
+   - Teams can be 'seeded' by giving them a 'Home' advantage by setting
+     up a cup with Manual Scheduling.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE playcup "Play Cup..."
+
+
+   This is where all the cups are played from and external scripts for
+  Cups are run. The window shows the title of the Cup, the current
+  round name and the number of teams left. If the round name shows
+  "Finished" then the Cup, as you probably guessed, is finished. It
+  allows you to view results, run scripts but not to enter scores.
+  Whenever a new round is scheduled, the cup is reloaded to show the
+  new-current round.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE opencup "Open Cup..."
+
+
+   A list of cups are read from the 'Data' directory and are displayed in a
+  file requester, for you to choose.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE entercs "Enter Cup Scores..."
+
+
+   After opening a cup, you can enter the scores for matches that have been
+  played. There is a listview gadget with the matches for the current round
+  and depending on the settings for the round, lines will be added for
+  extra time and penalties. Only matches that haven't been played will be
+  shown. Click on a match and then select the score. Then click STORE MATCH.
+  The line which may mention "#1st Leg" is not picked up.
+
+   If a score is equal, then click on Penalties and/or Extra Time and set the
+  score, clicking STORE MATCH. If a score is not correct then clicking on
+  RESET MATCH will reset the match to being not played.
+
+
+*** NEW OPERATION ***
+
+   When all the matches a Cup is in mid-Round and not all matches have been
+  played, click on SAVE MATCHES.
+
+   You can now enter scorers, bookings, substitutes, referees, attendances
+  and man of the match for Cup matches. Click on PLAYERS to enter the
+  player stats for the team on which side the gadget is. Click on MATCH STATS
+  to enter the referee and attendance. See 'Enter Scores' for more
+  information.
+
+
+   *** You can enter all goal scorers up to and including Extra Time.
+       A check is made to see if the number of scorers equates to the
+       number of goals.
+
+   *** You can also change the match score and match stats for any match in
+       the current round, until you click NEXT ROUND.
+
+
+   When you are ready to proceed to the next round, click NEXT ROUND.
+  If any errors are found in the scores that you have entered then an error
+  report will be displayed. If there aren't any errors and all matches have
+  been played, then the next round will be scheduled. If the matches are to
+  be manually scheduled, you will be shown the same panel when you setup the
+  Cup and you will have to repeat the process.
+
+  Replays, Third Place Play-Off and the Final will NOT be manually scheduled.
+
+
+*** --- ***
+
+
+   To exit the option, click on the close gadget, or press ESCAPE.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE viewcurr "View Current Round..."
+
+
+   This will display all the results from the current round of the cup.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE viewres "View Cup Results..."
+
+
+   This will display all the results from the cup so far, in the order that
+  they were played in.
+
+
+  @{" Back  " LINK options}
+@ENDNODE
+@NODE extscrpt "External Scripts"
+
+
+   The flexibility of the program allows you to run external programs where
+  ever from, to display different data from the whole league or just a selected
+  team and even manipulate the data to create new files. Clicking on SCRIPTS
+  will display a requester with the list of external programs. Select one and
+  the results will be displayed. If the script requires a team name, you will
+  be prompted.
+
+   With the addition of Cups, External scripts are run from the
+  "Play Cup Games" window using the same names as above.
+
+
+   "Appearances.rexx"             - Displays caps for players, injuries,
+                                    and substitutions for leagues.
+
+   "Cup_Appearances.rexx"         - Displays caps for players, injuries,
+                                    and substitutions for cups.
+
+   "CurrentForm.rexx"             - Display league performance over a
+                                    number of games. In this script, you
+                                    are asked for the starting match and
+                                    the number of matches. If the league
+                                    runs to 34 matches, to see the last
+                                    6 matches, enter, at the prompt,
+                                    "29;6". You're saying "Thats 35!" but
+                                    what it does is its includes match 29
+                                    in the listing.
+
+   "SwapCupResultsMode.rexx"      - Switch between different styles of
+                                    displaying results if players are
+                                    stored.
+
+   "Cup_Referees.rexx"            - See Referees.rexx.
+
+   "Cup_Bookings.rexx"            - See Bookings.rexx.
+
+                               ***  Change value 'barrier' in this script
+                               ***  for a reduced list.
+
+   "TableOfTruth.rexx"            - Suggested by Martin Bilek. Displays
+                                    performance of teams in league.
+
+   "HTML_Played.rexx"             - Produces HTML script of played games.
+
+   "Attendances.rexx"             - Displays highest/lowest and average
+                                    attendances.
+
+   "Bookings.rexx"                - List of the unsporting players.
+
+                               ***  Change value 'barrier' in this script
+                               ***  for a reduced list.
+
+   "TopScorers.rexx"              - Lists goals, penalties and own goals of
+                                    players.
+
+                               ***  Change value 'barrier' in this script
+                               ***  for a reduced list.
+
+   "HTMLTemplates.rexx"           - By Heiko Schroder. Produces an HTML page
+                                    with results and league table based on
+                                    a template with a few user details.
+                                    See the script for more details.
+
+   "SwapResultsMode.rexx"         - If you are storing the match and player
+                                    information, run this to get scorers etc
+                                    with the match results.
+
+   "Referees.rexx"                - Display referees with their number of
+                                    matches played.
+
+   "ManOfTheMatch.rexx"           - Same as Referees but for the star players.
+
+   "HTML_Results.rexx"            - By Kevin Lambert. Produces HTML page
+                                    listing the results.
+
+   "HTML_Table.rexx"              - By Kevin Lambert. Produces HTML page
+                                    with the league table.
+
+   "SwapLeagueMode.rexx"          - At present, displaying a league shows
+                                    all data combined in one table. Running
+                                    this allows you to switch to another
+                                    format, where the table is split into
+                                    home/away. Run again to switch between
+                                    the two types.
+
+   "Cup_CloseCup.rexx"            - renames Cup files, appending month
+                                    and year, leaving history intact
+                                    for future tournaments.
+
+   "DeleteNewDataFiles.rexx"      - delete "_NewData.df" files created by
+                                    "EndOfSeason.rexx".
+
+   "EndOfSeason.rexx"             - see @{" Hints And Tips " LINK tips}.
+
+   "UpdateScheduleScores.rexx"    - recreates the schedule file from a
+                                    schedule definition file and updates
+                                    it with held scores.
+                                    ** FOR SCHEDULED LEAGUES **
+
+   "UpdateScores.rexx"            - extract data from ".sflearn" file and
+                                    update ".sf" file with the match data.
+                                    ** FOR NON-SCHEDULED LEAGUES **
+
+   "FixturesLeft.rexx"            - displays fixtures left to be played in
+                                    the season.
+
+   "PerformanceRating.rexx"       - Displays a league table on how the teams
+                                    in the league are performing dependent
+                                    on settings defined in the program.
+                                    Change the settings for different results.
+
+   "FlipSchedule.rexx"            - runs half-way through the season, and
+                                    creates a file for printing so that you
+                                    can enter scores on paper before entering
+                                    them into the program. Use for
+                                    non-scheduled leagues.
+
+   "MatchesPlayed.rexx"           - displays opposing teams and the scores for
+                                    home and away games.
+
+   "MatchAnalysis.rexx"           - displays data such as number of goals and
+                                    matches, bookings, attendances.
+
+   "Reformat_Schedule.rexx"       - this reformats a schedule file from DDMM to
+                                    DDMMYYYY. See program for details.
+
+   "ViewNextWeeksSchedule.rexx"   - if scheduled, display matches in the
+                                    following 7 days.
+
+   "ViewScheduleAndResults.rexx"  - display schedule with results and games to
+                                    to be played.
+
+   "ViewTeamSchedule.rexx"        - displays team's future matches but only
+                                    if created using a schedule file.
+
+   "Cup_ViewHistory.rexx"         - view cup's history, showing winners/losers
+                                    and a league table of past winners.
+
+   "Cup_ViewTeamProgress.rexx"    - view a team's progress throughout the Cup.
+
+
+   "Cup_CupInformation.rexx"      - view the options, the best record, current
+                                    matches etc.
+
+                               ***  Change value 'barrier' in this script
+                               ***  for a reduced top scorer list.
+
+
+  @{" Index " LINK main}
+@ENDNODE
+@NODE writeyo "Writing Your Own Scripts"
+
+
+   As already mentioned, the program supports external programs written by
+  you. Programs that want to manipulate and display data should be passed the
+  filename of the league ie. The league filename is 'Shiva3.df' so you should
+  pick up the name 'Shiva3'. Then format the data in your program to read data
+  from 'Shiva.df'. This is because the program might need to use several
+  different files with the same basename.
+
+   Any of the main programs can be changed, except the filenames. So you can
+  write your own routines or update the ones I've written. If there's a better
+  way of doing it, then write one, making sure that you keep the original file
+  format, then send it to me for inclusion in the archive. Other user-written
+  files should be moved to 'User' directory (see for examples) and again, send
+  them to me.
+
+   With the addition of Cups, external script filenames should be preceeded
+  with "Cup_" so that only the relevant scripts are picked for Leagues and
+  Cups.
+
+
+   *** NEW ***
+
+        New advances in technology (brain cells!) have realised that it would
+   be better to automatically pick up what type of script it is. Therefore the
+   very first line of the script must be :
+
+    '/* Mode=Run */' - supply league name (as above) and script runs.
+
+    '/* Mode=Set */' - Football issues the team selector and then passses the
+                       league name as the first arg and the team as the second.
+
+   Also try to localise your scripts, see the various directories for examples.
+  Global datafiles are used to store month and day names, the character to
+  display before teams have played etc. In script 'ViewNextWeeksSchedule.rexx'
+  and 'Exec/Games.rexx', there is code which searches through the available
+  locales to resolve different month names so that a datafile created in German
+  will work with a locale of English selected.
+
+   *** NEW ***
+
+
+
+  File extensions for:      League            Cup
+ ----------------------------------------------------------------
+
+  Definition file           ".df"             ".cf"
+  Schedule file             ".sf"             ".scf"
+  Played Matches in Order   ".sflearn"        n/a
+  Statistics file           ".stats"          n/a
+  Schedule Definition file  ".schd"           n/a
+  Working data file         n/a               ".cfrw"
+  History file for Cup      n/a               ".cfh"
+  Temporary Save file for   n/a               ".cfsave"
+         Cup_Enter_Scores
+  Stats file for Cups       n/a               ".cfstats"
+
+
+
+  File definitions for Leagues
+ ----------------------------------------------------------------
+  "*LEAGUE_NAME="       - league name.
+  "*POINTS_PER_WIN="    - points per win , default 2.
+  "*POINTS_PER_DRW="    - points per draw, default 1.
+  "*POINTS_PER_LSE="    - points per loss, default 0.
+  "*RELEGATION="        - number of teams relegated, default 2.
+  "*PLAY_OTHER="        - number of times each team plays each other.
+  "*POINTS_PER_GLS="    - number of points awarded per goal.
+  "*  Author ="         - author's name.
+  "*AUTOSCHD="          - specifys auto-scheduling and the schedule filename.
+  "*DIVISIONS="         - specifys filenames of related divisions.
+  "*NUM_DIVISIONS="     - the total number of divisions in the league.
+  "*PROMOTED="          - number of teams promoted.
+  "*TEAM="              - team name, in ".stats" file.
+  "*PLY="               - games played, in ".stats" file.
+  "*WIN="               - won matches, in ".stats" file.
+  "*DRW="               - drawn matches, in ".stats" file.
+  "*LST="               - lost matches, in ".stats" file.
+  "*GOF="               - goals scored, in ".stats" file.
+  "*GOA="               - goals scored against, in ".stats" file.
+  "*PTS="               - points, in ".stats" file.
+  "*DATES="             - specifys the schedule definition file is
+                          using dates and the date specified is the
+                          start date of the season.
+  "*WEEKS"              - specifys the schedule definition file is
+                          using week numbers.
+  "*NEXT"               - specifys in the schedule definition file
+                          that there is another schedule to be read.
+  "*Week:"              - specifys the week number which the matches
+                          listed below it, are playing in. In '.sf' file.
+  "*Date:"              - specifys the date that the matches listed
+                          below are playing on. In '.sf' file.
+
+
+   The following are newly supported. They are used when storing match
+  and player information in '.sflearn' and '.cfstats' file.
+
+
+  "*RF="                - Referee's name.
+  "*ATD="               - Attendance.
+  "*HG="                - Home goal scorer. Data after indicates type as
+                          in (P) for penalty, (og) for own goal.
+  "*HPM="               - Home player missed a penalty.
+  "*HY="                - Home player booked.
+  "*HYR="               - Home player booked for a second time and sent off.
+  "*HR="                - Home player sent off.
+  "*HSO="               - Home player substituted.
+  "*HSI="               - Home player substituted onto the field.
+  "*HM="                - Home player was awarded Man Of The Match.
+  "*HETP="              - Home player scored a penalty after extra time.
+  "*HETPM="             - Home player missed a penalty after extra time.
+  "*HGG="               - Home player scored a golden goal.
+  "*HRM="               - Rank for Home player for the match.
+  "*HINJ="              - Home player was injured.
+
+  "*HP=GK="             - Home player is a goalkeeper.
+  "*HP=DF="             - Home player is a defender.
+  "*HP=MD="             - Home player is a midfielder.
+  "*HP=AT="             - Home player is an attacker.
+  "*HP=SUB="            - Home player starts as a substitute.
+
+
+  "*AG="                - Same as Home, but for Away players.
+  "*APM="
+  "*AY="
+  "*AYR="
+  "*AR="
+  "*ASO="
+  "*ASI="
+  "*AM="
+  "*AETP="
+  "*AETPM="
+  "*AGG="
+  "*ARM="
+  "*AINJ="
+
+  "*AP=GK="
+  "*AP=DF="
+  "*AP=MD="
+  "*AP=AT="
+  "*AP=SUB="
+
+
+  File definitions for Cups
+ ----------------------------------------------------------------
+
+  "*CUP_TITLE="         - the cup name.
+  "*CUP_TEAMSCT="       - the number of teams originally taking part.
+  "*CUP_ROUNDS="        - number of rounds the cup is scheduled for.
+  "*CUP_THIRD="         - specify if third place play-off to be played.
+  "*CUP_HISTORY="       - specify if cup history is to be kept.
+  "*CUP_RNDDEF="        - defines the parameters for a round.
+  "*CUP_ROND="          - current round number.
+  "*CUP_CRDN="          - current round name.
+  "*CUP_RDEF="          - current round definition, in ".cfrw" file.
+  "*CUP_TCNT="          - current number of teams in round, in ".cfrw" file.
+  "*CUP_SCHEDULE="      - type of scheduling for cups. MANUAL is where the user
+                          sets up the schedule, AUTOMATIC is a random schedule.
+  "*Round="             - the roundname, in ".scf" file.
+  "*CUP_AWAYG="         - specifys whether away goals are to be taken into account
+                          when deciding two-legged matches.
+
+  "*HT="                - Used in '.cfstats' to store home team name.
+  "*AT="                - Used in '.cfstats' to store away team name.
+  "*MATCH_ID="          - Used in '.cfstats' to store match id which is referenced
+                          in '.scf' to display stats for match.
+
+
+
+  @{" Index " LINK main}
+@ENDNODE
+@NODE history "History"
+
+
+Run History
+-----------
+
+Version 1.0
+***********
+
+(06.12.96)  - First release.
+(05.01.97)  - Added 'MatchAnalysis' and 'GamesToBePlayed'.
+(11.01.97)  - Fixed bug where icon files were picked up when selecting
+              external scripts (probably leagues as well). Changed
+              'GamesToBePlayed' to 'GamesPlayed' - only works with leagues
+              where teams play each other twice. Spaces are removed from
+              filenames when creating a league. Updated references to paths
+              for installer and amigaguide. Default league name changed.
+              Removed enforcer hits in 'GamePlay' and 'Football'.
+              (Thanks to Steve for his MMU!)
+(17.01.97)  - Fixed more enforcer hits in 'GamePlay' as it kept crashing.
+              Fixed bug in 'GamesPlayed'.
+
+
+Version 1.1
+***********
+
+(25.04.97)  - 'GamePlay' has been added to the main program and the interface
+              redesigned. Removed asd-library. Instead of a custom display
+              requester, all data is now displayed in a file reader,
+              specified by a new tool type. File requester used to select
+              leagues and external programs. You are now only allowed to
+              enter an even number of teams and play each team an even number
+              of times. PointsPerGoals added. Using new tool types, the
+              program remembers where you positioned the windows.
+(10.05.97)  - Fixed bugs in Create and Gameplay. Changed window to SMART-
+              REFRESH. Fixed display bug in Gameplay. Rewrote the entering of
+              scores - different procedure for entering scores and updating
+              the schedule file. Removed 'Update League'.
+(19.05.97)  - Fixed bug in League Information where the number of matches
+              played was wrong. Fixed bug where if the file viewer wasn't
+              found then the program crashed. No Enforcer hits found !!
+
+
+Version 2.0
+***********
+
+(18.12.97)  - Fixed bugs in selecting a team, handling of league name. Added
+              Scheduling, Cups, Divisions (with Teams Promoted). Redesigned
+              front panel. Added dynamic allocation of memory.
+
+
+Version 2.1
+***********
+
+(06.06.98)  - Changed method for checking if Syslog is active and added a
+              much improved way of sending messages. Decision taken not to
+              implement Seedings. Replaced all 'strcmp'.
+(07.06.98)  - Added hot keys to various options. Implemented Manual
+              Scheduling for Cups.
+
+
+Version 2.2
+***********
+
+(05.09.98)  - Spent last two weeks making amendments. Fixed bugs with
+              listviews where the string gadget wasn't attached. Added
+              option to temporarily save scores in Cup Enter Scores before
+              a new round is scheduled. Added Two-Leg support and Away
+              Goals. Enforcer hit free!
+(12.09.98   - Fixed bug in updating cup matches where data was missed
+ -14.09.98)   during the recreation of a file. Added Two-Leg support to
+              Cup_ViewTeamProgress.rexx and added CupInformation.rexx.
+(01.10.98)  - Addition of external script to recreate the 'sf' file from
+              a newly updated 'schd' file with the previously held scores.
+              Polished messages and displays.
+
+
+Version 2.3
+***********
+
+(25.04.99)  - Decided the time was right for another update with a few bugs
+              and new ideas lurking behind the door... Added new option to
+              update the league settings. Added two new scripts - CloseCup
+              to close Cup tournaments and preserve the history file while
+              the other files are renamed ; and - Combination (suggested
+              by Kevin Lambert) which allows you to set up to four options
+              (Table, Stats - Team/League and Fixtures) and either direct
+              them to the screen or a directory. Redesigned many displays,
+              addded improvements (to messages and the operation) and
+              removed some 'undocumented' features. Increased max goals
+              scored to 99. MultiView is now the default Guide viewer.
+
+(05.05.99)  - Fixed a major bug when entering scores (thanks Jan!) where
+              it would fail if you had numerics in the team name. Improved
+              league table display. Added information requester when some
+              options are selected (in case you forget whats happening as
+              it chugs through the data).
+
+              At Jan's request, I have added support for playing teams an
+              odd number of times - in fact any amount from 1 to 10.
+
+Version 2.31
+************
+
+(16.05.99)  - Another update but this one closes the English FA Premiership.
+              Fixed two bugs in League and a data bug in FAPrem_9899. Added
+              option to switch between different styles of league table
+              (thanks Jan!). Updated 'GamesPlayed' to 'MatchesPlayed' which
+              now handles any number of matches played. Includes complete
+              Premiership data. Updated Combination.rexx with new features.
+
+Version 2.32
+************
+
+(18.05.99)  - Heiko Schroder (from Leipzig) sent an email regarding various
+              small changes that could be made. Create League now feels better
+              when handling errors.
+
+Version 2.4
+***********
+
+(29.06.99)  - Big update with numerous changes suggested by Jan, Kevin, Heiko
+              and Steve. Thanks to you all. Odd number of teams can now play
+              in the same league. 'No output' message added - tell me if this
+              is annoying. You are now prevented from duplicating team names
+              when creating leagues and cups. Player and Match information
+              added. Create/Update League improved to allow the '.stats' file
+              to be created/changed. New scripts to handle new information.
+
+              New datafiles have been supplied by Jan Allan Andersen and
+              Heiko Schroder.
+
+              Scripts to produce HTML pages from the results and league table
+              have been supplied by Kevin Lambert.
+
+Version 2.45
+************
+
+(21.08.99)  - Fixed bug in WriteMatch and a bug in Sort4Chars (reported by Heiko).
+              New datafiles.
+
+
+Version 2.5
+***********
+
+(26.09.99)  - A major update. Web ring added to web site. All scripts have proper
+              error messages. Better script handling. More options added; changing
+              team names, updating settings/stats files, changing match scores and
+              renaming datafiles. 'No Data' requester removed - annoying. Improved
+              layout of Player Information - now enter own goals and Yellow-Red
+              card (sent off for 2nd booking) and clone existing entries.
+
+              Change locales. New datafiles. Negative points supported in changing
+              stats file for points deduction. Various bug fixes. New scripts by
+              Kevin Lambert and Heiko Schroder. Datafiles can now be organised into
+              subdirectories of 'Data'. Other changes have been made but are not more
+              noticeable.
+
+(03.10.99)  - Thanks to Heiko and Kev for reporting several problems. You can now
+              load files from the main Data directory (unlike before!!).
+              Change Match Score has been improved by giving you the option of which
+              match to change (if duplicated). Fixed a bug in this where attendances
+              where not correctly handled in Read Match. Directory name is now
+              retained from Rename so you're not able to change it. Improved string
+              requester. Match Analysis is now fixed. Bug fixed in Rename where it
+              would rename even if the string was blank. Added message to Rename.
+
+Version 2.5.1
+*************
+
+(17.10.99)  - Bug fix update. I have fixed the loading problem so you can now load
+              datafiles under Workbench 2! Heiko reported several problems; all
+              scripts had to be changed due to a wrong error message for locales,
+              tidied various displays and messages, Yellow-Red cards are now handled
+              properly in League Information. Heiko has also supplied a new update to
+              HTMLTemplates. ViewTeamSchedule is now localised - for some reason I
+              forgot to do this. Added team name to players in ManOfTheMatch.
+
+Version 2.5.2
+*************
+
+(23.01.00)  - Added RequestFile (by Torsten Poulin), Request Choice (by Joerg Riemer)
+              and RequestString to archive for HTML and other scripts. Added more
+              scripts - HTML_Played, Attendances, Bookings and TopScorers. Updated
+              Referees and League Information scripts. Updated Player Information.
+              Hopefully fixed bug where the 'Options' window went walkabout. Updated
+              HTMLTemplates to work with Weekly scheduling. Updated ReformatSchedule
+              to use the tools. Fixed bug where listviews were not sized correctly
+              under Workbench 2. Improved the directory/file handling in Create Cup
+              and League. Batch scripts written to handle archive creation.
+
+Version 2.5.5
+*************
+
+(11.06.00)  - Bugs fixed in the following :
+
+                EndOfSeason        - wouldn't write datafiles correctly.
+                Options Window     - its now stopped moving and is in the
+                                     right place. Now clean exits.
+                League Information - bug fixed where players with two words
+                                     wouldn't be displayed correctly in Top Scorer.
+                MatchesPlayed      - doesn't display more info than it should.
+                PerformanceRating  - doesn't display more info than it should.
+                FootSort           - better numeric handling.
+                Referees           - fixed bug where a single entry was displayed
+                                     incorrectly.
+                Bookings           - fixed bug where a single entry was displayed
+                                     incorrectly.
+                TopScorers         - fixed bug where a single entry was displayed
+                                     incorrectly.
+                Alt_League         - locale entry missed.
+                Cup Enter Scores   - stack overflow found (thanks to StackSnoop
+                                     by Nils Görs). I've also changed the way
+                                     the options work.
+
+              New-look entry of scores added to Enter Scores, Change Match Scores
+              and Cup Enter Scores. Added option to add notes to Cups and
+              Leagues. Added options window to Scripts - now you can select from
+              selected scripts or from a file requester - thanks to Alex Georgiev
+              for this. Added new script - TableOfTruth - thanks to Martin Bilek.
+              Added new tooltypes EDITOR and AUTOLOAD - open a selected datafile
+              on startup. Team name in title of Player Information. Documentation
+              is now created from a single source file into AmigaGuide and HTML
+              format. Weekly HTML Template added. Improved displays in viewing
+              cup results and cup current round.
+
+              Scorers, Referees, Bookings and Attendances added to Cups.
+              New scripts : Cup_Referees, Cup_Bookings, SwapCupResultsMode and
+              CurrentRound, CupResults, CupInformation and ViewTeamProgress
+              updated to handle the new information if present.
+
+              Using RexxTricks library by Jürgen Kohrmeyer and suggested by
+              Heiko Schroder, Heiko has improved the speed of storing matches
+              in Leagues by 400%!!!
+
+Version 2.6
+***********
+
+(03.09.00)  - Consolidated and reduced the amount of data in the Locale files
+              for the scripts by up to 25%. Added script CurrentForm. Removed
+              two enforcer hits and non-working options from RequestString.
+              In a 3 round Cup, the first round is now the Quarter Finals.
+              Added Team Information. Font adapted Match Stats box in Enter
+              Scores. Match Stats is now cleared in this option. Fixed bug
+              in Create Cup where it would pull in a line from the listview
+              and cause Import to crash.
+
+(04.03.01)  - RequestString fixed so it returns a NULL string instead of
+              corrupted data. Added Recreate Schedule option. Added Team
+              Information option. Tidied template for HTML docs. Added
+              Players & Referees database and menu to use in Player
+              Information. Added positions to Player Information and new
+              actions: penalty miss, sub in, sub out, extra time penalty
+              and miss, injured, golden goal and rank. Added Appearances
+              script to Cup and League. Fixed bug in Player Information
+              where cloning a player and then changing it, would change
+              the other player! Fixed bug in Cups where Manual Schedule
+              would fail - this was down to the lock not being picked up
+              so the cup became corrupted. Fixed bug in Cup Notes where
+              the textfile was incorrectly written. Added more options to
+              Cup More Options. Scripts updated to handle new player
+              actions.
+
+              Fixed bugs in HTML scripting for Weeks :
+
+                - Pts and GD were in the wrong positions in the template.
+                - Now handles cancelling of RequestFile and RequestString.
+                - Incorrect number of teams were read from the file.
+                - The HTML file would give the data for all matches instead
+                  of that required for the selected week.
+
+
+
+
+  @{" Index " LINK main}
+@ENDNODE
+@NODE credits "Credits"
+
+
+  Design & Programming   :  @{b}Mark Naughton@{ub}
+
+  Assistance & Ideas     :  @{i}Steve Holland @{ui}
+
+  Icons & Graphics       :  @{i}Kevin Lambert @{ui}
+
+
+
+  Send any bug reports, ideas and external scripts to :
+
+        mark@blue-shantung.demon.co.uk
+
+
+
+   Come and visit the home of Football at @{b}www.blue-shantung.demon.co.uk@{ub} where
+  new program updates, bug fixes and datafiles are available.
+  You can also register online and send us comments.
+
+
+   When you email me regarding Football or register online, I'll send you a
+  personalised season ticket graphic, exclusively designed by Kevin Lambert.
+
+
+  Big Thanks
+ ------------
+
+
+  Jan Allan Andersen     - our Danish correspondent for the Super Bowl....
+
+
+  Kevin Lambert          - the man from Norwich...and the web site's graphic designer.
+
+
+  Heiko Schroder         - webmaster for the city of Leipzig...
+
+  Alex Georgiev
+
+  Mat Neaves
+
+  Torsten Poulin         - for allowing me to distribute RequestFile.
+
+  Joerg Riemer           - for allowing me to distribute ReqCh (RequestChoice).
+
+  Philippe Baudat
+
+  Martin Bilek
+
+  Jürgen Kohrmeyer       - for RexxTricks library. I have been unable to contact
+                           Jürgen to ask his permission to distribute RexxTricks
+                           but as its FREEWARE, I decided to include it to show
+                           its abilities...It can be downloaded from the Aminet
+                           and is well worth it.
+
+
+  Tools
+ -------
+
+  SAS/C v6.58 Compiler
+  AZ v1.5 Editor by JM Forgeas
+  GadToolsBox v2.0 by Jan Van Den Baard
+
+
+  @{" Index " LINK main}
+@ENDNODE
+@NODE tooltyp "Tool Types"
+
+
+  REXXC  (Default "SYS:Rexxc/")
+
+   When the program is run from the Workbench, and if REXXC isn't
+   assigned then it cannot find the RX command (used to run AREXX
+   programs). It is set to the default but this allows you to
+   specify an alternate path.
+
+
+  GUIDE  (Default "SYS:Utilities/MultiView Football.Guide")
+
+   This allows you to change what documentation file you wish to
+   read. You can read either the guide file or the HTML docs.
+
+
+  VIEWR  (Default "c:ppmore")
+
+   This allows you to specify which file viewer you wish to view
+  the displays with. Don't forget to add the complete path.
+  PPMore is copyright by Nico Francois.
+
+
+  FRONT_LEFT and FRONT_TOP      (Default =1)
+  CREATE_LEFT and CREATE_TOP    (Default =1)
+  GAMEPLY_LEFT and GAMEPLY_TOP  (Default =1)
+  SELECT_LEFT and SELECT_TOP    (Default =1)
+
+   These tool-types specify the left and top positions of the
+  windows. FRONT is the main window, CREATE is "Create League",
+  GAMEPLY is the window where you enter scores and SELECT is
+  the window where you select the teams.
+
+   With the addition of Cups, FRONT is the main "Play Cup Games"
+  window, CREATE is "Setup Cup" and GAMEPLY is "Enter Cup Scores".
+
+
+  AUTOLOAD  (Default is none or '*')
+
+   You can specify the name of a datafile which will be automatically
+  loaded at startup. Examples :
+
+           AUTOLOAD=Players     (load Players.df from "Data/")
+           AUTOLOAD=Test/Year2  (load Year2.df from "Data/Test")
+
+
+  EDITOR    (Default "c:Ed")
+
+   Specify name and path of editor which is used to add notes to
+  leagues and cups.
+
+
+
+
+  @{" Index " LINK main}
+@ENDNODE
+@NODE tips "Hints and Tips"
+
+
+    We have hints and tips for :
+
+  @{b}Leagues@{ub}
+
+  @{" Starting Mid-Season   " LINK mtips}
+
+  @{" Setting up Divisions  " LINK dtips}
+  @{" Ending a Season       " LINK etips}
+
+  @{" Setting up Schedules  " LINK stips}
+
+
+  @{" Index " LINK main}
+@ENDNODE
+@NODE dtips "Hints and Tips"
+
+
+    Setting Up Divisions
+   ----------------------
+
+    To setup a league with more than one division:
+
+    1. Create all divisions apart from the first one, using "Create League"
+       but setting the number of Divisions to zero, '0'. Make sure the
+       "Teams Relegated" and "Teams Promoted" are set accordingly.
+
+    2. Create the first division and change the slider to show the total number
+       of divisions in the league. Then click on the "?" gadget and select
+       the divisions in order, starting from the second one. Make sure the
+       number of "Teams Relegated" match the number promoted from the
+       division that is second.
+
+       A sample setup would be:     FAPrem_9798.df
+                                    Nat_D1_9798.df
+                                    Nat_D2_9798.df
+                                    Nat_D3_9798.df
+
+    3. Enter the scores as normal for each division and only when all
+       matches have been played, run the external script "EndOfSeason.rexx"
+       to handle the promotions and the relegations.
+
+       See @{"Ending a Season" LINK etips} for more details.
+
+
+  @{" Back  " LINK tips}
+@ENDNODE
+@NODE stips "Hints and Tips"
+
+
+    Setting Up Schedules
+   ----------------------
+
+    This is relatively easy when the information is provided for you. There
+   are two types of schedules, filetype '.schd', which are WEEKS and DATES.
+   Schedules are stored in the 'Schedules' subdirectory of 'Data/'.
+
+
+   The first example is a schedule for four teams, using weeks named in
+   "Teams4.schd" :
+
+   "*WEEKS                                             TEAM-A TEAM-B TEAM-C
+    000 005 001 003        - the grid is such  TEAM-A    x
+    002 000 003 004                            TEAM-B           x
+    004 006 000 002                            TEAM-C                  x
+    006 001 005 000"
+
+    Where the 'x's or "000" are to denote that the team obviously doesn't play
+   itself. The second example is from the FA Carling Premiership 1997-98.
+   It is a schedule for 20 teams, obviously not all show here, using dates
+   named "CPS.schd" :
+
+   "*DATES=09081997
+    00000000 25101997 04101997      - the grid is the same as above.
+    10051998 00000000 14021998
+    25041998 13091997 00000000"
+
+    The schedule shows the date of the match between the two teams, in the
+   format DDMMYYYY. The '00000000' denotes the team won't play itself. The
+   "*DATES=" parameter is the first day of the season so when the schedule
+   is used to create the schedule file, ".sf", it starts at this date and
+   runs through to the end of the season.
+
+    Schedules can be easily created as schedules are given by football clubs
+   before the start of the season. These can be found in national newspapers
+   or in the case of the FA Carling Premiership, on the Net at :
+
+        @{b}www.fa-carling.com@{ub}
+
+    ..or @{b}www.soccernet.com@{ub} for international coverage.
+
+
+    Other schedules can be created with "*WEEKS". See  @{" Create League " LINK createl}
+   for more details.
+
+    You can also specify the schedule, with the start date as DDMM. Then using
+   an external script 'Reformat_Schedule.rexx' (See @{" External Scripts " LINK extscrpt}) ,
+   you can specify the filename name and the two corresponding years. The
+   program will then reformat it correctly for use with Create League.
+
+
+   Example Schedule Files:   Teams4.schd      - file for 4 teams using Weeks.
+                             Teams6.schd      - file for 6 teams using Weeks.
+                             Teams63.schd     - file for 6 teams, using Weeks
+                                                but playing each other 3 times.
+                             Teams64.schd     - as Teams63 but playing each other
+                                                4 times.
+                             WC98_GrpA-H.schd - files for Groups A-H in World Cup 1998.
+                             CPS.schd         - file for FA Premiership 97/98.
+                             FACPS_9899.schd  - file for FA Premiership 98/99.
+
+   ***********
+   *** NEW ***
+   ***********
+
+    Now you can have teams playing each other any number of times from 1 to 10,
+   including odd numbers. After creating your schedule, you can insert a line
+   with the characters "*NEXT" and then another schedule after it. For example :
+
+   "*WEEKS
+    000 009 005 003 007 001
+    004 000 008 002 001 005
+    010 003 000 006 004 007
+    008 007 001 000 005 004
+    002 006 009 010 000 003
+    006 010 002 009 008 000
+    *NEXT
+    000 014 020 018 012 016
+    019 000 013 017 016 020
+    015 018 000 011 019 012
+    013 012 016 000 020 019
+    017 011 014 015 000 018
+    011 015 017 014 013 000"
+
+
+    Setting up odd numbers, just means filling in a non-played match with zero's. See
+   files, "Teams63.schd" and "Teams64.schd", in "Data/" for examples.
+
+
+   Any problems with this, email me. See @{" Credits " LINK credits}.
+
+
+  @{" Back  " LINK tips}
+@ENDNODE
+@NODE etips "Hints and Tips"
+
+
+    Ending a Season
+   -----------------
+
+    There is a time at the end of every season that you get the winners and
+   the losers. The external script "End Of Season.rexx" will display them,
+   showing the winner, the promotions and the relegations and the final
+   league tables.
+
+    To end a season, load the file for the first division and then RUN the
+   script. It will calculate the final tables and then create definition
+   files with the name, "<filename>_NewData.df" with the newly adjusted
+   promotions and relegations. These files must then be imported into
+   "Create League" and then saved, to create the associated files such
+   at the ".stats" and ".sf" files. The files from the previous season
+   will stay as they are. Playoffs are not handled so the winner/loser will
+   have to be deleted from the division and the other one inserted. This
+   applies to both divisions affected.
+
+    After the '_NewData.df' files have been used to create new divisions,
+   you can RUN external script, "DeleteNewDataFiles.rexx" to delete them.
+
+
+  @{" Back  " LINK tips}
+@ENDNODE
+@NODE mtips "Hints and Tips"
+
+
+   How To Start A League Mid-Season
+  ----------------------------------
+
+    If you decide to start a league but some matches have already been
+   played that you don't know the scores to, then this is how to do it.
+
+   1. Create a league in the usual way, with the teams that you want
+      and the number of points etc. Then SAVE it.
+   2. Now, you will be asked if you want to create '<filename>.stats'
+      which we do so click 'Okay'. Then click the teams adjusting their
+      settings.
+   3. When finished, click 'Save Stats' and you're away!
+
+    Now when you load this league, you will be able to display the
+   league table, and you're ready to rock 'n roll...
+
+
+  @{" Back  " LINK tips}
+@ENDNODE
+@NODE future "Future Amendments"
+
+
+    In order for this program to work, we need YOU! If there are any scripts
+   that you have written, datafiles that you have created, then send them
+   to me for inclusion in the archive.
+
+
+    Visit the home of Football at @{b}www.blue-shantung.demon.co.uk@{ub} where
+   new program updates, bug fixes and datafiles are available.
+
+   You can also register online and send comments.
+
+
+
+     Football is a continuous project and relies on thoughts and ideas from its
+   users. If you have a bee in your bonnet about something, tell me!
+
+
+     Future expansion plans include a OS3.5 interface but still retaining the
+   compatibility with other versions. Another possibility is converting Football
+   to run on the Amiga NG. I've got my hands on an Amiga SDK but haven't had the
+   time to pursue this. With Rexx missing, we may go Java!
+
+
+   VERSION 2.7
+   -----------
+
+   - More exploitation of RexxTricks library.
+
+   - HTML script for Cups, including stats.
+
+   - Add stats to HTML Results and Templates.
+
+   - GUI interface to create schedules.
+
+   - Add date, time and venue to matches.
+
+   - Organise datafiles - create directories and move datafiles.
+
+   - Preferences - change text for locales and other options.
+
+   - Play-Offs, Friendlies and Tournaments.
+
+   - Scripts : Home&Away Table, Long Table (accumulated results),
+               updated Table of Truth and rankings to Appearances.
+
+
+
+
+
+            Any more ideas?  Then tell us @{" Credits " LINK credits}
+
+
+
+
+  @{" Index " LINK main}
+@ENDNODE
+

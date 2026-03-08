@@ -1,0 +1,610 @@
+@database Displayer.guide
+
+@$VER: Displayer V1.01 - by Andrea Galimberti - (C) Brighting Brain Brothers
+
+This guide file has been created using AutoGuide V1.05 - By Fabio Rotondo (fsoft@intercom.it).
+
+@node main "AFC module: Displayer / Main"
+
+
+               ** Displayer V1.01 - Original By Andrea Galimberti **
+
+                         Part of Amiga Foundation Classes
+
+                            
+
+
+    @{" Introduction  " LINK obj_intro}       @{" Author(s) Info " LINK author}
+
+
+    Requires: @{" Bitmapper " LINK "Bitmapper.guide/Main"}, @{" NodeMaster " LINK "nodemaster.guide/Main"}
+
+    Base: $8000
+
+    COMMANDS                          BRIEF DESCRIPTION
+    -----------------------------------------------------------------------
+    displayer methods:
+
+    @{" displayer()                   " LINK displayer} Initialises the object
+    @{" add()                         " LINK view_add} Adds a ViewPort
+    @{" del()                         " LINK view_del} Removes a ViewPort
+    @{" setup()                       " LINK view_setup} Builds your display
+    @{" show()                        " LINK view_show} Shows the View
+    @{" showOldView()                 " LINK view_showold} Restores the old View
+    @{" address()                     " LINK view_address} Address of View structure
+    @{" viewport()                    " LINK view_vp} Address of a viewport
+    @{" rastport()                    " LINK view_rastport} Rastport of a viewport
+    @{" bitmap()                      " LINK view_bitmap} Bitmap of a viewport
+    @{" vpobj()                       " LINK view_vpobj} Pointer to a viewport_obj
+    @{" width()                       " LINK view_width} Width of a viewport
+    @{" height()                      " LINK view_height} Height of a viewport
+    @{" depth()                       " LINK view_depth} Depth of a viewport
+    @{" mode()                        " LINK view_mode} Display mode of a viewport
+    @{" scroll()                      " LINK view_scroll} Scrolls a BitMap
+    @{" swap()                        " LINK view_swap} Swaps BitMaps in a double buffered ViewPort
+    @{" vWait()                       " LINK view_vwait} Waits for the VBlank
+    @{" version()                     " LINK view_version} Gets version number
+
+    viewport_obj methods:
+
+    @{" viewport_obj()                " LINK viewport_obj} Initialises the object
+    @{" address()                     " LINK vp_address} Address of ViewPort
+    @{" rastport()                    " LINK vp_rastport} RastPort of ViewPort
+    @{" bitmap()                      " LINK vp_bitmap} BitMap of ViewPort
+    @{" width()                       " LINK vp_width} Width of ViewPort
+    @{" height()                      " LINK vp_height} Height of ViewPort
+    @{" depth()                       " LINK vp_depth} Depth of ViewPort
+    @{" mode()                        " LINK vp_mode} Display mode of ViewPort
+
+    @{" ERROR TABLE " LINK Error_Table}
+
+@endnode
+
+@node author "Author(s) Info"
+
+    Original By:  Andrea Galimberti
+
+    E Version By: Andrea Galimberti
+
+
+
+@endnode
+
+@node obj_intro "Displayer / Introduction"
+
+   Displayer.
+
+   This module allows you to easily build, in a completely system-friendly
+way, a display made of a view containing some viewports.  Any viewport can
+have its own resolution and depth, must have a bitmap associated with it,
+and you can draw in such a bitmap just as you usually do in a simple
+screen:  by addressing it through its rastport.
+   There are two objects contained in the module:  the displayer and the
+viewport_obj.  To create a display you first intialise (NEW
+myview.displayer()) your displayer object, and then add to it how many
+viewport you like using the add() method:  when you are finished you call
+the setup() and show() methods to admire your display.
+   If you want to, you can also access any single viewport_obj contained in
+the displayer with a call to vpobj(number).
+   In addition the module allows double-buffered viewports and scrolling of
+the bitmaps displayed through the viewports.
+
+@endnode
+
+@node Error_Table "Displayer / Error Table"
+
+Val (Hex)  | Description
+-----------+------------------------------------------------------
+  $0000    | No memory
+  $0001    | Cannot allocate ViewExtra structure
+  $0002    | OpenMonitor() failed
+  $0003    | Cannot allocate ViewPortExtra structure
+  $0004    | GetDisplayInfoData() failed
+  $0005    | FindDisplayInfo() failed
+  $0006    | Cannot allocate ColorMap structure
+  $0007    | VideoControl() failed to attach structures
+  $0008    | Illegal ViewPort parameters (maybe NIL?)
+  $0009    | Failed to create ViewPort (MakeVPort())
+  $000A    | Failed to merge copper instructions
+  $000B    | Illegal display parameters (maybe NIL?)
+
+@endnode
+
+@node displayer "AFC Module: displayer / displayer()"
+
+          NAME: displayer()
+
+   DESCRIPTION: initialises your displayer object.
+
+        INPUTS: NONE
+
+       RESULTS: NONE
+
+      SEE ALSO:
+
+@endnode
+
+@node view_add "AFC module: displayer / add()"
+
+          NAME: add(tags:PTR TO LONG)
+
+   DESCRIPTION: adds a viewport_obj to the list contained in your displayer.
+                When you have finished adding viewports you build the
+                system structures associated to the display by calling the
+                @{"setup()" LINK view_setup} method. This command doesn't check if the viewports
+                overlap.
+
+        INPUTS: A NIL terminated taglist. The command understands the
+                following tags:
+
+                VPORT_TOP: y coordinate of the viewport top-left corner
+
+                VPORT_LEFT: x coordinate of the viewport top-left corner
+
+                VPORT_WIDTH: viewport width
+
+                VPORT_HEIGHT: viewport height
+
+                VPORT_DEPTH: viewport depth
+
+                VPORT_MODE: viewport display mode (see the modeid.m system
+                            module for a list of all available modes)
+
+                VPORT_SPRITES: TRUE if you want to use sprites on the
+                               viewport (default is FALSE)
+
+                VPORT_BITMAP: pointer to an already initialized
+                              @{"bitmap_obj" LINK "bitmap_obj.guide/Main"}.  If this tag is present, no
+                              bitmap_obj will be allocated for the
+                              viewport.  The bitmap passed is displayed
+                              when the viewport is opened.  It's your duty
+                              to free the memory associated to such a
+                              bitmap_obj.  The dimensions of the bitmap are
+                              assumed to be equal to the viewport ones, if
+                              not differently specified with the following
+                              tags.
+
+
+                If you want to display through the ViewPort a BitMap with
+                dimensions different from the ViewPort ones (e.g., to
+                @{"scroll" LINK view_scroll} it) you use:
+
+                VPORT_BMWIDTH: bitmap width
+
+                VPORT_BMHEIGHT: bitmap height
+
+                VPORT_BMDEPTH: bitmap depth
+
+                VPORT_DBUFFER: specifies that the ViewPort is double
+                               buffered, that is to say two BitMaps with
+                               equal features are allocated for the same
+                               ViewPort: you can draw in the hidden one and
+                               then @{"swap" LINK view_swap} the two.
+
+
+       RESULTS: NONE
+
+      SEE ALSO: @{" setup() " LINK view_setup}
+
+@endnode
+
+@node view_del "AFC module: displayer / del()"
+
+          NAME: del(num)
+
+   DESCRIPTION: removes ViewPort number num from the View.  Never call
+                this method while the View is displayed:  this function
+                immediately deallocates all memory associated to the
+                ViewPort to be deleted.
+                  You have to call the @{"setup()" LINK view_setup} method to see the results
+                of your changes.
+
+        INPUTS: number of ViewPort to be killed:  this ranges from 0 to
+                (number of viewports)-1
+
+       RESULTS: FALSE if num is outside the valid range,
+                otherwise TRUE.
+
+      SEE ALSO: @{" add() " LINK view_add}
+
+@endnode
+
+@node view_setup "AFC module: displayer / setup()"
+
+          NAME: setup(modeid)
+
+   DESCRIPTION: allocates the memory and the system structures needed to
+                render your display. This method scans the viewports you
+                linked with the @{"add()" LINK view_add} method.
+                  Never call this function while the view is displayed:  it
+                will deallocate all memory associated to the view to
+                rebuild system structures from scratch.
+
+        INPUTS: the monitor id, e.g., DEFAULT_MONITOR_ID, (see the
+                modeid.m system module for a full list of all modes
+                available)
+
+       RESULTS: raises a lot of exceptions if something goes wrong (see the
+                @{"Error Table" LINK Error_Table} for more info).
+
+      SEE ALSO: @{" add() " LINK view_add}
+
+@endnode
+
+@node view_show "AFC module: displayer / show()"
+
+          NAME: show()
+
+   DESCRIPTION: shows the display created with setup(). Automatically
+                remembers the previous display: you have to restore it with
+                a call to showOldView() before exiting the program.
+
+        INPUTS: NONE
+
+       RESULTS: NONE
+
+      SEE ALSO: @{" showOldView() " LINK view_showold}
+                @{" setup()       " LINK view_setup}
+
+@endnode
+
+@node view_showold "AFC module: displayer / showOldView()"
+
+          NAME: showOldView()
+
+   DESCRIPTION: restores the previous display.
+
+        INPUTS: NONE
+
+       RESULTS: NONE
+
+      SEE ALSO: @{" show() " LINK view_show}
+
+@endnode
+
+@node view_vwait "AFC module: displayer / vWait()"
+
+          NAME: vWait()
+
+   DESCRIPTION: waits for the vertical blanking period.
+
+        INPUTS: NONE
+
+       RESULTS: NONE
+
+      SEE ALSO:
+
+@endnode
+
+@node view_scroll "AFC module: displayer / scroll()"
+
+          NAME: scroll(number,x,y)
+
+   DESCRIPTION: scrolls the BitMap currently displayed through ViewPort
+                at position "number" in the list by positioning the pixel
+                (x,y) at the top left-hand corner of the ViewPort. If you
+                want to synchronize the scrolling with the video beam you
+                have to call the @{"vWait" LINK view_vwait} method to wait for the vertical
+                blanking period.
+
+        INPUTS: number of ViewPort
+                x position of BitMap
+                y position of BitMap
+
+       RESULTS: NONE
+
+      SEE ALSO:
+
+@endnode
+
+@node view_swap "AFC module: displayer / swap()"
+
+          NAME: swap(number)
+
+   DESCRIPTION: exchanges the two BitMaps of a double buffered ViewPort
+                (the ViewPort at position "number" in the list). If you
+                want to synchronize the swapping with the video beam you
+                have to call the @{"vWait" LINK view_vwait} method to wait for the vertical
+                blanking period.
+
+        INPUTS: number of ViewPort
+
+       RESULTS: NONE
+
+      SEE ALSO:
+
+@endnode
+
+@node view_address "AFC module: displayer / address()"
+
+          NAME: address()
+
+   DESCRIPTION: returns the address of the View structure allocated by the
+                system (see your Includes/graphics/view.h)
+
+        INPUTS: NONE
+
+       RESULTS: address of View structure
+
+      SEE ALSO:
+
+@endnode
+
+@node view_rastport "AFC module: displayer / rastport()"
+
+          NAME: rastport(number, alt=0)
+
+   DESCRIPTION: returns the address of the RastPort structure belonging to
+                the chosen ViewPort.  (See @{"viewport()" LINK view_vp} for more info.)
+                A ViewPort has a RastPort associated to the BitMap that is
+                currently displayed through it.
+                If alt<>0 it returns the address of the RastPort of the
+                alternate BitMap (only if the ViewPort is double buffered,
+                otherwise NIL). The alternate BitMap is the one that is
+                hidden when the View shows up the first time.
+
+        INPUTS: number of ViewPort
+                alt: if <>0 selects the alternate BitMap
+
+       RESULTS: address of RastPort
+
+      SEE ALSO: viewport_obj: @{" rastport() " LINK vp_rastport}
+
+@endnode
+
+@node view_vp "AFC module: displayer / viewport()"
+
+          NAME: viewport(number)
+
+   DESCRIPTION: returns the address of the selected ViewPort structure
+                allocated by the system. The argument "number" goes from 0
+                to the number of ViewPorts you linked to your View with the
+                @{"add()" LINK view_add} command:  the order is the same in
+                which the ViewPorts have been linked.
+
+        INPUTS: number of ViewPort
+
+       RESULTS: address of ViewPort
+
+      SEE ALSO: viewport_obj: @{" address() " LINK vp_address}
+
+@endnode
+
+@node view_vpobj "AFC module: displayer / vpobj()"
+
+          NAME: vpobj(number)
+
+   DESCRIPTION: returns the address of the viewport_obj object at position
+                "number" in the list linked to the displayer with the
+                @{"add" LINK view_add} command. With the returned pointer you
+                can call all the viewport_obj methods.
+
+        INPUTS: number of ViewPort
+
+       RESULTS: address of viewport_obj object
+
+      SEE ALSO:
+
+@endnode
+
+@node view_bitmap "AFC module: displayer / bitmap()"
+
+          NAME: bitmap(number, alt=0)
+
+   DESCRIPTION: returns the address of the BitMap structure currently
+                displayed through the chosen ViewPort.  (See @{"viewport()" LINK view_vp}
+                for more info.)
+                A BitMap is automatically allocated for each ViewPort when
+                @{"setup()" LINK view_setup} is called.
+                If alt<>0 it returns the address of the alternate BitMap
+                (only if the ViewPort is double buffered, otherwise NIL).
+                The alternate BitMap is the one that is hidden when the
+                View shows up the first time.
+
+        INPUTS: number of ViewPort
+                alt: if <>0 selects the alternate BitMap
+
+       RESULTS: address of BitMap
+
+      SEE ALSO: viewport_obj: @{" bitmap() " LINK vp_bitmap}
+                @{" bitmap_obj / bitmap() " LINK "bitmap_obj.guide/bitmap_bitmap"}
+
+@endnode
+
+@node view_width "AFC module: displayer / width()"
+
+          NAME: width(number)
+
+   DESCRIPTION: returns the width of the ViewPort at position "number" in
+                the list.
+
+        INPUTS: number of ViewPort
+
+       RESULTS: width of ViewPort
+
+      SEE ALSO: viewport_obj: @{" width() " LINK vp_width}
+
+@endnode
+
+@node view_height "AFC module: displayer / height()"
+
+          NAME: height(number)
+
+   DESCRIPTION: retuns the height of the ViewPort at position "number" in
+                the list.
+
+        INPUTS: number of ViewPort
+
+       RESULTS: height of ViewPort
+
+      SEE ALSO: viewport_obj: @{" height() " LINK vp_height}
+
+@endnode
+
+@node view_depth "AFC module: displayer / depth()"
+
+          NAME: depth(number)
+
+   DESCRIPTION: retuns the depth of the ViewPort at position "number" in
+                the list.
+
+        INPUTS: number of ViewPort
+
+       RESULTS: depth of ViewPort
+
+      SEE ALSO: viewport_obj: @{" depth() " LINK vp_depth}
+
+@endnode
+
+@node view_mode "AFC module: displayer / mode()"
+
+          NAME: mode(number)
+
+   DESCRIPTION: returns the display mode of the ViewPort at position
+                "number" in the list.
+
+        INPUTS: number of ViewPort
+
+       RESULTS: display mode (resolution) of ViewPort
+
+      SEE ALSO: viewport_obj: @{" mode() " LINK vp_mode}
+
+@endnode
+
+@node view_version "AFC module: displayer / version()"
+
+          NAME: version()
+
+   DESCRIPTION: gets version number of Displayer module
+
+        INPUTS: NONE
+
+       RESULTS: displayer version, displayer revision
+
+      SEE ALSO:
+
+@endnode
+
+@node viewport_obj "viewport_obj / viewport_obj()"
+
+          NAME: viewport_obj()
+
+   DESCRIPTION: initialises a viewport_obj object
+
+        INPUTS: NONE
+
+       RESULTS: NONE
+
+      SEE ALSO:
+
+@endnode
+
+@node vp_rastport "viewport_obj / rastport()"
+
+          NAME: rastport(alt=0)
+
+   DESCRIPTION: returns the address of the RastPort of the BitMap currently
+                displayed through the ViewPort.
+                If alt<>0 it returns the address of the RastPort of the
+                alternate BitMap (only if the ViewPort is double buffered,
+                otherwise NIL). The alternate BitMap is the one that is
+                hidden when the View shows up the first time.
+
+        INPUTS: alt: if <>0 it selects the alternate BitMap
+
+       RESULTS: address of RastPort
+
+      SEE ALSO: displayer: @{" rastport() " LINK view_rastport}
+
+@endnode
+
+@node vp_address "viewport_obj / address()"
+
+          NAME: address()
+
+   DESCRIPTION: returns the address of the ViewPort structure allocated by
+                the system
+
+        INPUTS: NONE
+
+       RESULTS: address of ViewPort
+
+      SEE ALSO: displayer: @{" viewport() " LINK view_vp}
+
+@endnode
+
+@node vp_bitmap "viewport_obj / bitmap()"
+
+          NAME: bitmap(alt=0)
+
+   DESCRIPTION: returns the address of the BitMap structure currently
+                displayed through the ViewPort
+                If alt<>0 it returns the address of the alternate BitMap
+                (only if the ViewPort is double buffered, otherwise NIL).
+                The alternate BitMap is the one that is hidden when the
+                View shows up the first time.
+
+        INPUTS: alt: if <>0 it selects the alternate BitMap
+
+       RESULTS: address of BitMap
+
+      SEE ALSO: displayer: @{" bitmap() " LINK view_bitmap}
+
+@endnode
+
+@node vp_width "viewport_obj / width()"
+
+          NAME: width()
+
+   DESCRIPTION: returns the width of the ViewPort
+
+        INPUTS: NONE
+
+       RESULTS: width of ViewPort
+
+      SEE ALSO: displayer: @{" width() " LINK view_width}
+
+@endnode
+
+@node vp_height "viewport_obj / height()"
+
+          NAME: height()
+
+   DESCRIPTION: returns the height of the ViewPort
+
+        INPUTS: NONE
+
+        RESULTS: height of ViewPort
+
+      SEE ALSO: displayer: @{" height() " LINK view_height}
+
+@endnode
+
+@node vp_depth "viewport_obj / depth()"
+
+          NAME: depth()
+
+   DESCRIPTION: returns the depth of the ViewPort
+
+        INPUTS: NONE
+
+       RESULTS: depth of ViewPort
+
+      SEE ALSO: displayer: @{" depth() " LINK view_depth}
+
+@endnode
+
+@node vp_mode "viewport_obj / mode()"
+
+          NAME: mode()
+
+   DESCRIPTION: returns the display mode of the ViewPort
+
+        INPUTS: NONE
+
+       RESULTS: display mode of ViewPort
+
+      SEE ALSO: displayer: @{" mode() " LINK view_mode}
+
+@endnode
+

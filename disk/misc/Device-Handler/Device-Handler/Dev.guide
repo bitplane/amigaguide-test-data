@@ -1,0 +1,188 @@
+@database "Dev.doc"
+
+@Node Main "Device-Handler 1.1 Manual"
+
+	Device-Handler
+	==============
+
+A Handler for direct device access for OS 2.04 and newer
+	Copyright 1994-1995 Matthias Scheler
+
+	@{"Motivation" link "Motivation"}
+	@{"Purpose" link "Purpose"}
+
+	@{"Installation" link "Installation"}
+
+	@{"History" link "History"}
+	@{"Plans for future version" link "ToDo"}
+	@{"Author & Copyright" link "Author"}
+
+No guarantee of any kind is made that the program described in this
+document is 100% reliable. You use this material on your own risk.
+@EndNode
+
+@Node "Motivation" "Motivation to write Device-Handler"
+
+I used CrossDOS to exchange files (mostly AmiNet) between home and the
+Sun Workstations at our university for a long time. But there were some
+problems with this solution:
+
+- CrossDOS is unreliable. If the CPU got busy while reading a disk I
+  got lots of these nasty "CRC Error" requesters. I always thought the
+  "mfm.device" was the reason but these errors never appeared while
+  using my handler.
+
+- Filenames are limited to 8+3 characters and converted to uppercase.
+
+- After mounting CrossDOS diskchanges were recognized much slower because
+  "DF0:" and "PC0:" jamed each other when checking the inserted disk.
+
+- Transfering files larger than 1.4MB with MS-DOS disk was really a pain.
+  I had to split them at the university (not easy with a disk quota of 5MB)
+  and rejoin them at home with "Join". And even with smaller files I still
+  had to calculate how to distribute them onto my disks.
+
+So I decided to try to use the unix archive "tar" (GNU version) and an
+Amiga port of it. Under UN*X "tar" has the ability to write directly to
+device files e.g. "/dev/fd0". This method is fast and saves space (no
+filesystem overhead) and "tar" offers multi volume archives in this mode
+which are perfect for transfering large files. And "tar" supports long
+filenames and mixed case.
+
+For this purpose I needed a handler which made a raw device look like a
+file like "/dev/..." under UN*X. I found two handlers for this purpose:
+
+- RDF (Raw Device FileSystem)
+  RDF was uncomfortable to use, had a bad EOF handling (needed for multi
+  volume archives) and caused Enforcer hits.
+
+- Flat
+  Olaf Barthel's Flat is quite nice and of course much more powerful than
+  my handler, but it has lots of bug. I was able to fix two of them but I
+  still got corrupt archives if I wrote to "FLAT:". And I didn't like that
+  I still had to mount "PC0:" to use it.
+
+At this point I decided to write @{"Device-Handler" link "Purpose"}.
+@EndNode
+
+@Node "Purpose" "What is Device-Handler ?"
+
+Device-Handler is an AmigaDOS handler like "PAR:" or "SER:". It can be
+used to access to an exec device e.g. "trackdisk.device" like a file.
+The syntax for filenames is "@{b}DEV:device/unit@{ub}".
+
+To view a hex dump of the disk in "DF0:" you could use:
+
+@{b}Type DEV:trackdisk.device/0 HEX@{ub}
+
+The main purpose of Device-Handler is to use it for "tar". To create a
+multi volume tar archive on a UN*X work station you can use this command:
+
+@{b}tar cvMf /dev/fd0 file1 file2@{ub}
+
+To extract this archive on your Amiga you can use:
+
+@{b}tar xvMf DEV:mfm.device/0@{ub}
+
+For more informations how to use "tar" consult the manual.
+
+You can even use Device-Handler to make a complete image backup of your
+harddisk (including the RDB) on a SCSI streamer via BTNtape:
+
+@{b}Copy DEV:z3scsi.device/0 TO TAPE: BUF=2048@{ub}
+
+
+NOTE: Device-Handler will not work with all devices especially not with
+      any version of Commodore's "scsi.device". That's not my fault,
+      these devices just don't support the required command.
+@EndNode
+
+@Node "Installation" "Installation"
+
+To install the Device-Handler copy the file "L/Device-Handler" to the
+"L:" directory on your system partition.
+
+Workbench 2.04 users should append "Devs/MountList.DEV" to "DEVS:MountList"
+and add the command "Mount DEV:" to "S:User-Startup".
+Users of Workbench 2.1 or newer don't have to modify these files, they just
+need to copy "Devs/DOSDrivers/DEV#?" to "DEVS:DOSDrivers".
+
+If you want to use "tar" with the "mfm.device" it's also not a bad idea to
+set the environment variable "TAPE" to "DEV:mfm.device/0".
+@EndNode
+
+@Node "ToDo" "Plans for future version"
+
+These things could be improved:
+
+- @{b}More Packets@{ub}
+  The number of DOS packets supported by Device-Handler is very small. It
+  does not even support seeking on its file handles. But because "tar"
+  never seeks I don't care.
+@EndNode
+
+@Node "History" "History of Device-Handler"
+
+1.0:
+- first public release
+
+1.1:
+- If the device which should be used by Device-Handler was not in memory
+  Device-Handler could crash.
+- Device-Handler is now much faster. If it is possible Device-Handler will
+  read multiple sectors directly into the application's buffer.
+@EndNode
+
+@Node "Author" "Author & Copyright"
+@{b}Copyright@{ub}
+	Copyright (c) 1994-1995 Matthias Scheler
+
+	Permission is granted to make and distribute verbatim copies of
+	this manual provided the copyright notice and this permission
+	notice are preserved on all copies.
+
+	Neither the programs nor the source code (nor parts of it) may
+	be included or used in commercial programs unless by written
+	permission of the authors.
+
+@{b}No Warranty@{ub}
+	No Warranty of any kind is given that the program described in
+	this document is 100% reliable. You are using this material at
+	your own risk. The author can not be made responsible for any
+	damage which is caused by using these programs.
+
+@{b}Distribution@{ub}
+	This package is freely distributable. It may be transfered to any
+	media used for distributing free software. This includes public
+	domain series, CDROMs, FTP servers and mailboxes.
+
+	If you want to distribute this program you must use the original
+	distribution archive. The author can not be made responsible for
+	any damage if the software was damaged by modifying the archive.
+
+	There is no limit for the fee taken for this media like disks,
+	streamer tapes, CDROMs or for copying. It must only be clear that
+	this fee is taken for the media and the copying and not for the
+	software. Limitations of the fee have proved to be senseless in
+	past because the fee was not lowered but the files were removed
+	from the original medias.
+
+	Although the author does not restrict the cost for distribution
+	he wants to tell their opinion abouth this topic:
+
+	This software package should be available for everybody without
+	any fee if it is possible.
+
+	If you purchased this software the normal way from a Public domain
+	distributor on a disk and you have payed more than 5,--DM or
+	$5,--US for it you have definitely overpayed. You should look for
+	a cheaper source for Public-Domain software as soon as possible.
+
+@{b}Author@{ub}
+	Matthias Scheler
+	Schützenstraße 18
+	D-33178 Borchen
+
+	UseNet:  tron@lyssa.owl.de
+	FidoNet: 2:243/6350.18
+@EndNode

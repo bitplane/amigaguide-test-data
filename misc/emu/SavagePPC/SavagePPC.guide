@@ -1,0 +1,357 @@
+@database SavagePPC.guide
+@master SavagePPC.guide
+@wordwrap
+@$VER:  1.0
+@author "László Török"
+@(c) "20.12.99"
+
+@node "Main" "SavagePPC Main Menu"
+
+                           Savage-videodriver for PPC Amigas
+
+                          For ShapeShifter Macintosh Emulator
+
+                                     Version 1.0
+
+
+@{"  What's this?            " link "micsoda" }      The driver's description
+@{"  Requirements            " link "kell" }      Required hard & software
+@{"  Tech stuff              " link "tech" }      Tech stuff about the driver
+@{"  Configuring             " link "konf" }      How to configure the driver under ShapeShifter
+@{"  Refresh rate            " link "fris" }      Setting the refresh rate
+@{"  VBLANK vs. Normal       " link "vblank" }      VBLANK vs normal refresh
+@{"  Testresults             " link "tests" }      68060/60Mhz testresults
+@{"  Opps! I have problems!  " link "gondok" }      Click here if you have problems with this driver
+@{"  Used things             " link "felha" }      Used hard & software
+@{"  Author                  " link "keszit" }      Who did it? 
+@{"  Support sites           " link "supp" }      Where you find the new versions of this driver
+@{"  To do...                " link "kellmeg" }      Things to do...
+@{"  History                 " link "revlist" }      Differences between the versions
+@{"  Thanks                  " link "koszi" }      The author wishes to thank..
+@{"  Copyright&Registration  " link "legal" }      Registration & Copyright
+
+If this version is a demo version, then please read the "Read_me_First" file!
+
+@endnode
+
+@node "kell" "Required hard&software..."
+
+Requires:
+
+Kickstart 3.0+
+
+an AGA Amiga for 15bit/8bit and ECS/OCS for 4bit
+
+A turbo/processorcard/processor which contains 68040 or 68060 with PPC 
+(so you need a BlizzardPPC or CyberPPC board)
+
+Tested (and works) with:  
+BlizzardPPC 040/25+603/240
+BlizzardPPC 040/25+603/200
+BlizzardPPC LC040/25+603/166
+
+WarpOS (tested with the latest public release)
+
+ShapShifter3.2 or newer...  (Tested only under 3.8/3.9/3.10)
+
+MUCH Fast memory...
+
+@endnode
+
+@node "micsoda" "What's this?"
+
+This driver is the is the new version of my old Savage030 and Savage040-060, but this version is optimized for the PPC boards.
+
+It is not use the MMU (just some 68k MMU code is here from the old 68k version, but i plan to make PPC MMU version too, if it is possible under WOS/PUP, but there will be just mininal speedup (close to zero))
+
+As usual (at least at me :) it is coded 100% in assembly, so it is really fast! 
+
+@endnode
+
+
+@node "tech" "The technical description of the Driver (only for experts .... :)
+
+This driver use 68k base code with PPC optimized delta c2p conversion routines. It use only 1 context switch/frame, so the context related speed down is close to 0.
+
+The VBLANK drivers use own VBLANK server which one send signals for the PPC code to make conversion. (sadly it is no possible to call PPC code directly from VBLANK interrupt)
+
+@endnode
+
+
+@node "vblank" "What is the difference between the VBLANK and the non VBLANK drivers?"
+
+As you can detect, here are two different versions from the drivers:
+
+simply version
+and VBLANK version (the filename ending with the VBLANK string)
+
+What is the difference?
+In the non-VBLANK driver you able to set the refresh rate (by using the ShapeShifter's Refresh Rate option), but the VBLANK drivers get the refresh rate from the screen (example 50 times refresh per second on PAL mode) which gives you MUCH smoother gfx operations.  (no flickering mouse pointer, smoother scrolling in games like in Warcraft) Ofcourse the gfx speed is a bit slower (because of the higher refresh rate), but this only noticable by the test programs (because almost all testprograms draw single pixel lines, and this driver convert at least 32 pixels by one conversion), but in the most case the smoother effect is better.  (simply try DOOM or Warcraft on Pal-Lace screen at refresh rate 1 with normal driver, and after with the VBLANK driver...  the VBLANK driver gives better and smoother results)
+
+@endnode
+
+
+@node "konf" "Configuring the drivers under ShapeShifter"
+
+
+Simply copy the drivers to the directory called "Video Drivers", because that is the default searching path of the external video drivers.
+
+What is the difference between the normal and the VBLANK drivers?
+Press @{"here" link "vblank" } to see!
+
+The 15bit driver is usable, when the MACINTOSH display memory requirement is smaller than 2048kb.  The memory requirement of the display is easy to calculate:  simply multiple the display width with the display height and multiply it with 2.
+
+Example:
+640x480*2=614400, which is smaller than 2097152, so usable.
+
+The 8bit driver is usable, when the MACINTOSH display memory requirement is smaller than 1024kb.  The memory requirement of the display is easy to calculate:  simply multiple the display width with the display height.
+
+Example:
+640x480=307200, which is smaller than 1048576, so usable.
+
+The 4bit driver is usable, when the MACINTOSH display memory is smaller than 512kb, which is equal in resolutions with the 8 bit driver, because similar 4bit resolution needs half of the memory as in the 8bit mode.  (i think this is logical..) The memory requirements of the 4bit mode can calculate at the followings:  multiply the display widht with the display height, after divide it by 2.
+
+Example:
+640x480/2=153600, which is smaller than 524288, so usable.
+
+!IMPORTANT!:
+Thats, how the resoultion is able free to set, not means, how you can use any *stupid* resolution, and it will works!  I maked this option because many people asked for it.
+
+(i dont able to make guarantee using not recommented resolutions, because it is a MAC side problem, not the driver's problem!)
+
+Recommented and legal MAC resolutions are the nexts: (whichs usable)
+512x384
+640x480
+832x624  (Because  i  dont  know,  how  the  MAC's  support the 800x600 mode, because a PowerMAC 7100 is support only this resolution)
+
+Note:  in the 8/15 mode you not able to use to use resolution 800x600 (like Super72 etc.), because of the hardware limitation of the AGA chipset. 
+(because every line of every bitplane must be quad-longword aligned, this requires for the full 32 bit Chipram access - this is the maximum bandwith mode of the AGA) 
+So in 8/15 bit modes use a width which is dividable with 64.
+
+(so use 768x600 or 832x600 instead of 800x600)
+
+Memory requirements:
+The first turn off the largest free block option, and set by manual the memory size.
+The driver's memory requirements:
+
+SavagePPC in  8bit (640x480)   856 kb  ( 640x480 = 300kb+256kb MMU page fix+300kb dbuff)
+SavagePPC in  4bit (640x480)   556 kb  ( 640x480 = 150kb+256kb+150kb)
+SavagePPC in 15bit (640x480)  1488 kb  ( 640x480 = 600kb+256kb+600kb+32kb ham8convtab )
+
+SavagePPC in 8bit  (512x384)   640 kb  ( 512x384 = 192kb+256kb+192kb)
+
+
+Sadly (you can see it ...) for the easier handling the MMU page all driver's need 256kb more memory than other ways....
+
+So simply sub these values from the maximal memory and write it to the mac memory.  
+(if the mac videoram, or other buffer located in the chip memory the driver will open a requester and quit.  So sub a little bit more if you want sure to start it!)
+
+But  these  values  are  the  most bigger values, and its able to start them at smaller memory.  (about 100-200kb smaller)
+
+At last the @{"setting the refresh" link "fris" } is coming.
+
+@endnode
+
+
+@node "Fris" Setting the refresh rate
+
+
+Because this driver uses PPC native code, you should first try it with refresh rate 1.
+(At the 15bit mode too!!)
+PPC is can convert the data far faster than the 040 render ;)
+
+For  games  with  biiiig  scrolling  areas  (like  Warcraft) i recomment you the VBLANK version of the drivers.  (these give MUCH more smoother scrolling)
+
+@endnode
+
+@node "tests" "Test results 68040/25Mhz+603/240"
+Testmachine: 
+A1200 with BlizzardPPC 040/25, 603/240, 2MB Chip + 16 MB Fast (my machine and the PPC board from Péter Horváth/Teletech KFT - thanks man!)
+C=1084s Monitor
+200 MB DeviceDisk under ShapeShifter
+
+Software: MAC System 7.5, ShapeShifter 3.8
+
+Testprogram: Speedometer 4.0 (Color Quickdraw)
+
+The resolution was everywhere 640x480, and the used screenmode was Pal-HiresLace.
+
+1.0=Mac Quadra 605 (68040/25Mhz)
+
+Note to all tests: Higher Value = Faster Performance
+
+Driver:          Savage040-060  SavagePPC
+Version:                  2.41        1.0
+Refresh rate:                1          1
+-----------------------------------------
+ 4bit                    0.570      0.830       Difference: +45%
+ 8bit                    0.382      0.721       Difference: +91%
+15bit (*)                0.172      0.691       Difference: +401%
+
+Same as above, just now the vblank drivers:
+
+Driver:          Savage040-060  SavagePPC
+Version:                  2.41        1.0
+Refresh rate:                1          1
+-----------------------------------------
+ 4bit                    0.298      0.678       Difference: +227%
+ 8bit                    0.235      0.583       Difference: +248%
+15bit (*)                0.171      0.611       Difference: +357%
+
+
+(*): The 15bit driver have a minor color conversion bug (my fault), but it will be fixed soon, just i wanted to release this version before X-mas.
+(there will be just nominal speed difference, i think i missed one instruction.. sadly hard to debug PPC ASM code :(
+
+As you can see, the speed difference is HUGE, and the 040/25 (which one was used during the test) slowed down the rendering.. (the PPC is able to convert more data than the 040 render...)
+
+@endnode
+
+@node "gondok" "Problems..."
+
+Problem:  This driver wont start, i get only a message: 
+          "The Selected Macintosh Display etc..."
+
+Solution: If you use the demo version, please select the 8 bit mode, and the 
+          resolution 512x384.
+          In registered version the driver configuration described in the configuring 
+          part.
+
+--------------------------------------------------------------------------------------
+
+Problem:  I got a message: "The Delta buffer or the Macintosh video memory located in
+          the chip memory"
+
+Solution: Please turn off the largest free block option in the ShapeShifter memory
+          options and select the memory as described @{"here" link "konf" }
+
+--------------------------------------------------------------------------------------
+
+Problem:  The driver works correctly, but the MAC uses funny colors. 
+          (green/blue colors... not b/w and not standard MAC colors)
+
+Solution: You have pirated/damaged keyfile for ShapeShifter
+          Please register the ShapeShifter!
+
+
+@endnode
+
+
+@node "keszit" "About the author"
+
+Some foreword:
+Im a really Amiga fan... I have 5 Amigas (A500, A1200, CDTV, CD32, A4000 and i like all...) and i collect weird Amiga HW/SWs (Like beta/unfinished Zorro cards, etc...). 
+I'm looking for an original C= MPEG Module for my CD32, so if you have one then please contact me! (im looking for such stuff since 1994....)
+
+The standard text now:
+
+If you have any problems, suggestion, bug reports then write to:
+(send the registration fee here )
+
+snail mail:             @{b}László Török
+                        H-8900 Zalaegerszeg 
+                        Cserfa 31.
+                        Hungary@{ub}
+
+phone:                  +36 92 310 396 (after 18:00 CET)
+
+EMAIL:                  @{b}torokl@alpha.dfmk.hu@{ub}
+WWW:                    @{b}http://www.dfmk.hu/~torokl@{ub}
+                        (PalomAVI, PalomaPEG, MooVId, PIV-MooVId, Savage homepage)
+
+iRC (mostly mornings) : pH03N1x@iRCNET (mostly #amigahu channel)
+(sometimes on #amigager, but my german is very limited ;)
+
+As you can see my english knowledge is very limited... so sorry for my english bugs...
+
+@endnode
+
+
+@node "supp" "The support sites"
+
+You able to find the new demo versions of this driver on the following sites:
+Aminet: misc/emu subdirectory 
+or
+on my homepage: http://www.dfmk.hu/~torokl
+
+@endnode
+
+@node "revlist" "Revision history"
+
+1.0 (20.12.99)  First versions (there are minor color conversion bug in the
+                15 bit driver, but it will be fixed soon - but it is does not 
+                affect the speed)
+
+@endnode
+
+@node "kellmeg" "To do list:"
+
+PowerUP version... (maybe :)
+
+@endnode
+
+@node "felha" "Used hard & software"
+
+Developed on:
+A4000 (REV D), CyberStormMKII (060/50), PicassoIV, FastlaneZ3 (w. 16MB... hey, is there anybody who can update this old stuff's scsi driver EPROM? The 5.x driver is terrible!), A2386 bridgeboard (just for fun :), blablabla ;) 
+
+Tested on:
+A1200 w. BlizzardPPC (040/25+603/240)
+Note: the PPC board is not mine (sadly) i just got (it for some weeks) from Péter Horváth (the leader of the Teletech KFT). Thanks man! 
+(sadly i do not have money for PPC board... :(
+
+Software:
+
+Asm-one/Asm-pro/PhxAss (for 68k parts)
+
+CED (as overall text-editor)
+
+PASM (for PPC parts)
+
+@endnode
+
+
+@node "koszi" "The author wishes to thanks:"
+
+The author wishes to thanks:
+
+Péter Horváth/Teletech KFT      For the loan PPC board (without his help this
+                                driver never would released...)
+
+Christian Bauer                 For the World's best Macintosh emulator, and the
+                                awesome external videodriver concept
+
+The developers of Amiga/AmigaOS and the still active Amiga users/developers...
+
+Amiga forver!
+
+@endnode
+
+@node "legal" "Legal mush"
+
+SavagePPC and the sources of this program are copyright © 1999 by László Török.
+The demo version is freely distributable as long as all of its files are included in their original form without additions, deletions or modifications of any kind, and only nominal fee is charged for their distribution.
+
+The software is provided »AS IS« without any warranty of any kind, either expressed or implied.
+Unauthorized copying, reproduction, hiring, lending, prohibited.  By using the 'SavagePPC' software of the  program, you accept the entire risk as to the quality and performance of the program.
+
+This program is SHAREWARE.
+
+The registration fee is 15DM or 10$USD, (or an equal amount in other currency).
+If you want to register both my SavagePPC videodriver and MooVId, then the registration fee is 20-25 DM or 15$USD! (or equal in other curr.) 
+(instead of 30DM and 20 US$)
+
+MooVId is a fast AVI/MOV player for AGA/CGX/p96/020+ based Amigas. For more info please check my homepage!
+
+Note: i accept your own programs/keyfiles for registration fee!
+
+If you want to register please send the registration fee to @{"my postal address" link "keszit" } in !CASH!  - simply put the money between two sheets of paper or similar.
+And after i got the money I'll send you the full version in E-mail.
+(registration is also possible in snail-mail too, but please add an answer envelope to your mail and an errorfree 3.5 DD disk too, and some money for the extra postage cost)
+
+(the postal money order is working too, so use it if you like better ;)
+
+The updates are free, when you have E-Mail address!
+
+If you registered please DO NOT spread your version!
+
+@endnode

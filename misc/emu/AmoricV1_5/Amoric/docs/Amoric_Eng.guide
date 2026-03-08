@@ -1,0 +1,1132 @@
+@database "Amoric v1.5"
+
+@Index INDEXNODE
+@NODE Main "Amoric v1.5"
+
+***************************************************************************
+
+                              @{b}Amoric@{ub} (v1.5)
+                The first ORIC-1/Atmos 48K emulator for the Amiga
+                   © Copyright 1995-96 Jean-Francois Fabre
+
+***************************************************************************
+
+
+	@{" Introduction       "	Link Introduction		}
+	@{" Configuration      "	Link Config			}
+	@{" Features           "	Link Features			}
+	@{" Setup              "	Link Setup			}
+	@{" Startup            "	Link Startup			}
+	@{" Joysticks          "	Link Joysticks			}
+	@{" Saving tapes       "	Link Savetape			}
+	@{" Sound              "	Link Sound			}
+	@{" Graphics	       "	Link Gfx			}
+	@{" Keyboard map       "	Link KbMap			}
+	@{" Hints              "	Link Hints			}
+	@{" Tape Import        "	Link TapeImport			}
+	@{" Other platforms    "	Link UNIXVer			}
+	@{" Changes            "	Link Changes			}
+	@{" Bugs               "	Link Bugs			}
+	@{" Working Games      "	Link WGames			}
+	@{" The HTTP site      "	Link Httpsite			}
+	@{" To do              "	Link Todo			}
+	@{" Disclaimer         "	Link Disclaimer			}
+	@{" Register           "	Link Register			}
+	@{" Acknowledgements   "	Link Acknow 			}
+	@{" History            "	Link History 			}
+	@{" The author         "	Link Author			}
+@ENDNODE
+
+@NODE Introduction "Introduction"
+
+INTRODUCTION
+
+    As the ORIC Atmos was my first computer, I never forgot it its fantastic 8
+fixed color games. The games were not that bad or ininteresting but the main
+problems were : 
+
+  - Tape loading durations could drive you mad, mostly if that doesn't worked
+  because of the volume, or treble, or tape speed, or the washing-machine, etc...
+  
+  - The f...ing protections in games forced you to switch on and off the ORIC,
+  damaging the chips.
+
+  - What a shame to plug in the ORIC again in 1995 to play games while you've got
+  a new computer at your work or at home
+
+  - While C64, Amstrad, ZX81, VIC20, BBC, Apple II emulators exist for the Amiga,
+  there were no room for the ORIC domain, while ORIC was very popular in Europe
+  (actually, more than the Vic20 or the BBC !!)
+    
+That's why I decided to write Amoric. I first wrote a UNIX X/Windows
+version, then I tried to adapt it on my favourite computer : the Amiga.
+
+I waited a long time for another programmer to release an Amiga version but
+noone did, so I think I'm the first one :-)
+
+@ENDNODE
+
+@NODE Features "Features"
+
+Amoric 1.5 features :
+
+  - A quite good 6502 emulation.
+  - Graphics emulation (HIRES and TEXT mode, including double height and flash modes)
+  - 6522 and 8912 emulation, including Timers 1 & 2, the keyboard, and the joysticks.
+  - Load/Save on Floppy/Hard Disk (faster than the tape (really ?))
+  - Control Metakeys to perform different operations (Reset button, etc...)
+  - Sound (Not perfect yet, but cool...)
+  - Load/Save snapshots from/to disk/memory
+
+Obviously, this is not a real Oric, that means that there are problems in emulating
+some software. See the @{"Bugs"	link Bugs} chapter for more information.
+
+This emulator does NOT emulate : 
+
+  - 50/60Hz switch (not often used)
+  - Half-TEXT Half-HIRES mode, used in some games
+  - Most of undocumented instructions of the 6502 (but that doesn't matter)
+
+@ENDNODE
+
+@NODE Setup "Setup"
+
+USER PREFERENCES
+
+The oric.cfg file contains the user preferences. Until version 1.0, you
+were able to edit this file in order to change them. Due to several
+convenience reasons, I changed the format of this file. It is now binary
+and has been renamed to 'Amoric.prefs'.
+It contains the following information :
+
+Rom filename	<--- Allows you to specify the ROM you want to run
+Progs dir	<--- Allows you to specify the default directory for loading tapes (CLOAD)
+Dumps dir	<--- Same thing, but with tapes to save (CSAVE)
+Sound		<--- sound on/off
+PatchRom	<--- patches some ROM routines for speedup.
+FPS		<--- Screen refresh rate (in frame/sec, from 1 to 50, in PAL).
+DisplayID	<--- An amiga screen mode for the Oric display.
+Joystick 1&2    <--- Enables/disables joysticks 1 or 2
+Warn on exit    <--- Asks for confirmation before exiting Amoric
+Do Patterns     <--- Apply the default file patterns: #?.DAT for tapes and #?.ROM for ROM files
+Refresh policy  <--- Lets you choose between Fastest,Fast,Good,Accurate,and Full
+Disk type       <--- Lets you specify the disk drive you want to be virtually plugged in.
+Video           <--- You can choose different Video drivers. Fastest is 1 bitplane.
+
+You can modify this file using the setup window at Amoric startup. You can change the settings
+for the current execution of the program or save them for later use too.
+
+Refresh policies can be Fastest,Fast,Good,Accurate,or Full.
+
+* Fastest is the simplest policy. It does not take dynamic character definition into account
+(same accuracy as V1.1).
+* Fast takes dynamic character into account, but only in some cases.
+* Good : Same than Fast, except for the cases dynamic character are taken into account.
+* Accurate : Dynamic character definition is always taken into account.
+* Full : The screen is always fully redrawn according to the refresh rate. Very CPU consuming,
+  but also very close to the real Oric display.
+
+Dynamic character definition is often used in games to animate characters or objects. In Hires
+mode, Fastest, Fast, Good, and Accurate policies act the same way.
+
+WARNING:
+	You can use Oric 1 and Oric Atmos ROMs and you can modify the ROM files for your
+	personal use only. However, there are some locations which are patched after ROM
+	loading by the emulator (Tape load, others) . Modifying those routines may lead
+	to Oric crashes.
+
+@ENDNODE
+
+@NODE Config "Configuration and Requirements"
+
+CONFIGURATION AND REQUIREMENTS
+
+AmOric was written both in C and in 680x0 assembler code. It was adapted
+from a former emulator that I wrote for UNIX platforms, and which was
+written exclusively in C. But UNIX workstations are usually a lot more
+powerful than a 68030 or even a 68040 Amiga. Due to the RISC architecture,
+C programs are usually faster than assembler programs, if the compiler is
+worth (gcc), and that also allows portability on others processors.
+My emulator worked fine on HP-PA1, Sun SPARC, PowerPC and Silicon Graphics.
+
+I finally re-wrote the Amiga version fully in 680x0 assembler for more speed
+both at execution and at compilation :-)
+The source code is more homogeneous too.
+
+But on Amiga, we must accept to program in assembly language for this type
+of software as speed is critical during the emulation, and the famous
+Amiga chipset (Paula, Denise, Gary...) can't help us with processor emulation.
+Furthermore, the 6502 and the 680x0 have got lots of common features, and the
+main idea is to use them (direct CCR flags conversion, same instructions...)
+with a minimum of adaptation.
+
+There were 2 versions : a 68000 version and a 68020 version, but I had decided to
+give up the 68000 version, as I thought it would be really to slow. But a 68000/28
+user asked me for the 68000 version and here it is, but don't expect miracles !
+
+I don't conceal that Amoric will be SLOW on a basic A1200 and VERY SLOW on a A500.
+Try REAL fast RAM.
+Anyway, Eric Totel tested this version on a A1200/020/14MHz with fast RAM and
+it was not that slow.
+
+Now, it runs at around nominal speed (90-120%) on a 68030/45MHz, but I should
+optimize it in later versions, even if I think it will be hard to go further,
+but @{"Fabrice Frances"     link PCAuthor} gave me an idea how to improve speed again.
+
+Anyway, if your computer is slow, you can always experiment with the frame rate
+refresh in the @{"oric.cfg"	Link Setup} file. Oric speed may change according
+to the display load. Amoric will slow down during scrollings.
+
+It should run on Kickstart 2.0 and higher and requires asl.library for the requesters.
+
+It has been succesfully tested on :
+
+68030 KS 3.0
+68020 KS 3.0
+68000 KS 3.0
+
+
+@ENDNODE
+
+@NODE Startup "Startup"
+
+HOW TO RUN AMORIC
+
+Here, I'll explain how to get started with Amoric.
+
+Simply click on the Amoric icon or type Amoric in the shell
+The program will try to load the ROM file and the config file.
+
+The Amoric @{"configuration"	Link Setup} screen appears.
+Adjust the settings according to your taste/Amiga, save if you
+want and click on the 'Go' button to start the emulation.
+
+Then, the Oric screen will appear.
+
+If you press the HELP key at any moment, the summary of the commands will appear
+on the Oric screen. The emulation will be halted (no active wait).
+
+To exit Amoric, simply press F10 anytime.
+
+To select a tape, just press F3. The screen will return to the Amiga part and a requester
+will ask you for a tape file. After that, just type CLOAD"" like you were used to.
+If CLOAD"" stays stuck in 'Searching...', maybe that you've not selected a tape, or that
+you've reached the end of the current tape. So select a tape or press F7 to rewind the
+current one (if there is one).
+
+@ENDNODE
+
+@NODE Sound "Sound"
+
+SOUND EMULATION
+
+I implemented myself a kind of AY-3-8912 emulation. I know it is not perfect, but it's MY
+work ;-) and I did not adapt a 8912 emulation program, that's because I wanted to do it
+all by myself, although I know that it's less accurate than some existing 8912 emulations.
+
+That's why it's still not perfect. It has not changed consistently since version 0.9,
+except maybe for channels allocation. If you're listening to a module with Delitracker
+and you run Amoric, the sound will be disabled because the channels wouldn't have been
+allocated. Conversely, if you run Amoric and then Delitracker, Delitracker won't be
+able to play anything because the channels would have been allocated.
+(Delitracker is not a good example cos it's stealing audio channels)
+
+Nevertheless, sound emulation is still done by using custom chips addressing and not
+the audio.device. Many sound programs work like that and it's ok.
+
+The noises are still missing in the emulation, and there are some persisting sounds
+on some programs. To remove them, just press F6 twice (sound off, then on).
+
+@ENDNODE
+
+@NODE Gfx "Graphics"
+
+GRAPHICS
+
+Amoric tries to reproduce the Oric graphics.
+However, you for sure noticed that Amiga and Oric display got little differences.
+
+On Amoric, you can both choose the video mode and the video driver (new from V1.5).
+
+VIDEO MODE:
+
+You can select a video mode that suits your configuration. For instance, if you've
+got a 31KHz-only monitor (a 17"" PC screen), you can choose DblPAL or Multiscan
+modes and you'll be able to play oric games with a 31KHz refresh.
+However, the feeling is stronger on a 15KHz screen !!!
+
+VIDEO DRIVER:
+
+Now you can choose between 8 color planar, 2 color planar (faster, but green), and
+8 color system-friendly routines (hardware independent).
+
+I added the last option for gfx cards (and DraCo) owners cos I heard that some of
+them could not disconnect their card. This last option uses the WritePixel and
+SetAPen routines for maximum compatibility (The speed is not very good, but I
+cannot test it on a gfx card, except if you want to generously give me one
+(please include a Zorro II multiplexer please :-) ).
+The speed is acceptable in text mode, though.
+
+I may release the full source code of Amoric in a next version, and gfx card programmers
+will be able to optimize my code.
+
+@ENDNODE
+
+@NODE KbMap "Keyboard Map"
+
+There is a unique keyboard mapping, that does not depend on the localization of the
+keyboard, but on the raw keycodes only, which means that it matches USA keyboard.
+
+Anyway, some extra keys are used to perform useful control functions :
+
+  F1	  F2	  F3	  F4	  F5	  F6	  F7	  F8	  F9	  F10
+Reset	Refresh	Change	 Show	Reboot	Toggle	Rewind	 Save	Restore	 Break
+		 Tape	Prefs		Sound	 Tape   State    State
+
+The F1 key jumps to the NMI oric routine (the unreachable black button under the computer).
+
+The F2 key refreshes completely the screen (may be useful).
+
+The F3 key allows you to change the current tape.
+
+The F4 key allows you to configure Amoric while running.
+
+The F5 key has the same effect as swithching on/off the computer.
+
+The F6 key toggles sound on/off
+
+The F7 key allows you to rewind the current virtual tape.
+
+F8 allows you to save the Oric current state (memory, registers...) in a buffer.
+
+F9 reloads the previously saved state in the Oric memory.
+
+F10 allows you to return to the workbench screen and to stops the emulation
+
+Help displays a helpscreen reminding you those useful control keys.
+
+The Oric Atmos 'FUNCT' key is emulated by the Right Alt key.
+
+Del acts the same as backspace.
+The numeric keypad can also be used, as well as 'Enter' instead of 'Return'.
+
+Caps Lock acts the same as CTRL-T in the basic commands interpreter.
+
+NumL and ScrL (on the numeric keypad) allows you to decrease/increase the frame
+rate during the emulation. This can be useful in some games.
+
+PrintScreen allows you to save a snapshot of the Oric screen in IFF-ILBM format.
+If you choose the Oric colors for your workbench, you can use a screenshot mosaic
+as a background :-) (But me I prefer Magic Workbench palette).
+
+F8 will only work if memory could be allocated for the buffer at startup.
+F9 will only work if F8 was pressed at least once during the emulation.
+
+Note: With some games, for instance Zorgon's Revenge, the keys X and Down Arrow are used
+      to go up/down because they are supposed to be one above the other, but that is no
+      longer true for the Amiga and I'm sorry. Define joystick keys instead and play with
+      the @{"joystick"	link Joysticks}.
+
+@ENDNODE
+
+@NODE Joysticks "Joysticks"
+
+JOYSTICK EMULATION
+
+Amoric V1.5 emulates two kinds of joysticks : P.A.S.E joysticks and programmable joysticks.
+
+The P.A.S.E joystick interface connects on the printer port of the Oric. Some games support
+them, like Ultima Zone, Pastablasta, or Lone Raider. But some others do not, and it can be
+annoying, most of all if the keys are not located one next another on the Amiga (just like
+in the Zorgons spaceship stage, where you had to press X to go up and <- to go down).
+
+It also existed another type of interface plugged in the expansion port that you could
+configure by choosing the keys you wanted the joystick to reproduce. This programmable
+interface was more flexible than the P.A.S.E interface, because you could use the
+joystick with games which supported only the keyboard.
+However, when you pressed fire, other joystick moves were disabled. Moreover, the interface
+was unable to reproduce Shift,Control, and Funct keys.
+
+I tried to simulate this interface, but with the possibility to perform diagonal moves
+together with the fire button (if the game allows two keys pressed at the same time).
+It is also possible to define Shift, Control of Funct keys as joystick moves.
+
+You can choose the keys you want the joysticks to replace in the @{"setup"	Link Setup} window, by pressing the
+'Choose JoyType' gadget, and press the 'Define' button of the relevant joystick in the joystick
+prefs window (if you have selected the Custom JoyType), then follow the instructions. Note that
+you cannot see which keys are currently in use. You can only select valid Oric keys (for instance,
+the Help key will be ignored).
+You can load and save the joysticks settings on disk.
+
+@ENDNODE
+
+@NODE SaveTape "Saving... GAME C"
+
+USING THE PATCHED 'CSAVE' INSTRUCTION
+
+CSAVE and CLOAD, the tape loading routines are patched in the ROM to allow you to save/load
+virtual tapes from a disk. Loading is simple : you select a tape, Amoric loads it in memory
+and when a CLOAD"" is performed, the bytes are read from the block of memory and not from
+the disk file.
+
+With saving, it's more difficult, since Amoric opens files and writes to the disk,
+so you must be careful since a unclosed file can trigger the Dos validation process
+after a reboot (well known problem).
+
+When you type 'CSAVE "FOO"', a file FOO.DAT is created in the default tapesave directory.
+If the file already exists, a requester will ask you if you want to overwrite it.
+If you answer NO, CSAVE will write nothing.
+
+If you type 'CSAVE""', a file _NONAME_.DAT will be created, since you are not allowed
+to create a file with no name... But the name will remain "" for the Oric...
+
+If the file cannot be opened for some reason, Amoric will write nothing and the data
+will not be saved (but the message 'Saving... FOO B' will still appear). That would
+act exactly as if there were no tape in the recorder...
+
+The file will not be closed as long as :
+
+- You haven't tried to save another tape
+or
+- You haven't pressed a function key (refresh ,exit, save state...)
+
+That's because it's difficult to know when the saving is over. So DON'T reboot
+your amiga while the emulation is running if you have saved tape and Amoric
+did not close the file. It could force you to revalidate your HD
+(harmless but long operation).
+
+If you close the tape while saving (by pressing a function key), it will act
+just as if you pressed the STOP button on the tape recorder.
+
+PS : The writing is buffered with a 1K buffer. It speeds up the saves.
+
+@ENDNODE
+
+@NODE Hints "Hints"
+
+USEFUL HINTS USING AMORIC
+
+- To improve speed, you can turn caches/burst mode on (68030) and also copyback
+  (68040). I don't use self-modifying code or DMA transferts so all the caching
+  devices should work. You can also relocate the VBR in Fast Ram, with tools such
+  as TUDE from N.O.M.A.D, or SystemPrefs, to improve speed while fetching interrupts
+  vectors.
+
+- As I don't consider the Amiga timers but only the Oric ones, on slow machines you
+  could have some difficulties to make the keyboard react, because the key could
+  be pressed and released just before the Oric ROM routine tests the key, and misses
+  the key on peak. In this case, just press longer on the key.
+
+- Don't promote the Oric screen with NewMode since Amoric has got its own mode
+  selection. Using Newmode can lead to crashes in some cases.
+
+- If you've got a multisync monitor, choose a screen mode like DoublePAL Lores.
+  The display will be better than your original Oric, and as a side effect,
+  as strange as it may appear, the sound emulation will be better in the sharp tones
+  (due to the fact that audio and video DMA are coupled)
+
+- In order not to let some files opened for writing unclosed, when you see
+  that a write operation is over for the Oric, just press one of the
+  function keys (or even the HELP key). That will close the file (but don't
+  do it while saving, since it's just like stopping the recorder).
+
+- Don't choose as commodities hotkeys a sequence like Control-T or Control-C.
+  Amoric would not receive those codes and you would not be able to break
+  or toggle CAPS on/off...
+
+@ENDNODE
+
+@NODE Tapeimport "Tapeimport"
+
+IMPORTING GAMES OR SOFTWARE FROM TAPES
+
+
+THAT'S an intricate part. How to get games or programs that are originally
+stored on audio tapes ?
+On the ORIC, the 6522 and the ROM manage to receive and send this horrible
+and unmelodious 2400 baud signal. This fucking signal is the easier bridge
+between today's computers and the ORIC (ORIC Microdisk or Jasmin would be
+hard to emulate for me.
+I've no knowledge about electronics, although I'm supposed to, and ORIC
+disks are 3'', that means there would be no way to read them with Amiga
+or PC drives. Anyway there isn't much documentation about Oric disks.
+The C64 drives were more documented and many interfaces for drives were
+developped for the Amiga (A64 package...))
+
+I will not talk about RS232. I think the ORIC has got one but I've no idea
+how to program it neither on the ORIC nor on any other computer. Anyway,
+you'd need to carry your ORIC with you to do that (not convenient).
+That would be the safest way to transfer data though.
+
+But I concentrated more on sound tape recordings :
+On any computer, it's easy to sample sounds, if you've got enough mem or
+hard disk space.
+For this operation, you'll need some !
+First, sample your cassettes at a high rate in 8-bit mode (22050 KHz or more).
+The format is lo8 (unsigned 8 bit : range 0-255)
+After that, use the program 'transf', written by Boris GRANVEAUD, included in
+this package. It's not very user-friendly because it's supposed to be seldom
+used. The syntax is as follows :
+
+> transf file.lo8 GAME.DAT
+
+You'll be asked for the sample rate you recorded the file.
+The program displays info about the file (name,length) and reads the data.
+Because of a timing difference between ORIC-1 and Atmos, before reading data,
+the program skips some bytes in the sample (time for the Atmos to display
+Saving... GAME OF THE DEATH C, while the ORIC-1 only displays Saving...).
+
+If an error occurs, try to transfer as follows :
+
+> transf file.lo8 GAME.DAT wretwr
+
+wretwr can be eiruti or uerhgiugh (or even nbmnmbn), because the test is made only on the number
+of args passed to the program. In this case, the program will skip no byte in
+the sample. Conversely, an error will (normally) occur at the first byte.
+As it is really hard to motivate Boris to improve his program, just consider
+this error as a feature.
+
+55 U Error found.
+New value: <- Here just enter the value above in hexadecimal (here 55) 
+
+If you get another error, two possibilities :
+
+1) Your tape or/and your tape player is/are fucked up
+2) The sampling rate is not high enough
+3) The volume is not loud enough
+4) The program doesn't use the same method to read bytes than the 6522
+   as the 6522 is an analogic device and here we process the data numericaly
+5) It's merely a tape from ZX-Spectrum.
+
+Actually, it makes five possibilities but that doesn't matter.
+
+If you manage to load tapes on the ORIC (if your cat hasn't pissed on the
+keyboard) and not with this program, just use a copy program on the ORIC 
+and send back the loaded data to the digitizer.
+The program manages perfectly with a direct ORIC signal. If that doesn't
+work, or if you can't carry your ORIC, save the signal on a new tape : it
+will improve the signal.
+ORIC's 6522 chip is very good at reading tapes and correcting errors.
+Take ORIC loading program as the only reference.
+If the game has many parts, save them separately, and then join them (cat).
+Sometimes you'll need to put some 0x16 bytes between them (don't ask why).
+Good luck !
+For any technical questions, don't hesitate to contact @{"me"	Link Author}.
+
+PS : I provided the C source code for the 'transf' routine and you should be
+     able to compile it on UNIX Workstations and Pee Cees, if you find that
+     sampling is more convienient on those platforms.
+
+Anyway, you can get almost all the existing games on the Oric @{"here"	link Httpsite}.
+
+
+IMPORTANT: If Amoric refuses to load some games, that's because the tape sync is
+           too short. It's my very fault !! I uploaded games on the http site,
+           and some of them have got this problem. To correct this, use the
+           @{"TapeInfo"	link tapeinfo} tapeinfo program, provided in this archive.
+
+USING SOX
+
+Some Amiga users reported me problems when transfering their tapes because they could
+not convert the standard ILBM 8SVX amiga format used by samplers into the RAW 8-Bit
+unsigned lo8 format needed by the "transf" program.
+You just have to use the wondeful 'sox' converter, that you can find on aminet.
+The command like will look like this if you've got a tape sample called game.8svx:
+
+sox -u -b game.8svx game.raw
+
+or
+
+sox -u -b -t raw game.8svx game(.lo8)
+
+u stands for unsigned
+b stands for byte (8bit)
+t stands for type
+
+The raw type is the simplest format: no format information. Only data.
+
+Use transf on the raw sample. I hope it will work.
+
+@ENDNODE
+
+@NODE UNIXVer "Other platforms"
+
+UNIX VERSION
+
+As I told before in this text, my first attempt to an Amiga emulation
+was on a UNIX platform. I released a version which did not handle
+graphics correctly, and I contacted @{"Fabrice Frances"	Link PCAuthor} at the same moment,
+who had wrote a version for PC (Euphoric). He introduced me to
+Olivier Balet, which improved my UNIX version with graphical
+optimizations, but now they try to release a UNIX version with
+Fabrice. Maybe that I'll release a XMotif version later.
+
+PC VERSION
+
+For your friends owning a PC and who want to get a very good emulation, you
+should try Euphoric from @{"Fabrice Frances"	Link PCAuthor}.
+Fabrice is really an amazing programmer and his emulator is really a jewel
+in the jungle of PC software. You can upload it at ftp.ensica.fr or @{"here"     link Httpsite}
+There's also some interesting Netscape information about the ORIC,
+its history, etc...
+
+We often exchanged ideas and suggestions with Fabrice. If you're yourself
+the unlucky owner of a Pee Cee, Euphoric should wipe your tears away.
+It is fast and supports sound emulation, Oric1, Atmos, and Telestrat (!),
+Oric Microdiscs, virtual disks, RS232, there's almost nothing missing...
+
+ATARI-ST VERSION
+
+@{"Olivier Galibert"	Link STAuthor} downloaded my emulator for UNIX and e-mailed me telling
+me he was going to make an emulation for ST. He gave me precious hints
+which allowed me to correct 6502 emulation bugs and to gain a lot of speed.
+I hope his excellent knowledge of the 680x0 will allow him to release his
+emulator soon, even if the ST is a bit obsolete now. (What about the amiga...)
+
+ORIC VERSION
+
+Very accurate, it was developped by Oric Systems, UK in 1983.
+
+ZX-81 VERSION
+
+No version seems to come on this platform, sorry.
+
+@ENDNODE
+
+@NODE Disclaimer "Disclaimer"
+
+DISCLAIMER 
+
+
+I cannot be held responsible for any damage caused directly or indirectly
+by the use of this program, irrespective of its correct or improper usage.
+Use it at your own risk.
+
+@ENDNODE
+
+@NODE Changes "Changes"
+
+CHANGES SINCE THE PRECEDENT VERSION
+
+Amoric has been released under version number 1.5.
+Some bugs have been corrected and new functionnalities have been added.
+
+* Configurable speed from 1% to 999% (limited by CPU power, of course)
+
+* Localization
+
+* Slightly faster CPU Emulation (theorically)
+
+* Added System-Friendly (WritePixel) video drivers, for gfx-cards users.
+
+* Faster video refresh (planar mode)
+
+* Full refresh fully working
+
+* Bug in the screen snapshot of a monochrome screen removed
+
+* Better 6522 emulation (Manic Miner and Scuba Dive work. At least !! :-) )
+
+* Refresh bug when switching to HIRES removed.
+
+* An option to enable/disable SPACE redefinition has been added.
+  (SPACE redefinition was disabled in earlier versions)
+
+@ENDNODE
+
+@NODE Bugs "Bugs"
+
+BUGS AND PROBLEMS
+
+The main bugs come from difficulties with the emulation.
+
+I had some difficulties in making some games work. In fact, some bugs in games
+taught me a lot about ORIC internal structure, and allowed me to improve a lot
+the fidelity of the emulation. For me, trying 10 or 20 games is compulsory
+when you program an emulator, most of all when it is a 8bit one, which has
+no other utility than allowing you to play the old games !
+
+* First, I did not implement all the undocumented instructions properly
+(there are a lot of them), but they are implemented as NOPs with skips.
+That is because a few programs use them, and it is often not on purpose
+but due to a frequent error from the programmers who believed that the
+BRK instruction returned at PC+1 after the RTI while it's actually PC+2.
+
+If you don't believe me, just try this on your Oric :
+
+DOKE #400,#6000	-> BRK
+		-> RTS
+POKE #402,#4C	-> JMP $FAE1 (ZAP)
+DOKE #403,#E1FA
+
+If you type CALL #400 you will hear ZAP which means that the RTS instruction
+is skipped.
+
+Note : On C64 and Apple II, undocumented instructions were found very convenient
+       by some foolish programmers and were used on purpose.
+
+Actually, Amoric handles the undocumented instructions by skipping the PC by the
+same number of bytes as they did on the real 6502, but they don't perform any other
+operation. Amoric will prompt you if it meets some instructions which originally
+crashed the Oric (like $x2). You may choose between 'Reboot', which will reboot
+the Oric, and 'Quit', which will quit Amoric.
+
+* Second, I did not implement in a very natural way the screen refresh, in order
+  to improve the speed, that's why some bugs could occur when flipping in HIRES.
+  Some games use a hybrid video mode half-text half-hires (DOGGY,FIRE FLASH,
+  ...), which is hard to reproduce without corrupting the emulation
+  of the others ones (TEXT and HIRES). Those modes are not supported yet, but
+  although I told in the docs of version 0.8 that they would be supported for
+  sure in the next release, and that IS the next release, you can see that I
+  lied ;-), but I tried hard to implement it, I swear, and I had lots of
+  problems. I could do a good graphics emulation but it will considerably slow
+  down your CPU.
+
+@ENDNODE
+
+
+@NODE WGames "Working Games"
+
+THE GAMES WHICH WORK OK WITH AMORIC
+
+The list is increasing from version to version.
+Some of these games had to be patched to work since they needed a too much
+accurate emulation (Tape routines...)
+They are followed by an asterisk *.
+
+  3D-FONGUS (Loriciels)
+  3D-MUNCH (Loriciels)
+  L'Aigle d'Or (Loriciels)
+  Andromeda et Persepolus
+  Le Spectre d'Anubis (Eric Chahi)
+  Archerons'S Rage
+  Arena (MicroDeal)
+  Baston (Sprites)
+  Bering (Dialog)
+  Bombyx (Dialog)
+  James Bond Part 1 (Severn)
+  Breakout (Tansoft)  
+  Categ-Oric (No Man's Land)
+  Centipede (PSS)
+  Chess I et II (Tansoft)
+  Chopper (Severn)
+  Corsaire (Hebdogiciel)
+  Crocky (Loriciels)
+  Damsel in Distress (IJK)
+  DEFENCE FORCE (Tansoft)
+  Le Diamant de l'île maudite (Loriciels)
+  Don Juan et Dragueurs (Micropuce)
+  Don't press 'Q' (Andrew Moore)
+  Dracula's Revenge (PSS)
+  Driver (Dialog)
+  Elektro Storm (PSS)
+  Esquive (Oric France)
+  Frelon (Loriciels) (Don't use the version from the Oric Page, because it's corrupt)
+  Frogger
+  GALAXION (Loriciels)
+  GASTRONON (Loriciels)
+  Le Manoir du Docteur Genius (Loriciels)
+  Ghost Gobbler (IJK)
+  GHOSTMAN (Infogrames)
+  GRAPH (Loriciels)
+  Gravitor (Severn)
+  HADESASM
+  HADESMON
+  HARRIER ATTACK (Durell)
+  The Hobbit (Melbourne)
+  Honey Kong (Sprites)
+  Hopper (PSS)
+  Hu*Bert (Loriciels)
+  HunchBack (Ocean)
+  Hyper Olympics (Rotten game from mine in 1984)
+  Insect Insanity
+  INVADERS (IJK)
+  L'Immonde Dr Kokus (Rotten game from mine in 1986)
+  Karate (Gazoline Software)
+  KRILLYS
+  LAND-ILL (Tansoft)
+  Light Cycle (PSS)
+  Lilla et Jacky (MicroPuce)
+  LMPLUS
+  LOCUS
+  M-A-R-C (PSS)
+  Macadam Bumper (ERE)
+  Manic Miner <- NOW WORKS :-)
+  MISSION
+  MR WIMPY (Ocean)
+  Mushroom Mania
+  Le Trident de Neptune (No Man's Land)
+  Nibbler (Hebdogiciel)
+  Nowotnik Adventure
+  Orion (Loriciels)
+  Panic (No Man's Land)
+  Pastablasta (Arcadia)
+  Pengo
+  Playground 21 (IJK)
+  Psychiatric (SPRITES) <- NOW WORKS
+  Tendre Poulet (Sprites)
+  The Ultra (PSS) <- NOW WORKS
+  Probe 3 (IJK)
+  Le Protector (Loriciels)
+  Psychiatric (Ere)
+  Lone Raider (Infogrames)
+  Le rendez-vous de la terreur (Ere)
+  Le retour du Dr Genius (Loriciels)
+  Ratsplat (Tansoft)
+  S.A.G.A (Ere)
+  Scuba Dive (Durell) <- NOW WORKS
+  SKRAMBLE (Micropuce)
+  Sorvivor (Loriciels)
+  Spooky Mansion
+  StarFighter (Severn)
+  Starter 3D (No Man's Land)
+  Strip 21 (Micropuce)
+  Super Jeep (Loriciels)
+  Two Gun Turtle
+  Le secret du tombeau (Loriciels)
+  Le tour du monde en 80 jours
+  Them
+  Triathlon (Ere)
+  TrickShot (Ijk)
+  Trouble in store
+  TYRANN (Norsoft)
+  Ultima Zone (Tansoft)
+  WAYDOR
+  WYX (Hebdogiciel)
+  XENON 1 (IJK)
+  XENON 3 (IJK)
+  ZEBBIE (IJK)
+  ZODIAC (IJK)
+  Zoolympics (No Man's Land)
+  Zorgon's Revenge (IJK)
+
+The following games will NOT work (maybe one day):
+
+Galaxians (Softek)
+M-A-R-C (PSS)
+Painter
+
+And for graphical reasons:
+
+Doggy (Loriciels)
+Fireflash (No Man's Land)
+Styx (No Man's Land) (but it's playable)
+
+Please signal @{"me"	Link Author} problems with software not mentionned here.
+
+@ENDNODE
+
+@NODE Todo "To do"
+
+Some things remain undone :
+
+* half-text/half-hires mode. Really a drag !
+* Better sound emulation (noise)
+* Some floppy disk emulation (virtual or real) with Sedoric
+* Further improvement of the flash mode
+* Improvement of the cycle timing.
+* Solve the (few) remaining incompatibilities in games.
+* Emulate the printer in some way.
+
+@ENDNODE
+
+@NODE Register "Register"
+
+REGISTER
+
+I gave up the idea of releasing Amoric while asking people to register to it for
+many reasons I don't think it's necessary to expose.
+
+Amoric is Giftware, so send me anything you want to 'register'. I accept registrations
+for games and/or utilities that you've written, and also translations in different
+languages for the guide. If you still want to send me money, you're welcomed.
+
+Anyway, if you've lost all your money playing Mortal Kombat II, or you have no time to
+translate the dox in czech, or you can't program, you can send @{"me"	Link Author}
+a mail or a postcard to tell me what you think of my program.
+Many people already e-mailed me about Amiga when I uploaded the UNIX version because
+I said in the .readme that I had got an Amiga. I think the worst thing is indifference.
+But many people e-mailed me about Amoric since and I hope it will continue.
+
+@ENDNODE
+
+@NODE Acknow "Acknowledgements"
+
+ACKNOWLEDGEMENTS
+
+I would like to thank the following persons :
+
+- @{"Fabrice Frances"     link PCAuthor}, who provided me the complete 6522 and AY-3-8912 docs, and
+  who gave the PC world a program it doesn't deserve ;-) . He helped me to
+  correct bugs in the Unix version and gave me his 6522 emulation code (in i80x86),
+  the Sedoric manual, and a LOT of hints. Moreover, we work at 500m one of another !!
+
+- @{"Olivier Galibert"  link STAuthor}, who contacted me about the Unix version to report me a bug.
+  Great thanks for your powerful hints in 6502 emulation with 68000, and for
+  your accurate docs on the 6502 emulation (including undocumented opcodes).
+  Maybe Amoric would have never been released without you.
+
+- Boris Granveaud, who wrote the tape digitizing routine, for his friendship
+  and his great debugging help when I decided to write the Unix version.
+
+- Dale Blyth, for his support, his generous donation and his questions.
+  Let he be an example for you all (most of all for the donation :-) )
+
+- Frank Wille for PhxAss 4.25. Really a great in-line assembler.
+
+- Jan Van Den Baard for GadToolsBox2.0c. A bit buggy but cool.
+
+- Christer Bjarnemo, for his translation of this documentation and the catalog
+  files in swedish, and for updating them regularly.
+  He did not even know the Oric, but he enjoys emulators a lot.
+
+- Manfred Matzinger, for his translation of this documentation and the catalog
+  files in german, and for updating them regularly.
+  I think he tries to collect every piece of software existing on the Oric.
+  Good luck. There exist more games than one can think on the Oric !
+
+- Dámaso D. Estévez for the translation of the guide file in spanish.
+
+- Kamel Biskri for signaling me in detail some Amoric bugs, and for continuous
+  support through e-mail.
+
+- Christian Bauer, for providing the source code of Frodo (C64 Emulator). You could
+  think I copied the emulation code from it, but I did NOT. I just copied some parts
+  of the code relative to GadTools, because I did not know anything about it, and
+  some event handling, like the keyboard. Christian, your source code was really
+  useful to me. Thanks.
+
+- Olivier Balet, for working on my Unix version.
+
+- Sylvain SOUCHE and Jean-Yves ROSSI for providing me some games the tape
+  of which I had eaten.
+  Special thanks to Jean-Yves who lent me his ORIC (I had lost mine),
+  his cables and his (f***ing) tape recorder.
+
+- Bruno Thiebolt, builder of OricLink, who transfered lots of games from the Oric
+  to the Oric Page on the @{"Web"     link Httpsite}.
+
+- The late 'Theoric' french magazine, in which precious technical information
+  was found on the 6522 and on the tape format.
+
+- Eric Totel, for his testing on his A1200, and for letting me use his RKM Libraries.
+
+- Oliver Rummeyer, for his great program "RO", of which I'm currently the french
+  official dealer (Advertisment)
+
+- The Amiga, for being such a great computer.
+
+- All the people who tested and enjoyed this program on its UNIX form
+  the ORIC nostalgics and the others, and who e-mailed me about it. Thanks.
+
+- The Pixies, the Breeders, Franck Black, and the Red Hot Chili Peppers.
+  That's not music for PC users ! (not directed to you, Fabrice ;-))
+
+@ENDNODE
+
+@NODE History "History"
+
+AMORIC HISTORY
+
+
+Before version 0.1 : UNIX X/Windows Release. Lots of bugs but still the only Emulator on UNIX.
+
+Version 0.1   : Programmed on A500 2 Floppies 2Mo 68000 with a hacked AsmOne. Graphics missing.
+                ROM does not execute properly.
+
+Version 0.2   : Developped now on A1200. First try to mix the Unix version and the A500 version.
+                Some CPU bugs fixed. Assembled with PhxAss.
+
+Version 0.3   : Amoric works with graphics. Still slow
+
+Version 0.4   : Speed and graphics improvement. CPU bugs fixed (thanks, Olivier Galibert).
+
+Version 0.5   : Hires mode emulated
+
+Version 0.6   : Added a help page (HELP key)
+
+Version 0.7   : Tape loading routine patched
+
+Version 0.8   : First aminet release. Full of bugs and enforcer hits.
+
+Version 0.8a  : Faster emulation
+
+Version 0.8b  : Enforcer hits corrected. Some bugs removed
+
+Version 0.9   : Sound added. Speed improvement.
+
+Version 0.9a  : IRQ bug corrected. Cycles emulated. Ratsplat now works.
+
+Version 1.0   : Multitask, system-friendly input/output, tape saving, faster emulation,
+                2 joystick emulation (buggy), save/restore keys.
+                Now needs Kick 2.0
+
+Version 1.0a  : System-friendly audio allocation, better save/restore, keys to increase/
+                decrease frame rate (internal version)
+
+Version 1.1   : GUI Prefs program, selectable screen mode, save bug removed, slightly
+                faster graphics routines (in HIRES).
+
+Version 1.2   : Better prefs capabilities, dynamic character definition, better I/O emulation,
+                better sound emulation, faster TEXT display, lots of nasty bugs corrected,
+                configurable joysticks, minor code cleanup (internal version).
+
+Version 1.3   : Better keyboard emulation, bugs corrected, better compatibility.
+
+Version 1.4   : Load/Save joystick settings and snapshots, screenshot saving, all screen
+                modes available, more accurate 6522 emulation.
+
+Version 1.4a  : 
+@ENDNODE
+
+@NODE Author "The Author"
+
+THE AUTHOR
+
+
+If you have any feeling about this program, or you want
+to make suggestions or bug reports, please contact me at one
+of my e-mail addresses :
+
+	fabre@supaero.fr
+	or
+	fabre@ensica.fr
+
+Mails of love or death threatening ones will be welcome.
+
+My snail-mail address (for the postcards, cheques, Ferraris...)
+
+	Jean-François Fabre
+	19 Rue Emile Duployé
+	34500 BEZIERS
+	FRANCE
+
+@ENDNODE
+
+@NODE PCAuthor "Fabrice Frances"
+
+FABRICE FRANCES
+
+He wrote the PC version, available at ftp.ensica.fr.
+He is very active in the Oric Mailing List.
+To reach him, you can try : 
+
+      frances@ensica.fr
+      or
+      frances@laas.fr
+
+@ENDNODE
+
+@NODE STAuthor "Olivier Galibert"
+
+OLIVIER GALIBERT
+
+He is currently writing the ST version.
+To reach him, you can try : 
+
+      Olivier.Galibert@mines.u-nancy.fr
+
+@ENDNODE
+
+
+@NODE tapeinfo "The TapeInfo program"
+
+TAPEINFO : Gets some information about tape files and allows to correct them.
+
+I wrote TapeInfo recently in order to correct some tape files in an automated way.
+When I transferred those files, I did not wrote enough sync bytes ($16).
+The files worked OK with Amoric 0.8, 0.8a, 0.8b but they did not work with Euphoric,
+the PC Oric emulator from @{"Fabrice Frances"     link PCAuthor}, and won't work from this version of
+Amoric (1.5), and Fabrice asked me to correct the relevant tapes.
+
+HOW TO USE:
+
+1) To get infos on a tape file
+
+@{b}tapeinfo [file]@{ub}
+
+Example:
+
+6.SERVICE:Programmation/ORIC48K/games> tapeinfo DEFENCE.DAT
+
+-- Amoric TapeInfo -- Written by JF FABRE --
+
+Loading source file : DEFENCE.DAT...
+File size : 58686 bytes.
+Analysing tape...
+
+Program 1 : Offset $0
+Good Sync found at offset $0.
+Program name : L
+Start : $6000   End : $69ff     Length : $9fe
+
+Program 2 : Offset $a0f
+Good Sync found at offset $a0f.
+Program name : A
+Start : $4fd    End : $4dff     Length : $4901
+
+Program 3 : Offset $5321
+Good Sync found at offset $5321.
+Program name : B
+Start : $2980   End : $727f     Length : $48fe
+
+Program 4 : Offset $9c30
+Good Sync found at offset $9c30.
+Program name : C
+Start : $4e00   End : $96ff     Length : $48fe   
+
+2) To correct a wrong sync, even on a multipart tape file :
+
+@{b}tapeinfo -c [file]@{ub}
+
+Example :
+
+6.SERVICE:Programmation/ORIC48K/games> tapeinfo -c HOPPER.DAT
+ 
+-- Amoric TapeInfo -- Written by JF FABRE --
+
+** Correcting mode activated...
+
+Loading source file : HOPPER.DAT...
+File size : 19218 bytes.
+Analysing tape...
+
+Program 1 : Offset $0
+Weak Sync found at offset $0.
+Program name : HOPPER
+Start : $500    End : $5000     Length : $4aff
+Correcting part 1...      
+
+The program won't modify the file if all the syncs are OK.
+
+You can use this program with an Opus program like RO, Browser II or Directory Opus.
+
+WARNING: Don't use this program with anything else than tape files, because it may interpret
+your data and destroy them (even if enough checks are done to avoid this).
+
+@ENDNODE
+
+@NODE Httpsite "The ORIC web"
+
+THE HTTP SITE
+
+The html Oric page is full of software and information about the Oric, its history,
+the mailing-list, some programs to convert files...
+
+Here is THE address
+
+@{b}http://www.ensica.fr/frances/oric/oric_english.html@{ub}
+
+This page is managed by @{"Fabrice Frances"	link PCAuthor}.
+
+THE NEWSGROUP
+
+It is called @{b}comp.sys.oric@{ub}
+
+THE MAILING-LIST
+
+To subscribe it, send an empty message to:
+
+oriccam@dungeon.uk
+
+@ENDNODE
