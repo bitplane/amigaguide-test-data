@@ -1,0 +1,318 @@
+@database snoopy.guide
+@wordwrap
+
+@node Main "Snoopy Version 1.0 - Help Guide"
+
+Snoopy V1.0 -- Monitors any Amiga function calls
+
+(C) Copyright Gerson Kurz, June 1993. Freely Distributable.
+
+@{"INTRODUCTION      " Link INTRODUCTION }
+@{"USAGE             " Link USAGE  }
+@{"SCRIPT FILE FORMAT" Link SCRIPT } 
+@{"THE BASE KEYWORD  " Link BASE }
+@{"THE WATCH KEYWORD " Link WATCH } 
+@{"THE HIDE KEYWORD  " Link HIDE }
+@{"RESTRICTIONS      " Link RESTRICTIONS }
+@{"FUTURE PLANS      " Link FUTURE }
+@{"AUTHOR            " Link AUTHOR } 
+@{"DISTRIBUTION      " Link DISTRIBUTION }
+@{"SUPPORT TOOLS     " Link SUPPORT }
+@{"BUILDWATCH        " Link BUILDWATCH }
+@{"TASKLIST          " Link TASKLIST }
+
+
+@endnode
+
+
+@node INTRODUCTION "INTRODUCTION"
+   This tool enables you to monitor library function calls - of any library
+you wish. The idea of course came from SnoopDos by Eddy Carroll, but Snoopy
+is different in approach and purpose. Snoopy has no specific patches for
+specific functions - it is an all-purpose tool to monitor *ANY* library call
+in *ANY* system library.
+
+   Snoopy is driven by an input file (called a @{"script file" Link SCRIPT})
+which describes in detail which functions you want to monitor, and how this
+monitoring is to be done. This input file is a plain ASCII text that contains
+a simple but very readable syntax, and you can edit it with your favourite
+text editor.
+
+   Snoopy comes with some default scripts. One emulates SnoopDos behaviour,
+an other watches interesting intuition calls and a third one is used to track
+down some very important exec.library functions. Snoopy was written completly
+in assembler and is therefor VERY fast - you will not notice much system slow
+down.
+@endnode
+
+@node USAGE "USAGE"
+Snoopy currently can be run only from the CLI. The command line usage is :
+
+   [run] Snoopy SCRIPT,TASKINFO/S,OUTPUT/K
+
+   Note that you can start Snoopy without any arguments, see the defaults in
+the option description for what will happen in this case. The Arguments are :
+
+SCRIPT - script filename
+you can specify a Snoopy @{"script file" Link SCRIPT} by giving its filename
+here. If this argument is not given, Snoopy will try to open S:SNOOPY.SCRIPT
+- which hopefully exists. Snoopy cannot work if no scriptfile is given, so
+you either have to keep S:SNOOPY.SCRIPT or provide your own scriptfile each
+time you start Snoopy.
+
+TASKINFO - tell me who called this function
+if you give this switch on the command line, Snoopy will print out the address
+and the name of each task that called a patched function before the patch
+message itself. This helps you to determine who called which function in which
+particular order - a very usefull feature. TASKINFO is disabled by default.
+
+OUTPUT - redirect output to this handle
+you can give a filename to redirect snoopy output to. This might come in handy
+if you know that there'll be lots of calls or you want to examine the output
+later (or whatever). Just give the name of the file you want Snoopy to print
+its messages to. If this argument is not given, Snoopy will open its standard
+output window.
+
+   Once Snoopy has started you will see the calls in either the output window
+or whatever output handle you have specified. You quit Snoopy by sending
+CTRL-C to it (if you have redirected your data with the OUTPUT option, use the
+CLI command BREAK to do this). Also, you can press CTRL-D to disable and
+CTRL-E to enable output, which means that you can pause Snoopy for some time.
+You can use CTRL-F to toggle the TaskInfo feature on or off.
+@endnode
+
+@node SCRIPT "SCRIPT FILE FORMAT"
+   The script file is the most important thing about Snoopy - it gives you all
+the nice flexibility you need. A scriptfile is a plain ASCII text which
+basically contains three possible elements :
+
+   - a @{"BASE" Link BASE } specification
+   - a @{"WATCH" Link WATCH } definition
+   - a @{"HIDE" Link HIDE } name
+
+   Additionally, if you want to include a whole line as a comment, you should
+place an asterix '*' in the first column. This line then is ignored by the
+SnoopDos input parser. If you want to comment a line that also contains other
+data you can use the semicolon ';'. Everything following (and including) this
+char is ignored, also.
+@endnode
+
+@node BASE "THE BASE KEYWORD"
+   You have to give Snoopy a list of all librarys you want to monitor, so
+that Snoopy can manage the function monitoring effectively. This is done by
+using the BASE keyword with the syntax
+
+   BASE=<alias>,<library name>
+
+   where <alias> is an abbreviation for the library you want to monitor.
+The <alias> is restricted to a maximum of 11 characters. Typically, this is
+the part of the name before the '.library'. This <alias> is then used by the
+@{"WATCH" Link WATCH} keyword to find the library base. The <library name> is
+the complete name of the library you want to watch (which is directly
+transfered to OpenLibray()). There is no version checking done as of yet,
+future plans include a fix on this problem. Some examples for the use of this
+keyword are :
+
+   base=dos,dos.library
+   BASE=int,intuition.library
+   Base=MyLib,dh2:source/libtest/libs/test.library
+
+@endnode
+
+@node WATCH "THE WATCH KEYWORD"
+   This is the most important keyword, since it specifies which function you
+want to watch, and how this should be done. The syntax is
+
+   WATCH=<base>,<offset>,<regs>,<template>
+
+   where <base> is a base alias given by a @{"BASE" Link BASE} keyword. Note
+that forward referencing is not possible, so you need to specify a BASE before
+you can use it in a WATCH. The <offset> is the (signed decimal) offset of the
+library function, which is normally a negative number.
+
+   The <regs> part describes how the registers are to be examined before and
+after the call, and the <template> describes what you want Snoopy to print to
+the screen. The concept is this : the <template> is a C-style format string
+like those you would use to call exec/RawDoFmt() or dos/VPrintf(). The order
+of the arguments to this <template> is specified by the <regs>-list, so that
+for each <template> format code the corresponding <register> format data is
+used.
+
+   Now, the <registers> are given by a syntax that looks something like this
+
+   <reg 0>/<reg 1>/.../<reg n>
+
+   where <reg ?> is [R][L](D|A)(0-7)
+
+   where [R] says that this register is a return value rather than data before
+the function call, L says that the register contains 32-bit data (rather than
+16-bit default) and D0-A7 is the register you want. Confused ? Well, I admit I
+cannot really find a more readable description of this, but maybe a look at a
+simple example will give you the Idea.
+
+   The following scriptfile shows you how you can monitor the Open()/Close()
+pairs of the dos.library :
+
+   ; open DOS
+   base=dos,dos.library
+   ; watch Open() and Close()
+   watch=dos,-36,D1L,Close( $%lx )
+   watch=dos,-30,D1L/D2L/RLD0,Open( "%s", $%lx ) = $%lx
+
+   Now, the base-statement should be clear. What does the first
+watch-statement mean ?
+
+   "watch=" - the keyword tells Snoopy that this line is a watch
+   description
+
+   "dos," - tells Snoopy that this watch applies to the dos.library
+
+   "-36," - tells Snoopy that you want to watch the function with the
+   offset _LVOClose, which is -36
+
+   "D1L," - tells Snoopy that you want to see the Register D1 ("D1")
+   and you want to interpret it as a Longword ("L")
+
+   "Close( $%lx )" - tells Snoopy that you want to see a line "Close(
+   $<hexadecimal representation of register D1>)"
+
+   Understood ? Now take a look at the second statement and try to understand
+it. Its quite simple, really..... If you have problems making a script, try
+@{"BUILDWATCH" Link BUILDWATCH} from the support directory.
+@endnode
+
+@node HIDE "THE HIDE KEYWORD"
+   You can hide certain tasks from Snoopy. This is a very usefull feature
+because it reduces the amount of output given by Snoopy, thereby allowing you
+to look only for calls by specific tasks. An example: If you want to monitor
+critical calls to DOS functions like Open() and Close(), why bother about
+calls made from the Workbench ?
+
+   They are harmless and correct - and besides you should think that the
+commodore programmers make some reasonable code in their own operating system
+(at least if you're not working with obscure beta release versions). By hiding
+the Workbench from Snoopy you will get a lot less calls to Open() and Close()
+(that are called, for example, on each icon when you enter a directory on your
+drive). Besides, you still see all the important calls, don't ya ?! The syntax
+for this keyword is :
+
+      HIDE=<taskname>
+
+   where <taskname> is the name of the task you want to hide. The <taskname>
+is actually an abbreviation (not case sensitive!) of the real task name; so
+for example
+
+      hide=Work
+
+   would hide both the tasks "Workbench" and "WORKING CLASS HERO". If the task
+is a CLI, give the name of the command loaded in this CLI. You can get all the
+current task names by using the @{"TASKLIST" Link TASKLIST } tool from the
+"support/" directory of this distribution. 
+@endnode
+
+@node RESTRICTIONS "RESTRICTIONS"
+   Yes, there are several restrictions. They should be very reasonable, and I
+don't think you will find them annoying or whatever. They are
+
+   * You need Kickstart V37 or higher to run Snoopy (actually, V36
+     might do, too, but I didn't check on that one and you never know)
+
+   * The base alias can be only up to 32 characters long
+
+   * The registers a6 and a7 (=SP) cannot be monitored. I have plans to
+     fix this in the future (see FUTURE PLANS section) but right
+     now they are needed for internal processing so you cannot monitor
+     them. Sorry folks !
+@endnode
+
+@node FUTURE "FUTURE PLANS"
+   Well, this is only the first release of Snoopy, and who knows maybe its
+also the last one (quite possible, actually ;-). But some things I could do
+if I ever get myself back to work on this are :
+
+    * enable snooping of a6 and a7. Actually, I already have an Idea of
+      how to do this, but right now I'm still too lazy
+
+    * provide a workbench interface
+
+    * include version details in the BASE keyword syntax
+
+    * something like an INCLUDE keyword, which allows you to tell
+      Snoopy to only watch some specific tasks (HIDE counterpart)
+@endnode
+
+@node AUTHOR "AUTHOR"
+Send your bug reports, ideas, love letters to 
+
+   Gerson Kurz
+   Karl Köglsperger Str.7 / A303
+   80939 München
+   West Germany
+
+This tool is dedicated to ULTRAWORLD and all munich techno ravers!
+See you on the Love Parade 93 in Berlin!
+
+and always remember :
+
+BREAKBEATS! DECONSTRUCTIVISM! SYSTEM RIOTS!
+@endnode
+
+@node DISTRIBUTION "DISTRIBUTION"
+Snoopy may be used by and FREELY distributed with any application be it
+commercial or public domain. There are no pagan users fees, Trump-esque
+licenses, or other forms of rabid capitalist trickery associated with
+using this tool and its support files. You do not even have to acknowledge
+the secret of your superb and efficient whatever-it-is result you gain by
+using Snoopy. The only limitation is that you may not alter the actual
+executable of Snoopy, nor sell the product and its support files as a
+distinct product (i.e. represent it as such).
+@endnode
+
+@node SUPPORT "SNOOPY SUPPORT TOOLS"
+The directory "support/" contains several tools you will find usefull in
+your work with Snoopy (given that you see any sense in doing so ;-). These
+tools are provided together with their sourcecodes under the terms of the
+Snoopy @{"distribution" Link DISTRIBUTION}. They are :
+
+   * @{"BUILDWATCH" Link BUILDWATCH } - build watch commands for an FD file
+   * @{"TASKLIST" Link TASKLIST } - show the names of all existing tasks
+@endnode
+
+@node BUILDWATCH "BUILDWATCH"
+   In case you have trouble making @{"script files" Link SCRIPT } for your
+libraries, try this tool. It takes as input the base name for a FD file,
+that fits to the following name description :
+
+      FD:<base>_lib.fd
+
+   Example:
+
+      buildwatch dos
+
+   Builds all commands for the dos.library from the file FD:dos_lib.fd
+
+   The results are given to stdout - so you must redirect this if you want to
+get a script file. You can then hand-edit the result to take only the
+functions you wish to include. Also note that a script generated by
+BUILDWATCH is not sensible to the actual data types - BUILDWATCH assumes all
+data to be LONG registers; so it doesn't recognize STRPTRs for example.
+Probably what you would do is :
+
+   - Generate a scriptfile with BUILDWATCH
+   - make your own copy of this scriptfile and handedit it to 
+     contain 
+	  
+     a) only those few functions you are interested in 
+        (its not very reasonable to Snoop into all of Execs stuff at
+        the same time, for instance...) 
+     b) proper output formats (e.g. replace %lx with %s for strings
+        and so on)
+@endnode
+
+@node TASKLIST "TASKLIST"
+   This is a very small tool that gives you a list of the names of all tasks
+currently active in your system. If you don't have any other monitor program
+at hand, you can use "tasklist" to see if you can put some @{"hide" Link HIDE }
+statements in your Snoopy monitor file. "tasklist" has no arguments or tricky
+features; just try it and look what happens ;-)
+@endnode

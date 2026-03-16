@@ -1,0 +1,447 @@
+@database ProNET.guide
+
+@node MAIN "ProNET Docs"
+### --                                                               -- ###
+                    This is the documentation file for
+                 ProNET Copyright ©1994 by Michael Krause.
+                         This package is FREEWARE.
+### --                 * RawStyle@ONLINE.sh.sub.de *                 -- ###
+
+			@{"        Introduction        " LINK INTRODUCTION}
+			@{"     System Requirements    " LINK SYSREQ}
+			@{"       Making A Cable       " LINK CABLE}
+			@{"        Installation        " LINK INSTALLATION}
+
+			@{"       Network Startup      " LINK NETSTART}
+			@{"         pronet-talk        " LINK TALK}
+			@{"         pronet-run         " LINK RUN}
+			@{"         pronet-page        " LINK PAGE}
+
+			@{"        Configuration       " LINK CONFIG}
+
+			@{"          Known Bugs        " LINK BUGS}
+			@{"    Supported DosPackets    " LINK PACKETS}
+			@{"           Security         " LINK SECURITY}
+			@{"          Some Hints        " LINK HINTS}
+
+			@{"         Programmers        " LINK PROGRAMMERS}
+
+			@{"           History          " LINK HISTORY}
+			@{"   Disclaimer & Copyright   " LINK COPYRIGHT}
+			@{"           Credits          " LINK CREDITS}
+			@{"       Contact Address      " LINK CONTACT}
+@endnode
+
+@node INTRODUCTION "ProNET Introduction"
+@{b}What is ProNET ?@{ub}
+
+  ProNET  is  a hardware/software combination that installs a small network
+between  two  and  NOT more Amigas.  This can be used to exchange data from
+both  Amiga's  devices.   The difference between ParNet, written by Matthew
+Dillon  and  others,  and  ProNET  is  that you can mount the other Amiga's
+devices  as if they were present on this machine, that means you don't have
+to  access  the  other 'DF0:' indirectly by using 'NET:df0/...' but you can
+mount  it  as  e.g.   'DF2:'  on  this Amiga.  The other device is emulated
+PERFECTLY,  so that you won't notice that it exists on the other machine in
+fact - You can e.g.  access a disk in the other 'DF0:' by it's name instead
+of having to use 'DF2:', then you can get full information about the status
+(% full etc.) - just like as it was a real device in your first Amiga.
+  Of course there are extra programs supplied known from ParNET, with which
+you can start commands on the other Amiga or just talk between them.
+  Full developer information is available for programmers that want to code
+extra tools using the pronet.device.
+
+@{b}Why did I write ProNET (and why should YOU use it instead of ParNet) ?@{ub}
+  - ParNet doesn't support the new 2.0 and 3.0 DosPackets.
+  - ParNet doesn't mount devices directly, thus not mounting the
+    disk names (e.g. 'Workbench:', 'my_graphics:')
+  - ParNet has problems with recognizing disk changes.
+  - ParNet has problems with 'cd's into network-directories
+  - ParNet is slow.
+
+  - ProNET is written in Assembler.
+  - ProNET is faster (OK, only 10%..)
+  - ProNET fixes most other problems known from ParNet.
+
+@{b}What is not so good about ProNET (at the moment) ?@{ub}
+  - pronet.device freezes the machine while sending data packets.
+  - it's not possible to e.g. reset one side and start the network
+    again while the other side stays active.
+  - it's also recommended that both sides are switched on while starting
+    the network (don't start one side, then switch on the other one and
+    start it there).
+@endnode
+
+@node SYSREQ "ProNET System Requirements"
+  The   software   should   work   on  any  Amiga,  but  it  doesn't.   The
+'pronet-handler'  makes some problems with Kickstart 1.3, but all the other
+programs run on OS1.3 !  But that's OK, because I don't need the handler on
+my A500 :-)
+  The  hardware,  which  consists  of  a  simple cable, is connected to the
+parallel  ports.   You can use the cable you have used with ParNet - If you
+don't have used ParNet before, here are the instructions:
+@endnode
+
+@node CABLE "ProNET Making A Cable"
+	      { Copied from the original ParNet distribution }
+
+The following connections need to be made on a DB25 cable:
+
+You are making a cable that connects the two PARALLEL ports
+of your Amiga together.
+
+	CABLE:	Connect D7-D0,SEL,POUT, and BUSY across,
+		Connect ACK (FLAG interrupt) to SEL locally:
+
+	(2-9)   D7-D0   ------------    D7-D0
+	(12)    POUT    ------------    POUT
+	(11)    BUSY    ------------    BUSY       PARALLEL PORT
+	(13)    SEL     --+------+--    SEL
+	(10)    ACK     -/        \-    ACK
+	(18-22) GND     ------------    GND  (18-22)
+
+Double check the gender for the DB25 connectors you will
+need to connect to your Parallel Port.
+
+A500/A2000, Parallel port is Female so you need a Male connector
+A1000,      Parallel port is Male so you need a Female connector.
+
+The easiest thing to do is to buy a premade cable with all 25
+lines passed and DB25 connectors on both ends (Double check the
+gender's that they match before you buy the cable!)  And then rip
+it apart and cut-and-seal those wires which are not supposed to be
+connected.  You also need to bridge ACK to SEL as per the diagram
+above ON BOTH ENDS OF THE CABLE, as shown above.
+
+	** NEVER PLUG IN AN UNMODIFIED CABLE BETWEEN THE TWO COMPUTERS!
+	** DOUBLE CHECK YOUR CABLE BEFORE INSTALLATION!
+
+WARNING! INTERFERENCE WITH SERIAL-PORT.
+
+  The RI (Ring Indicate) line on the Amiga's serial port
+  uses the SEL line to source a transitor.  This interferes
+  with the SEL line which, as you can see, is part of the
+  network.
+
+  Be sure that
+
+  (a) either no serial cable is attached or that
+  (b) It doesn't connect RI or that
+  (c) your modem doesn't connect RI internally.
+
+@{b}Note  from the ProNET author:  I didn't hear about any problems from people
+owning  a modem and using ParNet at the same time - but that doesn't mean i
+take any responsibility for damages..@{ub}
+@endnode
+
+@node INSTALLATION "ProNET Installation"
+@{b}General@{ub}
+  The  main  part  of the network is the 'pronet.device' which contains the
+routines necessary for transfering data between the two Amigas.  It must be
+put into the DEVS:  directory on both Amigas.
+  Both  Amigas  must be distinguished by an ID number which is put into the
+'ProNET.config'  file,  also  in  the  DEVS:   directory.  You'll find this
+number  in  the line beginning with 'pronet-device:'.  One Amiga has 0, the
+other  one  has  a 1 written here.  If this file doesn't exist when opening
+the  pronet.device, it could lead to unpredictable results, most probably a
+system  crash.   Also,  you  might not want to have the same number written
+here  on  both  sides.   This  configuration  file  is always reloaded when
+someone   opens   the  device  and  contains  configuration  data  for  all
+applications  using  the  device,  such  as  port  numbers (unimportant for
+user-only persons) etc.
+
+@{b}Network (Handler/Server-Stuff)@{ub}
+  To  build  up  the  network,  you  must install 'pronet-server' in the C:
+directory  on every Amiga you want to control.  If you just use one of your
+computers  as a 'server', that means, no one is working on the machine, you
+only  need  to put this program there.  It waits for file requests from the
+main Amiga.
+  Then  put the 'pronet-handler' in the L:  directory of the Amiga you want
+to  control  the  other  one  from.   Additionally, you'll have to create a
+MountList-entry  for  every  device  you  want to use from the server.  You
+should  copy  the example entry distributed with this package.  Just change
+the  device name - and then, what is very important:  Don't forget to add a
+line  in  the  'ProNET.config'  containing  first the device name, then the
+device name you want to control on the other Amiga, e.g.
+		hd2: hd0:
+  If you then mount 'hd2:', every access to 'hd2:' will result in an access
+to 'hd0:' on the remote Amiga.
+
+  For further configuration see @{"Configuration" LINK CONFIG}.
+
+
+@{b}  Utility Programs@{ub}
+
+@{b}pronet-talk@{ub}
+  This  one  needs  a  'ProNET.config'  entry,  that is the port number the
+program  will  use.   In most cases, the predefined value of 1994 should be
+sufficient,  unless you mount 1993 devices on the same Amiga of course :-).
+Both Amigas should use the same value here.
+@endnode
+
+@node NETSTART "ProNET Network Startup"
+  Run  'pronet-server'  on every server machine.  Then (or before that) use
+the  'mount'  command  to  install  the devices on the main machine.  It is
+ofcourse possible to use both machines crossed over.
+@endnode
+
+@node TALK "ProNET pronet-talk"
+  'pronet-talk'  is  a small program which opens a window on the Workbench.
+Everything  you  type  here  will  be  transferred  to the other Amiga.  If
+'pronet-talk'  is  also  running  there,  the  text  will be copied to that
+window.
+@endnode
+
+@node RUN "ProNET pronet-run"
+  'pronet-run'  lets you start programs on the other side without having to
+use  its keyboard.  Just pass what you would type in the shell of the other
+Amiga as the argument of 'pronet-run', e.g.:
+
+		pronet-run dir df0:
+	or what can be possible, too, though not very useful :-)
+		pronet-run pronet-run dir df0:
+
+  Note  that  the command is not put in "'"s or similar.  Besides that, the
+command  is  started synchronously, that means, the 'pronet-server' will be
+ready  again  when  the  command  is  finished.   If  you want asynchronous
+processing, use the 'run' command like this:
+
+		pronet-run run dir df0:
+
+  If  you want this command to have a certain effect :) the 'pronet-server'
+must  be  active  on the other side.  Additionally, Kickstart 1.3 needs the
+'run' command in C: !!
+@endnode
+
+@node PAGE "ProNET pronet-page"
+  'pronet-page'  opens  a  small requester on the other Amiga where you can
+display  a  text of your choice.  The text is passed as an argument to this
+command.  The 'pronet-server' must run on the other side.  Example:
+
+		pronet-page This is an example of how to use 'pronet-page'
+@endnode
+
+@node CONFIG "ProNET Configuration"
+@{b}Mountlist@{ub}
+
+  Here's the standard Mountlist entry for usage with the 'pronet-handler':
+
+CD0:	Stacksize	= 4096
+	Priority	= 10
+	GlobVec		= -1
+	Unit		= 0
+	Flags		= 0
+	@{b}Device		= devs:pronet.device@{ub}
+	Surfaces	= 0
+	BlocksPerTrack	= 0
+	Reserved	= 0
+	LowCyl		= 0
+	@{b}HighCyl		= 0@{ub}
+	FileSystem	= l:pronet-handler
+	@{b}Mount		= 1@{ub}
+#
+
+  There  are  3  lines  that may be interesting:  At first, the @{b}'Mount = 1'@{ub}
+line  instructs  the  'Mount' command to load the handler immediately, thus
+installing  the  'pronet.device',  which  results  in waiting for the other
+machine.    If   you  want  to  mount  all  the  network  devices  in  your
+startup-sequence  (or  the  DEVS/DosDrivers directory) for later usage, you
+have  to  change  the  '1'  into  a '0'.  So when you intend to startup the
+network  you  just make a 'dir cd0:' for example without having to mount it
+at first !
+
+  Then I've coded the handler in a manner that it doesn't strictly open the
+'pronet.device', but opens the device that is entered in the @{b}'Device = ...'@{ub}
+line.   That  may  become  interesting  in  future, when someone writes new
+devices  for  other  ports  and interfaces.  Then you can enter the name of
+this  device  here  !  The 'Unit' and 'Flags' fields are also inserted when
+opening  the device, but should stay zero for the original 'pronet.device'.
+  Note:  If another device is to be used you must start the 'pronet-server'
+on  the  other Amiga with the name of the new device as the first argument,
+otherwise it uses the 'pronet.device' !!
+
+  The  @{b}'HighCyl'@{ub}  line:   It  can be possible that network-volumes have the
+same name as a volume on the main computer, e.g.  when putting together two
+Amigas  with  hard  disk, both having a partition called 'Workbench'!  That
+may  cause  you and AmigaDOS problems.  To avoid this, you can change the 0
+into a 1 in this line.  Then ProNET inserts a '+' at the beginning of every
+volume name inserted in the corresponding device.
+@endnode
+
+@node BUGS "ProNET Known Bugs"
+  The filerequester of the 'reqtools.library' doesn't recognize the network
+drives.   At  least  they aren't in the Drives-List.  Workaround is to type
+the  device  name  directly  into  the  string  gadget.  I don't know why -
+perhaps it doesn't like my VolumeNodes ?  :)
+
+  Further Bugs are not known.
+@endnode
+
+@node PACKETS "ProNET Supported DosPackets"
+  ProNET  supports all new DosPackets introduced with V36 and V39:  Perhaps
+you've  sometimes seen one of these '2.0 Pkt ACT_PARENT_FH' requesters from
+ParNet - they are no longer annoying you..  So this is a list of all packet
+types supported by ProNET:
+
+
+	Name				introduced with
+
+	ACTION_FINDINPUT
+	ACTION_FINDUPDATE		V33
+	ACTION_FINDOUTPUT
+	ACTION_END
+	ACTION_READ
+	ACTION_WRITE
+	ACTION_SEEK
+	ACTION_CURRENT_VOLUME
+	ACTION_SET_FILE_SIZE		V36
+	ACTION_LOCK_RECORD		V36
+	ACTION_FREE_RECORD		V36
+
+	ACTION_LOCATE_OBJECT
+	ACTION_FREE_LOCK
+	ACTION_COPY_DIR
+	ACTION_PARENT
+	ACTION_SAME_LOCK		V36
+	ACTION_CREATE_DIR
+	ACTION_CHANGE_MODE		V36
+	ACTION_FH_FROM_LOCK		V36
+	ACTION_COPY_DIR_FH		V36
+	ACTION_PARENT_FH		V36
+	ACTION_EXAMINE_OBJECT
+	ACTION_EXAMINE_NEXT
+	ACTION_EXAMINE_FH		V36
+
+	ACTION_DELETE_OBJECT
+	ACTION_RENAME_OBJECT
+	ACTION_MAKE_LINK		V36
+	ACTION_READ_LINK		V36
+	ACTION_SET_COMMENT
+	ACTION_SET_DATE
+	ACTION_SET_PROTECT
+	ACTION_INFO
+	ACTION_RENAME_DISK
+	ACTION_INHIBIT
+	ACTION_FORMAT			V36
+	ACTION_SERIALIZE_DISK		V39
+	ACTION_MORE_CACHE
+	ACTION_WRITE_PROTECT
+	ACTION_IS_FILESYSTEM		V36
+
+	ACTION_NIL
+	ACTION_FLUSH
+	ACTION_DISK_INFO
+
+  These packets are not yet supported:
+
+	ACTION_EXAMINE_ALL		V36
+	ACTION_EXAMINE_ALL_END		V39
+	ACTION_SET_OWNER		V39
+	ACTION_GET_DISK_FSSM
+	ACTION_FREE_DISK_FSSM
+	ACTION_ADD_NOTIFY		V36
+	ACTION_REMOVE_NOTIFY		V36
+@endnode
+
+@node SECURITY "ProNET Security"
+  There's  a  poor  bug  in the OS, which hasn't been fixed up to now:  The
+'parallel.device'  doesn't check if the parallel port has been allocated by
+a  different program before.  With an active 'pronet.device', this leads to
+a destroyed network handshaking.  ParNet didn't take care of this case, but
+I  did  so:  The 'OpenDevice' call in the 'exec.library' is patched - tries
+of  opening  the  'parallel.device' are immediately rejected with an error.
+And for the case that another program changes the hardware registers, these
+are checked by the 'pronet.device' before sending anything.  If this is the
+case,  my  device will open a requester requesting you to save all data not
+saved yet, because the network is already useless !
+
+  To  cut it short:  Painting programs or word processors etc.  opening the
+'printer.device' on startup don't succeed in doing this any more !  If this
+leads  to  problems,  you  can simply start the CMD tool found in the Tools
+directory.  This one redirects all accesses to the 'parallel.device' into a
+file !
+@endnode
+
+@node HINTS "ProNET Some Hints"
+  If  the  other  side  seems  not  to  detect  disk  changes, just use the
+'diskchange'  command  found  in C:  on the device.  This bug e.g.  occures
+with my A570 CD-ROM drive - but it's not ProNET's fault - the drive needs a
+manual diskchange message.
+
+  When you start the pronet.device on one side, it will wait for signals on
+the  parallel  port.  This is done in a busy wait loop, so that means, your
+machine will slow down until a connection is established !! CONNECT 1.4E+24
+@endnode
+
+@node PROGRAMMERS "ProNET Programmers"
+  I  provided  the developer information also for the case that some people
+might try to write new 'pronet.device's for other ports, such as the serial
+one or multiserial cards.  The device simply has to be emulated perfectly -
+everything  it  must  be  able  to do, you can draw from the AutoDocs.  The
+other  programs  I  wrote  don't  use  any 'hidden' features, because there
+aren't  any  !!   If  the new device works exactly like the original, there
+shouldn't be any problems.
+@endnode
+
+@node HISTORY "ProNET History"
+Version 0 tested since 12-Oct-94 (beta test version)
+Version 1 released on 1-Nov-94 (initial release) including:
+	pronet.device 33.9
+	pronet-handler 33.5
+	pronet-server 33.5
+	pronet-talk 33.0
+	pronet-run 33.0
+	pronet-page 33.0
+@endnode
+
+@node COPYRIGHT "ProNET Disclaimer & Copyright"
+  I'm not responsible for any damage caused by this program.
+
+  This  package  is ++ FREEWARE ++, that means, you can do anything with it
+as long as you don't charge money for it (not including the copy fee..)
+  If you or your firm intends to sell this package, please contact me
+first !
+
+  Besides that, this is ++ EMAILWARE ++, so send me an E-Mail if you
+use this package ! I'm looking forward to bug reports, too - but I'm afraid
+there won't be any :)
+@endnode
+
+@node CREDITS "ProNET Credits"
+  pronet.device,  pronet-server,  pronet-handler,  pronet-talk, pronet-run,
+  pronet-page and all related files by
+                           ## Michael Krause ##
+
+  pronet cable by
+                             ## Matt Dillon ##
+
+  beta testing (thanks!!) by (no order.)
+                            ## Jörn Folster ##
+                          ## Marco Schmoecker ##
+                          ## Carsten Petersen ##
+                          ## Peter Steinmeyer ##
+                          ## Michael Schepers ##
+                             ## Jörg Krause ##
+                            ## Patrick Hess ##
+                     ## sysop@surprise.wp.sb.sub.de ##
+                           ## Thomas Schwarz ##
+                    ## wildcat@silicon.harz.sub.org ##
+                           ## Thomas Strauss ##
+                            ## Robin Stember ##
+                           ## Andreas Boerner ##
+                           ## Frank Ronneburg ##
+                         ## Wolfgang Gutberlet ##
+                           ## Christoph Dietz ##
+                             ## Sven Gmelin ##
+                            ## Nils Mueller ##
+                    ## stk@informatik.uni-bremen.de ##
+                      ## xt-oli@schnee-2.pfalz.de ##
+@endnode
+
+@node CONTACT "ProNET Contact Address"
+  OK that's simple.. Try to send an EMail to this address:
+
+		@{b}RawStyle@ONLINE.sh.sub.de@{ub}
+
+  If your mail doesn't reach me - well.. bad luck :-)
+@endnode

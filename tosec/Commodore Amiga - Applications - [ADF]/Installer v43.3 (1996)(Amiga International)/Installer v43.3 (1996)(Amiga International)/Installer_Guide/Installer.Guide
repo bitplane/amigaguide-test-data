@@ -1,0 +1,2826 @@
+@database "Installer.guide"
+@remark 
+
+@Index INDEXNODE
+
+@node "Main" "Installer.guide"
+
+   Documentation for 1.24 Installer    (Last Revised: January 12th, 1993)
+
+      (C) Copyright 1991-93 Commodore-Amiga,Inc.  All Rights Reserved
+
+          @{" Adaptation to Guide format by Gérard Cornu (4-Oct-94) " link "Adaptation"} 
+                                 
+                               Summary:
+
+               1 @{" Background                            " link "Background"}
+
+               2 @{" Overview                              " link "Overview"}
+
+               3 @{" Scripting Language Tutorial           " link "Scripting Language Tutorial"}
+
+               4 @{" Installer Language Reference          " link "Installer Language Reference"}
+
+               5 @{" Installer Language Quick Reference    " link "Installer Language Quick Reference"}
+
+                 @{"                INDEX                  " link "IndexNode"}
+@endnode
+@node "Guide version" "The version of this Guide is..."
+
+   Please note that this is the Guide version string, not the doc version upon
+   which this Guide is based (Installer.doc 1.24):
+
+   "$VER: Installer.guide 1.23 (27.1.96) Guide version of Installer.doc 1.24 
+          by Gérard Cornu, original doc (C) Copyright 1991-93 Commodore-Amiga,Inc.
+          All Rights Resrved."
+@endnode
+
+@node Background "Section 1: Background"
+
+      Section 1: Background
+
+Installation of applications from floppy disks onto a hard disk has proven to
+be a very inconsistent and often frustrating endeavor for most end-users.  
+This has been caused by many factors, some of which are:
+
+    a. Many products do not come with any utility or script to install an
+       application on a hard disk.
+
+    b. Many products assume a great deal of familiarity with the startup 
+       process of the Amiga and applications, including assigns, device names
+       (as opposed to volume names), etc.
+
+    c. The installation scripts or utilities included with some products vary
+       widely in their ability to deal with different environments and 
+       systems.
+
+About a year ago ([from January 12th, 1993]), Commodore set out to remedy 
+this situation, by developing a standard tool that developers can include 
+with their products, which provides the user with a standard way to install 
+applications.  The Installer's features were based on a number of
+assumptions:
+
+    a. Installation requirements vary widely---some need assigns, some need
+       new drawers created, some install pieces in system drawers such as a
+       fonts drawer, a `product' might be just an upgrade and the 
+       installation must check to see which version (if any) they currently
+       have installed, etc.
+
+    b. Different users have different levels of comfort and expertise when
+       attempting to install software, and the Installer should be able to
+       accommodate a range of users.  Many installation scripts assume a 
+       great deal of knowledge, which is very intimidating for a novice.
+
+    c. The installer tool must be very flexible internally, but present a
+       consistent pleasant graphical user interface to the user that only
+       shows the user information or prompts that they need to see.  
+       The Installer should be resolution, color and font sensitive.
+
+    d. Writing scripts to install an application will require some effort,
+       but certainly no more than writing an AmigaDOS shell script 
+       equivalent, and the resulting installation procedure will be more 
+       friendly, flexible, and much better looking than the latter.
+
+    e. Not everyone will be running 2.0 by the time the tool becomes 
+       available, so it must run under 1.3 and 2.0.
+
+@endnode
+
+@node Overview "Section 2: Overview"
+
+   Section 2: Overview
+
+The Installer is a script driven program, that presents a consistent
+installation environment to the end user.  The user never sees the script.
+Instead they are presented with simple yes/no choices, and may be asked to
+specify locations to put things on their system.
+
+To accommodate different @{" user levels " link "user-level"}, they can choose to run the tool in 
+novice, average or expert modes.  Scripts can include @{" help " link "help"} text to explain
+any choices that the user must make.  At each step the user is given the
+option of aborting the installation.
+
+               2.1  @{" Standard Invocation  " link "Standard Invocation"}
+               2.2  @{" Initial Actions      " link "Initial actions"}
+               2.3  @{" Startup Screens      " link "Startup screens"}
+               2.4  @{" Installation Actions " link "Installation Actions"}
+
+@endnode
+
+@node "Standard Invocation" "2.1 Standard Invocation"
+   2.1  Standard Invocation
+
+The Installer program requires a 10000 byte stack.  Project icons for 
+Installer script should indicate a stack size of 10000.  If starting 
+Installer from a CLI, first do a "Stack 10000".
+
+The Installer is normally started up from a Workbench Project icon which has
+the same name as the script to interpret and has a default tool of Installer.
+A number of tooltypes are available to modify the operation of the Installer:
+      
+      @{" APPNAME    " link "APPNAME"}      @{" LOG        " link "LOG"}      @{" NOPRINT    " link "NOPRINT"}
+      @{" DEFUSER    " link "DEFUSER"}      @{" LOGFILE    " link "LOGFILE"}      @{" PRETEND    " link "PRETEND"}
+      @{" LANGUAGE   " link "LANGUAGE_OPTION"}      @{" MINUSER    " link "MINUSER"}      @{" SCRIPT     " link "SCRIPT"}
+
+Although the installer can be started up from the CLI, that is not the
+recommended mode.  CLI invocation is provided mainly for script debugging
+purposes.  The command template is:
+
+   @{" SCRIPT " link "SCRIPT"}/K, @{" APPNAME " link "APPNAME"}/K, @{" MINUSER " link "MINUSER"}/K, @{" DEFUSER " link "DEFUSER"}/K, @{" LOGFILE " link "LOGFILE"}/K, 
+   @{" NOLOG " link "NOLOG"}/S, @{" NOPRETEND " link "NOPRETEND"}/S, @{" NOPRINT " link "NOPRINT"}/S, @{" LANGUAGE " link "LANGUAGE_OPTION"}/K
+@endnode
+
+@node "SCRIPT" "SCRIPT"         
+@TOC Overview
+
+   SCRIPT   - Path to a script file to be used with Installer.
+@endnode
+
+@node "APPNAME" "APPNAME"
+@TOC Overview
+
+   APPNAME  - Name of the application being installed (appears in the 
+              startup screen).  This MUST be given.
+@endnode
+
+@node "MINUSER" "MINUSER"
+@TOC Overview
+
+   MINUSER  - The minimum possible operation mode of the installation for a
+              script.  This will be either NOVICE (all decisions made by
+              Installer), AVERAGE (only important decisions made by user) 
+              or EXPERT (user confirms almost all actions).  The Default is 
+              NOVICE.
+@endnode
+
+@node "DEFUSER" "DEFUSER"
+@TOC Overview
+
+   DEFUSER  - Indicates which operation mode button should be initially
+              selected.  Same values as @{" MINUSER " link "MINUSER"}, with the value of the 
+              MINUSER tooltype being the default (which will be NOVICE if 
+              MINUSER is not defined).
+@endnode
+
+@node "NOPRINT" "NOPRINT"
+@TOC Overview
+
+   NOPRINT  - If set to FALSE, then the printer option in the  log file
+              settings will be ghosted.
+@endnode
+
+@node "PRETEND" "PRETEND"
+@TOC Overview
+
+   PRETEND  - If set to FALSE, indicates that @{" PRETEND mode " link "Pretend mode"} is not available
+              for this script.
+@endnode
+
+@node "NOPRETEND" "NOPRETEND"
+@TOC aOverview
+
+   NOPRETEND  - indicates that @{" PRETEND mode " link "Pretend mode"} is not available for this script.
+@endnode
+
+
+@node "LANGUAGE_OPTION" "LANGUAGE"
+@TOC Overview
+
+   LANGUAGE - Used to set the variable @{" @language " link "language"} (default for @language is
+              "english".
+              
+@endnode
+
+@node "LOGFILE" "LOGFILE"
+@TOC Overview
+
+   LOGFILE  - The name of the log file that the Installer should use.  This
+              must be a full path.  The default is "install_log_file".
+@endnode
+
+@node "LOG" "LOG"
+@TOC Overview
+
+   LOG      - In NOVICE mode the default is to create a log file (to disk).
+              If this tooltype is set to FALSE, the creation of a log file
+              in NOVICE mode is disabled.
+@endnode
+
+@node "NOLOG" "NOLOG"
+@TOC Overview
+
+   NOLOG    - indicates that the creation of a log file in NOVICE mode
+              is disabled.
+@endnode
+
+@node "Initial Actions" "2.2 Initial Actions"
+   2.2  Initial Actions
+
+The first thing the installer does is compile the installation script into an
+internal format that can be easily interpreted.  If there are syntax errors
+in the script, they will be caught during this phase.
+
+@endnode
+
+@node "Startup Screens" "2.3 Startup Screens"
+   2.3  Startup Screens
+
+Next, the Installer asks the user what Installation Mode to run in, either
+NOVICE, AVERAGE or EXPERT.  If the user chooses NOVICE, they will not be 
+asked any more questions (although they may be requested to do things).
+In the other user levels, a second display appears asking the user if he
+wants to install "for real" or "do a dry run", and if he wants a 
+transcription of the installation process written to either a file or 
+printer.
+
+@endnode
+
+@node "Installation Actions" "2.4 Installation Actions"
+   2.4  Installation Actions
+
+Now the Installer interprets its internal version of the script.  Any 
+commands that call for a user interface will cause the Installer to 
+algorithmically generate a display, always including buttons to allow for
+context sensitive help and aborting the installation. 
+
+@endnode
+
+@node "Scripting Language Tutorial" "Section 3: Scripting Language Tutorial"
+   Section 3: Scripting Language Tutorial
+
+The script language of the Installer is based on LISP.  It is not difficult
+to learn, but requires a lot of parentheses.  An Installer script can easily
+be made to look very readable.
+
+            3.1  @{" Basic Elements       " link "Basic Elements"}
+            3.2  @{" Escape Characters    " link "Escape Characters"}
+            3.3  @{" Symbols (Variables)  " link "Symbols (Variables)"}
+            3.4  @{" Types of Symbols     " link "Types of Symbols"}
+            3.5  @{" Statements           " link "Statements"}
+            3.6  @{" Data Types           " link "Data Types"}
+            3.7  @{" Special Features     " link "Special Features"}
+            3.8  @{" Miscellaneous        " link "Miscellaneous"}
+
+@endnode
+
+@node "Basic Elements" "3.1 Basic Elements"
+   3.1  Basic Elements
+
+   The basic elements of the installer language are:
+
+      Type                    Example
+      ----                    -------
+      decimal integers        5
+      hexadecimal integers    $a000
+      binary integers         %0010010
+      strings                 "Hello" or 'Hello'
+      symbols                 x
+      comments                ; this is a comment
+      ( )                     for statement definition
+      space                   delimits symbols
+        (or any white space)
+
+@endnode
+
+@node "Escape Characters" "3.2 Escape Characters"
+   3.2  Escape Characters
+
+   Escape characters are supported as in the C language:
+
+      Escape
+      sequence    Produces
+      --------    --------
+      '\\n'        newline character
+      '\\r'        return character
+      '\\t'        tab character
+      '\\0'        a NUL character
+      '\\"'        a double-quote
+      '\\\\'        a backslash
+
+@endnode
+
+@node "Symbols (Variables)" "3.3 Symbols (Variables)"
+   3.3  Symbols (Variables)
+
+A symbol is any sequence of characters surrounded by spaces that is not a
+quoted string, an integer or a control character.  This means that symbols
+can have punctuation marks and other special characters in them.  
+The following are all valid symbols:
+
+      x
+      total
+      this-is-a-symbol
+      **name**
+      @#__#@
+
+@endnode
+
+@node "Types of Symbols" "3.4 Types of Symbols"
+   3.4  Types of Symbols
+
+There are three types of symbols:
+
+   a. user-defined symbols. These are created using the "@{" set " link "set"}" function.
+
+   b. built-in function names.  These include things like @{" + " link "+"} and @{" * " link "*"} as 
+      well as textual names such as "@{" delete " link "delete"}" or "@{" rename " link "rename"}".
+
+   c. special symbols.  These are variables which are created by the 
+      installer before the script actually starts to run, and are used to
+      tell the script certain things about the environment. These symbols
+      always begin with an '@' sign.  An example is @{" @default-dest " link "default-dest"} which
+      tells you the default directory that was selected by the installer.
+
+@endnode
+
+@node "Statements" "3.5 Statements"
+   3.5  @{" Statements " link "Statements_4"}
+
+The format of a statement is:
+
+   (operator <operand1> <operand2> ...)
+
+A statement to assign the value '5' to the variable 'x' would be:
+
+   (@{" set " link "set"} x 5)
+
+You can read this as "set" x to 5".  Note that the variable 'x' does not have
+to be declared -- it is created by this statement.
+
+Note that there is no difference between operators and functions -- the 
+function 'set' and the arithmetic operator '@{" + " link "+"}' are both used exactly the 
+same way.
+
+Combining statements: A statement can be used as the operand to another
+statement as follows:
+
+   (@{" set " link "set"} var (@{" + " link "+"} 3 5))
+
+In this case, the statement '(+  3 5)' is evaluated first, and the result
+is 8. You can think of this as having the '(+  3 5)' part being replaced by
+an 8. So now we are left with:
+
+   (@{" set " link "set"} var 8)
+
+which is the same form as the first example.
+
+Note that the '(+  3 5)' part actually produced a value: 8.  This is called
+the "result" of the statement.  Many statements return results, even some
+that might surprise you (such as "set" and "@{" if " link "if"}").
+
+@endnode
+
+@node "Data Types" "3.6 Data Types"
+   3.6  Data Types
+
+All data types in the installer are dynamic, that is to say the type of a
+variable is determined by the data that is in it.  So if you assign the
+string "Hello, World" to the variable 'x', then 'x' will be of type STRING.
+Later you can assign an integer to 'x' and x will be of type INTEGER.  When
+using variables in expressions, the interpreter will attempt to convert to
+the proper type if possible.
+
+Special forms: There are two exceptions to the form of a statement.  The
+first type is used for string substitution: If the first item in parentheses
+is a text string rather than a function name, the result of that clause is
+another string that is created by taking the original string and performing
+a "printf"-like formatting operation on it, using the other arguments of the
+statement as parameters to the formatting operation.
+
+Thus the statement:
+
+   ("My name is %s and I am %ld years old" "Mary" 5)
+
+Becomes:
+
+   "My name is Mary and I am 5 years old"
+
+Note since the formatting operation uses the ROM "RawDoFmt" routine, decimal
+values must always be specified with "%ld" rather than "%d" (The interpreter
+always passes numeric quantities as longwords).  Note that a variable
+containing the string may be used rather than the string itself.
+
+The second type of exception occurs if the elements in parentheses are
+themselves @{" statements " link "statements_4"} in parentheses. In this case, the interpreter assumes
+that all the elements are statements to be executed sequentially.
+
+For example, this statement sets the value of three different variables:
+"var1", "var2" and "var3".
+
+   ((@{" set " link "set"} var1 5) (set var2 6) (set var3 7))
+
+What this feature does is allow the language to have a block structure,
+where an "@{" if " link "if"}" statement can have multiple statements in its "then" or "else"
+clause. Note that the result of this statement will be the result of the
+last statement in the sequence.
+
+Complex statements: Here is an example of how statements in the script
+language can be combined into complex expressions.  We will start with an
+"if" statement. The basic format of an "if" statement is:
+
+   (@{" if " link "if"} <condition> <then-statement> [<else-statement>])
+
+The condition should be a statement which returns a value.  The "then" and
+optional "else" parts should be statements.  Note that if the "then" or 
+"else" statements produce a result, then the "if" statement will also have
+this result.
+
+Our first example is a rather strange one: Using an "if" statement to
+simulate a boolean "not" operator. (Note that there are easier ways in the
+script language to do this).
+
+   (@{" set " link "set"} flag 0)                ; set a flag to FALSE
+
+   (@{" set " link "set"} flag (@{" if " link "if"} flag 0 1))  ; a Boolean NOT
+
+Basically, the "if" statement tests the variable "flag".  If flag is 
+non-zero, it produces the value "0".  Otherwise, the result is "1".
+In either case, "flag" is set to the result of the "if" statement.
+
+Now, let's plug some real statements into our "if" statement.
+
+   (@{" if " link "if"} flag                                ; conditional test
+       (@{" message " link "message"} "'flag' was non-zero\\n")   ; "then" clause.
+       (@{" message " link "message"} "'flag' was zero\\n")       ; "else" clause.
+   )                                         ; closing parenthesis
+
+Note the style of the indenting. This makes for an easier to read program.
+
+Now, we'll add a real condition.  "@{" = " link "relational"}" tests for equality of the two items.
+
+   (@{" if " link "if"} (@{" = " link "relational"} a 2)                  ; conditional test
+       (@{" message " link "message"} "a is 2\\n")       ; "then" clause
+       (@{" message " link "message"} "a is not 2\\n")   ; "else" clause
+   )                                ; closing parenthesis
+
+Finally, just to make things interesting, we'll make the "else" clause a
+compound statement.
+
+   (@{" if " link "if"} (@{" = " link "relational"} a 2)                         ; conditional test
+       (@{" message " link "message"} "a is 2\\n")              ; "then" clause
+       (   (@{" message " link "message"} "a is not 2\\n")      ; "else" compound statement
+           (@{" set " link "set"} a 2)
+           (@{" message " link "message"} "but it is now!\\n")
+       )                                   ; end of compound statement
+   )                                       ; end of if
+
+@endnode
+
+@node "Special Features" "3.7 Special Features"
+   3.7  Special Features
+
+When the Installer first starts up, it attempts to determine the "best"
+place to install the application.  Any volume named "WORK:" is given 
+preference, as this is the standard way that an Amiga comes configured from
+Commodore.
+
+There are two keyboard shortcuts.  Whenever there is a "Help" button active,
+pressing the HELP key will also bring up the help display.  Whenever there
+is an "Abort" button active, pressing ESC brings up the abort requester.
+Also, whenever the installer is "busy", pressing ESC brings up the abort
+requester --there is text in the title bar to that effect.
+
+If an application must have assigns or other actions performed during system
+boot, the Installer will add these to a file named "S:user-startup".
+The installer will then add the lines 
+
+   if exists S:user-startup
+      execute S:user-startup
+   endif
+
+to the user's "startup-sequence".  The Installer will attempt to determine
+the boot volume of the system when looking for the "startup-sequence" and
+can handle any AmigaDOS scripts executed from "startup-sequence" (up to 10
+levels of nesting).
+
+The Installer can create an assign to just a device, volume or logical
+assignment. This comes in handy when you want to update an application which
+comes on a volume named "MyApp:", but the installed version is in a directory
+with the logical assign "MyApp:"!
+
+The Installer always @{" copies files " link "copyfiles"} in CLONE mode, meaning all the protection
+bits, filenotes and file dates are preserved.  When copying files the
+Installer gives a "@{" fuelgauge " link "nogauge"}" readout of the progress of the copy.
+
+The Installer can find the @{" version " link "getversion"} number of any executable file that has
+either a RomTag with an ID string (such as libraries and devices) or has a
+version string conforming to that given in the 1990 DevCon notes.  The 
+Installer can also @{" checksum " link "getsum"} files.  A separate utility named "instsum" is
+provided to determine a file's checksum for use with this feature.
+
+@endnode
+
+@node "Miscellaneous" "3.8 Miscellaneous"
+   3.8  Miscellaneous
+
+To perform a set of actions on all the contents of a directory matching a
+pattern you can use the "@{" foreach " link "foreach"}" operator.  To perform a set of actions on
+an explicit set of files, the following installer statements can be used as
+a template:
+
+   (@{" set " link "set"} n 0)
+   (@{" while " link "while"} (set thisfile (@{" select " link "select"} n "file1" "file2" "file3" ""))
+       (    (set n (+ n 1))
+           (... your stuff involving this file ...)
+       )
+   )
+
+Note that an empty string is considered a FALSE value to any condition 
+operator.
+
+To run an external CLI command which normally requires user input, redirect
+the input from a file with the needed responses.  For example, to format a
+disk one could combine the statement shown below with a file which contains
+only a newline character.
+
+   (@{" run " link "run"} "format <nl_file drive DF0: name ToBeEmpty")
+
+@endnode
+
+@node "Installer Language Reference" "Section 4: Installer Language Reference"
+   Section 4: Installer Language Reference
+
+         4.1  @{" Notes                         " link "Notes"}
+         4.2  @{" Statements                    " link "Statements_4"}
+         4.3  @{" Control Statements            " link "Control Statements"}
+         4.4  @{" Debugging Statements          " link "Debugging Statements"}
+         4.5  @{" User-Defined Procedures       " link "User-Defined Procedures"}
+         4.6  @{" Functions                     " link "Functions"}
+         4.7  @{" Summary of Parameters         " link "Summary of Parameters"}
+         4.8  @{" Pre-Defined Variables         " link "Pre-Defined Variables"}
+
+@endnode
+
+@node "Notes" "4.1 Notes"
+   4.1  NOTES
+
+a. When the script exits either by coming to the end or via the "@{" exit " link "exit"}"
+statement, a message will be displayed saying where the application was
+installed and where the logfile (if any) was written.  Note that you must
+store in "@default-dest" where you actually installed the application (see
+"@{" @default-dest " link "default-dest"}").
+
+b. A @{" newline " link "Escape Characters"} character ('\\n', 0x0a) will cause a line break when the
+installer performs word-wrapping.  A hard-space (ALT-space, 0xa0) will
+prevent a word break when the installer performs word-wrapping.  Also,
+quoted sections will be considered one word for word-wrapping purposes.
+For example, if the following @{" help " link "help"} text was used:
+
+   "The disk name \"FrameZapper 2.0\" is needed to complete installation."
+
+then the text "FrameZapper 2.0" will not have a word break before the "2".
+
+c. The maximum size of a string in a script is 512 bytes. The maximum size
+of any string variable is 10000 bytes. If you need to create long help text
+for example, break it into 512 byte chunks and then use the automatic string
+concatenation ability of the installer to create the final, larger string.
+Also, don't overlook the the use of line continuation of strings in scripts
+to make your scripts more manageable. If you ever find that the installer
+reports a stack overflow error, look to see if it caused by too many small
+strings being concatenated and merge them into larger blocks.
+
+d. The "@{" run " link "run"}" and "@{" execute " link "execute"}" statements only return the result of the command
+run or executed under 2.0; they always return 0 under 1.3. If you must have
+some result under both 1.3 and 2.0, try this combo:
+
+   # in the DOS script to execute:
+   failat 31
+   command
+   if error
+       setenv installer-result 10
+   else
+       if warn
+           setenv installer-result 5
+       else
+           setenv installer-result 0
+       endif
+   endif
+
+   # in the installer script
+   (@{" execute " link "execute"} DOS-Script)
+   (@{" set " link "set"} theResult (@{" getenv " link "getenv"} "installer-result"))
+
+e. Filename and directoryname wildcard patterns specified in a script must
+be no longer than 64 characters.
+
+@endnode
+
+@node "Statements_4" "4.2 Statements"
+   4.2  Statements
+
+      @{" abort      " link "abort"}       @{" protect    " link "protect"}   
+      @{" complete   " link "complete"}       @{" rename     " link "rename"}
+      @{" copyfiles  " link "copyfiles"}       @{" rexx       " link "rexx"}
+      @{" copylib    " link "copylib"}       @{" run        " link "run"}
+      @{" delete     " link "delete"}       @{" set        " link "set"}
+      @{" execute    " link "execute"}       @{" startup    " link "startup"}
+      @{" exit       " link "exit"}       @{" textfile   " link "textfile"}
+      @{" makeassign " link "makeassign"}       @{" tooltype   " link "tooltype"}
+      @{" makedir    " link "makedir"}       @{" welcome    " link "welcome"}
+      @{" message    " link "message"}       @{" working    " link "working"}
+   
+@endnode
+
+@node "set" "(set <varname> <value> [<varname2> <value2> ...])"
+
+(set <varname> <value> [<varname2> <value2> ...])
+   
+Set the variable <varname> to the indicated value.  If <varname> does not
+exist it will be created.  Set returns the value of the last assignment.
+
+Note: All @{" variables " link "Data types"} are typeless, and any variable may be used wherever
+a string could be used.  All variables are global.
+
+The "set" statement can be used to convert a string to an integer value:
+
+    (set <integer-var> (+ <string-var>))
+
+Use the "@{" cat " link "cat"}" statement to do the reverse.
+
+@endnode
+
+@node "makedir" "(makedir <name> <parameters>)"
+
+(makedir <name> <parameters>)
+
+Creates a new directory.  Parameters:
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message.
+
+    @{" infos   " link "infos"}  - create an icon for directory.
+
+    @{" confirm " link "confirm"}  - if this option is present, user will be prompted, else the
+                 directory will be created silently.
+ 
+    @{" safe    " link "safe"}  - make directory even if in @{" PRETEND mode " link "Pretend mode"}.
+
+@endnode
+
+@node "copyfiles" "(copyfiles <parameters>)"
+
+(copyfiles <parameters>)
+
+Copies one or more files from the install disk to a target directory.
+Each file will be displayed with a checkmark next to the name indicating if
+the file should be copied or not.  Note that a write protected file is
+considered "delete protected" as well.  Parameters:
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message.
+
+    @{" source  " link "source"}  - name of source directory or file.
+
+    @{" dest    " link "dest"}  - name of destination directory, which is created if it doesn't
+                 exist. 
+                 Note that both source and dest may be relative pathnames.
+
+    @{" newname " link "newname"}  - if copying one file only, and file is to be renamed, this is
+                 the new name.
+
+    @{" choices " link "choices"}  - a list of files/directories to be copied (optional).
+
+    @{" all     " link "all"}  - all files/directories in the source directory should be copied.
+
+    @{" pattern " link "pattern"}  - indicates that files/directories from the source dir matching
+                 a pattern should be copied.  The pattern should be no more
+                 than 64 characters long.
+                 Note that only one of "choices", "all" or "pattern" should be
+                 used at any one time.
+
+    @{" files   " link "files"}  - only copy files.  
+
+    @{" infos   " link "infos"}  - switch to copy icons along with other files/directories.
+
+    @{" fonts   " link "fonts"}  - switch to not display ".font" files, yet still copy any that
+                 match a directory that is being copied.
+
+   (@{" optional " link "optional"} <option> <option> ...) - dictates what will be considered a
+                 failure on copying.
+                 The first three options are mutually exclusive (they may not
+                 be specified together).
+                 "fail"       - installer aborts if could not copy (the default)
+                 "nofail"     - installer continues if could not copy
+                 "oknodelete" - aborts if can't copy, unless reason was
+                                "delete protected"
+                 The next two options may be used with any other "optional" 
+                 options.
+                 "force"      - unprotect destination
+                 "askuser"    - ask user if the file should be unprotected (but
+                                not in novice)
+                 In the case of "askuser", the default for novice mode is an
+                 answer of "no". Therefore, you may want to use "force" to make
+                 the novice mode default answer appear to be "yes".
+
+   (@{" delopts " link "delopts"} <option> <option> ...) - removes options set by "@{" optional " link "optional"}".
+
+    @{" confirm " link "confirm"}  - if this option is present, user will be prompted to indicate
+                 which files are to be copied, else the files will be copied
+                 silently.
+
+    @{" safe    " link "safe"}  - copy files even if in @{" PRETEND mode " link "Pretend mode"}.
+
+@endnode
+
+@node "copylib" "(copylib <parameters>)"
+
+(copylib <parameters>)
+
+Copies one file using version checking; i.e., it only overwrites an existing
+file if the new file has a higher version/revision number.  "Copylib" will
+create the destination directory as long as there is only one level missing.
+For example, copying to a non-existent "DEVS:midi" would create the directory
+"midi", but copying to "DEVS:midi/extra" where neither "midi" nor "extra" 
+exists would fail.  Note that a write protected library file is considered 
+"delete protected" as well.  Parameters:
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message.
+
+    @{" source  " link "source"}  - name of source directory or file
+
+    @{" dest    " link "dest"}  - name of destination directory
+                 Note that both source and dest may be relative pathnames.
+
+    @{" newname " link "newname"}  - if copying one file only, and file is to be renamed,
+                 this is the new name
+
+    @{" infos   " link "infos"}  - switch to copy icons along with other files
+   
+   (@{" optional" link "optional"} <option> <option> ...) - dictates what will be considered a
+                                       failure on copying.
+        The first three options are mutually exclusive (they may not be
+            specified together).
+            "fail"         - installer aborts if could not copy (the default)
+            "nofail"       - installer continues if could not copy
+            "oknodelete"   - aborts if can't copy, unless reason was
+                             "delete protected"
+
+        The next two options may be used with any other "optional" options.
+            "force"     - unprotect destination
+            "askuser"   - ask user if the file should be unprotected
+                          (but not in novice)
+            In the case of "askuser", the default for novice mode is an 
+            answer of "no".  Therefore, you may want to use "force" to make
+            the novice mode default answer appear to be "yes".
+
+   (@{" delopts " link "delopts"} <option> <option> ...) - removes options set by "optional"
+
+    @{" confirm " link "confirm"}  - user will be asked to confirm.  Note that an EXPERT user
+                 will be able to overwrite a newer file with an older one.
+
+    @{" safe    " link "safe"}  - copy the file even if in @{" PRETEND mode " link "Pretend mode"}.
+
+@endnode
+
+@node "startup" "(startup <appname> <parameters>)"
+
+(startup <appname> <parameters>)
+
+This command edits the "S:user-startup" file, which is executed by the 
+user's startup-sequence (Installer will modify the user's startup- sequence
+if needed, although in a friendly way).  The "command" parameter is used to
+declare AmigaDOS command lines which will be executed.  The command lines
+are grouped by application, using the supplied argument "appname".  If there
+is already an entry in "S:user-startup" for that application, the new command
+lines will completely replace the old.  The command lines for other
+applications will not be affected.  Note: The prompt and help parameters for
+the "startup" statement are only used by the confirmation display to edit 
+"user-startup".  This only happens in EXPERT mode.  Parameters:
+
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+    
+    @{" help    " link "help"}  - text of help message.
+
+    @{" command " link "command"}  - used to declare an AmigaDOS command line to be
+                 executed at system startup.
+
+@endnode
+
+@node "tooltype" "(tooltype <parameters>)"
+
+(tooltype <parameters>)
+
+Modify an icon's tool type.  Normally the new tool type values will be set
+up in advance by various statements in the install language (i.e. the user
+does not actually have to type in the tooltype values).  For example, you
+could use an "@{" askchoice " link "askchoice"}" to ask the user what type of screen resolution
+they want and then format the tooltype string based on their choice.
+The "tooltype" operation merely asks for a confirmation before actually
+writing.  Parameters:
+
+    @{" prompt         " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help           " link "help"}  - text of help message.
+
+    @{" dest           " link "dest"}  - the icon to be modified.
+
+    @{" settooltype    " link "settooltype"}  - the tooltype name and value string.
+
+    @{" setdefaulttool " link "setdefaulttool"}  - default tool for a project.
+
+    @{" setstack       " link "setstack"}  - set size of stack.
+
+    @{" noposition     " link "noposition"}  - reset to NOICONPOSITION.
+
+    @{" swapcolors     " link "swapcolors"}  - swap first two planes of icon's image if OS rev less 
+                        than v36.
+
+    @{" confirm        " link "confirm"}  - if this option is present, the user will be asked for
+                        confirmation, otherwise the modification proceeds
+                        silently.
+
+    @{" safe           " link "safe"}  - make changes even if in @{" PRETEND mode " link "Pretend mode"}.
+
+@endnode
+
+@node "textfile" "(textfile <parameters>)"
+
+(textfile <parameters>)
+
+Creates a text file from other textfiles or computed text strings.  This can
+be used to create configuration files, AREXX programs or execute scripts.
+Parameters:
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message. 
+
+    @{" dest    " link "dest"}  - the name of the text file to be created.
+
+    @{" append  " link "append"}  - a string to be appended to the new text file.
+
+    @{" include " link "include"}  - a text file to be appended to the new text file.
+
+    @{" confirm " link "confirm"}  - if this option is present, the user will be asked for
+                 confirmation, otherwise the writing proceeds silently.
+
+    @{" safe    " link "safe"}  - create file even if in @{" PRETEND mode " link "Pretend mode"}.
+
+@endnode
+
+@node "execute" "(execute <argument> ...)"
+
+(execute <argument> ...)
+
+Executes an AmigaDOS script with the arguments given.  NOTE: Does not ask
+user for confirmation, however this can be added by using "@{" askchoice " link "askchoice"}" or
+"@{" askbool " link "askbool"}". Parameters:
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message. 
+
+    @{" confirm " link "confirm"}  - if this option is present, the user will be asked for
+                  confirmation, otherwise the execute proceeds silently.
+
+    @{" safe    " link "safe"}  - execute script even if in @{" PRETEND mode " link "Pretend mode"}.
+
+Returns a result if executed under 2.0.  Returns 0 under 1.3.  See @{" NOTES " link "notes" 27} for
+workarounds under 1.3.
+
+@endnode
+
+@node "run" "(run <argument> ...)"
+
+(run <argument> ...)
+
+Executes a compiled program with the arguments given.  NOTE: Does not ask
+user for confirmation, however this can be added by using "@{" askchoice " link "askchoice"}" or
+"@{" askbool " link "askbool"}". Parameters:
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message. 
+
+    @{" confirm " link "confirm"}  - if this option is present, the user will be asked for
+                 confirmation, otherwise the run proceeds silently.
+
+    @{" safe    " link "safe"}  - run program even if in @{" PRETEND mode " link "Pretend mode"}.
+
+Returns a result if executed under 2.0.  Returns 0 under 1.3.  See @{" NOTES " link "notes" 27} for
+workarounds under 1.3.
+
+@endnode
+
+@node "rexx" "(rexx <argument> ...)"
+
+(rexx <argument> ...)
+
+Executes an ARexx script with the arguments given.  NOTE: Does not ask user
+for confirmation, however this can be added by using "@{" askchoice " link "askchoice"}" or 
+"@{" askbool " link "askbool"}". If the ARexx server is not active, an error will be generated.
+Parameters:
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message. 
+
+    @{" confirm " link "confirm"}  - if this option is present, the user will be asked for
+                 confirmation, otherwise the rexx script proceeds silently.
+
+    @{" safe    " link "safe"}  - execute script even if in @{" PRETEND mode " link "Pretend mode"}.
+
+@endnode
+
+@node "makeassign" "(makeassign <assign> [<path>] (parameters))"
+
+(makeassign <assign> [<path>] (parameters))
+
+Assigns 'assign' to 'path'.  If 'path' is not specified, the assignment is
+cleared.  Parameters:
+
+    @{" safe    " link "safe"}  - assign even if in @{" PRETEND mode " link "Pretend mode"}.
+
+Note: assign must be supplied without a colon; i.e. "ENV" not "ENV:".
+
+@endnode
+
+@node "rename" "(rename <oldname> <newname> <parameters>)"
+
+(rename <oldname> <newname> <parameters>)
+
+Renames a file or directory.  If the "@{" disk " link "disk"}" parameter is given, then this
+command relabels the disk named oldname to newname.  When relabeling a disk,
+ONLY include a colon in the oldname.  Returns 1 if the rename was successful,
+0 if it failed.  Parameters:
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message. 
+
+    @{" confirm " link "confirm"}  - if this option is present, the user will be asked for
+                 confirmation, otherwise the rename proceeds silently.
+
+    @{" disk    " link "disk"}  - switch to get rename to relabel a disk.
+
+    @{" safe    " link "safe"}  - rename even if in @{" PRETEND mode " link "Pretend mode"}.
+
+@endnode
+
+@node "delete" "(delete <file> <parameters>)" 
+
+(delete <file> <parameters>)
+
+Delete a file.  Note that a write protected file is considered "delete
+protected" as well.  Parameters:
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message. 
+
+    @{" confirm " link "confirm"}  - if this option is present, the user will be asked for
+                 confirmation, otherwise the delete proceeds silently.
+
+   (@{" optional " link "optional"} <option> <option> ...) - should deletions be forced.
+           options:
+               "force"     - unprotect destination
+               "askuser"   - ask user if the file should be unprotected
+                             (but not in novice)
+               In the case of "askuser", the default for novice mode is an
+               answer of "no".  Therefore, you may want to use "force" to make
+               the novice mode default answer appear to be "yes".
+
+   (@{" delopts " link "delopts"} <option> <option> ...) - removes options set by "optional"
+
+    @{" safe    " link "safe"}  - delete even if in @{" PRETEND mode " link "Pretend mode"}.
+
+@endnode
+
+@node "protect" "(protect <file> [<string of flags to change>] [<decimal mask>] <parameters>)"
+
+(protect <file> [<string of flags to change>] [<decimal mask>] <parameters>)
+
+Either gets the protection status of a file (if a second argument is not
+given), or sets it.  Two methods exist for setting the status: string
+(e.g. "+r -w +e -d") or numeric (e.g. 5).  The string method allows the
+changing of any of the flags individually, while numeric writes to all flags
+at once (possibly changing bits unintendedly).  The bits in the binary
+representation of the decimal mask correspond to the flags in the following
+manner:
+
+8 7 6 5 4 3 2 1  <- Bit number
+
+h s p a r w e d  <- corresponding protection flag
+
+^ ^ ^ ^ ^ ^ ^ ^
+| | | | | | | |
+| | | | | | | +- \\
+| | | | | | +--- | 0 = flag set
+| | | | | +----- | 1 = flag clear
+| | | | +------- /
+| | | | 
+| | | |
+| | | +--------- \\
+| | +----------- | 0 = flag clear
+| +------------- | 1 = flag set
++--------------- /
+
+Note that the meaning of the bits in the numeric value follows the DOS
+convention that a 1 in the high four bits (flags "hspa") indicates that the
+flag is set, while a 1 in the lower four bits (flags "rwed") indicates that
+the flag is cleared.
+
+When setting bits, "protect" returns 1 if the attempt succeeded, else it
+returns a 0.  Getting the bits returns either the numeric value of the
+protection status (see interpretation, above) or -1 upon failure.
+Parameters:
+
+    @{" safe    " link "safe"}  - change protection even if in @{" PRETEND mode " link "Pretend mode"}.
+
+@endnode
+
+@node "abort" "(abort <message> <message> ...)"
+
+(abort <message> <message> ...)
+
+Exits the installation procedure with the given messages and then processes
+the @{" onerror " link "onerror"} statements (if any).
+
+@endnode
+
+@node "exit" "(exit <string> <string> ... (quiet))"
+
+(exit <string> <string> ... (quiet))
+
+This causes normal termination of a script.  If strings are provided, they
+are displayed.  The "done with installation" message is then displayed.
+The "@{" onerror " link "onerror"}" statements are not executed.  If (quiet) is specified, the
+final report display is skipped.
+
+@endnode
+
+@node "complete" "(complete <number>)"
+
+(complete <number>)
+
+This statement is used to inform the user how complete the installation is.
+The number (which must be between 0 and 100) will be printed in the title
+bar of the installer window with a '%' sign.
+
+@endnode
+
+@node "message" "(message <string> <string> ...)"
+
+(message <string> <string> ...)
+
+This statement displays a message to the user in a window, along with
+Proceed, Abort and optional Help buttons.  Note that messages are not
+printed when running at user level 0 (novice).  Parameters:
+
+    @{" help    " link "help"}  - optional help text
+
+@endnode
+
+@node "working" "(working <string> <string> ...)"
+
+(working <string> <string> ...)
+
+The strings will be concatenated to form a message which will appear below a
+standard line that reads "Working on Installation".  Useful if you are doing
+a long operation other than file copying (which has its own @{" status display " link "nogauge"}).
+
+@endnode
+
+@node "welcome" "(welcome <string> <string> ...)"
+
+(welcome <string> <string> ...)
+
+Installer looks for the occurrence of this statement in a script file during
+compilation.  If it does not exist (as is the case for older scripts) the
+"Welcome to the <@{" APPNAME " link "APPNAME"}> App installation utility" display is presented to
+the user as soon as compilation has finished. If this statement is present,
+Installer will not put up the "Welcome..." display until the (welcome)
+statement is reached.  This allows for the execution of code before the first
+displays come up.  Note that the state of the "@{" @user-level " link "user-level"}" and "@{" @pretend " link "pretend_var"}"
+variables will be based on the initial defaults including any modification by
+tooltypes.  The string arguments are prepended to the standard help text for
+whichever of the two initial displays appears first.
+
+@endnode
+
+@node "Control Statements" "Control Statements"
+   4.3  Control Statements
+
+NOTE: Strings can be used as the result of a test expression.  An empty
+string is considered a FALSE value, all others are considered TRUE.
+
+                     @{" foreach    " link "foreach"}
+                     @{" if         " link "if"}
+                     @{" onerror    " link "onerror"}
+                     @{" select     " link "select"}      
+                     @{" trap       " link "trap"}   
+                     @{" until      " link "until"}   
+                     @{" while      " link "while"}
+                     @{" ((...))    " link "((...))"}
+@endnode
+
+@node "if" "(if <expression> <true-statement> <false-statement>)"
+
+(if <expression> <true-statement> <false-statement>)
+
+Operates as a standard "if-then" statement.
+
+@endnode
+
+@node "while" "(while <expression> <statement> ... )"
+
+(while <expression> <statement> ... )
+
+Operates as a standard "do-while" statement.
+
+@endnode
+
+@node "until" "(until <expression> <statement> ... )"
+
+(until <expression> <statement> ... )
+
+Operates as a standard "do-until" statement.
+
+@endnode
+
+@node "foreach" "(foreach <drawer name> <pattern> <statement>)"
+
+(foreach <drawer name> <pattern> <statement>)
+
+For each file or directory matching the pattern located in the given drawer
+statement will be executed.  The special variables "@{" @each-name " link "each"}" and
+"@{" @each-type " link "each"}" will contain the filename and the DOS object type, respectively.
+(By DOS object type we mean the same value as found in fib_DirEntryType if
+one were to "Examine" the object.) Patterns specified in a script must be no
+longer than 64 characters.
+
+@endnode
+
+@node "((...))" "((...) (...) (...))"
+
+((...) (...) (...))
+
+Execute a sequence of statements.  The statements in the parentheses will be
+executed in order -- not needed at topmost level.
+
+@endnode
+
+@node "trap" "(trap <trapflags> <statements>)"
+
+(trap <trapflags> <statements>)
+
+Used for catching errors. Works much like C "longjmp", i.e.  when an error
+occurs, control is passed to the statement after "trap".  "Trapflags"
+determine which errors are trapped.  The trap statement itself returns the
+error type or zero if no error occurred.  The current error type values are:
+
+    1 - user aborted
+    2 - ran out of memory
+    3 - error in script
+    4 - DOS error (see @{" @ioerr " link "ioerr"})
+    5 - bad parameter data
+
+@endnode
+
+@node "onerror" "(onerror <statements>)"
+
+(onerror <statements>)
+
+When a fatal error occurs that was not trapped, a set of statements can be
+called to clean-up after the script.  These statements are logged in by using
+the onerror construct.  Note that onerror can be used multiple times to allow
+context sensitive termination.
+
+@endnode
+
+@node "select" "(select <n> <item1> <item2> ...)"
+
+(select <n> <item1> <item2> ...)
+
+Only the selected element will be evaluated.  In this manner, "select" can be
+used as a case select construct.
+
+@endnode
+
+@node "Debugging Statements" "4.4 Debugging Statements"
+   4.4  Debugging Statements
+
+      @{" debug      " link "debug"}
+      @{" user       " link "user"}
+@endnode
+
+@node "user" "(user <user-level>)"         
+
+(user <user-level>)
+
+Used to change the user level of the current installation.  This statement
+should ONLY be used when debugging scripts. Remove such statements from any
+script before distribution of your product.  Returns the current @{" user level " link "user-level"}.
+
+@endnode
+
+@node "debug" "(debug <anything> <anything> ...)"
+
+(debug <anything> <anything> ...)
+
+When the Installer is run from a CLI, "debug" will print the values of the
+parameters with a space between each parameter.  For example, the statements
+
+    (@{" set " link "set"} myvar 2)
+    (debug "This value of 'myvar' is" myvar)
+
+will print "This value of myvar is 2".  If the parameter is an uninitialized
+variable, then debug will print "<NIL>" as its value.
+
+@endnode
+
+@node "User-Defined Procedures" "4.5 User-Defined Procedures"
+   4.5  User-Defined Procedures
+
+The Installer has user-defined procedures (subroutines).  This functionality
+is currently very primitive. There are no local variables. To define a new
+procedure, use the "procedure" command:
+
+   (procedure <procedure-name> <statement>)
+
+You can then call the procedure like so:
+
+   (<procedure-name>)
+
+Note that <procedure-name> is not a string, just a symbolic name.
+
+@endnode
+
+@node "Functions" "4.6  Functions"
+   4.6  Functions
+
+   @{" +             " link "+"}     @{" BITNOT        " link "baoxn"}     @{" NOT           " link "aoxn"}
+   @{" -             " link "-"}     @{" BITXOR        " link "baoxn"}     @{" OR            " link "aoxn"}
+   @{" *             " link "*"}     @{" cat           " link "cat"}     @{" pathonly      " link "pathonly"}
+   @{" /             " link "div"}     @{" database      " link "database"}     @{" patmatch      " link "patmatch"}
+   @{" AND           " link "aoxn"}     @{" earlier       " link "earlier"}     @{" select        " link "select"} 
+   @{" askbool       " link "askbool"}     @{" exists        " link "exists"}     @{" shiftleft     " link "shift"}
+   @{" askchoice     " link "askchoice"}     @{" fileonly      " link "fileonly"}     @{" shiftrght     " link "shift"}
+   @{" askdir        " link "askdir"}     @{" getassign     " link "getassign"}     @{" string        " link "string"}
+   @{" askdisk       " link "askdisk"}     @{" getdevice     " link "getdevice"}     @{" strlen        " link "strlen"}
+   @{" askfile       " link "askfile"}     @{" getdiskspace  " link "getdiskspace"}     @{" substr        " link "substr"}
+   @{" asknumber     " link "asknumber"}     @{" getenv        " link "getenv"}     @{" tackon        " link "tackon"}
+   @{" askoptions    " link "askoptions"}     @{" getsize       " link "getsize"}     @{" transcript    " link "transcript"} 
+   @{" askstring     " link "askstring"}     @{" getsum        " link "getsum"}     @{" XOR           " link "aoxn"}
+   @{" BITAND        " link "baoxn"}     @{" getversion    " link "getversion"}     @{" = > >= < <= <>" link "relational"}
+   @{" BITOR         " link "baoxn"}     @{" IN            " link "IN"}
+
+@endnode
+
+@node "string" "(<string> <arguments> ...)"
+
+(<string> <arguments> ...)
+
+The "string substitution function".  Whenever a text string is the first item
+in a parenthesized group, the arguments will be substituted into the string
+using RawDoFmt.  Note: This function does no argument type checking.
+
+@endnode
+
+@node "cat" "(cat <string> <string> ...)"
+
+(cat <string> <string> ...)
+
+Concatenates the strings and returns the resulting string.
+
+To convert an integer to a string, use the "cat" function.  All integer
+arguments to "cat" are converted to strings during concatenation.  Use the
+"@{" set " link "set"}" statement to convert a string to an integer.
+
+@endnode
+
+@node "substr" "(substr <string> <start> [<count>])"
+
+(substr <string> <start> [<count>])
+
+Returns a substring of <string>, beginning with the character at offset
+<start> (offset begins with 0 for the first character) and including <count>
+characters. If <count> is omitted, the rest of the string (to its end) is 
+returned.
+
+@endnode
+
+@node "strlen" "(strlen <string>)"
+
+(strlen <string>)
+
+Returns the length of the given string.
+
+@endnode
+
+@node "transcript" "(transcript <string> <string> ...)"
+
+(transcript <string> <string> ...)
+
+Concatenates the strings, appends a newline and then prints the resulting
+string to the transcript file (if any).
+
+@endnode
+
+@node "tackon" "(tackon <path> <file>)"
+
+(tackon <path> <file>)
+
+Concatenates the filename to the pathname and returns resulting string.
+Currently, "tackon" cannot deal with a leading '/' in the <file> parameter.
+This may be fixed in a future version.
+
+@endnode
+
+@node "fileonly" "(fileonly <path>)"
+
+(fileonly <path>)
+
+Returns only the file part of a pathname.
+
+@endnode
+
+@node "pathonly" "(pathonly <path>)"
+
+(pathonly <path>)
+
+Returns only the non-file part of a pathname.
+
+@endnode
+
+@node "expandpath" "(expandpath <path>)"
+
+(expandpath <path>)
+
+Returns the full path, given a shortened path.  For example, it might expand
+"SYS:c" to "System2.x:c".
+
+@endnode
+
+@node "askdir" "(askdir <parameters>)"
+
+(askdir <parameters>)
+
+Asks the user for a directory name, with a scrolling list requester.
+The user can either create a new directory or specify an existing one.
+If the user cancels, the routine will cause an abort.  NOTE: It is always
+best to first insure that the volume you want is mounted by using the
+"@{" askdisk " link "askdisk"}" command. Parameters:
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message. 
+
+    @{" default " link "default"}  - default name of directory to be selected.  Note that this may
+                 be a relative pathname.
+
+    @{" newpath " link "newpath"}  - allows non-existent paths to be supplied as the default drawer.
+
+    @{" disk    " link "disk"}  - show drive list first.
+
+    @{" assigns " link "assigns"}  - debugging parameter; indicates that logical assigns should
+                 satisfy requests as well.  Remove this parameter before
+                 distributing disk.
+
+@endnode
+
+@node "askfile" "(askfile <parameters>)"
+
+(askfile <parameters>)
+
+Asks the user for a file name, with a scrolling list requester.  The default
+path can be either reference a file or a drawer.  If a file, the filename
+gadget is filled in.  Parameters:
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message. 
+
+    @{" newpath " link "newpath"}  - allows non-existent paths to be supplied as the default drawer.
+
+    @{" disk    " link "disk"}  - show drive list first.
+
+    @{" default " link "default"}  - default name of file to be selected  Note that this may be
+                 a relative pathname.
+
+@endnode
+
+@node "askstring" "(askstring <parameters>)"
+
+(askstring <parameters>)
+
+Prompts the user to enter a text string.  Parameters:
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message. 
+
+    @{" default " link "default"}  - the default text string.
+
+@endnode
+
+@node "asknumber" "(asknumber <parameters>)"
+
+(asknumber <parameters>)
+
+Prompts the user to enter an integer quantity.  Prints the allowed range
+below the integer gadget if the "@{" range " link "range"}" parameter is given, and prevents
+the user from proceeding without entering a valid number.  Parameters:
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message. 
+
+    @{" range   " link "range"}  - valid input range of numbers.
+
+    @{" default " link "default"}  - default value
+
+@endnode
+
+@node "askchoice" "(askchoice <parameters>)"
+
+(askchoice <parameters>)
+
+Ask the user to select one out of N choices, using radio buttons.
+Parameters:
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message. 
+
+    @{" choices " link "choices"}  - a list of choice strings, such as "ok" "cancel", etc.
+
+    @{" default " link "default"}  - the number of the default choice (defaults to 0)
+
+@endnode
+
+@node "askoptions" "(askoptions <parameters>)"
+
+(askoptions <parameters>)
+
+Ask the user to select any number of N choices, using checkbox buttons.
+A bit mask is returned as a result, with the first bit indicating the state
+of the first choice, etc.  Parameters:
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message. 
+
+    @{" choices " link "choices"}  - a list of choice strings, such as "ok" "cancel", etc.
+
+    @{" default " link "default"}  - a bit mask of the buttons to be checked (defaults to -1)
+
+@endnode
+
+@node "askbool" "(askbool <parameters>)"
+
+(askbool <parameters>)
+
+Ask the user to select yes or no.  Parameters:
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message. 
+
+    @{" default " link "default"}  - 0 = no, 1 = yes
+
+    @{" choices " link "choices"}  - change the positive and negative text.  The defaults are
+                 "Yes" and "No".  So to change the text to "Proceed" and 
+                 "Cancel" you would use: (choices "Proceed" "Cancel")
+
+@endnode
+
+@node "askdisk" "(askdisk <parameters>)"
+
+(askdisk <parameters>)
+
+Ask the user to insert a disk in a user friendly manner.  For instance, the
+prompt can describe the disk by its label; e.g. "FooBar Program Disk".
+This function will not exit until the correct disk is inserted, or the user
+aborts.
+
+    @{" prompt  " link "prompt"}  - tell the user what's going to happen.
+
+    @{" help    " link "help"}  - text of help message. 
+
+    @{" dest    " link "dest"}  - the volume name of the disk to be inserted
+
+    @{" newname " link "newname"}  - a name to assign to the disk for future reference.
+                 This assignment is done even in Dry Run mode -- it is 
+                 considered "safe".
+   
+    @{" disk    " link "disk"}  - switch to get a drive list to be shown initially.
+
+    @{" assigns " link "assigns"}  - Debugging option; this indicates that logical assigns should
+                 satisfy the request as well.  Remove this parameter before
+                 distributing disk.
+
+   Note: volume name must be supplied without a colon; i.e. "ENV" not "ENV:".
+
+@endnode
+
+@node "exists" "(exists <filename> (noreq))"
+
+(exists <filename> (noreq))
+
+Returns 0 if does not exists, 1 if a file, and 2 if a directory.  If noreq is
+specified, no requester is displayed if the path given is not on a mounted
+volume.  In this case the result is 0.
+
+@endnode
+
+@node "earlier" "(earlier <file-1> <file-2>)"
+
+(earlier <file-1> <file-2>)
+
+Returns TRUE if file-1 is earlier than file-2.
+
+@endnode
+
+@node "getsize" "(getsize <filename>)"
+
+(getsize <filename>)
+
+Returns the size of a file.
+
+@endnode
+
+@node "getdevice" "(getdevice <path>)"
+
+(getdevice <path>)
+
+returns the name of the device upon which <path> resides. For example,
+"c:mount" as a path might return "WB_2.x".
+
+@endnode
+
+@node "getdiskspace" "(getdiskspace <pathname>)"
+
+(getdiskspace <pathname>)
+
+Returns the available space in bytes on the disk given by pathname.
+Returns -1 if the pathname is bad or information could not be obtained from
+the filesystem (even though pathname was valid).
+
+@endnode
+
+@node "getsum" (getsum <filename>)"
+
+(getsum <filename>)
+
+Returns the checksum of a file, for comparing versions.
+
+@endnode
+
+@node "getversion" "(getversion <filename> (resident))"
+
+(getversion <filename> (resident))
+
+If the named file has a RomTag with an ID string or a 2.x version string,
+this will return the version number.  If filename is not provided, then the
+version of the OS is returned instead.  Note that this function does NOT
+assume files ending with ".library" or ".device" reside in a particular
+place -- the path must be included. If "resident" is specified, attempts to
+return version of library or device in memory.  For example:
+
+    (getversion "intuition.library" (resident))
+
+would return the version/revision of intuition.  Note that using the 
+"resident" parameter causes first the library and then the device list to be
+checked.
+
+The version number is returned as a 32 bit value, where the high order 16 bit
+word is the version and the low order word is the revision.  Here is some
+sample statements to parse a version number:
+
+(@{" set " link "set"} vernum (getversion "c:iconx"))
+(set ver (/ vernum 65536))
+(set rev (- vernum (* ver 65536) ) )
+
+(@{" message " link "message"}
+        ("You have version " @{" 1.0 " link "Data types" 8}" ver rev)
+)
+
+@endnode
+
+@node "getenv" "(getenv <name>)"
+
+(getenv <name>)
+
+Returns the contents of the given ENV: variable.
+
+@endnode
+
+@node "getassign" "(getassign <name> <opts>)"
+
+(getassign <name> <opts>)
+
+Returns the pathname of the object 'name'.  The default is for logical
+assignments only, but can be changed using an options string where the
+characters are:
+
+    'v' - only match volumes
+    'a' - only match logical assignments
+    'd' - only match devices
+
+Therefore 'a' would be equivalent to having no options.  Returns an empty
+string on failure.
+
+Notes: Name must be supplied without a colon; i.e. "ENV" not "ENV:".
+       A variable previously set to name may be used in place of name.
+       If a device name is used as the name and the search is limited to
+       devices, then "getassign" will return the device or volume name if
+       the device exists, otherwise it will return an empty string. 
+       An example usage would be (getassign "df1" "d").
+
+@endnode
+
+@node "database" "(database <feature>)"
+
+(database <feature>)
+
+Returns information about the Amiga that the Installer is running on.
+"Feature" is a string. This function always returns a string result, 
+even if the result looks like a number. If the feature requested is not
+recognized, the function returns "unknown".  The currently understood 
+features and their possible values are:
+
+    "vblank"         : "50", "60"
+
+    "cpu"            : "68000", "68010", "68020", "68030", "68040"
+
+    "graphics-mem"   : [returns a string representing the amount of free
+                       graphics memory]
+
+    "total-mem"      : [returns a string representing the total amount of
+                       free memory]
+
+@endnode
+
+@node "select" "(select <n> <item1> <item2> ...)"
+
+(select <n> <item1> <item2> ...)
+
+Returns the value of the Nth item.
+
+@endnode
+
+@node "patmatch" "(patmatch <pattern> <string>)"
+
+(patmatch <pattern> <string>)
+
+Determines if a string matches an AmigaDOS pattern.  Returns either TRUE or
+FALSE.
+
+@endnode
+
+@node "relational" "(=  >  >=  <  <=  <>    <expression-1> <expression-2>)"
+
+(=  <expression-1> <expression-2>)
+(>  <expression-1> <expression-2>)
+(>= <expression-1> <expression-2>)
+(<  <expression-1> <expression-2>)
+(<= <expression-1> <expression-2>)
+(<> <expression-1> <expression-2>)
+
+These are the standard relational expressions.
+
+@endnode
+
+@node "+" "(+  <expression> ...)"
+
+(+  <expression> ...)
+
+Returns the sum of all the arguments.
+
+@endnode
+
+@node "-" "(-  <expression-1> <expression-2>)"
+
+(-  <expression-1> <expression-2>)
+
+Returns the first argument minus the second argument.
+
+@endnode
+
+@node "*" "(* <expression> ...)"
+
+(* <expression> ...)
+
+Returns the product of all the arguments.
+
+@endnode
+
+@node "div" "(/  <expression-1> <expression-2>)"
+
+(/  <expression-1> <expression-2>)
+
+Returns the first argument divided by the second argument.
+
+@endnode
+
+@node "aoxn" "(AND, OR, XOR  <expression-1> <expression-2>), (NOT <expression>)"  
+
+(AND <expression-1> <expression-2>)
+(OR  <expression-1> <expression-2>)
+(XOR <expression-1> <expression-2>)
+(NOT <expression>)
+
+Standard logical functions.
+
+@endnode
+
+@node "baoxn" "(BITAND, BITOR, BITXOR <expression-1> <expression-2>), (BITNOT <expression>)"
+
+(BITAND <expression-1> <expression-2>)
+(BITOR  <expression-1> <expression-2>)
+(BITXOR <expression-1> <expression-2>)
+(BITNOT <expression>)
+
+Bitwise versions of the standard logical functions.
+
+@endnode
+
+@node "shift" "(shiftleft, shiftrght <number> <amount to shift>)
+
+(shiftleft <number> <amount to shift>)
+(shiftrght <number> <amount to shift>)
+
+These functions perform a bit-oriented shift by the amount specified.
+Zeros are shifted in on the opposite side.
+
+@endnode
+
+@node "IN" "(IN  <expression> <bit number-1> ...)"
+
+(IN  <expression> <bit number-1> ...)
+
+Returns 0 if none of the given bit numbers (starting at 0 for the LSB) is set
+in the result of expression, else returns a mask of the bits that were set.
+
+@endnode
+
+@node "Summary of Parameters" "4.7  Summary of Parameters"
+   4.7  Summary of Parameters
+
+      @{" all            " link "all"}     @{" newname        " link "newname"}
+      @{" append         " link "append"}     @{" newpath        " link "newpath"}
+      @{" assigns        " link "assigns"}     @{" nogauge        " link "nogauge"}
+      @{" choices        " link "choices"}     @{" noposition     " link "noposition"}
+      @{" command        " link "command"}     @{" optional       " link "optional"}
+      @{" confirm        " link "confirm"}     @{" pattern        " link "pattern"}
+      @{" default        " link "default"}     @{" prompt         " link "prompt"}
+      @{" delopts        " link "delopts"}     @{" range          " link "range"}
+      @{" dest           " link "dest"}     @{" safe           " link "safe"}
+      @{" disk           " link "disk"}     @{" setdefaulttool " link "setdefaulttool"}
+      @{" files          " link "files"}     @{" setstack       " link "setstack"}
+      @{" fonts          " link "fonts"}     @{" settooltype    " link "settooltype"}
+      @{" help           " link "help"}     @{" source         " link "source"}    
+      @{" include        " link "include"}     @{" swapcolors     " link "swapcolors"}     
+      @{" infos          " link "infos"}     
+
+@endnode
+
+@node "assigns" "(assigns)"                  
+
+(assigns)
+
+A debug option used in the "@{" askdisk " link "askdisk"}" statement to indicate that logical
+assigns will match the askdisk request as well. This parameter should not
+be used for final disks, only for debugging.
+
+@endnode
+
+@node "help" "(help <string-1> <string-2> ...)"
+
+(help <string-1> <string-2> ...)
+
+This is used to specify the help text for each action.
+
+@endnode
+
+@node "prompt" "(prompt <string-1> <string-2> ...)"
+
+(prompt <string-1> <string-2> ...)
+
+This is used to provide the "title" of the screen which explains to the user
+what this step does.
+
+@endnode
+
+@node "safe" "(safe)"
+
+(safe)
+
+This tells the installer that an action not normally performed
+in @{" PRETEND mode " link "Pretend mode"} should be performed.
+
+@endnode
+
+@node "choices" "(choices <string-1> <string-2> ...)"
+
+(choices <string-1> <string-2> ...)
+
+Used to display a series of checkmarks.  This is used in the "@{" askchoice " link "askchoice"}"
+function to indicate what choices the user has.  It can also be used in the
+"@{" copyfiles " link "copyfiles"}" statement to specify that only certain files can be copied. (If
+absent, some other criterion will be used to determine which files to copy).
+
+@endnode
+
+@node "pattern" "(pattern <string>)"
+
+(pattern <string>)
+
+Used in the "@{" copyfiles " link "copyfiles"}" statement to specify a wildcard pattern.
+
+@endnode
+
+@node "all" "(all)"
+
+(all)
+
+In the "@{" copyfiles " link "copyfiles"}" statement, specifies that all files are to be copied.
+
+@endnode
+
+@node "source" "(source <filename>)"
+
+(source <filename>)
+
+Specifies the file or directory to be read as part of this command.
+
+@endnode
+
+@node "dest" "(dest <filename>)"
+
+(dest <filename>)
+
+Specifies the file or directory to be modified as part of the command.
+
+@endnode
+
+@node "newname" "(newname <name>)"
+
+(newname <name>)
+
+Used in "@{" copyfiles " link "copyfiles"}" to specify that a file will have a new name after being
+copied.  
+
+Used in "@{" askdisk " link "askdisk"}" to assign the new name to the inserted disk.
+
+Used in "@{" copylib " link "copylib"}" to specify that the library will have a new name after
+being copied.
+
+@endnode
+
+@node "newpath" "(newpath)"
+
+(newpath)
+
+Used by "@{" askdir " link "askdir"}" and "@{" askfile " link "askfile"}" to allows non-existent paths to be supplied
+as the default drawer.
+
+@endnode
+
+@node "confirm" "(confirm <user-level>)"
+
+(confirm <user-level>)
+
+On some statements, the user will only be informed of the action (and 
+allowed to cancel it) if the "confirm" option is specified. The @{" user level " link "user-level"}
+can be "expert" or "average" ("expert" is the default).
+
+@endnode
+
+@node "files" "files"
+
+(files)
+
+Only copy files. By default the installer will match and copy subdirectories.
+
+@endnode
+
+@node "infos" "(infos)"
+
+(infos)
+
+Indicates to the "@{" copyfiles " link "copyfiles"}" statement that accompanying ".info" files are
+to be copied as well. If the destination drawer does not exist, a default
+icon will be made for the drawer the Installer creates.
+
+@endnode
+
+@node "fonts" "(fonts)"
+
+(fonts)
+
+Indicates to the "@{" copyfiles " link "copyfiles"}" statement that accompanying ".font" files are
+to be copied as well.
+
+@endnode
+
+@node "optional" "(optional <option> <option> ...)"
+
+(optional <option> <option> ...)
+
+Indicates to the "@{" copyfiles " link "copyfiles"}" and "@{" copylib " link "copylib"}" statements that it is not a fatal
+error to have a copy fail.  Used for "@{" delete " link "delete"}" to indicate if deletion should
+be "forced".
+
+@endnode
+
+@node "delopts" "(delopts <option> <option> ...)"
+
+(delopts <option> <option> ...)
+
+Indicates to the "@{" copyfiles " link "copyfiles"}", "@{" copylib " link "copylib"}" and "@{" delete " link "delete"}" statements that the
+listed options should be _removed_ from the global internal list of options
+for this statement.  The default global option is "fail".
+
+@endnode
+
+@node "nogauge" "(nogauge)"
+
+(nogauge)
+
+When used with the "@{" copyfiles " link "copyfiles"}" and "@{" copylib " link "copylib"}" statements this disables the
+copy status indicator.
+
+@endnode
+
+@node "settooltype" "(settooltype <tooltype> <value>)"
+
+(settooltype <tooltype> <value>)
+
+Used to modify a tooltype to a certain value. If the tooltype does not exist
+it will be created; if the <values> parameter is omitted, the tooltype will
+be deleted.  A tooltype without a value may be added in the following manner:
+
+    (settooltype <tooltype-string> "")
+
+Remember that (tooltype <tooltype-string>) deletes the tooltype given.
+
+@endnode 
+
+@node "setdefaulttool" "(setdefaulttool <value>)"
+
+(setdefaulttool <value>)
+
+Used to modify the default tool of an icon.
+
+@endnode
+
+@node "setstack" "(setstack <value>)"
+
+(setstack <value>)
+
+Used to modify the stack size included in an icon.
+
+@endnode
+
+@node "noposition" "(noposition)"
+
+(noposition)
+
+Used to modify the positioning of an icon to NO_ICON_POSITION.
+
+@endnode
+
+@node "swapcolors" "(swapcolors)"
+
+(swapcolors)
+
+Used to swap the first two planes of the image of the icon being modified if
+the version of the OS if less than 36 (i.e., prior to version 2.0).  This 
+does mean that your icons need to have the 2.0 color scheme on your
+distribution disks.
+
+@endnode
+
+@node "disk" "(disk)"
+
+(disk)
+
+When used with the "@{" rename " link "rename"}" statement, specifies that a disk relabel
+operation is really desired.  When used with the "@{" askdir " link "askdir"}" or "@{" askfile " link "askfile"}"
+statement, specifies that a drive list should be shown initially (instead
+of a file list).
+
+@endnode
+
+@node "append" "(append <string>)"
+
+(append <string>)
+
+Within a "@{" textfile " link "textfile"}" statement, will append the string to the textfile.
+
+@endnode
+
+@node "include" "(include <filename>)"
+
+(include <filename>)
+
+Within a "@{" textfile " link "textfile"}" statement, will append the listed file to the textfile.
+
+@endnode
+
+@node "default" "(default <value>)"
+
+(default <value>)
+
+Specifies the default value of an @{" askchoice " link "askchoice"}, @{" askstring " link "askstring"}, or @{" asknumber " link "asknumber"} action.
+
+@endnode
+
+@node "range" "(range <min> <max>)"
+
+(range <min> <max>)
+
+Specifies the range of allowable numbers for an @{" asknumber " link "asknumber"} statement.
+
+@endnode
+
+@node "command" "(command <text> ...)"
+
+(command <text> ...)
+
+Specifies the text of a command to be inserted into the S:User-Startup file.
+(Argument strings are merged.)
+
+@endnode
+
+@node "Pre-Defined Variables" "4.9 Pre-Defined Variables"
+4.9  Pre-Defined Variables
+
+Pre-defined variables are available for use by the install script.  They may
+be modified on-the-fly, but their type may not be changed (e.g. from strings
+to numeric) unless it never had a value to begin with.
+
+                     @{" @abort-button    " link "abort-button"}
+                     @{" @app-name        " link "app-name"}
+                     @{" @default-dest    " link "default-dest"}
+                     @{" @each-name       " link "each"}
+                     @{" @each-type       " link "each"}   
+                     @{" @error-msg       " link "error-msg"}
+                     @{" @execute-dir     " link "execute-dir"}
+                     @{" @icon            " link "icon"}
+                     @{" @ioerr           " link "ioerr"}
+                     @{" @language        " link "language"}
+                     @{" @pretend         " link "pretend_var"}
+                     @{" @special-msg     " link "special-msg"}   
+                     @{" @user-level      " link "user-level"}
+                     @{" @*-help          " link "*-help"}
+@endnode
+
+@node "abort-button" "@abort-button"         
+
+   @abort-button
+
+   Replacement text for the "Abort Install" button.
+
+@endnode
+
+@node "app-name" "@app-name"
+
+   @app-name
+
+   The @{" APPNAME " link "APPNAME"} value given as tooltype or CLI option at startup.
+
+@endnode
+
+@node "icon" "@icon"
+
+   @icon
+
+   The pathname of the icon used to start the installer.
+
+@endnode
+
+@node "execute-dir" "@execute-dir"
+
+   @execute-dir
+
+   If this variable is set to a valid path, then the installer will change
+directory to it whenever a "@{" run " link "run"}" or "@{" execute " link "execute"}" statement is performed.
+
+@endnode
+
+@node "default-dest" "@default-dest"
+
+   @default-dest
+
+   The installer's suggested location for installing an application.  If you
+installed the application somewhere else (as the result of asking the user)
+then you should modify this value -- this will allow the "final" statement
+to work properly.  Note that creating a drawer and putting the application
+in that drawer is considered installing the application somewhere else.
+Set it to "" if there really is no definite place that the "application"
+was installed. The log file will be copied to the drawer indicated
+by @default-dest unless it was set to "".
+
+@endnode
+
+@node "language" "@language"
+
+   @language
+
+   Language specified in @{" LANGUAGE " link "LANGUAGE_OPTION"} tooltype or CLI option, default for
+   @language is "english". The use of this variable is left up to the
+   install script.
+
+@endnode
+
+@node "pretend_var" "@pretend"
+
+   @pretend
+
+   The state of the Pretend flag (1 if @{" Pretend mode " link "Pretend mode"}).
+
+@endnode
+
+@node "Pretend mode" "Pretend Mode"
+
+   Installer can run in 
+      
+      "Real" mode, (do it), @{" @pretend " link "pretend_var"} is set to 0 
+   or      
+      "Pretend" mode, (dry run), @{" @pretend " link "pretend_var"} is then set to 1.
+
+@endnode
+
+@node "user-level" "@user-level"
+
+   @user-level
+
+   The user-level the script is being run at: 
+      
+         0 for novice, 
+         1 for average,
+         2 for expert.
+
+@endnode
+
+@node "error-msg" "@error-msg"
+
+   @error-msg
+
+   The text that would have been printed for a fatal error, but was 
+   overridden by a @{" trap " link "trap"} statement.
+
+@endnode
+
+@node "special-msg" "@special-msg"
+
+   @special-msg
+
+   If a script wants to supply its own text for any fatal error at various
+   points in the script, this variable should be set to that text.  The 
+   original error text will be appended to the special-msg within 
+   parenthesis. Set this variable to "" to clear the special-msg handling.
+
+@endnode
+
+@node "ioerr" "@ioerr"
+
+   @ioerr
+
+   The value of the last DOS error.  Can be used in conjunction with the
+   "@{" trap " link "trap"}" statement to learn more about why an error occurred.
+
+@endnode
+
+@node "each" "@each-name, @each-type"
+
+   @each-name
+   
+   @each-type
+
+   Used in a "@{" foreach " link "foreach"}" loop.
+
+@endnode
+
+@node "*-help" "Default help text for various functions:"
+
+    @askchoice-help      
+    @askdir-help
+    @askdisk-help    
+    @askfile-help
+    @asknumber-help
+    @askoptions-help    
+    @askstring-help
+    @copyfiles-help    
+    @copylib-help        
+    @makedir-help       
+    @startup-help
+
+   Default help text for various @{" functions " link "Functions"}.  These can be appended to the
+   explanation provided for a particular action or used as is.
+
+@endnode
+
+@node "Installer Language Quick Reference" "Section 5: Installer Language Quick Reference"
+   Section 5: Installer Language Quick Reference
+
+              5.1  @{" Overview                       " link "Overview_5"}
+              5.2  @{" Quick Language Overview        " link "Quick Language Overview_5"}
+              5.3  @{" Pre-Defined Variables          " link "Pre-Defined Variables_5"}
+              5.4  @{" Default Help String Variables  " link "*-help"}
+              5.5  @{" Statements                     " link "Statements_5"}
+              5.6  @{" Functions                      " link "Functions_5"}
+
+@endnode
+
+@node "Overview_5" "5.1  Overview"
+   5.1  Overview
+
+   Attempts to install in "work:" by default if it exists.
+
+   HELP key brings up context-sensitive help.
+
+   Esc key brings up the abort requester.
+
+   Can add assigns to s:User-Startup, and adds lines to s:Startup-Sequence
+   (if necessary) to make sure s:User-Startup is executed upon boot-up.
+
+   Can @{" check versions " link "getversion"} of files/libraries.
+
+   Installer can run in @{" 'Real' (do it) or 'Pretend' (dry run) modes " link "Pretend mode"}.
+
+@endnode
+
+@node "Quick Language Overview_5" "5.2  Quick Language Overview"
+   5.2  Quick Language Overview
+
+   Language is lisp-like (lots of parentheses (()) (-:).
+    
+   @{" Variables " link "Data types"} are typeless (a la ARexx), i.e., strings and numbers are
+   treated interchangeably.
+    
+   Strings are delimited with " or '.
+    
+   Certain @{" embedded sequences " link "Escape Characters"} are available for strings:
+        '\\n'    newline        '\\r'    return
+        '\\t'    tab            '\\0'    NULL
+        '\\"'    double-quote   '\\\\'    backslash
+    
+   @{" Statements " link "Statements_4"} go in parentheses ( ).  The general format is:
+       (operator <operand1> <operand2> ...)
+   E.g., to assign the value '5' to the variable 'x', use
+       (@{" set " link "set"} x 5)
+   To produce the sum of two numbers, use
+       (+ 5 9)
+   Note that there is no difference between operators and @{" functions " link "Functions"} 
+   -- the function '@{" set " link "set"}' and the arithmetic operator '@{" + " link "+"}' are both used exactly
+      the same way.
+    
+   Combining statements: A statement can be used as the operand to another
+   statement.  E.g.:
+         (set x (+ 3 5))
+      In this case, the statement '(+ 3 5)' is evaluated first, and the
+      result is 8.  You can think of this as having the '(+ 3 5)' part being
+      replaced by an 8, leaving:
+         (set v 8)
+      Note that the '(+ 3 5)' part actually produced a value: "8".  This is
+      called the "result" of the statement.  Many @{" statements " link "Statements_4"} return results,
+      even some that might surprise you (such as "set" and "@{" if " link "if"}").
+    
+   Comments are preceded with a semi-colon ";"
+    
+   Hex numbers are preceded with a $ (e.g. $23).
+    
+   Binary numbers are preceded with a % (e.g. %0101).
+    
+   Many @{" statements " link "Statements_4"} return a value which can be used in assignments, tests,
+   etc.
+    
+   Data can be formatted using a string literal with argument placemarkers,
+   for example:
+      ("I am 1 foot 0 inches tall." 6 3)
+      ;Produces a string with 1's replaced with 6 and 3.
+      ;Remember that decimal values must be specified as longwords.
+
+@endnode
+
+@node "Pre-Defined Variables_5" "5.3  Pre-Defined Variables"
+   5.3  Pre-Defined Variables
+
+    @abort-button  -  Replacement text for the "Abort Install" button.
+    @app-name      -  The @{" APPNAME " link "APPNAME"} being given at startup.
+   @{" @default-dest " link "default-dest"} -  Directory where install wants to put things by default.
+    @each-name     -  used in "@{" foreach " link "foreach"}" loop.
+    @each-type     -  used in "@{" foreach " link "foreach"}" loop.
+   @{" @error-msg    " link "error-msg"} -  Message that would be displayed if error not trapped (see @{" trap " link "trap"}).
+   @{" @execute-dir  " link "execute-dir"} -  If set to a valid path, installer will change directory to
+                      it whenever a "@{" run " link "run"}" or "@{" execute " link "execute"}" statement is performed.
+    @icon          -  The pathname of the install script icon.
+   @{" @ioerr        " link "ioerr"} -  The value of the last DOS error.
+   @{" @language     " link "language"} -  Language specified in tooltypes/CLI (default "english").
+   @pretend        -  state of "@{" pretend " link "Pretend mode"}" (dry run mode) flag 0-Real, 1-Pretend.
+   @{" @special-msg  " link "special-msg"} -  Custom fatal error message.  
+   @{" @user-level   " link "user-level"} -  0-Novice, 1-Average, 2-Expert.
+   @{" @*-help       " link "*-help"} -  Default help text for various @{" functions " link "functions"}.
+
+@endnode
+
+@node "Statements_5" "5.5  Statements"
+   5.5  Statements
+
+Many commands have standard parameters (some optional):
+    
+   (@{" all " link "all"})                              ; specifies all files are to copied
+
+   (@{" append " link "append"} <string>)                  ; add string to text file 
+                                          (for @{" textfile " link "textfile"})
+
+   (@{" choices " link "choices"} <string1> <string2> ...)  ; radio button options
+
+   (@{" command " link "command"} <string1> <string2>...)   ; add to s:user-startup
+
+   (@{" confirm " link "confirm"} <user-level>)             ; confirmation
+
+   (@{" default " link "default"} <value>)                  ; default value, choice, string, etc.
+
+   (@{" dest " link "dest"} <file>)                      ; output to <file>
+
+   (@{" help " link "help"} <string1> <string2> ...)     ; define current help info
+
+   (@{" include " link "include"} <file>)                   ; insert file in @{" textfile " link "textfile"} statement
+
+   (@{" infos " link "infos"})                            ; copy .info files also
+
+   (@{" newname " link "newname"} <name>)                   ; specify new file or disk name
+
+   (@{" noposition " link "noposition"})                       ; make icon "floating"
+
+   (@{" pattern " link "pattern"} <string>)                 ; used w/ "@{" files " link "files"}" for patterns
+
+   (@{" prompt " link "prompt"} <string1> <string2> ...)   ; text to show user
+
+   (@{" range " link "range"} <min> <max>)                ; numeric input (@{" asknumber " link "asknumber"}) range
+
+   (@{" safe " link "safe"})                             ; force installer to perform action
+                                          even if in @{" PRETEND mode " link "Pretend mode"}.
+
+   (@{" settooltype " link "settooltype"} <tooltype> <value>)   ; set icon tool type
+
+   (@{" setdefaulttool " link "setdefaulttool"} <value>)           ; set icon's default tool
+
+   (@{" setstack " link "setstack"} <value>)                 ; set icon's stack value
+
+   (@{" source " link "source"} <file>)                    ; read from <file>
+
+   (@{" swapcolors " link "swapcolors"})                       ; swap first two planes of icon's 
+                                          image if OS rev less than v36
+
+   (@{" welcome " link "welcome"} <string> <string> ...)    ; Invokes "welcome" display
+
+
+Note: Custom parameters are shown below in < >, and standard parameters are
+show as (param..) where "param" is one of help, prompt, safe, etc.  
+See above for details on standard parameters.
+
+(@{" abort " link "abort"} <string1> <string2> ...)           ; abandon installation
+
+(@{" complete " link "complete"} <num>)                          ; display percentage through 
+                                              install in titlebar
+
+(@{" copyfiles " link "copyfiles"} (@{" prompt " link "prompt"}..) (@{" help " link "help"}..) (@{" source " link "source"}..) (@{" dest " link "dest"}..) (@{" newname " link "newname"}..) 
+   (@{" choices " link "choices"}..) (@{" all " link "all"}) (@{" pattern " link "pattern"}..) (@{" files " link "files"}) (@{" infos " link "infos"}) (@{" confirm " link "confirm"}..) 
+   (@{" safe " link "safe"}) (@{" optional " link "optional"} <option> <option> ...) 
+   (@{" delopts " link "delopts"} <option> <option> ...) (@{" nogauge " link "nogauge"}))
+                                       ; copy files (and subdir's by default).
+                                         (@{" files " link "files"}) option say NO subdirectories.
+
+(@{" copylib " link "copylib"} (@{" prompt " link "prompt"}..) (@{" help " link "help"}..) (@{" source " link "source"}..) (@{" dest " link "dest"}..) (@{" newname " link "newname"}..) 
+   (@{" infos " link "infos"}) (@{" confirm " link "confirm"}) (@{ "safe " link "safe"}) (@{" optional " link "optional"} <option> <option> ...) 
+   (@{" delopts " link "delopts"} <option> <option> ...) (@{" nogauge " link "nogauge"}))
+                                       ; install a library if newer version
+
+(@{" delete " link "delete"} file (@{" help " link "help"}..) (@{" prompt " link "prompt"}..) (@{" confirm " link "confirm"}..) 
+   (@{" optional " link "optional"} <option> <option> ...) (@{" delopts " link "delopts"} <option> <option> ...) 
+   (@{" safe " link "safe"}))
+                                       ; delete file
+
+(@{" execute " link "execute"} <arg> (@{" help " link "help"}..) (@{" prompt " link "prompt"}..) (@{" confirm " link "confirm"}) (@{" safe " link "safe"}))
+                                       ; execute script file
+
+(@{" exit " link "exit"} <string> <string> ... (quiet)) ; end installation after displaying 
+                                         strings (if provided)
+
+(@{" foreach " link "foreach"} <dir> <@{" pattern " link "pattern"}> <@{" statements " link "Statements_4"}>); do for entries in directory
+
+(@{" if " link "if"} expr truestatements falsestatements)  ; conditional
+
+(@{" makeassign " link "makeassign"} <assign> <path> (@{" safe " link "safe"}))     ; note: <assign> doesn't need `:'
+                                            ; create an assignment
+
+(@{" makedir " link "makedir"} <name> (@{" prompt " link "prompt"}..) (@{" help " link "help"}..) (@{" infos " link "infos"}) (@{" confirm " link "confirm"}..) (@{" safe " link "safe"}))
+                                            ; make a directory
+
+(@{" message " link "message"} <string1> <string2>...)          ; display message with Proceed, 
+                                            Abort buttons
+
+(@{" onerror " link "onerror"} (<@{" statements " link "Statements_4"}>))                ; general error trap
+
+(@{" protect " link "protect"} <file> [<string of flags to change>] [<decimal mask>] <parameters>)
+                                            ; Get/Set file protection flags
+
+(@{" rename " link "rename"} <old> <new> (@{" help " link "help"}..) (@{" prompt " link "prompt"}..) (@{" confirm " link "confirm"}..) (@{" safe " link "safe"}))
+                                            ; rename files
+
+(@{" rexx " link "rexx"} <arg> (help..) (@{" prompt " link "prompt"}..) (@{" confirm " link "confirm"}..) (@{" safe " link "safe"}))
+                                            ; execute ARexx script
+
+(@{" run " link "run"} <arg> (help..) (@{" prompt " link "prompt"}..) (@{" confirm " link "confirm"}..) (@{" safe " link "safe"}))
+                                            ; execute program
+
+(@{" set " link "set"} <varname> <expression>)              ; assign a value to a variable
+
+(@{" startup " link "startup"} (@{" prompt " link "prompt"}..) (command..))        ; add a command to the boot scripts
+                                             (startup-sequence, user-startup)
+
+(@{" textfile " link "textfile"} (@{" prompt " link "prompt"}..) (@{" help " link "help"}..) (@{" dest " link "dest"}..) (@{" append " link "append"}) 
+   (@{" include " link "include"}..) (@{" confirm " link "confirm"}..) (@{" safe " link "safe"}))
+                                            ; create text file from other text
+                                            files and strings
+
+(@{" tooltype " link "tooltype"} (@{" prompt " link "prompt"}..) (@{" help " link "help"}..) (@{" dest " link "dest"}..) (@{" settooltype " link "settooltype"}..) 
+   (@{" setstack " link "setstack"}..) (@{" setdefaulttool " link "setdefaulttool"}..) (@{" noposition " link "noposition"}) (@{" confirm " link "confirm"}..) (@{" safe " link "safe"}))
+                                            ; modify an icon
+
+(@{" trap " link "trap"} <flags> <@{" statements " link "Statements_4"}>)             ; trap errors.  flags: 1-abort, 
+                                              2-nomem, 3-error, 4-dos, 5-badargs
+
+(@{" until " link "until"} <expr> <@{" statements " link "Statements_4"}>)             ; do-until conditional structure 
+                                              (test end of loop)
+
+(@{" welcome " link "welcome"} <string> <string> ...)           ; Allow Installation to commence.
+
+(@{" while " link "while"} <expr> <@{" statements " link "Statements_4"}>)             ; do-while conditional structure 
+                                              (test top of loop)
+
+(@{" working " link "working"})                                 ; indicate to user that installer
+                                              is busy doing things
+
+@endnode
+
+@node "Functions_5" "5.6  Functions"
+   5.6  Functions
+
+(@{" = " link "relational"} <expr1> <expr2>)        ; equality test (returns 0 or 1)
+
+(@{" > " link "relational"} <expr1> <expr2>)        ; greater than test (returns 0 or 1)
+
+(@{" >= " link "relational"} <expr1> <expr2>)       ; greater than or equal test (returns 0 or 1)
+
+(@{" < " link "relational"} <expr1> <expr2>)        ; less than test (returns 0 or 1)
+
+(@{" <= " link "relational"} <expr1> <expr2>)       ; less than or equal test
+
+(@{" + " link "+"} <expr1> <expr2> ...)    ; returns sum of expressions
+
+(@{" - " link "-"} <expr1> <expr2>)        ; returns <expr1> minus <expr2>
+
+(@{" * " link "*"} <expr1> <expr2> ...)    ; returns product of expressions
+
+(@{" / " link "div"} <expr1> <expr2>)        ; returns <expr1> divided by <expr2>
+
+(@{" AND " link "aoxn"} <expr1> <expr2>)      ; returns logical AND of <expr1> and <expr2>
+
+(@{" OR " link "aoxn"} <expr1> <expr2>)       ; returns logical OR of <expr1> and <expr2>
+
+(@{" XOR " link "aoxn"} <expr1> <expr2>)      ; returns logical XOR of <expr1> and <expr2>
+
+(@{" NOT " link "aoxn"} <expr>)               ; returns logical NOT of <expr>
+
+(@{" BITAND " link "baoxn"} <expr1> <expr2>)   ; returns bitwise AND of <expr1> and <expr2>
+
+(@{" BITOR " link "baoxn"} <expr1> <expr2>)    ; returns bitwise OR of <expr1> and <expr2>
+
+(@{" BITXOR " link "baoxn"} <expr1> <expr2>)   ; returns bitwise XOR of <expr1> and <expr2>
+
+(@{" BITNOT " link "baoxn"} <expr>)            ; returns bitwise NOT of <expr>
+
+(@{" shiftleft " link "shift"} <number> <amount to shift>) ; logical shift left
+
+(@{" shiftrght " link "shift"} <number> <amount to shift>) ; logical shift right
+
+(@{" IN " link "IN"} <expr> <bit-number> <bitnumber>...); returns <expr> AND bits
+
+(<@{" format string " link "Data types" 9}> <arg1> <arg2> ...)    ; printf clone
+
+(@{" askdir " link "askdir"} (@{" prompt " link "prompt"}..) (@{" help " link "help"}..) (@{" default " link "default"}..) (@{" newpath " link "newpath"}) (@{" disk " link "disk"})) 
+                                         ; ask for directory name
+
+(@{" askfile " link "askfile"} (@{" prompt " link "prompt"}..) (@{" help " link "help"}..) (@{" default "link "default"}..) (@{" newpath " link "newpath"}) (@{" disk " link "disk"}))
+                                         ; ask for file name
+
+(@{" askstring " link "askstring"} (@{" prompt " link "prompt"}..) (@{" help " link "help"}..) (@{" default " link "default"}..)) 
+                                         ; ask for a string
+
+(@{" asknumber " link "asknumber"} (@{" prompt "l link "prompt"}..) (@{" help " link "help"}..) (@{" range " link "range"}..) (@{" default " link "default"}..)) 
+                                         ; ask for a number
+
+(@{" askchoice " link "askchoice"} (@{" prompt " link "prompt"}..) (@{" choices " link "choices"}..) (@{" default " link "default"}..))          
+                                         ; choose 1 options
+
+(@{" askoptions " link "askoptions"} (@{" prompt " link "prompt"} (@{" help " link "help"}..) (@{" choices" link "choices"}..) @{" default " link "default"}..))   
+                                         ; choose n options
+
+(@{" askbool " link "askbool"} (@{" prompt " link "prompt"}..) (@{" help " link "help"}..) (@{" default " link "default"}..) (@{" choices " link "choices"}..)) 
+                                         ; 0=no, 1=yes
+
+(@{" askdisk " link "askdisk"} (@{" prompt " link "prompt"}..) (@{" help " link "help"}..) (@{" dest " link "dest"}..) (@{" newname " link "newname"}..) (@{" assigns " link "assigns"}))
+                                         ; Ask the user to insert a disk
+                                         
+(@{" cat " link "cat"} <string1> <string2>...)  ; returns concatenation of strings
+
+(@{" exists " link "exists"} <filename> (noreq))   ; 0 if no, 1 if file, 2 if dir
+
+(@{" expandpath " link "expandpath"} <path>)           ; Expands a short path to its full path
+                                  equivalent
+
+(@{" earlier " link "earlier"} <file1> <file2>)     ; true if file1 earlier than file2
+
+(@{" fileonly " link "fileonly"} <path>)             ; return file part of path (see pathonly)
+
+(@{" getassign " link "getassign"} <name> <opts>)     ; return value of logical name (no `:')
+                                  <opts>: 'v' = volumes, 'a' = logical, 
+                                          'd' = devices
+
+(@{" getdevice " link "getdevice"} <path>)            ; returns name of device upon which <path> 
+                                  resides
+
+(@{" getdiskspace " link "getdiskspace"} <path>)         ; return available space
+
+(@{" getenv " link "getenv"} <name>)               ; return value of environment variable
+
+(@{" getsize " link "getsize"} <file>)              ; return size
+
+(@{" getsum " link "getsum"} <file>)               ; return checksum of file for comparison 
+                                  purposes
+
+(@{" getversion " link "getversion"} <file> (@{" resident " link "getversion" 7})) ; return version/revision of file, 
+                                     library, etc.. as 32 bit num
+
+(@{" pathonly " link "pathonly"} <path>)                ; return dir part of path (see fileonly)
+
+(@{" patmatch " link "patmatch"} <pattern> <string>)    ; Does <pattern> match <string> ?
+                                     TRUE : FALSE
+
+(@{" select " link "select"} <n> <item1> <item2> ...) ; return n'th item
+
+(@{" strlen " link "strlen"} <string>)                ; string length
+
+(@{" substr " link "substr"} <string> <start> [<count>]) ; returns a substring of <string>
+
+(@{" transcript " link "transcript"} <string1> <string2>)    ; puts concatenated strings in log file
+
+(@{" tackon " link "tackon"} <path> <file>)              ; return properly concatenated 
+                                        file to path
+
+@endnode
+
+@node "Adaptation" Adaptation of Installer.doc. to AmigaGuide format"
+
+   Note from Gérard Cornu, the 'Guide adapter' ;-) :
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   The original 'Installer.doc' upon which @{" this Guide " link "Guide version"} is based, is 
+   (C) Copyright 1991-93 Commodore-Amiga,Inc.  All Rights Reserved.
+   
+   I have 'only' adapted it to the AmigaGuide format (as supplied with WB 2.1). 
+
+   I have used 'BadLinks' 1.17 by Roger Nedel, to check for bad links 
+   (he didn't find any ;-) and 'AGIndex' 1.04 by Camiel Rouweler, to generate
+   the index, which I have 'touched up' by hand.
+   
+   If you find any bugs like bad links, or any other  mistakes pertaining
+   only to the adaptation to the Guide format, don't hesitate to send them
+   to @{" me " link "adapter"}. Thanks.
+      
+
+   @{" Gérard Cornu " link "adapter"}
+
+
+   @{" Guide history... " link "history"}
+      
+@endnode
+
+@node "adapter" "The doc to guide adapter's address... ;-)"
+      
+      Send a postcard with your appreciation and ideas to:
+      
+         Gérard Cornu
+         11 Avenue Edouard Aynard
+         69130 Écully (France)
+
+
+      Or an email to:
+      
+         gerard@ariane.univ-lyon2.fr
+      
+
+      @{" Important " link "translation"}
+      
+@endnode
+
+@node "Translation" "Shameless plug..."
+
+   I can translate commercial software's documentation or hardware 
+   manuals, in fact anything technical, from English (or American)
+   to French and vice versa. 
+   
+   I have a very good knowledge and experience of the Amiga and 
+   computing in general.
+   
+   Please click @{" here " link "Adapter"} for contact address.
+      
+@endnode      
+
+@node "history" "Guide history:"
+
+   History:
+   ~~~~~~~
+   
+   1.22 -  4-Oct-94 - Initial version released to Aminet.
+   
+   1.23 - 27-Jan-96 - Corrected version received from Jean-Michel Bezeau
+                      regarding '/' which didn't appear because they were
+                      not escaped by another '/'. Thanks Jean-Michel.
+
+@endnode
+
+@NODE INDEXNODE "Index"
+   
+   Index:
+   ~~~~~
+@{" ((...))       " link "((...))"}
+@{" *             " link "*"}
+@{" +             " link "+"}
+@{" -             " link "-"}
+@{" /             " link "div"}
+@{" <             " link "relational"}
+@{" <=            " link "relational"}
+@{" =             " link "relational"}
+@{" >             " link "relational"}
+@{" >=            " link "relational"}
+@{" @*-help       " link "*-help"}
+@{" @abort-button " link "abort-button"}
+@{" @app-name     " link "app-name"}
+@{" @default-dest " link "default-dest"}
+@{" @each-name    " link "each"}
+@{" @each-type    " link "each"}
+@{" @error-msg    " link "error-msg"}
+@{" @execute-dir  " link "execute-dir"}
+@{" @icon         " link "icon"}
+@{" @ioerr        " link "ioerr"}
+@{" @language     " link "language"}
+@{" @pretend      " link "pretend_var"}
+@{" @special-msg  " link "special-msg"}
+@{" @user-level   " link "user-level"}
+@{" abort         " link "abort"}
+@{" Adaptation    " link "Adaptation"}
+@{" all           " link "all"}
+@{" AND           " link "aoxn"}
+@{" append        " link "append"}
+@{" APPNAME       " link "Standard Invocation" 12}
+@{" askbool       " link "askbool"}
+@{" askchoice     " link "askchoice"}
+@{" askdir        " link "askdir"}
+@{" askdisk       " link "askdisk"}
+@{" askfile       " link "askfile"}
+@{" asknumber     " link "asknumber"}
+@{" askoptions    " link "askoptions"}
+@{" askstring     " link "askstring"}
+@{" assigns       " link "assigns"}
+@{" Background    " link "Background"}
+@{" Basic Elements" link "Basic Elements"}
+@{" BITAND        " link "baoxn"}
+@{" BITNOT        " link "baoxn"}
+@{" BITOR         " link "baoxn"}
+@{" BITXOR        " link "baoxn"}
+@{" cat           " link "cat"}
+@{" check versions" link "getversion"}
+@{" checksum      " link "getsum"}
+@{" choices       " link "choices"}
+@{" command       " link "command"}
+@{" complete      " link "complete"}
+@{" confirm       " link "confirm"}
+@{" Control       " link "Control Statements"} Statements
+@{" copy files    " link "copyfiles"}
+@{" copyfiles     " link "copyfiles"}
+@{" copylib       " link "copylib"}
+@{" Data Types    " link "Data Types"}
+@{" database      " link "database"}
+@{" debug         " link "debug"}
+@{" Debugging     " link "Debugging Statements"} Statements
+@{" default       " link "default"}
+@{" Default Help  " link "*-help"} String Variables
+@{" delete        " link "delete"}
+@{" delopts       " link "delopts"}
+@{" dest          " link "dest"}
+@{" disk          " link "disk"}
+@{" earlier       " link "earlier"}
+@{" embedded      " link "Escape Characters"} sequences
+@{" Escape        " link "Escape Characters"} Characters
+@{" execute       " link "execute"}
+@{" exists        " link "exists"}
+@{" exit          " link "exit"}
+@{" expandpath    " link "expandpath"}
+@{" fileonly      " link "fileonly"}
+@{" files         " link "files"}
+@{" fonts         " link "fonts"}
+@{" foreach       " link "foreach"}
+@{" format string " link "Data types" 9}
+@{" fuelgauge     " link "nogauge"}
+@{" Functions     " link "Functions_5"}
+@{" getassign     " link "getassign"}
+@{" getdevice     " link "getdevice"}
+@{" getdiskspace  " link "getdiskspace"}
+@{" getenv        " link "getenv"}
+@{" getsize       " link "getsize"}
+@{" getsum        " link "getsum"}
+@{" getversion    " link "getversion"}
+@{" Gérard Cornu  " link "adapter"}
+@{" Guide version " link "Guide version"}
+@{" help          " link "help"}
+@{" history       " link "history"}
+@{" if            " link "if"}
+@{" Important     " link "translation"}
+@{" IN            " link "IN"}
+@{" include       " link "include"}
+@{" infos         " link "infos"}
+@{" Initial       " link "Initial actions"} Actions
+@{" Installation  " link "Installation Actions"} Actions
+@{" Installer     " link "Installer Language Quick Reference"} Language Quick Reference
+@{" Installer     " link "Installer Language Reference"} Language Reference
+@{" makeassign    " link "makeassign"}
+@{" makedir       " link "makedir"}
+@{" message       " link "message"}
+@{" Miscellaneous " link "Miscellaneous"}
+@{" newline       " link "Escape Characters"}
+@{" newname       " link "newname"}
+@{" newpath       " link "newpath"}
+@{" nogauge       " link "nogauge"}
+@{" noposition    " link "noposition"}
+@{" NOT           " link "aoxn"}
+@{" Notes         " link "Notes"}
+@{" onerror       " link "onerror"}
+@{" optional      " link "optional"}
+@{" OR            " link "aoxn"}
+@{" Overview      " link "Overview_5"}
+@{" pathonly      " link "pathonly"}
+@{" patmatch      " link "patmatch"}
+@{" pattern       " link "pattern"}
+@{" Pre-Defined   " link "Pre-Defined Variables_5"} Variables
+@{" PRETEND mode  " link "Pretend mode"}
+@{" prompt        " link "prompt"}
+@{" protect       " link "protect"}
+@{" Quick         " link "Quick Language Overview_5"} Language Overview
+@{" range         " link "range"}
+@{" rename        " link "rename"}
+@{" resident      " link "getversion" 7}
+@{" rexx          " link "rexx"}
+@{" run           " link "run"}
+@{" safe          " link "safe"}
+@{" Scripting     " link "Scripting Language Tutorial"} Language Tutorial
+@{" select        " link "select"}
+@{" set           " link "set"}
+@{" setdefaulttool" link "setdefaulttool"}
+@{" setstack      " link "setstack"}
+@{" settooltype   " link "settooltype"}
+@{" shiftleft     " link "shift"}
+@{" shiftrght     " link "shift"}
+@{" source        " link "source"}
+@{" Special       " link "Special Features"} Features
+@{" Standard      " link "Standard Invocation"} Invocation
+@{" startup       " link "startup"}
+@{" Startup       " link "Startup screens"} Screens
+@{" Statements    " link "Statements_4"}
+@{" status display" link "nogauge"}
+@{" string        " link "string"}
+@{" strlen        " link "strlen"}
+@{" substr        " link "substr"}
+@{" Summary       " link "Summary of Parameters"} of Parameters
+@{" swapcolors    " link "swapcolors"}
+@{" Symbols       " link "Symbols (Variables)"} (Variables)
+@{" tackon        " link "tackon"}
+@{" textfile      " link "textfile"}
+@{" tooltype      " link "tooltype"}
+@{" transcript    " link "transcript"}
+@{" trap          " link "trap"}
+@{" Types         " link "Types of Symbols"} of Symbols
+@{" until         " link "until"}
+@{" user          " link "user"}
+@{" user level    " link "user-level"}
+@{" user levels   " link "user-level"}
+@{" User-Defined  " link "User-Defined Procedures"} Procedures
+@{" variables     " link "Data types"}
+@{" version       " link "getversion"}
+@{" welcome       " link "welcome"}
+@{" while         " link "while"}
+@{" working       " link "working"}
+@{" XOR           " link "aoxn"}
+
+@endnode

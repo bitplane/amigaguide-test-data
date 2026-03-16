@@ -1,0 +1,288 @@
+@DATABASE "Axsh-setup.guide"
+
+@NODE MAIN "Axsh-setup.guide"
+
+  ---------------------------------------------------------
+		Spumoni's "How To" Guide:
+	Setting up Axsh 1.31 for use with Telserd
+	 Written 12/27/94 By Nicholas J. Verenini
+  -----------------------------------------------------------
+
+    Copyright (c) 1994-1995, SpuSoft. No Rights reserved.
+
+@{" Legal Stuff         " Link Legal_Stuff}
+@{" Introduction        " Link Introduction}
+@{" Requirements        " Link Requirements}
+@{" What to change      " Link What_To_Change}
+@{" Common Problems     " Link Common_Problems}
+@{" Acknowledgements    " Link Acknowledgements}
+@{" Contact Information " Link Info}
+@{" Disclaimer          " Link Disclaimer}
+
+@ENDNODE
+
+@NODE Legal_Stuff "There is none!"
+
+It reminds me of lawyers.
+
+@ENDNODE
+
+@NODE Introduction "Duh, what's my name?"
+
+This is, in short, a hopefully simple and straightforward guide to setting
+up telserd to use Axsh 1.31. If you don't know what @{" Axsh " Link Axsh} is, this little essay
+won't help you any, so get out while you still can.
+
+@ENDNODE
+
+@NODE Requirements "What you need"
+
+In order to sucessfully set this thing up, you will need the following:
+
+o   Correctly installed TCP/IP stack (tested with Amitcp 4.0)
+o   Correctly installed, hopefully registered telser package
+o   Correctly installed Axsh 1.31 package
+o   An IQ greater than your shoe size
+
+  ---------------------------------------------------------------------
+
+NOTE! (Or: 'In Case the Last Criteria Was Barely Met')
+
+Notice my careful usage of the term 'correctly installed.' This means that
+at the time of this writing, you have installed, and have complete mastery
+of, the aforementioned packages. It also follows that I will assume you,
+gentle reader, have at least above-slug intelligence.
+
+@ENDNODE
+
+@NODE What_To_change "Modify, change, or otherwise mangle"
+
+This assumes you have the registered version of telser.device. The demo
+will only allow one port, but you can use this section as a guide to
+setting up the single unit for Axsh. Read on, D00D.
+
+  ---------------------------------------------------------------------
+		    Files that need modification
+
+    For demo use (unit 0 only):
+
+o   Axsh
+
+    @{" Axsh:etc/rc.server<x>             " Link server}
+
+    For regged use (unlimited ports):
+
+o   Axsh
+
+    @{" Axsh:etc/rc.server<x>             " Link server}
+    @{" Axsh:storage/DOSDrivers/NEWAUX<x> " Link newaux}
+
+o   Telser.device
+
+    @{" Amitcp:db/telserd.conf            " Link telserd}
+    @{" Amitcp:db/telser.conf             " Link telser}
+
+@ENDNODE
+
+@NODE server "Axsh:etc/rc.server<x>"
+
+If you have read the Axsh documentation (if you haven't, go do it now,
+dammit) you will know that in Axsh:bin/ there is a program called
+ax-server. What this program does is watch a serial device for connect
+requests, and on those requests initialize Axsh through a device called
+NEWAUX:. In order to do this, it uses a config file, conventionally named
+here as 'Axsh:etc/rc.server<x>,' where <x> is the ax-server session you
+want to run. The original file as included with the Axsh distribution is
+named 'Axsh:bin/rc.server,' so this naming system is just for neatness. You
+may name the config file whatever you so desire. If you had three of these
+config files, call them rc.server1, rc.server2, and rc.server3, you would
+run ax-server once for each one, and this would give you the equivalent of
+a three-line serial configuration, except each session will accept a telnet
+request instead of an incoming phone call.
+
+Basically, what you want to do is to change two things in the rc.server<x>
+config:
+
+o   For the default, change all references to 'serial.device' to
+    'telser.device'
+
+o   If you are setting up multiple rc.server<x> configs, you must also
+    replace all instances of NEWAUX: with another NEWAUX device that has a
+    different name (see section on NEWAUX for this).
+
+o   Give telser.device a port to watch- in the unregged version, it will
+    only be able to watch port 0 (in which case you can ONLY use ONE
+    config file for ax-server), but the regged version can use a, uh, very
+    large number of ports (try somewhere in the billions).
+
+@{" Config file example " Link Configfile}
+
+@ENDNODE
+
+@NODE Configfile "Example config file for ax-server"
+
+;AXsh server configuration file in pasbox
+;by Pasi Ojala
+
+%bpslock:	/* lock the DTE speed (If present, %bps: has no effect) */
+19200
+%bps:		/* Default baudrate in ax-server (highest possible) *
+2400
+
+%serverpri:	/* AX-server priority *
+1
+
+%starthour:	/* server starts to monitor calls *
+25
+%stophour:	/* server goes to sleep *
+25
+
+%eventhour:	/* event time hours */
+25
+%eventmins:	/* event time minutes */
+0
+
+%eventnumber:	/* string we use for event-call */
+atX4E0dt911
+%eventcommand:	/* command we execute after connection */
+AXsh:bin/net <newaux1:telser.device/10/raw/checkcd >newaux1:telser.device/10/raw/
+
+%newshell:	/* AXsh's serial startup command in AX-server *
+newshell >NIL: NEWAUX1:telser.device/10/shared from AXsh:etc/remote-startup
+
+%newcon:	/* startup for console(can use con: or newcon: handlers too)*/
+newshell >NIL: con:0/0//216/AXsh/CLOSE from AXsh:etc/local-startup
+ newshell >NIL: con:0/344/664/216/AXsh/CLOSE from AXsh:etc/local-startup
+
+%modem-reset:	/* modem reset command, CR not needed */
+ATZ
+
+%modem-aa:	/* modem autoanswer command */
+AT&d0M0X4E0S0=1
+
+%modem-noaa:	/* modem autoanswer off command (not used) */
+ATE1S0=0
+
+%ringflash:	/* DisplayBeeb() on 1=sleeping,2=waiting,3=always */
+0
+
+%device:	/* Device to monitor */
+telser.device
+%unitnum:	/* Unit number on the device */
+10
+%handshake:	/* handshake type, "cts/rts" or "none" */
+cts/rts
+
+@ENDNODE
+
+@NODE newaux "NEWAUX:"
+
+o	2.1=< users
+
+NEWAUX: setup is mercifully simple. Simply take the original mountlist
+and change the icon's name to something else, ie. AX1: or NEWAUX1: or
+whatever. When you mount this from WB (2.1 only) you will have an
+additional NEWAUX: port that you can use for another ax-session. Make
+sure the file that the icon is associated with has the same name.
+
+o	2.0 users
+
+Put the name of the device in as the first line in the mountlist (ie.
+NEWAUX1:)...then use the standard AmigaDOS 'mount' command to mount it.
+There you go.
+
+@ENDNODE
+
+@NODE telserd "Telserd.conf"
+
+The port name you want to use for ax-server config must be in
+amitcp:db/telserd.conf. A sample line for configuring port 10 follows (use
+the existing telserd.conf as a template):
+
+#unit ring-interval max-rings	startup-command cleanup-command logfile
+#     (seconds)                 "" for none     "" for none     "" for none
+10	  2		1	""              ""              t:telserd.log
+
+@ENDNODE
+
+@NODE telser "Telser.conf"
+
+You must also have some parameters defined for the port name you want to
+use in amitcp:db/telser.conf. Observe:
+
+10  fraser  OpenWindow	 NOOPENWIN   LINGER   DEBUG  T:telser.log
+				     ^^^^^^
+This is almost identical to the line already in the file, but notice that
+for use with ax-server you MUST set LINGER on, because ax-server closes the
+device it uses (in this case telser.device) when it detects a caller. If
+LINGER is off that unit will be closed, and newaux: will have nowhere to
+output, resulting in an input stream lockup. In short, LINGER off, bad. You
+crash. Grunt.
+
+Hope that was kinda clear.
+
+@ENDNODE
+
+@NODE Common_Problems "Some gotchas"
+
+Here are some common problems you may experience, and here are my utterly
+fantastic solutions:
+
+Q:	Arrgh! It doesn't work! What should I do?
+
+A:	RTFM.
+
+Thank you. :)
+
+@ENDNODE
+
+@NODE Acknowledgements "We give thee thanks, almighty PAYN...er, Telser"
+
+Of course, this document owes its existence to telser (and Axsh), without
+either of which I would be making no sense whatsoever. I also want to thank
+my mother, for not beating me as a child, and, most of all, I want to thank
+my agent, Bertha, without whom the world would be a much smaller place.
+
+Thank you, thank you. <applause>
+
+@ENDNODE
+
+@NODE Info "Contact Information"
+
+I may be reached at:
+
+nverenin@nverenin.extern.ucsd.edu
+
+I also invite you to try out the telnet site at:
+
+telnet nverenin.extern.ucsd.edu (sporadic)
+
+
+@ENDNODE
+
+@NODE Disclaimer "Disclaimer"
+
+I make no guarantees, implied or otherwise, about the relative usefulness
+of this documentation. I alse refuse to take responsibility if it somehow
+manages to crash your hard drive, eat your cat, or steal your credit card
+and order me a WE 040 board. You have been warned.
+
+-Spu (Wednesday 28-Dec-94 20:49:01)
+
+@ENDNODE
+
+@NODE Axsh "What is Axsh?"
+
+Aside from the fact you should know what Axsh is already, I want to briefly
+delineate some advantages to running Axsh through a system such as Telser:
+
+1) Simple UNIX shell-like interface
+2) Has its own file protection
+3) Easily integrated into a Internet-type environment
+4) Reasonably fast
+5) Goes great with Cheez Whiz
+
+@ENDNODE
+
+
+

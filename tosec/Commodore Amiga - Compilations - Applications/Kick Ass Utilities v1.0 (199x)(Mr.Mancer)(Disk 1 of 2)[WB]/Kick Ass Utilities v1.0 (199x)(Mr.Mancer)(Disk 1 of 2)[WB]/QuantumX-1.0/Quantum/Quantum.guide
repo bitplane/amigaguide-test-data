@@ -1,0 +1,445 @@
+@database Quantum Documentation
+@$VER: Quantum.guide 1.0 (10.05.96)
+@author "Mathias Karlsson"
+
+@node "MAIN" "main"
+@{b}         ********************************************************
+          ***  @{i}Quantum@{ui} V1.0, © Mathias Karlsson 05 Feb 1996  ***
+           **   Changes the quantum time slice in ExecBase   **
+            **************************************************
+
+
+                           @{"  Distribution   " link "Distribution" 0}
+
+                           @{"  Introduction   " link "Purpose" 0}
+                           @{"  Requirements   " link "Requirements" 0}
+                           @{"   Disclaimer    " link "Disclaimer" 0}
+
+                           @{"      Usage      " link "USAGE" 0}
+                           @{"      Tests      " link "Test" 0}
+
+                           @{"  How it works?  " link "Works" 0}
+
+                           @{" Acknowledgments " link "Acknowledgments" 0}
+                           @{"     Contact     " link "CONTACT" 0}
+                           @{"     History     " link "History" 0}
+                           @{"   Final Words   " link "Final" 0}
+
+
+               @{b}Quantum @ 1996 Mathias Karlsson & Team OS3@{ub}
+
+@endnode
+
+@node "Distribution" "Distribution"
+@next "Purpose"
+@prev "Main"
+@{u}DISTRIBUTION:@{uu}
+
+    I (@{b}@{i}Quantum@{ub}@{ui}) am freely distributable as long as the following conditions
+    and terms are fulfilled:
+
+        o   @{b}All my files in this archive must remain unmodified.@{ub}
+
+                Quantum/Quantum              1092
+                Quantum/Quantum.info         3505
+                Quantum/Quantum12            6612
+                Quantum/Quantum.doc         13270
+                Quantum/Quantum.doc.info     1427
+                Quantum/Quantum.guide       15968
+                Quantum/Quantum.guide.info   2578
+                Quantum.info                 2273
+                Quantum.readme               1211
+                Quantum.readme.info          1427
+
+        o   If any files are added to me, it must be obvious that
+            they do not belong to the original distribution, and NO files
+            may be added (or removed) to the Quantum directory!
+
+@{i}            So called "BBS ads" may NEVER be added! I hate them!@{ui}
+
+        o   I MAY be repacked with LZX or other more efficient Amiga
+            archivers, but my directory structure must remain intact.
+
+@{i}            So called "BBS ads" may NEVER be added! I hate them!@{ui}
+
+        o   The copying is done on a non-commercial basis.
+            A small fee to cover media costs etc. may be charged.
+
+@{b} *READ >>>  If you put me on a CD or coverdisks etc My Creator would
+ *THIS >>>  appreciate a copy of the disk (magazine?),but it's not required.
+
+        o   Aminet and Fred Fish can distribute me in any way they want.
+
+        o   Copy me. I want to travel!
+@endnode
+
+@node "Purpose" "Purpose"
+@next "Requirements"
+@prev "Distribution"
+@{u}PURPOSE:@{uu}
+
+    By changing the exec quantum time slice value you may in some cases
+    get a 'snappier' computer and speed increases when multitasking, because
+    the speed of exec taskswitching is increased.
+
+    I, @{b}@{i}Quantum@{ub}@{ui}, can do that.
+
+        Q:  Why? How? And what is a quantum anyway?
+        A:  Read this document. Especially "How it works".
+@endnode
+
+@node "Requirements" "Requirements"
+@next "Works"
+@prev "Purpose"
+@{u}REQUIREMENTS:@{uu}
+
+    Any Amiga. I use no memory after the exec quantum has been modified.
+
+    I, @{b}@{i}Quantum@{ub}@{ui}, being highly sofisticated, requires OS2+, and can be started
+    both from Workbench and CLI. I will just exit if run under OS1.x,
+    printing "You need OS2+" or something.
+
+    My low-life brother, Quantum12, runs on any Amiga, but is CLI-only, ha!
+
+    We both prefer 68020+, and fastmem is recommended, but _not_ needed.
+
+        Q:  Why is "Quantum12" 5x larger than "Quantum"?
+        A:  Because My Creator wrote that version in 5 minutes and used
+            standard stdio (printf() etc). Live with it. You should all
+            have upgraded to OS2+ anyway. Your Amiga deserves it.
+
+    I have been tested on these configurations:
+
+    Amiga 500 KS2.04 with and without 68030
+    Amiga 500 KS3.1  with and without 68030
+    Amiga 1200 KS3.0 with and without 68030 + MMU
+    Amiga 4000/040 KS3.1 running Enforcer etc.
+
+    Quantum12 has been tested on My Creators old Amiga 500 running KS1.3
+@endnode
+
+@node "Works" "How It Works"
+@next "USAGE"
+@prev "Requirements"
+@{u}HOW IT WORKS:@{uu}
+
+    First you must know how multitasking works on the Amiga.
+
+    This info can be found in RKRM if anyone is interested, but
+    here is a brief (well...) introduction:
+
+ *-*-*                                                                *-*-*
+
+    The Amiga's multitasking works by switching which task is currently
+    using the CPU. Each task has a priority assigned to it. Exec will let
+    the task with the highest priority use the CPU, but only if the task
+    is _ready_ to run.
+
+    A task can be in one of three states: 'ready', 'sleeping' or 'running.'
+
+    A 'ready' task is not currently using the CPU, but is waiting to use
+    the processor. Exec keeps and sorts a list of the 'ready' tasks so it
+    easily can find the 'ready' task with the highest priority, and 'run' it.
+
+    A 'sleeping' task is not currently 'running', and is waiting for some
+    event (keypress, mouseclick etc) to happen, and then Exec will move the
+    'sleeping' task into the list of 'ready' tasks.
+
+    A 'running' task is currently using the CPU, and will remain the current
+    task until one of three things occur:
+
+    o   A higher priority task becomes ready, so the OS preempts the current
+        task and switches to the higher priority task.
+
+    o   The currently running task needs to wait for an event, so it goes to
+        sleep and Exec switches to the highest priority task in Exec's ready
+        list.
+
+    o   The currently running task has control of the CPU for at least a
+        preset time period called a quantum and there is another task with
+        equal priority ready to run. In this case, Exec will preempt the
+        current task for the ready one with the same priority.
+
+        This is known as time-slicing.
+
+        When there is a group of tasks of equal priority on the top of the
+        ready list, Exec will cycle through them, letting each one use
+        the CPU for a quantum (a slice of time).
+
+        This will result in a time-sequenced 'round robin' scheduling of
+        all equal-priority tasks.
+
+*NOTE   In KS1.3 (and probably 1.2 as well), there is a bug in Exec,
+        that causes a taskswitch after each interrupt, even if the whole
+        quantum isn't used. This mean that under certain conditions (well,
+        pretty much most of the time...:) changing the quantum from 16 to 4
+        or 255 or even 65535 or 1 won't make much (if any) difference.
+
+        Well, who cares. It won't hurt either.
+
+        Upgrade thy OS.
+
+ *-*-*                                                                *-*-*
+
+        Q: So. What's the problem with this?
+
+        A: Well, if you have many time-consuming tasks running at the same
+           priority the computer will feel sluggish and slow.
+
+           Even if it is an Amiga. I try to speed things up.
+
+    Generally speaking, time-consuming and/or number-crunching programs
+    such as raytracers or compilers should be set to lower priority
+    to eliminate this problem, but some programs won't let you change
+    priorities (or screw up if you change them anyway) so I, @{b}@{i}Quantum@{ub}@{ui},
+    may, in some cases, make the computer feel faster and more responsive.
+
+    The default quantum for OS2.04-3.1 is _4_, and for OS1.3 _16_ (I think).
+
+    Generally speaking, changing the quantum to a LOWER value will speed
+    up taskswitching and practical usage, in THEORY a HIGHER value may give
+    numbercrunching programs (raytracers etc) a (small) boost because fewer
+    taskswitchs are needed. Go ahead and experiment! (send me results!)
+
+    My Creator read somwhere that 68030/040s have no problem with a quantum
+    of 1 and tests made by myself and him on his 40MHz 030 supports
+    that theory.
+
+    Of course slower Amigas may benefit from me too.
+
+    I am the @{u}Greatest!@{uu}
+
+    I do @{i}Magic!@{ui}
+
+    I am @{b}@{i}Quantum@{ub}@{ui}!
+
+    Oh, did I mention I was humble too?
+@endnode
+
+@node "USAGE" "USAGE"
+@next "CLI_USAGE"
+@prev "Works"
+@{u}USAGE:@{uu}
+
+Quantum can be used from either Workbench or Shell but requires OS2+.
+Quantum12, the version that runs on any Amiga, can only be started from
+shell.
+
+    @{"  Shell    " link "CLI_USAGE" 0}
+    @{"Workbench  " link "WB_USAGE" 0}
+@endnode
+
+@node "CLI_USAGE" "CLI_USAGE"
+@next "WB_USAGE"
+@prev "USAGE"
+@{u}    From CLI:@{uu}       I, @{b}@{i}Quantum@{ub}@{ui}, can be run with or without arguments.
+                    If no arguments are given, the current value
+                    of the exec quantum is printed.
+
+                    1:> Quantum
+                    Quantum 1.0 © Mathias Karlsson 1996
+                    Quantum:4
+                    1:>
+
+                    And if you feed me a number I will try to change the
+                    exec quantum to that value.
+
+                    It can be any number from 1 (fastest) to 255 (slowest).
+                    4 is default under OS2-3.
+
+                    My Creator say it is possible to change the Quantum
+                    to any value between 0 and 65535 ('UWORD'), but that
+                    the need for so high numbers are (virtually) zer0.
+
+                    1:> Quantum 2
+                    Quantum 1.0 © Mathias Karlsson 1996
+                    Quantum:2
+                    1:>
+
+                    If you want to run me every time you boot your computer,
+                    and why wouldn't you, you can put me in your
+                    s:startup-sequence or s:User-Startup.
+
+                    Just add this line:
+
+                    Quantum >nil: 1
+
+                    anywhere in s:startup-sequence or s:User-Startup.
+
+                    Adding me early to the startup-sequence made My Creators
+                    (1min+) startup 5-10% faster.
+
+                    Quantum12 works in the same way.
+@endnode
+
+@node "WB_USAGE" "WB_USAGE"
+@next "Test"
+@prev "CLI_USAGE"
+@{u}From WorkBench:@{uu}     Easy. Just dump me in sys:wbstartup. Or doubleclick me.
+(only 'Quantum')
+                    But first you may want to have a look at the tooltypes
+                    in the Quantum icon. Select an icon and 'Information'
+                    in the Workbench menu. You will find three tooltypes:
+
+                    QUANTUM=1
+                    (SHOW)
+                    DONOTWAIT
+
+                    QUANTUM=1  is of course the new exec quantum value.
+                               It can be any number from 1 (fastest)
+                               to 255 (slowest). 4 is default under OS2-3.
+
+                    (SHOW)     If you remove the parentheses (=activates)
+                               a small requester will pop-up and show
+                               the current value of the exec quantum.
+
+                    DONOTWAIT  Tells Workbench not to wait for it in
+                               the WBStartup. Do not touch.
+
+                    Quantum12, the Kickstart 1.2-1.3 version, can not
+                    be run from Workbench, it will just exit, doing
+                    nothing. Ha! Upgrade!
+
+ *UGLY              Unfortunately, My Creator is not a painter, and
+ *ICON              my icon look pretty ugly. I deserve better!
+
+ *FAME              If you send My Creator a better looking icon I'm
+ *AND               sure he'll include it in the next release!
+ *GLORY             And give eternal fame and glory to _you_ of course:-)
+                    If you send me a 'NewIcon' icon please send an
+                    iff-picture too, My Creator doesn't have NewIcons
+                    installed and seeing the icon before spreading it all
+                    over the world would be nice...:)
+@endnode
+
+@node "Test" "Test"
+@next "Acknowledgments"
+@prev "WB_USAGE"
+@{u}TESTING:@{uu}
+
+    @{u}TEST 1:@{uu}
+    (compiling a rather large c-source file, and having three other tasks
+     busywaiting at the same priority. Stupid, but hey, this is a test...:)
+
+    Quantum is:1
+    12-> time dmake -a
+    DMAKE Done.
+    Execution time: @{b}44.948498 s.@{ub}
+
+    Quantum is:4    [default OS2 & OS3]
+    12-> time dmake -a
+    DMAKE Done.
+    Execution time: @{b}116.703899 s.@{ub}
+
+    Quantum is:16   [default KS1.2 & 1.3]
+    12-> time dmake -a
+    DMAKE Done.
+    Execution time: @{b}189.556968 s.@{ub}
+
+    @{u}TEST 2:@{uu}
+    (having one other task busywait and testing 'dir c:' with 300+ files)
+
+    Quantum is:1
+    12-> timenil dir c:
+    Execution time: @{b}14.966172 s.@{ub}
+
+    Quantum is:4    [default OS2 & OS3]
+    12-> timenil dir c:
+    Execution time: @{b}35.418734 s.@{ub}
+
+    Quantum is:16   [default KS1.2 & 1.3]
+    12-> timenil dir c:
+    Execution time: @{b}49.001525 s.@{ub}
+
+    Well. My Creator didn't bother to make any more tests, but if you
+    use me and make other interesting tests and/or get funny/interesting
+    results from using me, go ahead, mail My Creator.
+
+@{b}NOTE:@{ub} If you are running Executive (GREAT program!) you can not do
+    tests like this, because Executive will lower the priority of those
+    Busy-Waiting or numbercrunching tasks.
+    So, if you are using Executive and set a quantum of 1 you will
+    not notice a big difference in performance, if any.
+    But the computer may feel 'snappier'.
+
+    The Queue-scheduler of Executive adjusts the quantum value BTW. Nice.
+@endnode
+
+@node "Acknowledgments" "Acknowledgments"
+@next "CONTACT"
+@prev "Test"
+@{u}ACKNOWLEDGMENTS:@{uu}
+
+    Icon for me (@{b}@{i}Quantum@{ub}@{ui}) is made by @{b}Frank Stohl@{ub} and
+    severely modified by my creator.
+
+    Icon for the drawer is made by @{b}Martin Huttenloher@{ub}.
+
+    Icon for documentation is made by @{b}Frank Bernard@{ub}.
+
+    @{b}Dice C@{ub} and @{b}Black's Editor@{ub} ('@{b}BED@{ub}') were used during development.
+
+    Music played while programming and writing docs:
+   @{b}
+        Iron Maiden
+          Kraftwerk
+            Manowar
+              Rob Hubbard, Galway, Whittaker, Daglish (PlaySID)
+                ABBA
+                  Beethoven
+                    and more...@{ub}
+@endnode
+
+@node "CONTACT" "CONTACT"
+@next "History"
+@prev "Acknowledgments"
+@{u}CONTACT:@{uu}
+
+        e-mail: sk32@hotmail.com
+
+        I have other addresses but they may change so use the hotmail address.
+@endnode
+
+@node "History" "History"
+@next "Disclaimer"
+@prev "CONTACT"
+@{u}HISTORY:
+
+        10 May 1996     V1.0, first public release.
+
+Quantum @ 1996 Mathias Karlsson & Team OS3
+@endnode
+
+@node "Disclaimer" "Disclaimer"
+@next "Final"
+@prev "History"
+@{u}DISCLAIMER:@{uu}
+
+    I am a hack. I modify data in ExecBase! Viruskillers and system
+    testing software may report me! @{i}Mohahahahahahahaaaaa!!!@{ui}
+
+    Some people say you should never ever never change anything in ExecBase.
+
+    Don't listen to them;-)
+
+    Changing quantum should not cause any problems on any Amiga running
+    KS1.2-3.1, and probably not in future versions either.
+
+    But you have been warned.
+
+    The SOURCE [4323 bytes], in Dice C, IS available upon request.
+@endnode
+
+@node "Final" "Final"
+@next "Main"
+@prev "Disclaimer"
+@{u}FINAL WORDS:@{uu}
+
+        Q: Why the h*ck is this documentation so LONG, it's a tiny program?
+        A: I don't know. You tell me. Probably My Creator was bored or
+           on drugs or something when he wrote this monster documentation
+           for a 1K program...
+
+        [Creators note: Both. Both.]
+@endnode
+

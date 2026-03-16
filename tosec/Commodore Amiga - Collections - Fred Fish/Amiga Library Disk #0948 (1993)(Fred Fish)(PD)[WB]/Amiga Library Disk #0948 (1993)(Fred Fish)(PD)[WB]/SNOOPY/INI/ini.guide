@@ -1,0 +1,1003 @@
+@database "ini"
+@master "autodocs:ini.doc"
+
+@Node Main "ini.doc"
+    @{" --background-- " Link "--background--"}
+    @{" ini_ChangeString() " Link "ini_ChangeString()"}
+    @{" ini_CheckProtection() " Link "ini_CheckProtection()"}
+    @{" ini_Delete() " Link "ini_Delete()"}
+    @{" ini_DeleteFilename() " Link "ini_DeleteFilename()"}
+    @{" ini_ErrorString() " Link "ini_ErrorString()"}
+    @{" ini_GetBool() " Link "ini_GetBool()"}
+    @{" ini_GetHeader() " Link "ini_GetHeader()"}
+    @{" ini_GetInteger() " Link "ini_GetInteger()"}
+    @{" ini_GetString() " Link "ini_GetString()"}
+    @{" ini_GetVariable() " Link "ini_GetVariable()"}
+    @{" ini_LocalConfig() " Link "ini_LocalConfig()"}
+    @{" ini_New() " Link "ini_New()"}
+    @{" ini_NewConfig() " Link "ini_NewConfig()"}
+    @{" ini_NewFilename() " Link "ini_NewFilename()"}
+    @{" ini_OpenFile() " Link "ini_OpenFile()"}
+    @{" ini_ProtectSection() " Link "ini_ProtectSection()"}
+    @{" ini_RemoveVariable() " Link "ini_RemoveVariable()"}
+    @{" ini_Save() " Link "ini_Save()"}
+    @{" AUTHOR" Link "AUTHOR"}
+    @{" DISTRIBUTION " Link "DISTRIBUTION"}
+@EndNode
+
+@Node "--background--" "ini.library/--background--"
+
+@{b}   PURPOSE@{ub}
+	The ini.library was written to give the amiga user a more consistent
+	configuration file format, and programmers a much easier way of 
+	storing config or project information on disks. 
+	
+	Most programs have config files to store global settings and such. 
+	These files have all different structures people in the real world
+	(the users) cannot examine or understand; and, worse yet, often differ
+	from version to version. We all know the hassle with those 'old->new'
+	configuration file converters...With the ini.library this changes: you
+	have @{"access" Link "sc:help/sc_lib.guide/access()"} to a standardized ini file format known from other
+	operating systems such as unix, windows and so on; it allows
+	you to save your config stuff much easier (less code), and it
+	enables the user to read and even modify configuration data with
+	a simple text editor (or, a wide-range field for unemployed PD
+	programmers: using an INI editor)
+	
+	As the ini.library is I-WANT-TO-BE-FREE-WARE you are ENCOURAGED to
+	use it - its @{"free" Link "sc:help/sc_lib.guide/free()"} of charge! (go ahead, do it!) and it offers much
+	more comfort to your applications. PD dealers, diskmags, everyone,
+	I'd like you to push'n'hype the ini.library ;-). 
+	
+	INI files are plain line-oriented ASCII texts that can contain three
+	possible types of lines : COMMENTS, HEADERS and VARIABLES. COMMENTS are
+	lines that include additional information not used by the parser.
+	You can use these comment lines to give the user ideas about what
+	your variables mean and what reasonable changes s(he) is allowed
+	to make to that variables. HEADERS are identifiers for sections and
+	are enclosed in [] brackets. A SECTION is a group of zero to infinite (?)
+	number of variables and provides a simple but efficient means of
+	logically grouping data. VARIABLES are simple statements in the
+	form "<variable>=<contents>" where both <variable> and <contents>
+	could be virtually anything - you name it. 
+
+	Each INI file must start with a sequence of 4 characters ";INI"
+	otherwise the ini.library will return the INIERROR_INVALID_INI_FILE. 
+	This was included to prevent misuse of the ini.library: imagine your
+	program has a 'load user configuration' menu and the user tries out
+	some binary hack or an IFF picture (you know users, don't you?! ;-)
+	If you watch out for INIERROR_INVALID_INI_FILE, you can send the user
+	a message of complaint and ignore its wishes -> great. 
+	Since this is a cause for many first-time problems, from version 2.1
+	upwards this checking can be made optional; see @{"ini_NewConfig()" Link "ini_NewConfig()"} for
+	details
+
+@{b}   COMMENTS@{ub}
+	Comments can be placed anywhere [well, almost]. If you want
+	to have a full-line comment, place a ';' or a '*' in the first
+	column of that line. Anything after these two characters will be ignored.
+	If you want to place a comment at the end of a line you should use
+	the ';' sign ONLY. Also note that if you make a comment after a 
+	variable you should probably enclose its contents in quotation marks;
+	otherwise the whitespaces between the last character of the contents
+	and the comment start will be part of the contents. This is
+	no problem if you are using integer or boolean variables; it might
+	be a problem for SOME string variables, but doesn't necessarily have
+	to - its up to your interpretation of the input data.
+	
+	Examples:
+	
+		;INI for MUIMon release version
+		
+		* another piece of wisdom
+		best part of munich=ULTRAWORLD ; 100% wild techno
+		
+
+@{b}   SECTIONS@{ub}
+	Sections are used to group variables logically. You should try to place
+	all your data in groups so that your inifiles have a more consistent
+	look and both you and the user can find data easier. The concept of
+	sections can have various usages, one is to handle logic groupings
+	for one program, another is to handle data related to different
+	programs accessing the same INI file, yet another is to just make
+	your INI more readable. Of course,the ini.library is flexible enough
+	to ignore sections altogether, but you shouldn't force it! Sections
+	cost you nothing and make for a lot better programs.
+
+@{b}   HEADERS@{ub}
+	Headers start a new section. Headers are strings enclosed in
+	[] brackets and can be any string you like. Everything following
+	a header is logically assigned to that header - up to the next
+	section header or an end-of-file. 
+
+	Examples:
+
+		[drivers]
+		pc0=storage:dosdrivers/pc0
+		cd=devs:CDROM
+
+		[Disko Lovers,International]		
+		best ULTRAWORLD DJs=MONIKA,TIN-A-303,BLEEP & TRIPPLE R,DJ HELL
+		; hi to SMC all ravers around the globe. See you on MAYDAY V
+
+		[hermeneutic philosophy revisited]
+		zizek=no meta language exists
+   
+@{b}   VARIABLES@{ub}
+	Variables are basically strings that are assigned a name. The
+	names is what you search for, the strings is what you get -it is as
+	simple as that. For instance, in "TABS=8" the string "TABS" is
+	the name (also called the variable), the string "8" is its value.
+	The interpretation of the string value is up to you. The ini.library
+	provides three basic types of interpretation : Strings, Integers (LONGs)
+	and  boolean Values (BOOLs). You can of course add your own
+	interpretations as you like, and this is why the ini concept is so
+	flexible: You can virtually store ALL information you need in such
+	a way that it is represented as an ASCII string. If you want your
+	strings to be of a certain length, you can enclose them in
+	brackets, for example such as in
+	
+		user="T\"N\"I and THE DREAM TEAM"
+
+	where you can assign the string >T"N"I AND THE DREAM TEAM< to
+	the variable named >user<. Note that a sequence of \" is used
+	as an escape character in the above example.
+
+	If you have ideas for additional datatypes of general interest
+	the ini.library should understand, please contact me. If possible,
+	I'll include them.
+
+	Examples:
+	--------------------------------------------------------------
+   	;INI
+   	
+   	[GLOBAL]
+@{b}   	user="T'N'I and The Dream Team" ;from INTENSE Records@{ub}
+@{b}   	tabs=8@{ub}
+@{b}   	indent=YES@{ub}
+	autofold=FALSE
+	preferences=
+   	
+   	[DIRECTORYS]
+@{b}   	home=work:assembler/@{ub}
+   	; add multiple directorys by using '+' or ','
+@{b}   	include=include:+dh1:more_includes/@{ub}
+@{b}   	libs=dh2:code/libs/asm/+lib:+disko:love@{ub}
+   	
+	--------------------------------------------------------------
+	The above example shows you some ideas of inifiles: Two groups
+	are part of this inifile: GLOBAL and DIRECTORYS. Each section
+	can (but doesn't have to) have different variables, each variable
+	can be any string enclosed in quotation marks or from the = sign
+	to the end of the line. If you want to add comments, enclose the
+	string in quotes, and add a comment like in the "user=" line above.
+	Note that the feature described as "add multiple directorys by ..."
+	is a description of an add-on datatype used by the application for
+	this INI file and NOT provided by the ini.library itself. 
+
+	Now you should be able to read inifiles. More complex features such
+	as section protection and file location are described in the
+	"programmers.guide" document which should be part of this distribution.
+
+@{b}   HINTS@{ub}
+	If you decide to use the ini.library -WHICH I STRONGLY HOPE YOU DO-
+	you should always check for error returns - you may never know when
+	they come in handy for you.
+
+	If you save your files, make use of the grouping feature; that is,
+	at least provide some GLOBAL section so that the user knows what
+	he's up for. It makes INIfiles more readable and doesn't cost
+	you anything.
+
+@{b}   LIMITATIONS@{ub}
+@{b}   	Yes, there are some.@{ub}
+   	
+	* currently no whitespaces before and after the "=" are allowed.
+	  This means that the two following lines are different for 
+	  the ini.library parser functions
+	  
+	         ultraworld=great
+	         ultraworld = great
+
+	  There is a simple workaround for this: just do your own variable
+	  and contents parsing (explicit datatypes, see above). Future
+	  versions WILL include a fix on that, I PROMISE.
+
+   	* the ini.library uses approximately twice as much memory as the
+   	  ini file is in size (less for larger files). This is not a
+   	  problem for most users, because inifiles seldom grow over
+   	  a size of some 10-20 kb (even on windows I haven't seen a inifile
+   	  larger than 25kb up to this day), and many applications not even
+   	  reach a 5kb limit. (You can write a LOT variables in a 5 kb file).
+	  However, this memory is needed only while your parser is active,
+	  (i.e. between calls to @{"ini_New()" Link "ini_New()"} and @{"ini_Delete()" Link "ini_Delete()"} ). Afterwards,
+	  only the library code (5kb) is kept in memory. 
+
+@EndNode
+
+@Node "ini_ChangeString()" "ini.library/ini_ChangeString"
+
+@{b}   NAME@{ub}
+	ini_ChangeString -- change an existing string for a variable
+	
+@{b}   SYNOPSIS@{ub}
+@{b}   	error = ini_ChangeString( parser, header, variable, value )@{ub}
+	d0			  A0	  A1	  A2	    A3
+
+	INIERROR ini_ChangeString(INIPARSER *,STRPTR,STRPTR,STRPTR);
+
+@{b}   FUNCTION@{ub}
+	Changes the contents of a variable to a new value. If you have
+	made changes to the data represented in an inifile (e.g. your
+	internal configuration structure) you can use this function
+	to fix those changes and then write back your file with @{"ini_Save()" Link "ini_Save()"}.
+	If the variable already existed, its contents will be replaced by
+	the new contents; if it didn't exist, it will be appended to the
+	section it is assigned to. Unless you use explicit saving of
+	ini-files you *MUST* use ini_ChangeString() to change the
+	contents of variables, **NEVER** try to do it on your own
+	(its quite tricky, actually!). 	
+
+@{b}   INPUTS@{ub}
+	parser - pointer to a valid INIPARSER
+	header - section header name
+	variable - section variable name 
+	value - new contents
+
+@{b}   RESULTS@{ub}
+	error - INIERROR as defined in libraries/ini.h
+
+@{b}   NOTE@{ub}
+	old end-of-line comments will be stripped by this function. You can
+	explicitly set one by using contents such as
+
+		char *newContents = "\"blabla\" ;comment "; or
+
+		dc.b	'"blabla" ;comment',0
+
+@{b}   SEE ALSO@{ub}
+	ini_RemoveVariable, ini_Save
+
+@EndNode
+
+@Node "ini_CheckProtection()" "ini.library/ini_CheckProtection"
+
+@{b}   NAME@{ub}
+	ini_CheckProtection -- check if a section has a valid protection
+	
+@{b}   SYNOPSIS@{ub}
+@{b}   	error = ini_CheckProtection( header, password )@{ub}
+	d0		             A0	     A1
+
+	INIERROR ini_CheckProtection( INILINEINFO *, STRPTR )
+
+@{b}   FUNCTION@{ub}
+	This function checks if it can find a "$code" variable in the given
+	section and if that code matches the password given as an argument. 
+	The password is case sensitive and must match *EXACTLY* the one used
+	to code that particular section (including whitespaces and so on).
+	It is up the caller to decide what to do if a section is not
+	properly coded : you can make it a fatal problem or just ignore
+	it - whatever you like. This means, the ini.library will load files
+	with or without invalid passwords - YOU have the "power" to handle
+	this situation (actually, this was done because it is not a feature
+	of the normal inifile "standard", its a addon bonus of the ini.library)
+
+@{b}   INPUTS@{ub}
+	header - pointer to a INILINEINFO structure for a section header
+		(i.e. ili_Flags must be INIFLAG_HEADER )
+	password - pointer to the password (assumably) used to protect this
+		section
+
+@{b}   RESULTS@{ub}
+	error - INIERROR as defined in libraries/ini.h; you should look out
+		for INIERROR_NONE = good, INIERROR_INVALID_PASSWORD = bad
+
+@{b}   SEE ALSO@{ub}
+	ini_ProtectSection
+
+@EndNode
+
+@Node "ini_Delete()" "ini.library/ini_Delete"
+
+@{b}   NAME@{ub}
+	ini_Delete -- delete INI parser
+
+@{b}   SYNOPSIS@{ub}
+	error = ini_Delete( parser )
+	D0		    A0
+
+	INIERROR ini_Delete( INIPARSER * );
+
+@{b}   FUNCTION@{ub}
+	Free all memory used by an INI parser and reset all accompaning 
+	internal data structures. You should ALWAYS call this function
+	after you have finished using the INI file so that you don't loose
+	any precious memory. You must call ini_Delete() even if @{"ini_New()" Link "ini_New()"}
+	wasn't able to create the parser for you (there still might be 
+	some memory somewhere only ini_Delete can take care of)
+
+@{b}   WARNING@{ub}
+	This function does not arbitrate for @{"access" Link "sc:help/sc_lib.guide/access()"} to the parser.  The
+	calling task must be the owner of the involved parser.
+
+@{b}   INPUTS@{ub}
+	parser - a pointer to a parser structure initialized with @{"ini_New()" Link "ini_New()"}
+
+@{b}   RESULTS@{ub}
+	error - INIERROR as defined in libraries/ini.h
+
+@{b}   SEE ALSO@{ub}
+	ini_New
+
+@EndNode
+
+@Node "ini_DeleteFilename()" "ini.library/ini_DeleteFilename"
+
+@{b}   NAME@{ub}
+	ini_DeleteFilename() -- destructor for @{"ini_NewFilename()" Link "ini_NewFilename()"}
+	
+@{b}   SYNOPSIS@{ub}
+@{b}   	ini_DeleteFilename( filename )@{ub}
+			     D0
+
+	void ini_DeleteFilename( STRPTR )
+
+@{b}   FUNCTION@{ub}
+	This function will deallocate memory associated with a filename
+	generated by @{"ini_NewFilename()" Link "ini_NewFilename()"}
+
+@{b}   INPUTS@{ub}
+	filename - a filename returned from ini_NewFilename
+
+@{b}   NOTE@{ub}
+	after calling ini_DeleteFilename() your "filename" variable is
+	invalid : DO NOT USE IT ANY LONGER!
+
+@{b}   RESULTS@{ub}
+	none
+
+@{b}   SEE ALSO@{ub}
+@{b}   	ini_NewFilename()@{ub}
+
+@EndNode
+
+@Node "ini_ErrorString()" "ini.library/ini_ErrorString"
+
+@{b}   NAME@{ub}
+	ini_ErrorString -- find error message to an INIERROR
+	
+@{b}   SYNOPSIS@{ub}
+@{b}   	message = ini_ErrorString( error )@{ub}
+@{b}   	D0			   D0@{ub}
+
+	STRPTR ini_ErrorString( INIERROR )
+
+@{b}   FUNCTION@{ub}
+	Used to find an ini.library error message. Currently the error 
+	strings are in english but a localized version is planed for the 
+	next update of this library, so you should use ini_ErrorString()
+	when printing warnings instead of your own error strings. Also, if
+	you use ini_ErrorString() you automagically can handle errors that 
+	result from higher library versions.
+
+@{b}   INPUTS@{ub}
+	error - some INIERROR code returned by one of the ini.library functions
+
+@{b}   RESULTS@{ub}
+	message - the error message for that error code (soon to be localized)
+		If there was no error message (because of INIERROR_NONE or an
+		invalid error code) ini_ErrorString() will return an EMPTY
+		string ( "" ) and not NULL, so you can always do something
+		like
+
+		printf("%s\n", ini_ErrorString( ini_Whatever(...) ) );. 
+
+@{b}   NOTE@{ub}
+	You are NOT allowed to modify this string, if you need to do so, 
+	make a copy of the string and use that copy instead.
+
+@EndNode
+
+@Node "ini_GetBool()" "ini.library/ini_GetBool"
+
+@{b}   NAME@{ub}
+	ini_GetBool -- find a boolean variable
+	
+@{b}   SYNOPSIS@{ub}
+@{b}   	error = ini_GetBool(parser,head,var,defaultBool,target)@{ub}
+	d0		    A0	   A1   A2  D0		A3
+
+	INIERROR ini_GetBool(INIPARSER *,STRPTR,STRPTR,@{"BOOL" Link "include:exec/types.h/Main" 63},@{"BOOL" Link "include:exec/types.h/Main" 63} *);
+
+@{b}   FUNCTION@{ub}
+	Used to find a boolean in an inifile. If the value cannot be found
+	for any reason, a default value is used. The variable should be
+		
+		"YES",
+		"Y",
+		"ON" or
+		"ACTIVE"
+	
+	if the returned value is to be TRUE, otherwise FALSE will be returned.
+	Future Versions of the ini.library will probably include locale-dependant
+	IDs in addition to those above. You can use ini_GetBool() very good to
+	handle boolean flags in your configuration - and it is a lot more 
+	readable than other solutions.
+
+@{b}   INPUTS@{ub}
+	parser - pointer to an INIPARSER opened by @{"ini_New()" Link "ini_New()"}
+	head - section header name
+	var - section variable name
+	defaultBool - default value if boolean value not found 
+	target - adress of target Bool
+
+@{b}   RESULTS@{ub}
+	error - INIERROR as defined in libraries/ini.h. Actually, you can
+		normally ignore this error code, because you must provide a
+		default value anyway.
+
+@{b}   SEE ALSO@{ub}
+	ini_GetInteger, ini_GetString
+
+@EndNode
+
+@Node "ini_GetHeader()" "ini.library/ini_GetHeader"
+
+@{b}   NAME@{ub}
+	ini_GetHeader -- find a section header
+	
+@{b}   SYNOPSIS@{ub}
+	header = ini_GetHeader( parser, headerString )
+	D0			A0	A1
+
+	INILINEINFO *ini_GetHeader( INIPARSER *, STRPTR )
+
+@{b}   FUNCTION@{ub}
+	This function is used to locate a section in an INI file by looking
+	for the section header. If you are looking for a specific variable,
+	@{"ini_GetString()" Link "ini_GetString()"} is probably the better choice, but you can do your
+	own parsing of INI sections, e.g. if you have 'intelligent' sections;
+	that is sections with flexible concepts or whatever. You could use
+	@{"ini_GetVariable()" Link "ini_GetVariable()"} in that case.
+
+@{b}   INPUTS@{ub}
+	parser - a pointer to a parser structure initialized with @{"ini_New()" Link "ini_New()"}
+	headerString - name of the section header you are looking for, without
+		enclosing brackets (ie. "global" )
+
+@{b}   RESULTS@{ub}
+	header - pointer to an INILINEINFO or NULL if that header could not
+		be found. This can be the case either if the INI file does not
+		include that particular section, or (worse) the INI parser
+		wasn't able to complete its job (as you know, all ini.library
+		functions are save to use). If this is NON-NULL, you can use
+		it as an argument to @{"ini_GetVariable()" Link "ini_GetVariable()"} or you can do your own
+		section looping (see "advanced concepts" in the "programmers guide")
+
+@{b}   SEE ALSO@{ub}
+	ini_GetVariable, ini_GetString, ini_New
+
+@EndNode
+
+@Node "ini_GetInteger()" "ini.library/ini_GetInteger"
+
+@{b}   NAME@{ub}
+	ini_GetInteger -- find a long integer variable
+	
+@{b}   SYNOPSIS@{ub}
+@{b}   	error = ini_GetInteger(parser,head,var,defaultLong,target)@{ub}
+	d0		       A0     A1   A2  D0	   A3
+
+	INIERROR ini_GetString(INIPARSER *,STRPTR,STRPTR,@{"LONG" Link "include:exec/types.h/Main" 35},@{"LONG" Link "include:exec/types.h/Main" 35} *);
+
+@{b}   FUNCTION@{ub}
+	Used to find an integer in an inifile. If the integer cannot be found
+	for any reason, a default value is used. The ini section should
+	contain a string representing a long decimal value. If the string
+	starts with a $ sign, a hexadecimal value is expected, % indicates
+	binary digits and finally @ sets an octal number. Therefor, the
+	following four entries will all return the same number
+	
+		decimal=123
+		octal=@173
+		binary=%1111011
+		hex=$7B
+
+	The prefixes are compatible to most assemblers (now you know which
+	language the ini.library was written in ;-) but a future update
+	will probably include C-style prefixes (0x and so on). 
+
+@{b}   INPUTS@{ub}
+	parser - pointer to an INIPARSER opened by @{"ini_New()" Link "ini_New()"}
+	head - section header name
+	var - section variable name
+	defaultLong - default value if integer not found 
+	target - adress of target long
+
+@{b}   RESULTS@{ub}
+	error - INIERROR as defined in libraries/ini.h. Actually, you can
+		normally ignore this error code, because you must provide a
+		default value anyway.
+
+@{b}   SEE ALSO@{ub}
+	ini_GetBool, ini_GetString
+
+
+@EndNode
+
+@Node "ini_GetString()" "ini.library/ini_GetString"
+
+@{b}   NAME@{ub}
+	ini_GetString -- find a string variable
+	
+@{b}   SYNOPSIS@{ub}
+@{b}   	error = ini_GetString(parser,head,var,defaultStr,target,sizeOfTarget)@{ub}
+@{b}   	D0		      A0     A1   A2  A3         D0     A4@{ub}
+
+	INIERROR ini_GetString(INIPARSER *,STRPTR,STRPTR,STRPTR,STRPTR,WORD);
+
+@{b}   FUNCTION@{ub}
+	Used to find a string in an inifile. If the string cannot be found
+	for any reason, a default string is used; so unless you desperately
+	rely on a string to exist as part of an inifile, you can call this
+	function without even checking for error returns. You can add a 
+	series of ini_GetString() statements for all strings you need to
+	check without having to worry if they exist or not.
+
+@{b}   INPUTS@{ub}
+	parser - pointer to an INIPARSER opened by @{"ini_New()" Link "ini_New()"}
+	head - section header name
+	var - section variable name
+	defaultStr - default string to use (NULL is possible)
+	target - target string
+	sizeOfTarget - size of target string. ini_GetString() promises
+		not to overwrite its bounds AND to keep a zero byte at the
+		end, so actually a maximum of (sizeOfTarget-1) characters
+		will be written.
+
+@{b}   RESULTS@{ub}
+	error - INIERROR as defined in libraries/ini.h. Actually, you can
+		normally ignore this error code, because you must provide a
+		default value anyway.
+
+@{b}   SEE ALSO@{ub}
+	ini_GetBool, ini_GetInteger
+
+@EndNode
+
+@Node "ini_GetVariable()" "ini.library/ini_GetVariable"
+
+@{b}   NAME@{ub}
+	ini_GetVariable -- find a section variable
+	
+@{b}   SYNOPSIS@{ub}
+	variable = ini_GetVariable( header, variableName )
+	D0			    A0	    A1
+
+	INILINEINFO *ini_GetVariable( INILINEINFO *, STRPTR )
+
+@{b}   FUNCTION@{ub}
+	This function is used to locate a variable following a given header
+	(or, for that matter, any given INILINEINFO). You can use this function
+	if you want to manually parse a section, if you want to find out if
+	there are more variables of a given name following a specific variable,
+	or for anything else you could think of. Note that you cannot pass
+	the INIPARSER as function arguments, use (parser->table.ln_Head) if
+	you have to do so.
+
+@{b}   INPUTS@{ub}
+	parser - a pointer to an INILINEINFO structure (from your INIPARSER.table)
+		or -preferably- as returned by @{"ini_GetHeader()" Link "ini_GetHeader()"} 
+	varibaleString - name of the variable you are looking for, without
+		enclosing brackets and "=" (ie. "variable" )
+
+@{b}   RESULTS@{ub}
+	variable - pointer to an INILINEINFO or NULL if that variable could not
+		be found. This can be the case either if the INI file does not
+		include that particular section, or (worse) the INI parser
+		wasn't able to complete its job (as you know, all ini.library
+		functions are save to use).
+
+@{b}   NOTE@{ub}
+@{b}   	ini_GetVariable() doesn't promise the variable to be a member of@{ub}
+@{b}   	the section you specified with your header. For example, @{ub}
+   	
+		head = ini_GetHeader( parser, "HEAD ONE" );
+@{b}   		info = ini_GetVariable( head, "VARIABLE" );@{ub}
+
+	would find the "VARIABLE=FOUND" entry in the "HEAD TWO" section
+	if the inifile looked something like this :
+
+		[HEAD ONE]
+		size=3551
+		
+		[HEAD TWO]
+		VARIABLE=FOUND
+
+	This is A FEATURE, NOT A BUG ;-), yes, because you normally will
+	use ini_GetVariable() to loop through the complete inifile.
+
+@{b}   SEE ALSO@{ub}
+	ini_GetVariable, ini_GetString, ini_New, ini_ParseSection
+
+@EndNode
+
+@Node "ini_LocalConfig()" "ini.library/ini_LocalConfig"
+
+@{b}   NAME@{ub}
+	ini_LocalConfig() -- get the local configuration
+	
+@{b}   SYNOPSIS@{ub}
+@{b}   	config = ini_LocalConfig()@{ub}
+
+	INICONFIG *ini_LocalConfig( void )
+
+@{b}   FUNCTION@{ub}
+	This function will return the local configuration if one is
+	defined for the current task. Local configurations are "task
+	sensitive", which means that one task can have one local config.
+	ini_LocalConfig() will NOT fall back to the global config, so 
+	if you want to read the current config you would probably write
+	something like
+	
+		if( ( config = ini_LocalConfig() ) == NULL ) 
+		    config = IniBase->GlobalConfig;
+
+@{b}   INPUTS@{ub}
+	none
+
+@{b}   RESULTS@{ub}
+	config - local configuration or NULL if none exists
+	
+@{b}   SEE ALSO@{ub}
+	@{"ini_NewConfig()" Link "ini_NewConfig()"}, ini_DeleteConfig()
+
+@EndNode
+
+@Node "ini_New()" "ini.library/ini_New"
+
+@{b}   NAME@{ub}
+	ini_New -- open INI parser
+
+@{b}   SYNOPSIS@{ub}
+	error = ini_New( fileName, parser )
+	D0		 A0	   A1
+
+	INIERROR ini_New( STRPTR, INIPARSER * );
+
+@{b}   FUNCTION@{ub}
+	Open an inifile and parse its contents. After successfully calling 
+	an inifile with this function you can examine its contents using
+	the functions provided (eg.ini_GetString()) or manually. You must
+	call this function before calls to any other ini.library functions.
+	Don't even think about creating an INIPARSER yourself. 
+	
+@{b}   WARNING@{ub}
+	This function does not arbitrate for @{"access" Link "sc:help/sc_lib.guide/access()"} to the parser.  The
+	calling task must be the owner of the involved parser. Use semaphores
+	if you want to share parser information with other tasks.
+
+	You should always call @{"ini_Delete()" Link "ini_Delete()"} on the parser EVEN IF ini_New()
+	failed. Otherwise some internal memory might get lost somewhere
+
+@{b}   INPUTS@{ub}
+	fileName - name of the input file. This is currently a plain filename
+		with or without pathname; however you should try to use only
+		plain filenames ("test.ini" instead of "dh1:somewhere/test.ini")
+		so that the ini.library can fix inifiles to S:, INI: or whereever
+		the user wants them located. See "locating files" in the
+		"programmers guide" for details.
+
+	parser - pointer to an empty INIPARSER structure. C programmers simply
+		add the adress of an INIPARSER variable, ASM programmers 
+		can use a (DS.B ip_SIZEOF) statement (See example TEST.ASM)
+
+@{b}   RESULTS@{ub}
+	error - INIERROR as defined in libraries/ini.h. Proceed ONLY if
+		error = INIERROR_NONE, else you can forget about it.
+
+@{b}   SEE ALSO@{ub}
+	ini_Delete
+
+@EndNode
+
+@Node "ini_NewConfig()" "ini.library/ini_NewConfig"
+
+@{b}   NAME@{ub}
+	ini_NewConfig() -- setup a local configuration
+	
+@{b}   SYNOPSIS@{ub}
+@{b}   	error = ini_LocalConfig( tagList  )@{ub}
+	d0		          A0
+
+	INIERROR ini_LocalConfig( struct @{"TagItem" Link "include:utility/tagitem.h/Main" 31} * )
+
+@{b}   FUNCTION@{ub}
+	This function creates a local configuration for your program.
+	If one already exists it will be modified to use the new values.
+	See "ini.introduction" for more details on the concept of local
+	and global ini.library configurations
+
+@{b}   NOTE@{ub}
+@{b}   	Sorry, no vararg-stub for C-programmers (yet?); I didn't want@{ub}
+@{b}   	to have to write a linklib for only one function...@{ub}
+
+@{b}   INPUTS@{ub}
+	tagList - a list of tag items. Currently defined tags are :
+
+		ICFG_ENABLE_S
+		ti_Data is @{"BOOL" Link "include:exec/types.h/Main" 63}, default = TRUE
+
+		ICFG_ENABLE_INI
+		ti_Data is @{"BOOL" Link "include:exec/types.h/Main" 63} default = TRUE
+
+		ICFG_ENABLE_ENV
+		ti_Data is @{"BOOL" Link "include:exec/types.h/Main" 63}, default = TRUE
+
+		ICFG_ENABLE_USER
+		ti_Data is @{"BOOL" Link "include:exec/types.h/Main" 63}, default = TRUE
+
+		ICFG_INIMASK
+		ti_Data is @{"BOOL" Link "include:exec/types.h/Main" 63}, default = FALSE. If set to TRUE, the
+		ini.library no longer requires the ";INI" at the start
+		of an input file.
+
+		ICFG_ASSIGN
+		user-assign directory, ti_Data is STRPTR to a
+		static memory! (i.e. the ini.library will not copy
+		name name of the user-assign so you MUST keep it in
+		memory yourself!!!!!! this may change for future releases
+		but right now its a requirement)
+
+@{b}   RESULTS@{ub}
+	error - INIERROR as defined in libraries/ini.h;
+
+@{b}   SEE ALSO@{ub}
+	@{"ini_LocalConfig()" Link "ini_LocalConfig()"}, ini_DeleteConfig()
+
+@EndNode
+
+@Node "ini_NewFilename()" "ini.library/ini_NewFilename"
+
+@{b}   NAME@{ub}
+	ini_NewFilename -- build a config-sensitive INI filename
+	
+@{b}   SYNOPSIS@{ub}
+	newname = ini_NewFilename( filename )
+	d0		           A0
+
+	STRPTR ini_NewFilename( STRPTR )
+
+@{b}   FUNCTION@{ub}
+	This function builds a complete path+filename for a simple filename
+	based upon the local (or global) configuration. The problem is simple:
+	a file named "application.ini" could be located in S:, in INI:, in ENV:,
+	in a user-defined directory or the current directory. BASED UPON THE
+	CURRENT CONFIGURATION this function will build a correct filename
+	for you. Example:
+	
+		ini_NewFilename( "application.ini" )
+
+	could return
+	
+		"s:application.ini"
+		"ini:application.ini"
+		"env:application.ini"
+		"<user>:application.ini" or just
+		"application.ini"
+
+	You must call @{"ini_DeleteFilename()" Link "ini_DeleteFilename()"} on a filename returned by this
+	function.
+
+@{b}   INPUTS@{ub}
+	filename - the basic filename; should NOT contain any path information
+	(except for subdirectorys: if you are using multiple INIs grouped in
+	a subdirectory (i.e. "tool/users.ini" -> "ini:tool/users.ini" ))
+
+@{b}   RESULTS@{ub}
+@{b}   	newname - path + filename, or NULL for OUT_OF_MEMORY error@{ub}
+
+@{b}   SEE ALSO@{ub}
+	@{"ini_DeleteFilename()" Link "ini_DeleteFilename()"}
+
+@EndNode
+
+@Node "ini_OpenFile()" "ini.library/ini_OpenFile"
+
+@{b}   NAME @{ub}
+	ini_OpenFile() - open an INI-file
+	
+@{b}   SYNOPSIS@{ub}
+	file = ini_OpenFile( filename, mode, parser )
+	d0		     d1        d2    a0
+
+	@{"BPTR" Link "include:dos/dos.h/Main" 129} ini_OpenFile(STRPTR,WORD,INIPARSER *);
+
+@{b}   FUNCTION@{ub}
+	This function opens an INI-File just like @{"dos/Open()" Link "dos.hyper/Open()"} would do. However,
+	it does a little bit more: if you use it in MODE_NEWFILE and have a 
+	valid parser structure, ini_OpenFile() will open the file in that directory
+	where the original parser was located. The problem is this: because 
+	your program doesn't know where the INI file was loaded from (it could
+	be INI:, it could be S:, it could be anywhere in the known galaxy) 
+	you wouldn't normally know where to save it back to (unless of course
+	you don't need explicit saving and use @{"ini_Save()" Link "ini_Save()"} instead of all the fuss).
+
+@{b}   INPUTS@{ub}
+	filename - filename without path or anything
+	mode - just like @{"dos/Open()" Link "dos.hyper/Open()"}, MODE_NEWFILE, MODE_OLDFILE etc.
+	parser - parser structure. Because the parser has to be initialized, this
+		probably restricts use of ini_OpenFile() for the general public
+		to the situation described above: explicitly saving an ini-file
+
+@{b}   RESULTS@{ub}
+	file - just like @{"dos/Open()" Link "dos.hyper/Open()"} a pointer to a filehandle you can @{"Read()" Link "dos.hyper/Read()"} or
+		@{"Write()" Link "dos.hyper/Write()"} to (or whatever). You must @{"Close()" Link "dos.hyper/Close()"} it yourself!
+
+@EndNode
+
+@Node "ini_ProtectSection()" "ini.library/ini_ProtectSection"
+
+@{b}   NAME@{ub}
+	ini_ProtectSection -- protect an INI file section
+	
+@{b}   SYNOPSIS@{ub}
+@{b}   	error = ini_ProtectSection( parser, header, password )@{ub}
+	d0		             A0	     A1      A2
+
+	INIERROR ini_ProtectSection( INIPARSER *, INILINEINFO *, STRPTR )
+
+@{b}   FUNCTION@{ub}
+	This function protects a INI file section by adding a new (or updating
+	an existing) "$code" variable to contain a coded value. The coding
+	mechanism uses all data given in variables of a section plus a 
+	special password known only to the caller of ini_ProtectSection.
+	Thus, if a user a) changes contents of variables or b) tries to use
+	this function with an invalid password the "$code" variable will
+	become invalid. You can use ini_CheckProtection to see if the
+	"$code" variable is valid, so there you have your protection mechanism!
+
+	In general, if you intend to protect a section, you should do the
+	following :
+
+		* call @{"ini_CheckProtection()" Link "ini_CheckProtection()"} : if the section is invalid, send
+		  some error message (or do-what-you-like)
+		* edit the protected section
+		* call ini_ProtectSection()
+		* call @{"ini_Save()" Link "ini_Save()"}
+
+	Of course, you should probably skip @{"ini_CheckProtection()" Link "ini_CheckProtection()"} during the
+	development of your application, since you may find the need to quickly
+	change var contents while debugging and so on. Once working you can use
+	protected sections to contain "read-only" data you still want to make
+	public (such as for debugging purposes, or for pure fun, or for making
+	people jealous and encouraging hackers to take a deeper look at your code)
+
+	The concept for protected sections is an add-on to the INI standard
+	made by the ini.library so you shouldn't expect it to work if you 
+	port code to other OS such as Windows.
+
+@{b}   NOTE	@{ub}
+@{b}   	The password is case sensitive and must match EXACTLY for calls@{ub}
+@{b}   	to ini_ProtectSection()/ini_CheckProtection(); i.e.@{ub}
+
+		"ultraworld" != "Ultraworld" != "ultraworld "
+		                 ^                         ^
+
+@{b}   INPUTS@{ub}
+	parser - pointer to the INIPARSER structure
+	header - pointer to a INILINEINFO structure for a section header
+		(i.e. ili_Flags must be INIFLAG_HEADER )
+	password - pointer to the password you want to use for protection
+
+@{b}   RESULTS@{ub}
+	error - INIERROR as defined in libraries/ini.h; you should look out
+		for INIERROR_NONE = good, INIERROR_INVALID_PASSWORD = bad
+
+@{b}   SEE ALSO@{ub}
+	ini_CheckProtection
+
+@EndNode
+
+@Node "ini_RemoveVariable()" "ini.library/ini_RemoveVariable"
+
+@{b}   NAME@{ub}
+	ini_RemoveVariable() -- remove an existing variable
+	
+@{b}   SYNOPSIS@{ub}
+@{b}   	error = ini_RemoveVariable( parser, header, variable )@{ub}
+	d0			    A0 	    A1	    A2
+
+	INIERROR ini_RemoveVariable( INIPARSER *,STRPTR,STRPTR );
+
+@{b}   FUNCTION@{ub}
+	This function removes an existing variable from an INIPARSER.
+	You can use this if you don't need a particular variable anymore;
+	however you don't have to kill unused variables, because they are
+	ignored anyway based upon your read requests. DON'T ever remove
+	a variable manually.
+
+@{b}   INPUTS@{ub}
+	parser - pointer to an INIPARSER
+	header - section header name
+	variable - section variable name
+
+@{b}   RESULTS@{ub}
+	error - INIERROR as defined in libraries/ini.h
+
+@{b}   SEE ALSO@{ub}
+	ini_Save, ini_ChangeString
+
+@EndNode
+
+@Node "ini_Save()" "ini.library/ini_Save"
+
+@{b}   NAME@{ub}
+	ini_Save -- save an inifile back to disk
+	
+@{b}   SYNOPSIS@{ub}
+@{b}   	error = ini_Save( fileName, parser )@{ub}
+	d0		  A0	    A1
+
+	INIERROR ini_Save( STRPTR, INIPARSER * )
+
+@{b}   FUNCTION@{ub}
+	Save a parser structure back to an inifile. If you have made
+	changes to an INIPARSER (e.g. by calling @{"ini_ChangeString()" Link "ini_ChangeString()"}), you
+	can save the complete inifile to disk using this function. If you
+	have to make lots of changes on the input data, for example if you
+	save project file information there, you could explicitly save 
+	the file yourself: open it using ini_OpenFile(..,MODE_NEWFILE,..),
+	then dos/FPrintf() all the contents and finally @{"dos/Close()" Link "dos.hyper/Close()"} it.
+	You have to decide yourself what you prefer; making changes with
+	@{"ini_ChangeString()" Link "ini_ChangeString()"} and ini_Save() makes more readable code and is
+	a lot saver (and preserves any comments the user has made); exporting
+	your internal data as inifiles is probably more straight-forward but
+	not quite as bullet-proof. Whatever.
+
+@{b}   INPUTS@{ub}
+	fileName - name of inifile to create. No checking is done if
+		the file already exists; so you must make some provision
+		for this yourself if you think this could be important. 
+	parser - pointer to an INIPARSER to write back to disk
+
+@{b}   RESULTS@{ub}
+	error - INIERROR as defined in libraries/ini.h
+
+@{b}   SEE ALSO@{ub}
+	ini_ChangeString, ini_RemoveVariable
+@EndNode
+
+@node AUTHOR "AUTHOR"
+Send your bug reports, ideas, love letters, fresh'n'phunky vinyl to 
+
+	Gerson Kurz
+	Karl Köglsperger Str.7 / A303
+	(yes, its APPARTMENT 303, not Roland TB 303 ;-)
+	80939 München
+	West Germany
+
+This tool is dedicated to the **ULTRAWORLD** (Fuck the Sperrstunde!)
+
+@endnode
+
+@node DISTRIBUTION "DISTRIBUTION"
+
+** The INI.LIBRARY is I-WANT-TO-BE-FREE-WARE **
+dedicated to the global house & techno scene
+written by @{"Gerson Kurz" Link AUTHOR }
+
+The  ini.library may be used by and FREELY distributed with any application
+be  it  commercial  or  public  domain.   There  are  no  pagan users fees,
+Trump-esque   licenses,   or  other  forms  of  rabid  capitalist  trickery
+associated  with using this library and the example files.  You do not even
+have to acknowledge the secret of your superb and efficient config handling
+you gain by using the ini.library.  The only limitation is that you may not
+alter  the  actual  executable of the ini.library, nor sell the product and
+its  examples  as a distinct product (i.e.  represent it as such).  I don't
+give  any  guarantee  for  the fitness of the ini.library for any purpose :
+use at own risk.
+
+@endnode
+

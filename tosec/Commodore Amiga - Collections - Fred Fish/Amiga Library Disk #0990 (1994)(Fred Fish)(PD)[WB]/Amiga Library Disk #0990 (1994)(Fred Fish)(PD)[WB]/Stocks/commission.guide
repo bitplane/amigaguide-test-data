@@ -1,0 +1,141 @@
+@database Commission.guide
+
+@Width 72
+
+@remark $Id: commission.guide,v 4.1 1994/01/22 12:07:59 JAP Exp $
+
+@node Main "Commission Help"
+
+The  Stocks  program and SP program calculate commissions by invoking an 
+ARexx  script  when commission information is needed. The default script 
+name  is  REXX:CalcCommission.rexx  and the commission formula contained 
+in  the  default  script is the commission charged by the brokerage firm 
+StockCross. The formula is as follows:
+
+Stock  Purchase/Sale  Commission  =  $25  +  $0.085 * quantity of shares 
+(e.g.  100  shares  at  any price equals $33.50, 200 shares at any price 
+equals $42.00)
+
+Option Purchase/Sale Commission:
+
+ Under $2.00:	1-10 Contracts = $3.00 each
+               11-30 Contracts = $2.00 each
+			   31+   Contracts = $1.50 each
+
+ Under $4.00:	1-10 Contracts = $4.50 each
+               11-30 Contracts = $2.50 each
+			   31+   Contracts = $2.00 each
+
+ Under $8.00:	1-10 Contracts = $6.50 each
+               11-30 Contracts = $3.50 each
+			   31+   Contracts = $3.00 each
+
+ >=    $8.00:	1-10 Contracts = $8.00 each
+               11-30 Contracts = $6.00 each
+			   31+   Contracts = $5.00 each
+
+There is a $20 minimum.
+
+This  script  is  provided  as an example and you should customize it to 
+the commission formulas used by your brokerage firm.
+
+The  ARexx  script  is  invoked  from  the  Stocks  or SP program and is 
+passed  a  number  of parameters. The type of transaction (BUY or SELL), 
+whether  the  transaction  involves stocks or stock options, the name of 
+the  stock,  the  number  of  shares or options being bought or sold and 
+the price of the shares or options.
+
+From  this  information  you should be able to calculate the appropriate 
+commission. This commission is passed back to the calling program.
+
+If  you  do  not  know  how  to  modify ARexx scripts (and don't wish to 
+learn)  contact  @{"Bug Free Development" link "Stocks.guide/BugFreeDev" } for assistance. Please include the 
+commission formulas used by your brokerage firm in your correspondence.
+
+@endnode
+
+@node Example "Commission:  Example"
+
+ /*
+ **	Calculate Stock Commission for StockCross Brokerage Firm
+ */
+ 
+ PARSE ARG type stockOrOption name quantity price
+ 
+ /*
+ **	type = BUY or SELL
+ **
+ **	stockOrOption = STOCK or OPTION
+ **
+ **	quanitity = number of shares traded
+ **
+ **	price = price of stock or option
+ */
+ 
+ /*
+ **	StockCross does not treat BUY or SELL any differently
+ **	so nothing is done with type.
+ */
+ 
+ 	select;
+ 		when stockOrOption = "STOCK"
+ 		then do
+ 			commission = 25 + 0.085 * quantity
+ 		end
+ 
+ 		when stockOrOption = "OPTION"
+ 		then do
+ 			select;
+ 				when (price < 2.000)
+ 				then do
+ 					if quantity < 1100
+ 					then commission = quantity * 0.030
+ 					else
+ 					if (quantity < 3100)
+ 					then commission = quantity * 0.020
+ 					else commission = quantity * 0.015
+ 				end
+ 
+ 				when (price < 4.000)
+ 				then do
+ 					if (quantity < 1100)
+ 					then commission = quantity * 0.045
+ 					else
+ 					if (quantity < 3100)
+ 					then commission = quantity * 0.025
+ 					else commission = quantity * 0.020
+ 				end
+ 
+ 				when (price < 8.000)
+ 				then do
+ 					if (quantity < 1100)
+ 					then commission = quantity * 0.065
+ 					else
+ 					if (quantity < 3100)
+ 					then commission = quantity * 0.035
+ 					else commission = quantity * 0.030
+ 				end
+ 
+ 				otherwise
+ 					if (quantity < 1100)
+ 					then commission = quantity * 0.080
+ 					else
+ 					if (quantity < 3100)
+ 					then commission = quantity * 0.060
+ 					else commission = quantity * 0.050
+ 			end
+ 
+ 			if (commission < 20.000)
+ 			then commission = 20.000
+ 		end
+ 
+ 		otherwise
+ 			say "Unknown stockOrOption Type"
+ 			commission = 0
+ 	end
+ 
+ exit trunc( commission + 0.0005, 3 )
+ 
+@endnode
+ 
+ 

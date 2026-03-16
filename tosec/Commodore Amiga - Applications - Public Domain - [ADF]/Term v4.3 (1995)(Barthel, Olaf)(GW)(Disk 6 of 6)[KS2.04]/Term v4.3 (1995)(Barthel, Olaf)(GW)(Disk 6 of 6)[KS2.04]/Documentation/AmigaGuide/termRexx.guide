@@ -1,0 +1,4281 @@
+@database termRexx.guide
+
+@Master termRexx-english.texinfo
+
+@Width 72
+
+
+This is the AmigaGuide® file termRexx.guide, produced by Makeinfo-1.55 from
+the input file termRexx-english.texinfo.
+
+
+@Node Main "termRexx.guide"
+@Next "Changes"
+
+   `term' 4.3 - A terminal program for Amiga computers
+
+   Copyright © 1990-1995 Olaf Barthel
+
+   You may make and distribute verbatim copies of this documentation if
+the contents are unchanged or the author has agreed to any changes made.
+
+   No guarantee of any kind is given that the program described in this
+document are 100% reliable. You are using this material on your own
+risk.
+
+   The program `term' and the data received/sent by it must not be used
+for the following purposes:
+
+  1. The construction, development, production or testing of weapons or
+     weapon systems of any kind.
+
+  2. The construction, development, production or use of
+     plants/installations which include the processing of
+     radioactive/fissionable material.
+
+  3. The training of persons to deal with the abovesaid actions.
+
+
+   Listen to your conscience.
+
+
+ @{" Changes " Link "Changes"}             The new ARexx interface
+ @{" term and ARexx " Link "term_and_ARexx"}      A brief introduction
+ @{" Command execution " Link "Command_execution"}   How to execute commands
+ @{" Stopping a command " Link "Stopping_a_command"}  How to pull the brakes
+ @{" Commands " Link "Commands"}            A table of supported commands
+ @{" Attributes " Link "Attributes"}          A table of available attributes
+ @{" Wanted! " Link "Wanted!"}             ARexx sample scripts wanted
+ @{" Index " Link "Index"}               Contents index
+
+
+@EndNode
+
+@Node "Changes" "termRexx.guide/Changes"
+@Next "term_and_ARexx"
+@Prev "Main"
+@Toc "Main"
+
+@{b}@{u}Changes@{ub}@{uu}
+
+   Previous `term' releases would use a different ARexx host interface
+implementation.  In order to conform to Commodore-endorsed user
+interface style guidelines it was redesigned from scratch for version
+3.0. The design and implementation of the ARexx host interface was
+suggested by the `Amiga User Interface Style Guide' and strongly
+influenced by Martin Taillefer's `TurboText' ARexx host interface.
+
+   Not a simple command has `survived' the revision, the new
+implementation is no longer compatible with its predecessors, so
+existing ARexx scripts will have to be adapted or even entirely
+rewritten.
+
+   `term' no longer distinguishes explicitely between asynchronous and
+synchronous commands (i.e. commands which force the main program to
+wait and commands which need not bother the main program as the ARexx
+handler process is able to execute them). As of this writing it is safe
+to assume that almost any command will be processed by the main
+program, exceptions are noted.
+
+
+@EndNode
+
+@Node "term_and_ARexx" "termRexx.guide/term_and_ARexx"
+@Next "Command_execution"
+@Prev "Changes"
+@Toc "Main"
+
+@{b}@{u}term and ARexx@{ub}@{uu}
+
+   This document describes the ARexx(tm) (1) commands supported by
+`term'.  This is not intended to be an introduction to the language
+itself.  Rexx was developed by Mike F.  Cowlishaw on an IBM/SP system
+and ported to the Amiga by William S.  Hawes.
+
+   ARexx (or Amiga Rexx) is a commercial product which is included with
+the AmigaDOS 2.0 Enhancer Package.  If you need a good introduction and
+description of the language, try to get a hold of the book `The REXX
+Language A Practical Approach to Programming' by M.F.  Cowlishaw,
+available from Prentice-Hall International, Inc.
+
+   The section entitled @{"Command_execution" Link "Command_execution"} gives a brief introduction
+how to write and run ARexx commands. For more information refer to the
+Release 2 Users Manual `Using the System Software'.
+
+   By default `term' opens an ARexx host by the name of @{b}TERM@{ub}
+(accessable via @{b}address term@{ub}).  If more than a single `term' process is
+running on your machine, the name of the host will be adapted to the
+number of the program (i.e.  the first programm will use @{b}TERM@{ub}, the
+second one will use @{b}TERM.1@{ub}, the third one @{b}TERM.2@{ub}, etc.). The default
+name can be overridden by invoking the program with certain parameters
+(see main program documentation). The name of the host is displayed in
+the status window (see main program documentation).
+
+   ---------- Footnotes ----------
+
+   (1)  ARexx is a registered trademark of Wishful Thinking Development
+Corp.
+
+
+@EndNode
+
+@Node "Command_execution" "termRexx.guide/Command_execution"
+@Next "Stopping_a_command"
+@Prev "term_and_ARexx"
+@Toc "Main"
+
+@{u}Command execution@{uu}
+
+   In order to invoke any command supported by `term' one usually has
+to address the host explicitely:
+
+     /* Address the `term' host. */
+
+     ADDRESS term
+
+     /* Invoke the `beepscreen' commmand. */
+
+     BEEPSCREEN
+
+   However, if an ARexx script is invoked directly by the `term' main
+program, the script will by default address the main program it was
+invoked by.
+
+   Most commands will return results or error codes on failure. To
+enable result codes, one has to use the @{b}options results@{ub} command. The
+results returned by commands will be placed in the @{b}result@{ub} variable:
+
+     /* We assume that the script will address the host it was invoked from.
+      *
+      * Enable command results.
+      */
+
+     OPTIONS RESULTS
+
+     /* Request a string from the user. */
+
+     REQUESTSTRING DEFAULT 'anything' PROMPT 'Enter anything'
+
+     /* Did the user cancel the requester? */
+
+     IF rc ~= 0 THEN
+        SAY 'user cancelled requester'
+     ELSE
+        SAY result /* Output the result . */
+
+   Failure codes will always be returned in the @{b}rc@{ub} variable (see
+previous example).
+
+   In case of failure (variable @{b}rc@{ub} >= 10), `term' will leave an error
+code in the @{b}term.lasterror@{ub} variable:
+
+     /* Enable command results. */
+
+     OPTIONS RESULTS
+
+     /* Produce an error by not supplying any arguments. */
+
+     STOPBITS
+
+     /* Display the error code. */
+
+     SAY term.lasterror
+
+   Rexx tries to tokenize any command parameters, this process involves
+promoting them to all upper case letters and checking for illegal
+characters. This feature inhibits the use of the @{b}:@{ub} (colon) and blank
+space characters in parameter names unless the corresponding arguments
+are enclosed in quotes. To make things even more complicated, the
+parser will not always accept parameters to contain blank spaces. If a
+command template accepts the entire command line (such as @{b}TEXT/K/F@{ub}) a
+parameter can include any number of blank spaces. A command template to
+accept just a single parameter (such as @{b}TEXT/K@{ub}) requires double quotes
+if blank spaces are included. Text such as @{b}tea or coffee?@{ub} thus becomes
+@{b}'"tea or coffee?"'@{ub}.
+
+     /* The following command will fail to send the file `ram:foobar' as the colon
+      * in the path name will cause an error:
+      */
+
+     SENDFILE ram:foobar
+
+     /* Here is how to do it correctly: */
+
+     SENDFILE 'ram:foobar'
+
+     /* The following command will fail to send the file `foo bar' as the
+      * file name is treated as two single files:
+      */
+
+     SENDFILE foo bar
+
+     /* The next line will still fail to send the file `foo bar'
+      * as the ARexx parser will split the argument into two
+      * parameters.
+      */
+
+     SENDFILE 'foo bar'
+
+     /* Here is how to do it correctly: */
+
+     SENDFILE '"foo bar"'
+
+     /* The following command will not transmit the string `Hello sailor'
+      * across the serial line as the single words will be capitalized,
+      * they will be transmitted as `HELLO SAILOR':
+      */
+
+     SEND Hello sailor
+
+     /* Here is how to do it correctly: */
+
+     SEND 'Hello sailor'
+
+
+@EndNode
+
+@Node "Stopping_a_command" "termRexx.guide/Stopping_a_command"
+@Next "Commands"
+@Prev "Command_execution"
+@Toc "Main"
+
+@{b}@{u}Stopping a command@{ub}@{uu}
+
+   Programs and commands sometimes fail to do what the user is expecting
+them to do which makes it necessary to bring program/command execution
+to a stop. A common ARexx script to call no external functions or host
+commands one can be halted in the following ways:
+
+  1. Executing the @{b}HI@{ub} command (located in the @{b}SYS:rexxc@{ub} drawer) from
+     Shell. This command will attempt stop @{i}all@{ui} currently running ARexx
+     scripts.
+
+  2. If the ARexx script to be executed runs in an environment to sport
+     an output window, activate the window and press the @{b}Control + C@{ub}
+     keys.  A break signal will be sent to the ARexx script, causing it
+     to stop as soon as possible.
+
+
+   With host environments such as `term' it may not always be possible
+to abort a command using the simple measures described above. As for
+`term' any command to wait (such as the @{"READ" Link "READ"}, @{"DELAY" Link "DELAY"} or @{"WAIT" Link "WAIT"} commands)
+can be aborted by sending `term' itself a break signal in the following
+fashion:
+
+  1. If the `term' program is still attached to a Shell output window,
+     activate the window and press the @{b}Control + D@{ub} keys.
+
+  2. If the `term' program was invoked from a Shell but is no longer
+     attached to it, enter @{b}status command term@{ub} from Shell, remember the
+     number printed, then enter @{b}break <number>@{ub} with @{b}<number>@{ub} being the
+     number returned by the @{b}status@{ub} command.
+
+  3. Press the hotkey combination configured in the program hotkey
+     settings (see main program documentation). The default is @{b}Right
+     Shift + Left Shift + Escape@{ub}. This will cause a break signal to be
+     sent to the `term' program.
+
+
+
+@EndNode
+
+@Node "Commands" "termRexx.guide/Commands"
+@Next "Attributes"
+@Prev "Stopping_a_command"
+@Toc "Main"
+
+@{b}@{u}Commands@{ub}@{uu}
+
+   The commands supported by `term' are listed in a table of the
+following form:
+
+@{b}Format:@{ub}
+     The command name with its possible calling parameters. In this
+     table parameters are enclosed in brackets and braces, separated by
+     commas and vertical bars; @{i}do not type these special characters
+     along with the parameters!@{ui}:
+
+    @{b}< > (Angle brackets)@{ub}
+          Angle brackets enclose parameters whose contents @{i}must not@{ui} be
+          omitted in order to make the command work properly.
+
+    @{b}[ ] (Square brackets)@{ub}
+          Square brackets enclose optional parameters.
+
+    @{b}{ } (Curly braces)@{ub}
+          Curly braces enclose items which can be repeated a number of
+          times, such as file name lists.
+
+    @{b}| (Vertical bar)@{ub}
+          Vertical bars separate alternative, mutually exclusive
+          options.
+
+    @{b}, (Comma)@{ub}
+          Commas separate multiple applicable options.
+
+@{b}Template:@{ub}
+     The command template, similar to the command templates employed by
+     AmigaDOS Shell commands.  Possible templates are:
+
+    @{b}<Parameter>/A@{ub}
+          The parameter must @{i}always@{ui} be included in order to get
+          accepted.
+
+    @{b}<Option>/K@{ub}
+          The option's @{i}keyword@{ui} must be given.
+
+    @{b}<Option>/S@{ub}
+          This option works as a @{i}switch@{ui}. If this option keyword is
+          included the switch is on, else it is off.
+
+    @{b}<Option>/N@{ub}
+          A @{i}numeric@{ui} parameter is expected.
+
+    @{b}<Option>/M@{ub}
+          @{i}Multiple@{ui} parameters are accepted.
+
+    @{b}<Text>/F@{ub}
+          The text must be the @{i}final@{ui} parameter on the command line.
+
+    @{b}, (Comma)@{ub}
+          Indicates that the command takes no parameters.
+
+@{b}Purpose:@{ub}
+     Briefly describes what the command will do.
+
+@{b}Specifications:@{ub}
+     Describes the command and its possible uses in more detail.
+
+@{b}Result:@{ub}
+     The type of the command result code if any.
+
+@{b}Warning:@{ub}
+     If the command can return with a warning and when.
+
+@{b}Example:@{ub}
+     An example code fragment to illustrate how to use the command.
+     Commands and keywords are given in upper case, the names of
+     variables and command arguments are given in lower case. Where a
+     single command line would not fit into a single line on the
+     screen, an ellipsis ('...') is meant to join the broken line.
+
+   Table of commands in alphabetical order:
+
+
+ @{" ACTIVATE " Link "ACTIVATE"}         Activate the application
+ @{" ADDITEM " Link "ADDITEM"}          Add an item to a list
+ @{" BAUD " Link "BAUD"}             Set the serial transfer speed
+ @{" BEEPSCREEN " Link "BEEPSCREEN"}       Give a visual/audible report
+ @{" CALLMENU " Link "CALLMENU"}         Invoke a menu function
+ @{" CAPTURE " Link "CAPTURE"}          Activate printer of file capture
+ @{" CLEAR " Link "CLEAR"}            Clear a list or the text buffer
+ @{" CLEARSCREEN " Link "CLEARSCREEN"}      Clear the terminal screen
+ @{" CLOSE " Link "CLOSE"}            Terminate printer or file capture
+ @{" CLOSEDEVICE " Link "CLOSEDEVICE"}      Release the serial driver
+ @{" CLOSEREQUESTER " Link "CLOSEREQUESTER"}   Close the currently open requester window
+ @{" DEACTIVATE " Link "DEACTIVATE"}       Deactivate the application
+ @{" DELAY " Link "DELAY"}            Delay command execution
+ @{" DIAL " Link "DIAL"}             Dial a list or a single phone number
+ @{" DUPLEX " Link "DUPLEX"}           Set the terminal duplex mode
+ @{" EXECTOOL " Link "EXECTOOL"}         Execute a program
+ @{" FAULT " Link "FAULT"}            Return the string associated with a error code
+ @{" GETATTR " Link "GETATTR"}          Query an application attribute
+ @{" GETCLIP " Link "GETCLIP"}          Get the contents of the clipboard
+ @{" GOONLINE " Link "GOONLINE"}         Cause `term' to into online state
+ @{" HANGUP " Link "HANGUP"}           Hang up the line
+ @{" HELP " Link "HELP"}             Get help on a single command or invoke online-help
+ @{" OPEN " Link "OPEN"}             Open a configuration/phonebook file
+ @{" OPENDEVICE " Link "OPENDEVICE"}       (Re-)Open the serial driver
+ @{" OPENREQUESTER " Link "OPENREQUESTER"}    Open a certain requester window
+ @{" PARITY " Link "PARITY"}           Set the terminal parity mode
+ @{" PASTECLIP " Link "PASTECLIP"}        Insert the clipboard contents into the input stream
+ @{" PRINT " Link "PRINT"}            Print the contents of a list
+ @{" PROCESSIO " Link "PROCESSIO"}        Turns serial input processing on or off
+ @{" PROTOCOL " Link "PROTOCOL"}         Set the serial handshaking protocol
+ @{" PUTCLIP " Link "PUTCLIP"}          Send text to the clipboard
+ @{" QUIT " Link "QUIT"}             Terminate the application
+ @{" READ " Link "READ"}             Read text from the terminal
+ @{" RECEIVEFILE " Link "RECEIVEFILE"}      Receive files through the XPR protocol
+ @{" REDIAL " Link "REDIAL"}           Redial the current dialing list
+ @{" REMITEM " Link "REMITEM"}          Remove an item from a list
+ @{" REQUESTFILE " Link "REQUESTFILE"}      Requester a number of file names from the user
+ @{" REQUESTNOTIFY " Link "REQUESTNOTIFY"}    Notify the user with a message
+ @{" REQUESTNUMBER " Link "REQUESTNUMBER"}    Requester a numeric value from the user
+ @{" REQUESTRESPONSE " Link "REQUESTRESPONSE"}  Requester a response value from the user
+ @{" REQUESTSTRING " Link "REQUESTSTRING"}    Requester a string value from the user
+ @{" RESETSCREEN " Link "RESETSCREEN"}      Reset the terminal screen
+ @{" RESETSTYLES " Link "RESETSTYLES"}      Reset the terminal text rendering styles
+ @{" RESETTEXT " Link "RESETTEXT"}        Reset the terminal text font
+ @{" RESETTIMER " Link "RESETTIMER"}       Reset the online timer
+ @{" RX " Link "RX"}               Execute an ARexx command
+ @{" SAVE " Link "SAVE"}             Save configuration/phonebook to a file
+ @{" SAVEAS " Link "SAVEAS"}           Save configuration/phonebook to a file
+ @{" SELECTITEM " Link "SELECTITEM"}       Select an item from a list
+ @{" SEND " Link "SEND"}             Send text across the serial line
+ @{" SENDBREAK " Link "SENDBREAK"}        Send a break signal across the serial line
+ @{" SENDFILE " Link "SENDFILE"}         Send files through the XPR protocol
+ @{" SETATTR " Link "SETATTR"}          Set an application attribute
+ @{" SPEAK " Link "SPEAK"}            Speak a text
+ @{" STOPBITS " Link "STOPBITS"}         Set the serial stop bits
+ @{" TEXTBUFFER " Link "TEXTBUFFER"}       Lock or unlock the text buffer
+ @{" TIMEOUT " Link "TIMEOUT"}          Set the command timeout
+ @{" TRAP " Link "TRAP"}             Turns trap list processing on or off
+ @{" WAIT " Link "WAIT"}             Wait for certain text to be received
+ @{" WINDOW " Link "WINDOW"}           Manipulate the characteristics of a window
+
+   Table of commands in functional groups:
+
+   Commands dealing with text buffer and capturing
+
+
+ @{" CAPTURE " Link "CAPTURE"}          Activate printer of file capture
+ @{" CLEAR " Link "CLEAR"}            Clear a list or the text buffer
+ @{" CLOSE " Link "CLOSE"}            Terminate printer or file capture
+ @{" OPEN " Link "OPEN"}             Open a configuration/phonebook file
+ @{" PRINT " Link "PRINT"}            Print the contents of a list
+ @{" SAVE " Link "SAVE"}             Save configuration/phonebook to a file
+ @{" SAVEAS " Link "SAVEAS"}           Save configuration/phonebook to a file
+ @{" TEXTBUFFER " Link "TEXTBUFFER"}       Lock or unlock the text buffer
+ @{" WINDOW " Link "WINDOW"}           Manipulate the characteristics of a window
+
+   Commands dealing with serial I/O
+
+
+ @{" BAUD " Link "BAUD"}             Set the serial transfer speed
+ @{" CLOSEDEVICE " Link "CLOSEDEVICE"}      Release the serial driver
+ @{" DIAL " Link "DIAL"}             Dial a list or a single phone number
+ @{" DUPLEX " Link "DUPLEX"}           Set the terminal duplex mode
+ @{" HANGUP " Link "HANGUP"}           Hang up the line
+ @{" OPENDEVICE " Link "OPENDEVICE"}       (Re-)Open the serial driver
+ @{" PARITY " Link "PARITY"}           Set the terminal parity mode
+ @{" PROCESSIO " Link "PROCESSIO"}        Turns serial input processing on or off
+ @{" PROTOCOL " Link "PROTOCOL"}         Set the serial handshaking protocol
+ @{" READ " Link "READ"}             Read text from the terminal
+ @{" REDIAL " Link "REDIAL"}           Redial the current dialing list
+ @{" SENDBREAK " Link "SENDBREAK"}        Send a break signal across the serial line
+ @{" STOPBITS " Link "STOPBITS"}         Set the serial stop bits
+ @{" WAIT " Link "WAIT"}             Wait for certain text to be received
+ @{" TIMEOUT " Link "TIMEOUT"}          Set the command timeout
+
+   Commands dealing with lists
+
+
+ @{" ADDITEM " Link "ADDITEM"}          Add an item to a list
+ @{" CLEAR " Link "CLEAR"}            Clear a list or the text buffer
+ @{" DIAL " Link "DIAL"}             Dial a list or a single phone number
+ @{" REMITEM " Link "REMITEM"}          Remove an item from a list
+ @{" SELECTITEM " Link "SELECTITEM"}       Select an item from a list
+ @{" SENDFILE " Link "SENDFILE"}         Send files through the XPR protocol
+ @{" TRAP " Link "TRAP"}             Turns trap list processing on or off
+ @{" WAIT " Link "WAIT"}             Wait for certain text to be received
+
+   Commands dealing with the clipboard
+
+
+ @{" GETCLIP " Link "GETCLIP"}          Get the contents of the clipboard
+ @{" PASTECLIP " Link "PASTECLIP"}        Insert the clipboard contents into the input stream
+ @{" PRINT " Link "PRINT"}            Print the contents of a list
+ @{" PUTCLIP " Link "PUTCLIP"}          Send text to the clipboard
+
+   Commands dealing with file transfers
+
+
+ @{" RECEIVEFILE " Link "RECEIVEFILE"}      Receive files through the XPR protocol
+ @{" SENDFILE " Link "SENDFILE"}         Send files through the XPR protocol
+
+   Commands dealing with terminal I/O
+
+
+ @{" BEEPSCREEN " Link "BEEPSCREEN"}       Give a visual/audible report
+ @{" CLEARSCREEN " Link "CLEARSCREEN"}      Clear the terminal screen
+ @{" PROCESSIO " Link "PROCESSIO"}        Turns serial input processing on or off
+ @{" READ " Link "READ"}             Read text from the terminal
+ @{" RESETSCREEN " Link "RESETSCREEN"}      Reset the terminal screen
+ @{" RESETSTYLES " Link "RESETSTYLES"}      Reset the terminal text rendering styles
+ @{" RESETTEXT " Link "RESETTEXT"}        Reset the terminal text font
+ @{" SEND " Link "SEND"}             Send text across the serial line
+
+   Commands dealing with windows and requesters
+
+
+ @{" ACTIVATE " Link "ACTIVATE"}         Activate the application
+ @{" CALLMENU " Link "CALLMENU"}         Invoke a menu function
+ @{" CLOSEREQUESTER " Link "CLOSEREQUESTER"}   Close the currently open requester window
+ @{" DEACTIVATE " Link "DEACTIVATE"}       Deactivate the application
+ @{" OPENREQUESTER " Link "OPENREQUESTER"}    Open a certain requester window
+ @{" REQUESTFILE " Link "REQUESTFILE"}      Requester a number of file names from the user
+ @{" REQUESTNOTIFY " Link "REQUESTNOTIFY"}    Notify the user with a message
+ @{" REQUESTNUMBER " Link "REQUESTNUMBER"}    Requester a numeric value from the user
+ @{" REQUESTRESPONSE " Link "REQUESTRESPONSE"}  Requester a response value from the user
+ @{" REQUESTSTRING " Link "REQUESTSTRING"}    Requester a string value from the user
+ @{" WINDOW " Link "WINDOW"}           Manipulate the characteristics of a window
+
+   Commands dealing with program attributes
+
+
+ @{" GETATTR " Link "GETATTR"}          Query an application attribute
+ @{" GOONLINE " Link "GOONLINE"}         Cause `term' to into online state
+ @{" SETATTR " Link "SETATTR"}          Set an application attribute
+
+   Commands dealing with program execution
+
+
+ @{" EXECTOOL " Link "EXECTOOL"}         Execute a program
+ @{" RX " Link "RX"}               Execute an ARexx script
+
+   Commands dealing with file I/O
+
+
+ @{" OPEN " Link "OPEN"}             Open a configuration/phonebook file
+ @{" PRINT " Link "PRINT"}            Print the contents of a list
+ @{" SAVE " Link "SAVE"}             Save configuration/phonebook to a file
+ @{" SAVEAS " Link "SAVEAS"}           Save configuration/phonebook to a file
+
+   Miscellaneous commands
+
+
+ @{" DELAY " Link "DELAY"}            Delay command execution
+ @{" FAULT " Link "FAULT"}            Return the string associated with a error code
+ @{" HELP " Link "HELP"}             Get help on a single command or invoke online-help
+ @{" QUIT " Link "QUIT"}             Terminate the application
+ @{" RESETTIMER " Link "RESETTIMER"}       Reset the online timer
+ @{" SPEAK " Link "SPEAK"}            Speak a text
+
+
+@EndNode
+
+@Node "ACTIVATE" "termRexx.guide/ACTIVATE"
+@Next "ADDITEM"
+@Toc "Commands"
+
+@{u}The ACTIVATE command@{uu}
+
+@{b}Format:@{ub}
+     ACTIVATE
+
+@{b}Template:@{ub}
+     ,
+
+@{b}Purpose:@{ub}
+     De-iconifies the program, brings the main window to the front and
+     makes it active.
+
+@{b}Specifications:@{ub}
+     The program can be put to sleep using the @{"DEACTIVATE" Link "DEACTIVATE"} command, to
+     bring it back to proper operation, use the @{b}ACTIVATE@{ub} command. If
+     this command is invoked while the program is not asleep, it will
+     cause the main window to be brought to the front and activated.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* This is how the main programm can be (re-)activated: */
+
+          ACTIVATE
+
+
+@EndNode
+
+@Node "ADDITEM" "termRexx.guide/ADDITEM"
+@Next "BAUD"
+@Prev "ACTIVATE"
+@Toc "Commands"
+
+@{u}The ADDITEM command@{uu}
+
+@{b}Format:@{ub}
+     ADDITEM [To] <Upload|Download|Dial|Wait> [Before|After] [Command
+     <Command for trap list>] [Response <Response text>] [Phone <Entry
+     number, name or wildcard pattern>] [Name <Name>]
+
+@{b}Template:@{ub}
+     TO/A,BEFORE/S,AFTER/S,RESPONSE/K,COMMAND/K,PHONE/K/F,NAME/K/F
+
+@{b}Purpose:@{ub}
+     Inserts an item (a name, a phone number, text, etc.) before or
+     after the currently selected list item.
+
+@{b}Specifications:@{ub}
+     `term' maintains a number of lists, these are:
+    @{b}Upload list@{ub}
+          The list of files to be uploaded.
+
+    @{b}Download list@{ub}
+          The list of files the program has downloaded.
+
+    @{b}Dial list@{ub}
+          The list of phone numbers or phone book entries to be dialed.
+
+    @{b}Wait list@{ub}
+          The list of texts the @{"WAIT" Link "WAIT"} command is to wait for.
+
+     New items can be added to the list with the @{b}ADDITEM@{ub} command. The
+     upload list expects the names of files the @{"SENDFILE" Link "SENDFILE"} command is to
+     transfer. It makes little sense to add files names to the download
+     list as the `term' main program maintains it and adds the names of
+     files received to it, but it is still possible. The wait list
+     expects text lines the @{"WAIT" Link "WAIT"} command will look for in the terminal
+     input stream.  A wait list entry added using the @{b}RESPONSE@{ub} keyword
+     will if found in the input data stream cause the response text to
+     be immediately sent to the remote.  @{i}Note: a wait list entry to
+     make use of the @{b}RESPONSE@{ub} keyword will be handled by the @{"WAIT" Link "WAIT"}
+     command, the ARexx script will not notice if this list entry was
+     found or not.@{ui}
+
+     The dial list accepts a number of different parameters:
+    @{b}Phonebook entry numbers@{ub}
+          These are passed using the @{b}Phone@{ub} parameter which should be a
+          numeric value as it is used as an index to pick the
+          corresponding entry from the phone book.
+
+    @{b}Phonebook entry names@{ub}
+          These are also passed using the @{b}Phone@{ub} parameter which can be a
+          proper name or a wildcard pattern.
+
+    @{b}Phone numbers@{ub}
+          These are passed using the @{b}Name@{ub} parameter.
+
+     List item can be inserted before or after the currently selected
+     list item (see @{"SELECTITEM" Link "SELECTITEM"} command). The default is to insert them
+     after the currently selected list item.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Enable result codes. */
+
+          OPTIONS RESULTS
+
+          /* Get a file name from the user. */
+
+          REQUESTFILE TITLE '"Select a file to upload"'
+
+          /* Add the file name to the upload list. */
+
+          IF rc = 0 THEN ADDITEM TO upload NAME result
+
+          /* Add phonebook entry #2 to the dial list. */
+
+          ADDITEM TO dial PHONE 2
+
+          /* Add all phonebook entries whose names start
+           * with an `a' to the dial list.
+           */
+
+          ADDITEM TO dial PHONE a#?
+
+          /* Add a plain phone number to the dial list. */
+
+          ADDITEM TO dial NAME 424242
+
+
+@EndNode
+
+@Node "BAUD" "termRexx.guide/BAUD"
+@Next "BEEPSCREEN"
+@Prev "ADDITEM"
+@Toc "Commands"
+
+@{u}The BAUD command@{uu}
+
+@{b}Format:@{ub}
+     BAUD [Rate] <Baud rate in bits per second>
+
+@{b}Template:@{ub}
+     RATE/A/N
+
+@{b}Purpose:@{ub}
+     Sets the serial line transfer speed
+
+@{b}Specifications:@{ub}
+     Sets the serial line transfers speed to some defined value. The
+     rate parameter passed in will be matched against all valid baud
+     rates supported by `term', the closest value will be used.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Change the serial transfer speed to 2400 bps. */
+
+          BAUD 2400
+
+
+@EndNode
+
+@Node "BEEPSCREEN" "termRexx.guide/BEEPSCREEN"
+@Next "CALLMENU"
+@Prev "BAUD"
+@Toc "Commands"
+
+@{u}The BEEPSCREEN command@{uu}
+
+@{b}Format:@{ub}
+     BEEPSCREEN
+
+@{b}Template:@{ub}
+     ,
+
+@{b}Purpose:@{ub}
+     `Beeps' the terminal screen.
+
+@{b}Specifications:@{ub}
+     Invokes a bell signal, as configured in the program settings.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Invoke a bell signal. */
+
+          BEEPSCREEN
+
+
+@EndNode
+
+@Node "CALLMENU" "termRexx.guide/CALLMENU"
+@Next "CAPTURE"
+@Prev "BEEPSCREEN"
+@Toc "Commands"
+
+@{u}The CALLMENU command@{uu}
+
+@{b}Format:@{ub}
+     CALLMENU [Title] <Title text or wildcard pattern>
+
+@{b}Template:@{ub}
+     TITLE/A/F
+
+@{b}Purpose:@{ub}
+     Invokes the function associated with a menu item.
+
+@{b}Specifications:@{ub}
+     Calls a pull-down menu function just as if the user had selected it
+     using the mouse. The @{b}Title@{ub} parameter can be any valid menu item
+     name or a wildcard pattern. In the latter case, only the first
+     menu item to match the pattern will be called.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     If no matching menu item was to be found.
+
+@{b}Example:@{ub}
+          /* Invoke the `About...' menu item. */
+
+          CALLMENU abou#?
+
+
+@EndNode
+
+@Node "CAPTURE" "termRexx.guide/CAPTURE"
+@Next "CLEAR"
+@Prev "CALLMENU"
+@Toc "Commands"
+
+@{u}The CAPTURE command@{uu}
+
+@{b}Format:@{ub}
+     CAPTURE [To] <Printer|File> [Name <File name>]
+
+@{b}Template:@{ub}
+     TO/A,NAME/K
+
+@{b}Purpose:@{ub}
+     Starts a file or printer capture.
+
+@{b}Specifications:@{ub}
+     If a capture is not already in progress will open a capture file
+     or start capturing incoming terminal text to the printer. If the
+     @{b}File@{ub} argument is given and the @{b}Name@{ub} parameter is omitted, will
+     prompt for the name of a file to capture to.
+
+     If to capture to a given file, will append the captured text. If
+     user is to select a file to capture to, will ask whether to append
+     the text to the file or to overwrite it.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     In case user was to select a file and aborted the selection.
+
+@{b}Example:@{ub}
+          /* Open a named capture file. */
+
+          CAPTURE TO file NAME 'ram:capture file'
+
+          /* Close the capture file, ask the user for a file name. */
+
+          CLOSE FILE
+          CAPTURE TO file
+
+          /* Capture to the printer. */
+
+          CAPTURE TO printer
+
+
+@EndNode
+
+@Node "CLEAR" "termRexx.guide/CLEAR"
+@Next "CLEARSCREEN"
+@Prev "CAPTURE"
+@Toc "Commands"
+
+@{u}The CLEAR command@{uu}
+
+@{b}Format:@{ub}
+     CLEAR [From] <Upload|Download|Dial|Wait|Buffer> [Force]
+
+@{b}Template:@{ub}
+     FROM/A,FORCE/S
+
+@{b}Purpose:@{ub}
+     Clears the contents of a global list or the text buffer.
+
+@{b}Specifications:@{ub}
+     This command serves to clear the contents of the lists to be
+     maintained using the @{"ADDITEM" Link "ADDITEM"}, @{"REMITEM" Link "REMITEM"}, @{"SELECTITEM" Link "SELECTITEM"}, etc. commands
+     and to purge the contents of the text buffer. In the latter case
+     the program will prompt for confirmation in case the buffer still
+     holds any lines. This confirmation can be suppressed by using the
+     @{b}Force@{ub} parameter.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     In case the user did not confirm to clear the buffer.
+
+@{b}Example:@{ub}
+          /* Clear the wait list. */
+
+          CLEAR FROM wait
+
+          /* Clear the buffer, ask for a confirmation. */
+
+          CLEAR FROM buffer
+
+          /* If no confirmation was given, clear it by force. */
+
+          IF rc ~= 0 THEN CLEAR FROM buffer FORCE
+
+
+@EndNode
+
+@Node "CLEARSCREEN" "termRexx.guide/CLEARSCREEN"
+@Next "CLOSE"
+@Prev "CLEAR"
+@Toc "Commands"
+
+@{u}The CLEARSCREEN command@{uu}
+
+@{b}Format:@{ub}
+     CLEARSCREEN
+
+@{b}Template:@{ub}
+     ,
+
+@{b}Purpose:@{ub}
+     Clears the terminal screen
+
+@{b}Specifications:@{ub}
+     Clears the terminal screen and positions the cursor in the top
+     left corner.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Clear the terminal screen. */
+
+          CLEARSCREEN
+
+
+@EndNode
+
+@Node "CLOSE" "termRexx.guide/CLOSE"
+@Next "CLOSEDEVICE"
+@Prev "CLEARSCREEN"
+@Toc "Commands"
+
+@{u}The CLOSE command@{uu}
+
+@{b}Format:@{ub}
+     CLOSE [From] <Printer|File|All>
+
+@{b}Template:@{ub}
+     FROM/A
+
+@{b}Purpose:@{ub}
+     Terminates file and/or printer capture.
+
+@{b}Specifications:@{ub}
+     Terminates a capture process as started with the @{"CAPTURE" Link "CAPTURE"} command.
+     Will terminate printer capture, file capture or both.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Terminate both file and printer capture. */
+
+          CLOSE ALL
+
+
+@EndNode
+
+@Node "CLOSEDEVICE" "termRexx.guide/CLOSEDEVICE"
+@Next "CLOSEREQUESTER"
+@Prev "CLOSE"
+@Toc "Commands"
+
+@{u}The CLOSEDEVICE command@{uu}
+
+@{b}Format:@{ub}
+     CLOSEDEVICE
+
+@{b}Template:@{ub}
+     ,
+
+@{b}Purpose:@{ub}
+     Release the current serial device driver
+
+@{b}Specifications:@{ub}
+     Frees the serial device driver for use with other applications.
+     The driver can be reopened (or a different device driver can be
+     selected) using the @{"OPENDEVICE" Link "OPENDEVICE"} command.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Release the serial device driver, all serial I/O
+           * will be halted.
+           */
+
+          CLOSEDEVICE
+
+
+@EndNode
+
+@Node "CLOSEREQUESTER" "termRexx.guide/CLOSEREQUESTER"
+@Next "DEACTIVATE"
+@Prev "CLOSEDEVICE"
+@Toc "Commands"
+
+@{u}The CLOSEREQUESTER command@{uu}
+
+@{b}Format:@{ub}
+     CLOSEREQUESTER
+
+@{b}Template:@{ub}
+     ,
+
+@{b}Purpose:@{ub}
+     Closes the currently open requester window
+
+@{b}Specifications:@{ub}
+     Will close any currently open requester window, such as the
+     dialing window, the phone book, the serial settings window, etc.
+     Will not close windows such as the file transfer window or the
+     text/numeric input windows.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Close the currently open requester window,
+           * whatever it may be.
+           */
+
+          CLOSEREQUESTER
+
+
+@EndNode
+
+@Node "DEACTIVATE" "termRexx.guide/DEACTIVATE"
+@Next "DELAY"
+@Prev "CLOSEREQUESTER"
+@Toc "Commands"
+
+@{u}The DEACTIVATE command@{uu}
+
+@{b}Format:@{ub}
+     DEACTIVATE
+
+@{b}Template:@{ub}
+     ,
+
+@{b}Purpose:@{ub}
+     Iconifies the program.
+
+@{b}Specifications:@{ub}
+     Puts the application to sleep. Requires Workbench to be running,
+     so an AppIcon can be put on the Workbench backdrop. This command
+     will be ignored if the application has already been put to sleep.
+     To wake the application up, use the @{"ACTIVATE" Link "ACTIVATE"} command.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Iconify the program. */
+
+          DEACTIVATE
+
+
+@EndNode
+
+@Node "DELAY" "termRexx.guide/DELAY"
+@Next "DIAL"
+@Prev "DEACTIVATE"
+@Toc "Commands"
+
+@{u}The DELAY command@{uu}
+
+@{b}Format:@{ub}
+     DELAY [MIC|MICROSECONDS <Number>] [[SEC|SECONDS] <Number>]
+     [MIN|MINUTES <Number>] [QUIET]
+
+@{b}Template:@{ub}
+     MIC=MICROSECONDS/K/N,SEC=SECONDS/N,MIN=MINUTES/K/N,QUIET/S
+
+@{b}Purpose:@{ub}
+     Delays program execution for a couple of microseconds, seconds and
+     minutes.
+
+@{b}Specifications:@{ub}
+     Will cause both the program to make the call and the application
+     to wait for a certain period of time. Unless the @{b}QUIET@{ub} option is
+     in effect will process and display data received from the serial
+     line.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     If command was aborted before the timeout had elapsed.
+
+@{b}Example:@{ub}
+          /* Wait for five seconds. */
+
+          DELAY 5
+
+          /* Wait for one second and seven microseconds. */
+
+          DELAY MIC 7 SEC 5
+
+
+@EndNode
+
+@Node "DIAL" "termRexx.guide/DIAL"
+@Next "DUPLEX"
+@Prev "DELAY"
+@Toc "Commands"
+
+@{u}The DIAL command@{uu}
+
+@{b}Format:@{ub}
+     DIAL [WAIT|SYNC] [[Num] <Phone number>]
+
+@{b}Template:@{ub}
+     WAIT=SYNC/S,NUM/F
+
+@{b}Purpose:@{ub}
+     Dials the provided phone number. If no phone number was given,
+     will dial the numbers and phone book entries stored in the dial
+     list.
+
+@{b}Specifications:@{ub}
+     This command will build a dialing list from the available sources
+     and pass it to the dialing function which is to schedule the
+     dialing process and perform any login-actions. Available sources
+     are the @{b}Num@{ub} parameter which will cause the command to dial only
+     this single number or the dial list whose contents will be used if
+     the @{b}Num@{ub} parameter is omitted.
+
+     If the @{b}WAIT@{ub} parameter is used the command will wait until a
+     connection is made. If the parameter is not use this command will
+     return as soon as the dialing process has been initiated.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     If no connection was to be made.
+
+@{b}Example:@{ub}
+          /* Dial a single phone number. */
+
+          DIAL 424242
+
+          /* Wait a bit and abort the dialing process. */
+
+          DELAY 5
+          CLOSEREQUESTER
+
+          /* Clear the dialing list, then add all the phonebook entries
+           * to the list.
+           */
+
+          CLEAR FROM dial
+          ADDITEM TO dial PHONE #?
+
+          /* Dial the dial list. */
+
+          DIAL WAIT
+
+          /* Did we get a connection? */
+
+          IF RC == 0 THEN SEND TEXT "Ack!\r"
+
+
+@EndNode
+
+@Node "DUPLEX" "termRexx.guide/DUPLEX"
+@Next "EXECTOOL"
+@Prev "DIAL"
+@Toc "Commands"
+
+@{u}The DUPLEX command@{uu}
+
+@{b}Format:@{ub}
+     DUPLEX [Full|Half|Echo]
+
+@{b}Template:@{ub}
+     FULL/S,HALF=ECHO/S
+
+@{b}Purpose:@{ub}
+     Sets the serial line duplex mode.
+
+@{b}Specifications:@{ub}
+     Sets the serial line duplex mode, this can be either full duplex
+     or half duplex (local echo).
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Enable local terminal echo. */
+
+          DUPLEX ECHO
+
+
+@EndNode
+
+@Node "EXECTOOL" "termRexx.guide/EXECTOOL"
+@Next "FAULT"
+@Prev "DUPLEX"
+@Toc "Commands"
+
+@{u}The EXECTOOL command@{uu}
+
+@{b}Format:@{ub}
+     EXECTOOL [Console] [Async] [Port] [Command] <File name>
+
+@{b}Template:@{ub}
+     CONSOLE/S,ASYNC/S,PORT/S,COMMAND/A/F
+
+@{b}Purpose:@{ub}
+     Executes a program.
+
+@{b}Specifications:@{ub}
+     Will load and execute an AmigaDOS program. The @{b}Console@{ub} parameter
+     will cause an output file or window to be opened, the @{b}Async@{ub}
+     parameter will cause the command to return as soon as the
+     execution process has been launched. The @{b}Port@{ub} parameter will cause
+     the current ARexx host port name to be passed to the tool on the
+     command line.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Launch the `Dir' command. */
+
+          EXECTOOL CONSOLE COMMAND 'dir c:'
+
+
+@EndNode
+
+@Node "FAULT" "termRexx.guide/FAULT"
+@Next "GETATTR"
+@Prev "EXECTOOL"
+@Toc "Commands"
+
+@{u}The FAULT command@{uu}
+
+@{b}Format:@{ub}
+     FAULT [Code] <Error code>
+
+@{b}Template:@{ub}
+     CODE/A/N
+
+@{b}Purpose:@{ub}
+     Returns the descriptive text associated with an error code as
+     returned by `term'.
+
+@{b}Specifications:@{ub}
+     `term' will return error codes in the @{b}term.lasterror@{ub} variable. In
+     order to get the descriptive text associated with an error code,
+     use this command.  All internal Rexx and AmigaDOS errors codes are
+     supported as well as the error codes special to `term'.
+
+@{b}Result:@{ub}
+     The error description associated with the error code.
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Enable command results. */
+
+          OPTIONS RESULTS
+
+          /* Get the text associated with error #1001. */
+
+          FAULT 1001
+
+          /* Output the result. */
+
+          SAY result
+
+
+@EndNode
+
+@Node "GETATTR" "termRexx.guide/GETATTR"
+@Next "GETCLIP"
+@Prev "FAULT"
+@Toc "Commands"
+
+@{u}The GETATTR command@{uu}
+
+@{b}Format:@{ub}
+     GETATTR [Object] <Name> [Field] <Name> [Stem <Name>] [Var <Name>]
+
+@{b}Template:@{ub}
+     OBJECT/A,FIELD,STEM/K,VAR/K
+
+@{b}Purpose:@{ub}
+     Obtains information on an application attribute.
+
+@{b}Specifications:@{ub}
+     Obtains information on an object, if possible will store it in the
+     @{b}result@{ub} variable. If a stem or simple variable name is given using
+     the @{b}Stem@{ub} or @{b}Var@{ub} parameters will store the information in this
+     variable.  If no @{b}Field@{ub} parameter is given, will store the entire
+     object contents which requires that the @{b}Stem@{ub} parameter is given.
+     For a list of valid attributes see the section entitled @{"Attributes" Link "Attributes"}.
+
+@{b}Result:@{ub}
+     Returns information either in @{b}result@{ub} variable or in the supplied
+     @{b}Stem@{ub} or @{b}Var@{ub} variable.
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Enable command results. */
+
+          OPTIONS RESULTS
+
+          /* Query the name of the ARexx host we are communicating with. */
+
+          GETATTR OBJECT term FIELD arexx
+
+          /* Output the result. */
+
+          SAY result
+
+          /* Same as above, but using a different syntax. */
+
+          GETATTR term.arexx
+          SAY result
+
+          /* Store the entire contents of the phone book in a
+           * stem variable.
+           */
+
+          GETATTR phonebook STEM book
+
+          /* Output the phonebook contents. */
+
+          SAY 'phone book contains' book.count 'entries'
+
+          DO i = 0 TO book.count - 1
+             SAY 'entry #' i
+
+             SAY 'name    :' book.i.name
+             SAY 'number  :' book.i.number
+             SAY 'comment :' book.i.commenttext
+             SAY 'username:' book.i.username
+          END i
+
+
+@EndNode
+
+@Node "GETCLIP" "termRexx.guide/GETCLIP"
+@Next "GOONLINE"
+@Prev "GETATTR"
+@Toc "Commands"
+
+@{u}The GETCLIP command@{uu}
+
+@{b}Format:@{ub}
+     GETCLIP [Unit <Number>]
+
+@{b}Template:@{ub}
+     UNIT/K/N
+
+@{b}Purpose:@{ub}
+     Retrieves the contents of the clipboard.
+
+@{b}Specifications:@{ub}
+     Obtains the contents of the clipboard and returns it in the @{b}result@{ub}
+     variable. Will optionally read from the given clipboard unit, but
+     uses the unit number selected in the application settings by
+     default. @{i}Note that a string returned can be up to 65,536
+     characters long!@{ui}
+
+@{b}Result:@{ub}
+     Contents of the clipboard if it contains any text.
+
+@{b}Warning:@{ub}
+     If clipboard does not contain any text.
+
+@{b}Example:@{ub}
+          /* Enable command results. */
+
+          OPTIONS RESULTS
+
+          /* Get the primary clipboard contents. */
+
+          GETCLIP
+
+          /* Output the contents. */
+
+          IF rc ~= 0 THEN
+             SAY 'clipboard does not contain any text'
+          ELSE
+             SAY result
+
+
+@EndNode
+
+@Node "GOONLINE" "termRexx.guide/GOONLINE"
+@Next "HANGUP"
+@Prev "GETCLIP"
+@Toc "Commands"
+
+@{u}The GOONLINE command@{uu}
+
+@{b}Format:@{ub}
+     GOONLINE
+
+@{b}Template:@{ub}
+     ,
+
+@{b}Purpose:@{ub}
+     Cause `term' to go into online state.
+
+@{b}Specifications:@{ub}
+     After this command is processed `term' will immediately go into
+     online state. If the carrier signal is to be checked and no signal
+     is present `term' will drop into offline state right away.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Go into online state. */
+
+          GOONLINE
+
+
+@EndNode
+
+@Node "HANGUP" "termRexx.guide/HANGUP"
+@Next "HELP"
+@Prev "GOONLINE"
+@Toc "Commands"
+
+@{u}The HANGUP command@{uu}
+
+@{b}Format:@{ub}
+     HANGUP
+
+@{b}Template:@{ub}
+     ,
+
+@{b}Purpose:@{ub}
+     Hang up the serial line.
+
+@{b}Specifications:@{ub}
+     Hangs up the serial line, executes logoff and cleanup operations.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Hang up the line, whether the program is online or not. */
+
+          HANGUP
+
+
+@EndNode
+
+@Node "HELP" "termRexx.guide/HELP"
+@Next "OPEN"
+@Prev "HANGUP"
+@Toc "Commands"
+
+@{u}The HELP command@{uu}
+
+@{b}Format:@{ub}
+     HELP [[Command] <Name>] [Prompt]
+
+@{b}Template:@{ub}
+     COMMAND,PROMPT/S
+
+@{b}Purpose:@{ub}
+     Returns the template of a command or invokes the online help
+     system.
+
+@{b}Specifications:@{ub}
+     This command will either return the template associated with a
+     `term' ARexx command specified using the @{b}Command@{ub} parameter or
+     invoke the AmigaGuide(tm) help system.
+
+@{b}Result:@{ub}
+     Command template if requested.
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Enable command results. */
+
+          OPTIONS RESULTS
+
+          /* Query the template associated with the `selectitem' command. */
+
+          HELP selectitem
+
+          /* Output the result. */
+
+          SAY result
+
+          /* Invoke the online help. */
+
+          HELP PROMPT
+
+
+@EndNode
+
+@Node "OPEN" "termRexx.guide/OPEN"
+@Next "OPENDEVICE"
+@Prev "HELP"
+@Toc "Commands"
+
+@{u}The OPEN command@{uu}
+
+@{b}Format:@{ub}
+     OPEN [Name <File name>] [TO] <Translations|Functionkeys|Cursorkeys|
+     Fastmacros|Hotkeys|Speech|Sound|Buffer|Configuration|Phone>
+
+@{b}Template:@{ub}
+     NAME/K,TO/A
+
+@{b}Purpose:@{ub}
+     Reads data from a disk file.
+
+@{b}Specifications:@{ub}
+     This command reads the contents of a disk file and stores the
+     information either in the configuration, the phone book or the
+     text buffer. If text is read into the text buffer it will be
+     appended to the existing text. If no file name is given will
+     prompt the user to select a file.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     If user was requested to select a file and cancelled the selection.
+
+@{b}Example:@{ub}
+          /* Load the configuration from a file. */
+
+          OPEN NAME 'ram:term.prefs' TO configuration
+
+          /* Add text to the text buffer. */
+
+          OPEN TO buffer
+
+
+@EndNode
+
+@Node "OPENDEVICE" "termRexx.guide/OPENDEVICE"
+@Next "OPENREQUESTER"
+@Prev "OPEN"
+@Toc "Commands"
+
+@{u}The OPENDEVICE command@{uu}
+
+@{b}Format:@{ub}
+     OPENDEVICE [Name <Device name>] [Unit <Number>]
+
+@{b}Template:@{ub}
+     NAME/K,UNIT/K/N
+
+@{b}Purpose:@{ub}
+     (Re-)Opens the serial device driver.
+
+@{b}Specifications:@{ub}
+     (Re-)Opens the previously released (see @{"CLOSEDEVICE" Link "CLOSEDEVICE"} command) device
+     driver or a different device driver/unit if the corresponding
+     @{b}Device@{ub} and @{b}Unit@{ub} parameters are given.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Release the serial device driver. */
+
+          CLOSEDEVICE
+
+          /* Open a different device driver. */
+
+          OPENDEVICE DEVICE 'duart.device' UNIT 5
+
+
+@EndNode
+
+@Node "OPENREQUESTER" "termRexx.guide/OPENREQUESTER"
+@Next "PARITY"
+@Prev "OPENDEVICE"
+@Toc "Commands"
+
+@{u}The OPENREQUESTER command@{uu}
+
+@{b}Format:@{ub}
+     OPENREQUESTER [REQUESTER]
+     <Serial|Modem|Screen|Terminal|Emulation|Clipboard|
+
+
+
+
+
+
+     Capture|Commands|Misc|Path|Transfer|Translations|Functionkeys|Cursorkeys|
+     Fastmacros|Hotkeys|Speech|Sound|Phone>
+
+@{b}Template:@{ub}
+     REQUESTER/A
+
+@{b}Purpose:@{ub}
+     Opens a requester window.
+
+@{b}Specifications:@{ub}
+     Opens a requester window. Only a single window can be open at a
+     time.  The window opened can be closed using the @{"CLOSEREQUESTER" Link "CLOSEREQUESTER"}
+     command.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Open the phonebook window. */
+
+          OPENREQUESTER phone
+
+
+@EndNode
+
+@Node "PARITY" "termRexx.guide/PARITY"
+@Next "PASTECLIP"
+@Prev "OPENREQUESTER"
+@Toc "Commands"
+
+@{u}The PARITY command@{uu}
+
+@{b}Format:@{ub}
+     PARITY [Even|Odd|None|Mark|Space]
+
+@{b}Template:@{ub}
+     EVEN/S,ODD/S,NONE/S,MARK/S,SPACE/S
+
+@{b}Purpose:@{ub}
+     Sets the serial line parity mode.
+
+@{b}Specifications:@{ub}
+     Sets the serial line parity mode.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Set the parity mode. */
+
+          PARITY NONE
+
+
+@EndNode
+
+@Node "PASTECLIP" "termRexx.guide/PASTECLIP"
+@Next "PRINT"
+@Prev "PARITY"
+@Toc "Commands"
+
+@{u}The PASTECLIP command@{uu}
+
+@{b}Format:@{ub}
+     PASTECLIP [Unit <Number>]
+
+@{b}Template:@{ub}
+     UNIT/K/N
+
+@{b}Purpose:@{ub}
+     Feed the contents of the clipboard into the input stream.
+
+@{b}Specifications:@{ub}
+     Feeds the contents of the clipboard into the input stream. Obtains
+     the data either from the given clipboard unit or from the default
+     unit configured in the program settings.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     If clipboard does not contain any text.
+
+@{b}Example:@{ub}
+          /* Paste the contents of clipboard #2. */
+
+          PASTECLIP UNIT 2
+
+
+@EndNode
+
+@Node "PRINT" "termRexx.guide/PRINT"
+@Next "PROCESSIO"
+@Prev "PASTECLIP"
+@Toc "Commands"
+
+@{u}The PRINT command@{uu}
+
+@{b}Format:@{ub}
+     PRINT [From]
+     <Screentext|Clipboard|Buffer|Dial|Wait|Upload|Download> [TO <File
+     name>] [Serial|Modem|Screen|Terminal|User|Comment| Size|Date|Attr]
+
+@{b}Template:@{ub}
+     FROM/A,TO/K,SERIAL/S,MODEM/S,SCREEN/S,TERMINAL/S,USER/S,
+     COMMENT/S,SIZE/S,DATE/S,ATTR/S
+
+@{b}Purpose:@{ub}
+     Prints the contents of the screen, the clipboard, the textbuffer
+     or one of the lists.
+
+@{b}Specifications:@{ub}
+     Outputs the contents of the screen, the clipboard, the textbuffer
+     or one of the lists (see @{"ADDITEM" Link "ADDITEM"} command) to a file or the
+     printer. If the @{b}To@{ub} parameter is omitted, will output the data to
+     the printer. The parameters @{b}Serial@{ub} through @{b}Attr@{ub} control what will
+     be printed:
+    @{b}Screentext, Clipboard, Buffer, Wait list@{ub}
+          Options have no effect on the output.
+
+    @{b}Dial list@{ub}
+          Responds to the @{b}Serial@{ub}, @{b}Modem@{ub}, @{b}Screen@{ub}, @{b}Terminal@{ub}, @{b}User@{ub} and
+          @{b}Comment@{ub} parameters. The printout will contain information on
+          the corresponding settings.
+
+    @{b}Upload list, Download list@{ub}
+          Responds to the @{b}Comment@{ub}, @{b}Size@{ub}, @{b}Date@{ub} and @{b}Attr@{ub} parameters. The
+          printout will contain information on the corresponding file
+          attributes. @{i}Note: if any of these parameters are given, only
+          the base file names will be printed along with the
+          corresponding information.@{ui}
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     If user cancelled print operation.
+
+@{b}Example:@{ub}
+          /* Clear the dialing list, then add the entire phone book to it. */
+
+          CLEAR dial
+          additem to dial phone #?
+
+          /* Send the contents of the dial list to a disk file. */
+
+          PRINT FROM dial TO 'ram:phonebook' SERIAL MODEM SCREEN...
+          ...TERMINAL USER COMMENT
+
+
+@EndNode
+
+@Node "PROCESSIO" "termRexx.guide/PROCESSIO"
+@Next "PROTOCOL"
+@Prev "PRINT"
+@Toc "Commands"
+
+@{u}The PROCESSIO command@{uu}
+
+@{b}Format:@{ub}
+     PROCESSIO <On|Off>
+
+@{b}Template:@{ub}
+     ON/S,OFF/S
+
+@{b}Purpose:@{ub}
+     Turns serial I/O processing on or off.
+
+@{b}Specifications:@{ub}
+     Usually, the `term' main program processes incoming data from the
+     serial line, i.e. text is displayed in the terminal window or data
+     transfers are started. This can interfere with custom I/O
+     processing, such as done by an ARexx program which wants to
+     receive and process all incoming serial data, without getting
+     interrupted by the main program. For an application example see
+     @{"WAIT" Link "WAIT"}.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Turn off I/O processing. */
+
+          PROCESSIO OFF
+
+
+@EndNode
+
+@Node "PROTOCOL" "termRexx.guide/PROTOCOL"
+@Next "PUTCLIP"
+@Prev "PROCESSIO"
+@Toc "Commands"
+
+@{u}The PROTOCOL command@{uu}
+
+@{b}Format:@{ub}
+     PROTOCOL [None|RTSCTS|RTSCTSDTR]
+
+@{b}Template:@{ub}
+     NONE/S,RTSCTS/S,RTSCTSDTR/S
+
+@{b}Purpose:@{ub}
+     Sets the serial line handshaking protocol.
+
+@{b}Specifications:@{ub}
+     Sets the serial line handshaking protocol. See the main program
+     documentation for details.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Set the handshaking protocol. */
+
+          PROTOCOL NONE
+
+
+@EndNode
+
+@Node "PUTCLIP" "termRexx.guide/PUTCLIP"
+@Next "QUIT"
+@Prev "PROTOCOL"
+@Toc "Commands"
+
+@{u}The PUTCLIP command@{uu}
+
+@{b}Format:@{ub}
+     PUTCLIP [Unit <Unit>] [TEXT] <Text to store>
+
+@{b}Template:@{ub}
+     UNIT/K/N,TEXT/A/F
+
+@{b}Purpose:@{ub}
+     Stores text in the clipboard.
+
+@{b}Specifications:@{ub}
+     Stores the provided text in the clipboard. Will store it in the
+     given clipboard unit if the @{b}Unit@{ub} parameter is given. Will use the
+     unit number configured in the program settings otherwise.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Store a short string in the clipboard. Note: can
+           * only be up to 65,536 characters long.
+           */
+
+          PUTCLIP 'hello sailor!'
+
+
+@EndNode
+
+@Node "QUIT" "termRexx.guide/QUIT"
+@Next "READ"
+@Prev "PUTCLIP"
+@Toc "Commands"
+
+@{u}The QUIT command@{uu}
+
+@{b}Format:@{ub}
+     QUIT [Force]
+
+@{b}Template:@{ub}
+     FORCE/S
+
+@{b}Purpose:@{ub}
+     Terminates the application.
+
+@{b}Specifications:@{ub}
+     Terminates program execution, will ask for a confirmation to leave
+     unless the @{b}Force@{ub} parameter is used. @{i}Caution: this command may fail
+     if there are still output windows open on the `term' screen.@{ui}
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     If user did not confirm termination.
+
+@{b}Example:@{ub}
+          /* Try to terminate the program, ask for confirmation. */
+
+          QUIT
+
+          /* If no confirmation was given terminate by force. */
+
+          IF rc ~= 0 THEN QUIT FORCE
+
+
+@EndNode
+
+@Node "READ" "termRexx.guide/READ"
+@Next "RECEIVEFILE"
+@Prev "QUIT"
+@Toc "Commands"
+
+@{u}The READ command@{uu}
+
+@{b}Format:@{ub}
+     READ [Num <Number of bytes>] [CR] [Noecho] [Verbatim] [[Prompt]
+     <Prompt text>]
+
+@{b}Template:@{ub}
+     NUM/K/N,CR/S,NOECHO/S,VERBATIM/S,PROMPT/K/F
+
+@{b}Purpose:@{ub}
+     Reads a number of bytes or a string from the serial line.
+
+@{b}Specifications:@{ub}
+     If @{b}Num@{ub} parameter is given will read a number of bytes from the
+     serial line (@{i}note: only a maximum of 65,536 bytes can be read@{ui}).
+     The command will return when the read request has been satisfied,
+     the timeout (settable using the @{"TIMEOUT" Link "TIMEOUT"} command) has elapsed or
+     the command was aborted.
+
+     If the @{b}CR@{ub} parameter is given will handle simple line editing
+     functions (@{b}Backspace@{ub}, @{b}Control-X@{ub}) and return a string as soon as
+     the @{b}Carriage return@{ub} key is pressed, the timeout (settable using
+     the @{"TIMEOUT" Link "TIMEOUT"} command) has elapsed or the command is aborted.
+
+     The @{b}Noecho@{ub} parameter will cause `term' not to echo typed
+     characters back to the remote. @{i}Note that in order to see any input
+     on the local side the remote is to echo the characters typed back.@{ui}
+
+     If present, the @{b}Prompt@{ub} text will be sent across the serial line,
+     much the same as if it had been sent using the @{"SEND" Link "SEND"} command.
+
+     This command pays attention to the current character translation
+     table for incoming characters. If the characters are to be read
+     without any changes made one has to use the @{b}Verbatim@{ub} parameter.
+
+@{b}Result:@{ub}
+     The string read.
+
+@{b}Warning:@{ub}
+     If command was cancelled, no input was made or, if the @{b}CR@{ub} parameter
+     is used, the timeout elapsed.
+
+@{b}Example:@{ub}
+          /* Enable command results. */
+
+          OPTIONS RESULTS
+
+          /* Set the read timeout to five seconds. */
+
+          TIMEOUT 5
+
+          /* Read seven bytes. */
+
+          READ NUM 7
+
+          /* Output the result. */
+
+          IF rc ~= 0 THEN
+             SAY 'no data was read'
+          ELSE
+             SAY result
+
+          /* Turn the timeout off. */
+
+          TIMEOUT OFF
+
+          /* Prompt for input. */
+
+          READ CR PROMPT 'Enter a line of text:'
+
+          /* Output the result. */
+
+          IF rc ~= 0 THEN
+             SAY 'no input was made'
+          ELSE
+             SAY result
+
+
+@EndNode
+
+@Node "RECEIVEFILE" "termRexx.guide/RECEIVEFILE"
+@Next "REDIAL"
+@Prev "READ"
+@Toc "Commands"
+
+@{u}The RECEIVEFILE command@{uu}
+
+@{b}Format:@{ub}
+     RECEIVEFILE [Mode <ASCII|Text|Binary>] [Name <File name>]
+
+@{b}Template:@{ub}
+     MODE/K,NAME/K
+
+@{b}Purpose:@{ub}
+     Receive one or more files using the XPR protocol.
+
+@{b}Specifications:@{ub}
+     Receives one or more files using the currently configured XPR
+     protocol.  The @{b}Mode@{ub} parameter determines the file transfer mode
+     (either plain ASCII, Text mode or binary file mode), if omitted
+     the file(s) will be received in binary mode. Some file transfer
+     protocols do not require any file names to be given as they have
+     their own means to determine the names of the files to be
+     received. However, a file name parameter can be given. If omitted
+     the file transfer protocol will prompt the user for a file name if
+     necessary.
+
+     The names of all files received are placed on the download list
+     for processing. The list will be cleared before the transfer is
+     started.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     If user cancelled file selection.
+
+@{b}Example:@{ub}
+          /* Start to receive a file in text mode. */
+
+          RECEIVEFILE MODE text
+
+
+@EndNode
+
+@Node "REDIAL" "termRexx.guide/REDIAL"
+@Next "REMITEM"
+@Prev "RECEIVEFILE"
+@Toc "Commands"
+
+@{u}The REDIAL command@{uu}
+
+@{b}Format:@{ub}
+     REDIAL
+
+@{b}Template:@{ub}
+     ,
+
+@{b}Purpose:@{ub}
+     Redials the numbers remaining in the currently configured dialing
+     list.
+
+@{b}Specifications:@{ub}
+     Redials the numbers which still remain in the dialing list built
+     either by the phone book or by the @{"DIAL" Link "DIAL"} command. @{i}Note that this
+     command will return as soon as the dialing process is initiated.@{ui}
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     If dialing list is empty.
+
+@{b}Example:@{ub}
+          /* Redial the list. */
+
+          REDIAL
+
+          /* Successful? */
+
+          IF rc ~= 0 THEN SAY 'dialing list is empty'
+
+
+@EndNode
+
+@Node "REMITEM" "termRexx.guide/REMITEM"
+@Next "REQUESTFILE"
+@Prev "REDIAL"
+@Toc "Commands"
+
+@{u}The REMITEM command@{uu}
+
+@{b}Format:@{ub}
+     REMITEM [From] <Upload|Download|Dial|Wait> [Name <Name or
+     wildcard>]
+
+@{b}Template:@{ub}
+     FROM/A,NAME/K/F
+
+@{b}Purpose:@{ub}
+     Removes one or more items from a list.
+
+@{b}Specifications:@{ub}
+     Removes one or more items from a list. If no @{b}Name@{ub} parameter is
+     given will remove the currently selected list item (selectable
+     using the @{"SELECTITEM" Link "SELECTITEM"} command). The @{b}Name@{ub} parameter can be a proper
+     name or a wildcard pattern.
+
+     @{i}Note: Cannot remove named items from the dial list.@{ui}
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     If no list item would match the name pattern.
+
+@{b}Example:@{ub}
+          /* Remove the currently selected item from the wait list. */
+
+          REMITEM FROM wait
+
+          /* Remove all items from the wait list which end with `z'. */
+
+          REMITEM FROM wait NAME '#?z'
+
+
+@EndNode
+
+@Node "REQUESTFILE" "termRexx.guide/REQUESTFILE"
+@Next "REQUESTNOTIFY"
+@Prev "REMITEM"
+@Toc "Commands"
+
+@{u}The REQUESTFILE command@{uu}
+
+@{b}Format:@{ub}
+     REQUESTFILE [Title <Title text>] [Path <Path name>] [File <File
+     name>] [Pattern <Wildcard pattern>] [Multi] [Stem|Name <Variable
+     name>]
+
+@{b}Template:@{ub}
+     TITLE/K,PATH/K,FILE/K,PATTERN/K,MULTI/S,STEM=NAME/K
+
+@{b}Purpose:@{ub}
+     Requests one or more file names from the user.
+
+@{b}Specifications:@{ub}
+     Requests one or more file names from the user. Will present a file
+     requester with given title text and preset path, file name and
+     pattern values. If only a single file name is to be requested will
+     place the result in the @{b}result@{ub} variable. The @{b}Multi@{ub} parameter
+     allows multiple files to be selected, the number of files selected
+     and the file names will be placed in the variable specified using
+     the @{b}Stem@{ub} parameter.
+
+@{b}Result:@{ub}
+     The name of the file selected will be placed in the @{b}result@{ub}
+     variable. If multiple file were selected, will place the following
+     information in the supplied stem variable:
+    @{b}<Variable name>.COUNT@{ub}
+          The number of files selected.
+
+    @{b}<Variable name>.0 through <Variable name>.n-1@{ub}
+          The file names selected.
+
+@{b}Warning:@{ub}
+     If user cancelled selection.
+
+@{b}Example:@{ub}
+          /* Enable command results. */
+
+          OPTIONS RESULTS
+
+          /* Request a single file name from the user. */
+
+          REQUESTFILE TITLE '"select a file"'
+
+          /* Output the result. */
+
+          IF rc ~= 0 THEN
+             SAY 'no file was selected'
+          ELSE
+             SAY result
+
+          /* Request several files. */
+
+          REQUESTFILE TITLE 'select several files' MULTI STEM names
+
+          /* Output the result. */
+
+          IF rc ~= 0 THEN
+             SAY 'no files were selected'
+          ELSE DO
+             SAY 'files selected:' names.count
+
+             DO i = 0 TO names.count - 1
+                SAY names.i
+             END
+          END
+
+
+@EndNode
+
+@Node "REQUESTNOTIFY" "termRexx.guide/REQUESTNOTIFY"
+@Next "REQUESTNUMBER"
+@Prev "REQUESTFILE"
+@Toc "Commands"
+
+@{u}The REQUESTNOTIFY command@{uu}
+
+@{b}Format:@{ub}
+     REQUESTNOTIFY [Title <Title text>] [Prompt] <Prompt text>
+
+@{b}Template:@{ub}
+     TITLE/K,PROMPT/A/F
+
+@{b}Purpose:@{ub}
+     Notify the user with a message.
+
+@{b}Specifications:@{ub}
+     Opens a requester to notify the user, the prompt text can include
+     line feed characters (@{b}'0A'X@{ub}), the user will be able to answer the
+     requester by clicking on a @{b}Continue@{ub} button.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Notify the user. */
+
+          REQUESTNOTIFY TITLE '"Important information"' ...
+          ...PROMPT 'This message is important'
+
+
+@EndNode
+
+@Node "REQUESTNUMBER" "termRexx.guide/REQUESTNUMBER"
+@Next "REQUESTRESPONSE"
+@Prev "REQUESTNOTIFY"
+@Toc "Commands"
+
+@{u}The REQUESTNUMBER command@{uu}
+
+@{b}Format:@{ub}
+     REQUESTNUMBER [Default <Default number>] [Prompt <Prompt text>]
+
+@{b}Template:@{ub}
+     DEFAULT/K/N,PROMPT/K/F
+
+@{b}Purpose:@{ub}
+     Requests a numeric value from the user
+
+@{b}Specifications:@{ub}
+     Requests a numeric value from the user, will display the provided
+     prompt text or a default text and present the provided default
+     number, so user can simply hit return to accept the defaults.
+
+@{b}Result:@{ub}
+     The number the has entered.
+
+@{b}Warning:@{ub}
+     If user cancelled requester.
+
+@{b}Example:@{ub}
+          /* Enable command results. */
+
+          OPTIONS RESULTS
+
+          /* Requester a single number. */
+
+          REQUESTNUMBER DEFAULT 42 PROMPT 'Enter the answer'
+
+          /* Output the result. */
+
+          IF rc ~= 0 THEN
+             SAY 'no number was entered'
+          ELSE
+             SAY result
+
+
+@EndNode
+
+@Node "REQUESTRESPONSE" "termRexx.guide/REQUESTRESPONSE"
+@Next "REQUESTSTRING"
+@Prev "REQUESTNUMBER"
+@Toc "Commands"
+
+@{u}The REQUESTRESPONSE command@{uu}
+
+@{b}Format:@{ub}
+     REQUESTRESPONSE [Title <Title text>] [Options <Options string>]
+     [Prompt] <Prompt text>
+
+@{b}Template:@{ub}
+     TITLE/K,OPTIONS/K,PROMPT/A/F
+
+@{b}Purpose:@{ub}
+     Request a response from user.
+
+@{b}Specifications:@{ub}
+     Requests a response from the user, uses provided title and prompt
+     text and a number of options. If no options are specified will use
+     @{b}Yes|No@{ub} as the defaults.
+
+@{b}Result:@{ub}
+     For @{b}Options@{ub} passed as @{b}Yes|Perhaps|No@{ub} will return 1 for @{b}Yes@{ub}, 2 for
+     @{b}Perhaps@{ub} and return a warning for @{b}No@{ub}.
+
+@{b}Warning:@{ub}
+     If user selected negative choice.
+
+@{b}Example:@{ub}
+          /* Enable command results. */
+
+          OPTIONS RESULTS
+
+          /* Request a response. */
+
+          REQUESTRESPONSE PROMPT 'Are you indecisive?' ...
+          ...OPTIONS '"Yes|Don't know|No"'
+
+          /* Look at the response. */
+
+          IF rc ~= 0 THEN
+             SAY 'Not indecisive'
+          ELSE DO
+             IF result = 0 THEN
+                SAY 'Indecisive'
+             ELSE
+                SAY 'Probably indecisive'
+          END
+
+
+@EndNode
+
+@Node "REQUESTSTRING" "termRexx.guide/REQUESTSTRING"
+@Next "RESETSCREEN"
+@Prev "REQUESTRESPONSE"
+@Toc "Commands"
+
+@{u}The REQUESTSTRING command@{uu}
+
+@{b}Format:@{ub}
+     REQUESTSTRING [Secret] [Default <String>] [Prompt <Text>]
+
+@{b}Template:@{ub}
+     SECRET/S,DEFAULT/K,PROMPT/K/F
+
+@{b}Purpose:@{ub}
+     Requests a string from the user.
+
+@{b}Specifications:@{ub}
+     Requests a string from the user, will display the provided prompt
+     text or a default text and present the provided default string, so
+     user can simply hit return to accept the defaults.
+
+     If the @{b}Secret@{ub} parameter is provided, will not display the
+     characters typed.
+
+@{b}Result:@{ub}
+     The text the user entered.
+
+@{b}Warning:@{ub}
+     If user cancelled the requester.
+
+@{b}Example:@{ub}
+          /* Enable command results. */
+
+          OPTIONS RESULTS
+
+          /* Request a secret string. */
+
+          REQUESTSTRING SECRET DEFAULT '"hello sailor!"' ...
+          ...PROMPT 'Enter secret message'
+
+          /* Output the result. */
+
+          IF rc ~= 0 THEN
+             SAY 'no text was entered'
+          ELSE
+             SAY result
+
+
+@EndNode
+
+@Node "RESETSCREEN" "termRexx.guide/RESETSCREEN"
+@Next "RESETSTYLES"
+@Prev "REQUESTSTRING"
+@Toc "Commands"
+
+@{u}The RESETSCREEN command@{uu}
+
+@{b}Format:@{ub}
+     RESETSCREEN
+
+@{b}Template:@{ub}
+     ,
+
+@{b}Purpose:@{ub}
+     Resets the terminal screen to defaults.
+
+@{b}Specifications:@{ub}
+     Resets the terminal screen to defaults, this includes clearing the
+     screen, moving the cursor to the home position and resetting text,
+     text rendering styles and colours.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Reset the terminal screen. */
+
+          RESETSCREEN
+
+
+@EndNode
+
+@Node "RESETSTYLES" "termRexx.guide/RESETSTYLES"
+@Next "RESETTEXT"
+@Prev "RESETSCREEN"
+@Toc "Commands"
+
+@{u}The RESETSTYLES command@{uu}
+
+@{b}Format:@{ub}
+     RESETSTYLES
+
+@{b}Template:@{ub}
+     ,
+
+@{b}Purpose:@{ub}
+     Resets the text rendering styles to defaults.
+
+@{b}Specifications:@{ub}
+     Resets the text rendering styles to defaults, turning off inverse
+     video, boldface, italics, etc. modes.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Reset the text rendering styles. */
+
+          RESETSTYLES
+
+
+@EndNode
+
+@Node "RESETTEXT" "termRexx.guide/RESETTEXT"
+@Next "RESETTIMER"
+@Prev "RESETSTYLES"
+@Toc "Commands"
+
+@{u}The RESETTEXT command@{uu}
+
+@{b}Format:@{ub}
+     RESETTEXT
+
+@{b}Template:@{ub}
+     ,
+
+@{b}Purpose:@{ub}
+     Reset the terminal text to defaults.
+
+@{b}Specifications:@{ub}
+     Reset the terminal text to defaults, this includes switching back
+     from graphics text or G1 mode.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Reset the terminal text. */
+
+          RESETTEXT
+
+
+@EndNode
+
+@Node "RESETTIMER" "termRexx.guide/RESETTIMER"
+@Next "RX"
+@Prev "RESETTEXT"
+@Toc "Commands"
+
+@{u}The RESETTIMER command@{uu}
+
+@{b}Format:@{ub}
+     RESETTIMER
+
+@{b}Template:@{ub}
+     ,
+
+@{b}Purpose:@{ub}
+     Reset the online timer.
+
+@{b}Specifications:@{ub}
+     The online timer is reset to 00:00:00, regardless whether `term'
+     is currently online or not.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Reset the online timer. */
+
+          RESETTIMER
+
+
+@EndNode
+
+@Node "RX" "termRexx.guide/RX"
+@Next "SAVE"
+@Prev "RESETTIMER"
+@Toc "Commands"
+
+@{u}The RX command@{uu}
+
+@{b}Format:@{ub}
+     RX [Console] [Async] [Command] <Command name>
+
+@{b}Template:@{ub}
+     CONSOLE/S,ASYNC/S,COMMAND/A/F
+
+@{b}Purpose:@{ub}
+     Invokes an ARexx macro file.
+
+@{b}Specifications:@{ub}
+     Invokes an ARexx macro file, if @{b}Console@{ub} argument specified opens a
+     console output window, else uses @{b}NIL:@{ub}, if @{b}Async@{ub} argument specified
+     executes the macro asynchronously.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Launch the `term' command shell. */
+
+          RX CONSOLE ASYNC 'term:cmdshell.term'
+
+
+@EndNode
+
+@Node "SAVE" "termRexx.guide/SAVE"
+@Next "SAVEAS"
+@Prev "RX"
+@Toc "Commands"
+
+@{u}The SAVE command@{uu}
+
+@{b}Format:@{ub}
+     SAVE [From] <Translations|Functionkeys|
+     Cursorkeys|Fastmacros|Hotkeys|Speech|
+     Sound|Buffer|Configuration|Phone| Screentext|Screenimage>
+
+@{b}Template:@{ub}
+     FROM/A
+
+@{b}Purpose:@{ub}
+     Saves data to a disk file.
+
+@{b}Specifications:@{ub}
+     Saves data to a disk file, will prompt for a file name to save to.
+     See @{"SAVEAS" Link "SAVEAS"} command for more information.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     If user cancels save operation.
+
+@{b}Example:@{ub}
+          /* Save the terminal screen contents to an
+           * IFF-ILBM file.
+           */
+
+          SAVE FROM screenimage
+
+
+@EndNode
+
+@Node "SAVEAS" "termRexx.guide/SAVEAS"
+@Next "SELECTITEM"
+@Prev "SAVE"
+@Toc "Commands"
+
+@{u}The SAVEAS command@{uu}
+
+@{b}Format:@{ub}
+     SAVEAS [Name <File name>] [From]
+     <Translations|Functionkeys|Cursorkeys|
+     Fastmacros|Hotkeys|Speech|Sound|Buffer|
+     Configuration|Phone|Screentext| Screenimage>
+
+@{b}Template:@{ub}
+     NAME/K,FROM/A
+
+@{b}Purpose:@{ub}
+     Saves data to a disk file.
+
+@{b}Specifications:@{ub}
+     Saves data to a disk file, will prompt for a filename to save to
+     if none is provided. Will save either parts of the program
+     configuration or the phone book contents (@{b}Phonebook@{ub} parameter),
+     the contents of the terminal screen as plain ASCII text
+     (@{b}Screentext@{ub} parameter) or the contents of the terminal
+     screen as an IFF-ILBM-file (@{b}Screenimage@{ub} parameter).
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     If user cancels save operation.
+
+@{b}Example:@{ub}
+          /* Save the program configuration to a file. */
+
+          SAVEAS NAME 'ram:term.prefs' FROM configuration
+
+
+@EndNode
+
+@Node "SELECTITEM" "termRexx.guide/SELECTITEM"
+@Next "SEND"
+@Prev "SAVEAS"
+@Toc "Commands"
+
+@{u}The SELECTITEM command@{uu}
+
+@{b}Format:@{ub}
+     SELECTITEM [Name <Name>] [From] <Upload|Download|Dial|Wait>
+     [Next|Prev|Previous|Top|Bottom]
+
+@{b}Template:@{ub}
+     NAME/K,FROM/A,NEXT/S,PREV=PREVIOUS/S,TOP/S,BOTTOM/S
+
+@{b}Purpose:@{ub}
+     Select an item from a list.
+
+@{b}Specifications:@{ub}
+     Selects an item from a list, returns the item name in the @{b}result@{ub}
+     variable. The @{b}Top@{ub} parameter will select the first list item,
+     @{b}Bottom@{ub} the last item. The @{b}Previous@{ub} parameter will select the
+     previous list item, @{b}Next@{ub} the next successive item. Instead of
+     using a positioning parameter, it is also possible to use a
+     wildcard pattern or name with the @{b}Name@{ub} parameter. The first list
+     item to match the name will be selected.
+
+     @{i}Note: cannot be used with the dial list.@{ui}
+
+@{b}Result:@{ub}
+     Returns the list item in the @{b}result@{ub} variable.
+
+@{b}Warning:@{ub}
+     If end of list reached.
+
+@{b}Example:@{ub}
+          /* Enable command results. */
+
+          OPTIONS RESULTS
+
+          /* Output the contents of the download list. */
+
+          SELECTITEM FROM download TOP
+
+          DO WHILE rc = 0
+             SAY result
+             SELECTITEM FROM download NEXT
+          END
+
+
+@EndNode
+
+@Node "SEND" "termRexx.guide/SEND"
+@Next "SENDBREAK"
+@Prev "SELECTITEM"
+@Toc "Commands"
+
+@{u}The SEND command@{uu}
+
+@{b}Format:@{ub}
+     SEND [Noecho] [Local] [Literal] [Byte <ASCII code>] [Text] <Text>
+
+@{b}Template:@{ub}
+     NOECHO/S,LOCAL/S,LITERAL/S,BYTE/K/N,TEXT/A/F
+
+@{b}Purpose:@{ub}
+     Sends the provided text to the serial line, executes embedded
+     command sequences.
+
+@{b}Specifications:@{ub}
+     Sends the provided text to the serial line, executes embedded
+     command sequences (see main program documentation). To send a
+     single byte, use the @{b}Byte@{ub} parameter. The @{b}Noecho@{ub} parameter will
+     suppress terminal output. The @{b}Local@{ub} parameter will cause the text
+     to be output only locally in the terminal window, it will not be
+     sent across the serial line. The @{b}Literal@{ub} parameter keeps `term'
+     from interpreting any special characters, such as @{b}\\r@{ub}, in the text
+     to send and just transmits the text you passed in.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Send some text to the serial line. */
+
+          SEND 'This is some text.\r\n'
+
+          /* Send a single byte (a null) to the serial line. */
+
+          SEND BYTE 0
+
+          /* Execute an embedded command (send a break signal). */
+
+          SEND '\x'
+
+
+@EndNode
+
+@Node "SENDBREAK" "termRexx.guide/SENDBREAK"
+@Next "SENDFILE"
+@Prev "SEND"
+@Toc "Commands"
+
+@{u}The SENDBREAK command@{uu}
+
+@{b}Format:@{ub}
+     SENDBREAK
+
+@{b}Template:@{ub}
+     ,
+
+@{b}Purpose:@{ub}
+     Send a break signal across the serial line.
+
+@{b}Specifications:@{ub}
+     Send a break signal across the serial line.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Send a break signal. */
+
+          SENDBREAK
+
+
+@EndNode
+
+@Node "SENDFILE" "termRexx.guide/SENDFILE"
+@Next "SETATTR"
+@Prev "SENDBREAK"
+@Toc "Commands"
+
+@{u}The SENDFILE command@{uu}
+
+@{b}Format:@{ub}
+     SENDFILE [Mode <ASCII|Text|Binary>] [Names] {File names}
+
+@{b}Template:@{ub}
+     MODE/K,NAMES/M
+
+@{b}Purpose:@{ub}
+     Transfers files using the currently selected file transfer
+     protocol.
+
+@{b}Specifications:@{ub}
+     Transfers one or more files using the currently configured XPR
+     protocol.  The @{b}Mode@{ub} parameter determines the file transfer mode
+     (either plain ASCII, Text mode or binary file mode), if omitted
+     the file(s) will be sent in binary mode. Some file transfer
+     protocols do not require any file names to be given as they have
+     their own means to determine the names of the files to be sent.
+     However, a file name parameter can be given. If omitted the file
+     transfer protocol will prompt the user for a file name if
+     necessary. Several file names can be given if necessary, they will
+     be transferred along with the file names stored in the upload
+     list. The file transfer process will remove any files successfully
+     transferred from the upload list, leaving only those behing which
+     were not to be transferred correctly.
+
+     Files whose names do not include a fully qualified path name are
+     expected to reside in the default upload directory as specified in
+     the main program paths settings.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     If user cancels file selection.
+
+@{b}Example:@{ub}
+          /* Prompt for files to be uploaded. */
+
+          SENDFILE
+
+          /* Send a single file. */
+
+          SENDFILE 'c:list'
+
+          /* Clear the upload list, add a single file name. */
+
+          CLEAR upload
+          ADDITEM TO upload NAME 'c:dir'
+
+          /* Transfer the file. */
+
+          SENDFILE
+
+
+@EndNode
+
+@Node "SETATTR" "termRexx.guide/SETATTR"
+@Next "SPEAK"
+@Prev "SENDFILE"
+@Toc "Commands"
+
+@{u}The SETATTR command@{uu}
+
+@{b}Format:@{ub}
+     SETATTR [Object] <Name> [Field] <Name> [Stem <Name>] [Var <Name>]
+
+@{b}Template:@{ub}
+     OBJECT/A,FIELD,STEM/K,VAR
+
+@{b}Purpose:@{ub}
+     Sets a certain application attribute.
+
+@{b}Specifications:@{ub}
+     Sets a certain application attribute, retrieves the information
+     from the supplied stem or simple variable. For a list of valid
+     attributes, see the section entitled @{"Attributes" Link "Attributes"}.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Set the transfer speed. */
+
+          SETATTR serialprefs baudrate 2400
+
+
+@EndNode
+
+@Node "SPEAK" "termRexx.guide/SPEAK"
+@Next "STOPBITS"
+@Prev "SETATTR"
+@Toc "Commands"
+
+@{u}The SPEAK command@{uu}
+
+@{b}Format:@{ub}
+     SPEAK [Text] <Text>
+
+@{b}Template:@{ub}
+     TEXT/A/F
+
+@{b}Purpose:@{ub}
+     Speaks the provided text using the Amiga speech synthesizer.
+
+@{b}Specifications:@{ub}
+     Speaks the provided text using the Amiga speech synthesizer,
+     requires that speech support is enabled.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Say something sensible. */
+
+          SPEAK 'something sensible'
+
+
+@EndNode
+
+@Node "STOPBITS" "termRexx.guide/STOPBITS"
+@Next "TEXTBUFFER"
+@Prev "SPEAK"
+@Toc "Commands"
+
+@{u}The STOPBITS command@{uu}
+
+@{b}Format:@{ub}
+     STOPBITS [0|1]
+
+@{b}Template:@{ub}
+     0/S,1/S
+
+@{b}Purpose:@{ub}
+     Sets the serial line stop bits.
+
+@{b}Specifications:@{ub}
+     Sets the serial line stop bits.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Set the serial line stop bits. */
+
+          STOPBITS 1
+
+
+@EndNode
+
+@Node "TEXTBUFFER" "termRexx.guide/TEXTBUFFER"
+@Next "TIMEOUT"
+@Prev "STOPBITS"
+@Toc "Commands"
+
+@{u}The TEXTBUFFER command@{uu}
+
+@{b}Format:@{ub}
+     TEXTBUFFER [Lock|Unlock]
+
+@{b}Template:@{ub}
+     LOCK/S,UNLOCK/S
+
+@{b}Purpose:@{ub}
+     Locks or unlocks the text buffer contents.
+
+@{b}Specifications:@{ub}
+     Locks or unlocks the text buffer contents, similar to the effect
+     of the corresponding main menu entry.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Lock the text buffer. */
+
+          TEXTBUFFER LOCK
+
+
+@EndNode
+
+@Node "TIMEOUT" "termRexx.guide/TIMEOUT"
+@Next "TRAP"
+@Prev "TEXTBUFFER"
+@Toc "Commands"
+
+@{u}The TIMEOUT command@{uu}
+
+@{b}Format:@{ub}
+     TIMEOUT [[Sec|Seconds] <Number>] [Off]
+
+@{b}Template:@{ub}
+     SEC=SECONDS/N,OFF/S
+
+@{b}Purpose:@{ub}
+     Sets the serial read timeout.
+
+@{b}Specifications:@{ub}
+     Sets the timeout the @{"WAIT" Link "WAIT"} and @{"READ" Link "READ"} commands will wait until they
+     exit.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Set the read timeout. */
+
+          TIMEOUT SEC 5
+
+
+@EndNode
+
+@Node "TRAP" "termRexx.guide/TRAP"
+@Next "WAIT"
+@Prev "TIMEOUT"
+@Toc "Commands"
+
+@{u}The TRAP command@{uu}
+
+@{b}Format:@{ub}
+     TRAP <On|Off>
+
+@{b}Template:@{ub}
+     ON/S,OFF/S
+
+@{b}Purpose:@{ub}
+     Turns the trap list processing on or off.
+
+@{b}Specifications:@{ub}
+     This command tells the main program whether it should process
+     entries of the trap list when filtering input or not.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Ignore the trap list. */
+
+          TRAP OFF
+
+
+@EndNode
+
+@Node "WAIT" "termRexx.guide/WAIT"
+@Next "WINDOW"
+@Prev "TRAP"
+@Toc "Commands"
+
+@{u}The WAIT command@{uu}
+
+@{b}Format:@{ub}
+     WAIT [Noecho] [[Text] <Text>]
+
+@{b}Template:@{ub}
+     NOECHO/S,TEXT/F
+
+@{b}Purpose:@{ub}
+     Waits for a certain sequence of characters to be received from the
+     serial line.
+
+@{b}Specifications:@{ub}
+     Wait for text to be received from the serial line. If no text to
+     wait for is provided wait for either item of the wait list to
+     appear. The @{b}Noecho@{ub} parameter suppresses terminal output. @{i}Note that
+     text comparison does not consider the case of characters (in
+     respect to the ECMA Latin 1 character set).@{ui} As `term' has control
+     over the incoming data stream before and after the @{b}WAIT@{ub} command is
+     executed, it may `eat' and process data the @{b}WAIT@{ub} command ought to
+     receive. In order to avoid this effect you can use the @{b}PROCESSIO@{ub}
+     command (see @{"PROCESSIO" Link "PROCESSIO"}). For example, at the beginning of a
+     program you could tell `term' to leave the incoming data stream
+     alone with the @{b}PROCESSIO OFF@{ub} command, then invoke the @{b}WAIT@{ub} command
+     as needed, and eventually when your program exits allow `term' to
+     process incoming data with the @{b}PROCESSIO ON@{ub} command.
+
+@{b}Result:@{ub}
+     Returns the string found.
+
+@{b}Warning:@{ub}
+     If timeout has elapsed before any matching text was received.
+
+@{b}Example:@{ub}
+          /* Enable command results. */
+
+          OPTIONS RESULTS
+
+          /* Set the read timeout. */
+
+          TIMEOUT SEC 30
+
+          /* Wait for a single line of text. */
+
+          WAIT 'some text'
+
+          /* Clear the wait list, add a few items. */
+
+          CLEAR wait
+          ADDITEM TO wait NAME 'foo'
+          ADDITEM TO wait NAME 'bar'
+
+          /* Wait for the text to appear. */
+
+          WAIT
+
+          /* Output the result. */
+
+          IF rc ~= 0 THEN
+             SAY 'no text was received'
+          ELSE
+             SAY result
+
+
+@EndNode
+
+@Node "WINDOW" "termRexx.guide/WINDOW"
+@Prev "WAIT"
+@Toc "Commands"
+
+@{u}The WINDOW command@{uu}
+
+@{b}Format:@{ub}
+     WINDOW [Names] {<Buffer|Review|Packet|Fastmacros|
+     Status|Main|UploadQueue>} [Open|Close] [Activate] [Min|Max]
+     [Front|Back] [Top|Bottom|Up|Down]
+
+@{b}Template:@{ub}
+     NAMES/A/M,OPEN/S,CLOSE/S,ACTIVATE/S,MIN/S,MAX/S,FRONT/S,BACK/S,
+     TOP/S,BOTTOM/S,UP/S,DOWN/S
+
+@{b}Purpose:@{ub}
+     Manipulates the aspects of a window.
+
+@{b}Specifications:@{ub}
+     Manipulates the aspects of a window. Not all windows will support
+     all available commands. The windows supported are:
+    @{b}Buffer@{ub}
+          The text buffer window and screen. Supports the @{b}Open@{ub}, @{b}Close@{ub},
+          @{b}Activate@{ub} and @{b}Front@{ub} commands.
+
+    @{b}Review@{ub}
+          The review window. Supports the @{b}Open@{ub}, @{b}Close@{ub}, @{b}Activate@{ub}, @{b}Min@{ub},
+          @{b}Max@{ub}, @{b}Front@{ub}, @{b}Back@{ub}, @{b}Top@{ub}, @{b}Bottom@{ub}, @{b}Up@{ub}, and @{b}Down@{ub} commands.
+
+    @{b}Packet@{ub}
+          The packet window. Supports the @{b}Open@{ub}, @{b}Close@{ub}, @{b}Activate@{ub}, @{b}Min@{ub},
+          @{b}Max@{ub}, @{b}Front@{ub} and @{b}Back@{ub} commands.
+
+    @{b}Fastmacros@{ub}
+          The fast! macro window. Supports the @{b}Open@{ub}, @{b}Close@{ub}, @{b}Activate@{ub},
+          @{b}Min@{ub}, @{b}Max@{ub}, @{b}Front@{ub} and @{b}Back@{ub} commands.
+
+    @{b}Status@{ub}
+          The status window. Supports the @{b}Open@{ub}, @{b}Close@{ub}, @{b}Activate@{ub}, @{b}Front@{ub}
+          and @{b}Back@{ub} commands.
+
+    @{b}Main@{ub}
+          The main program window. Supports the @{b}Open@{ub}, @{b}Close@{ub}, @{b}Activate@{ub},
+          @{b}Front@{ub} and @{b}Back@{ub} commands.
+
+@{b}Result:@{ub}
+     -
+
+@{b}Warning:@{ub}
+     -
+
+@{b}Example:@{ub}
+          /* Open all available windows. */
+
+          WINDOW buffer review packet fastmacros status main OPEN
+
+
+@EndNode
+
+@Node "Attributes" "termRexx.guide/Attributes"
+@Next "Wanted!"
+@Prev "Commands"
+@Toc "Main"
+
+@{b}@{u}Attributes@{ub}@{uu}
+
+   Several of the application's internal variables are can be accessed
+and modified using the @{"GETATTR" Link "GETATTR"} and @{"SETATTR" Link "SETATTR"} commands. Information is
+available on the objects and their associated fields explained below.
+Each line consists of the object and field name and the type of the
+available data:
+@{b}Numeric data@{ub}
+    @{b}<Object>.<Field>@{ub}
+          Numeric
+
+     The information is a numeric value.
+
+@{b}Text data@{ub}
+    @{b}<Object>.<Field>@{ub}
+          Text
+
+     The information is a text string.
+
+@{b}Boolean data@{ub}
+    @{b}<Object>.<Field>@{ub}
+          Boolean
+
+     The information is a boolean value and can be @{b}ON@{ub} or @{b}OFF@{ub}.
+
+@{b}Mapped codes@{ub}
+    @{b}<Object>.<Field>@{ub}
+          <Value 1> ... <Value n>
+
+     The information can be one of the given values.
+
+@{u}The TERM object (read-only)@{uu}
+
+@{b}TERM.VERSION@{ub}
+     Text
+
+     The `term' program revision.
+
+@{b}TERM.SCREEN@{ub}
+     Text
+
+     The name of the public screen the `term' main window has been
+     opened on.
+
+@{b}TERM.SESSION.ONLINE@{ub}
+     Boolean
+
+     Whether the program is currently online or not.
+
+@{b}TERM.SESSION.SESSIONSTART@{ub}
+     Text
+
+     Time and date when the `term' program was started.
+
+@{b}TERM.SESSION.BYTESSENT@{ub}
+     Numeric
+
+@{b}TERM.SESSION.BYTESRECEIVED@{ub}
+     Numeric
+
+@{b}TERM.SESSION.CONNECTMESSAGE@{ub}
+     Text
+
+     The message issued by the modem when the connection was
+     established.
+
+@{b}TERM.SESSION.BBSNAME@{ub}
+     Text
+
+@{b}TERM.SESSION.BBSNUMBER@{ub}
+     Text
+
+@{b}TERM.SESSION.BBSCOMMENT@{ub}
+     Text
+
+@{b}TERM.SESSION.USERNAME@{ub}
+     Text
+
+@{b}TERM.SESSION.ONLINEMINUTES@{ub}
+     Numeric
+
+     The number of minutes the program is currently connected to a BBS.
+
+@{b}TERM.SESSION.ONLINECOST@{ub}
+     Numeric
+
+     The cost of the connection to the BBS.
+
+@{b}TERM.AREXX@{ub}
+     Text
+
+     The name of the ARexx host port the program is communicating with.
+
+@{b}TERM.LASTERROR@{ub}
+     Numeric
+
+     The code corresponding to the error the last command has caused.
+
+@{b}TERM.TERMINAL.ROWS@{ub}
+     Numeric
+
+     The number of available terminal screen rows.
+
+@{b}TERM.TERMINAL.COLUMNS@{ub}
+     Numeric
+
+     The number of available terminal screen columns.
+
+@{b}TERM.BUFFER.SIZE@{ub}
+     Numeric
+
+     The size of the text buffer.
+
+@{u}The PHONEBOOK object (read-only)@{uu}
+
+   Available fields are:
+@{b}PHONEBOOK.COUNT@{ub}
+     Numeric
+
+     The number of entries in the phonebook. The single phonebook
+     entries can be accessed as @{b}PHONEBOOK.0...@{ub} through @{b}PHONEBOOK.n-1...@{ub}.
+
+@{b}PHONEBOOK.n.NAME@{ub}
+     Text
+
+@{b}PHONEBOOK.n.NUMBER@{ub}
+     Text
+
+@{b}PHONEBOOK.n.COMMENTTEXT@{ub}
+     Text
+
+@{b}PHONEBOOK.n.USERNAME@{ub}
+     Text
+
+@{b}PHONEBOOK.n.PASSWORDTEXT@{ub}
+     Text
+
+@{u}The SERIALPREFS object@{uu}
+
+   Available fields are:
+@{b}SERIALPREFS.BAUDRATE@{ub}
+     Numeric
+
+@{b}SERIALPREFS.BREAKLENGTH@{ub}
+     Numeric
+
+     The break signal length in microseconds.
+
+@{b}SERIALPREFS.BUFFERSIZE@{ub}
+     Numeric
+
+@{b}SERIALPREFS.DEVICENAME@{ub}
+     Text
+
+@{b}SERIALPREFS.UNIT@{ub}
+     Numeric
+
+@{b}SERIALPREFS.BITSPERCHAR@{ub}
+     Numeric
+
+     The number of bits per transferred char. This can be either seven
+     or eight.
+
+@{b}SERIALPREFS.PARITYMODE@{ub}
+     @{b}NONE@{ub} @{b}EVEN@{ub} @{b}ODD@{ub} @{b}MARK@{ub} @{b}SPACE@{ub}.
+
+@{b}SERIALPREFS.STOPBITS@{ub}
+     Numeric
+
+     The number of stop bits to be used. This can be either 0 or 1.
+
+@{b}SERIALPREFS.HANDSHAKINGMODE@{ub}
+     @{b}NONE@{ub} @{b}RTSCTS@{ub} @{b}RTSCTSDSR@{ub}
+
+@{b}SERIALPREFS.DUPLEXMODE@{ub}
+     @{b}HALF@{ub} @{b}FULL@{ub}
+
+@{b}SERIALPREFS.INTERNALXONXOFF@{ub}
+     Boolean
+
+@{b}SERIALPREFS.HIGHSPEED@{ub}
+     Boolean
+
+@{b}SERIALPREFS.SHARED@{ub}
+     Boolean
+
+@{b}SERIALPREFS.STRIPBIT8@{ub}
+     Boolean
+
+@{b}SERIALPREFS.CARRIERCHECK@{ub}
+     Boolean
+
+@{b}SERIALPREFS.PASSXONXOFFTHROUGH@{ub}
+     Boolean
+
+@{b}SERIALPREFS.QUANTUM@{ub}
+     Numeric
+
+@{b}SERIALPREFS.USEOWNDEVUNIT@{ub}
+     Boolean
+
+@{b}SERIALPREFS.OWNDEVUNITREQUEST@{ub}
+     @{b}RELEASE@{ub} @{b}RELEASERETRY@{ub} @{b}IGNORE@{ub}
+
+@{u}The MODEMPREFS object@{uu}
+
+   Available fields are:
+@{b}MODEMPREFS.MODEMINITTEXT@{ub}
+     Text
+
+@{b}MODEMPREFS.MODEMEXITTEXT@{ub}
+     Text
+
+@{b}MODEMPREFS.MODEMHANGUPTEXT@{ub}
+     Text
+
+@{b}MODEMPREFS.DIALPREFIXTEXT@{ub}
+     Text
+
+@{b}MODEMPREFS.DIALSUFFIXTEXT@{ub}
+     Text
+
+@{b}MODEMPREFS.DIALMODE@{ub}
+     @{b}PULSE@{ub} @{b}TONE@{ub}
+
+@{b}MODEMPREFS.NOCARRIERTEXT@{ub}
+     Text
+
+@{b}MODEMPREFS.NODIALTONETEXT@{ub}
+     Text
+
+@{b}MODEMPREFS.CONNECTTEXT@{ub}
+     Text
+
+@{b}MODEMPREFS.VOICETEXT@{ub}
+     Text
+
+@{b}MODEMPREFS.RINGTEXT@{ub}
+     Text
+
+@{b}MODEMPREFS.BUSYTEXT@{ub}
+     Text
+
+@{b}MODEMPREFS.OKTEXT@{ub}
+     Text
+
+@{b}MODEMPREFS.ERRORTEXT@{ub}
+     Text
+
+@{b}MODEMPREFS.REDIALDELAY@{ub}
+     Numeric
+
+     The redial delay in seconds
+
+@{b}MODEMPREFS.DIALRETRIES@{ub}
+     Numeric
+
+@{b}MODEMPREFS.DIALTIMEOUT@{ub}
+     Numeric
+
+     The dial timeout in seconds
+
+@{b}MODEMPREFS.VERBOSEDIALING@{ub}
+     Boolean
+
+@{b}MODEMPREFS.CONNECTAUTOBAUD@{ub}
+     Boolean
+
+@{b}MODEMPREFS.HANGUPDROPSDTR@{ub}
+     Boolean
+
+@{b}MODEMPREFS.REDIALAFTERHANGUP@{ub}
+     Boolean
+
+@{b}MODEMPREFS.NOCARRIERISBUSY@{ub}
+     Boolean
+
+@{b}MODEMPREFS.CONNECTLIMIT@{ub}
+     Numeric
+
+     Time limit in minutes.
+
+@{b}MODEMPREFS.CONNECTLIMITMACRO@{ub}
+     Text
+
+@{b}MODEMPREFS.TIMETOCONNECT@{ub}
+     Numeric
+
+@{u}The SCREENPREFS object@{uu}
+
+   Available fields are:
+@{b}SCREENPREFS.COLOURMODE@{ub}
+     @{b}TWO@{ub} @{b}FOUR@{ub} @{b}EIGHT@{ub} @{b}SIXTEEN@{ub}
+
+@{b}SCREENPREFS.FONTNAME@{ub}
+     Text
+
+@{b}SCREENPREFS.FONTSIZE@{ub}
+     Numeric
+
+@{b}SCREENPREFS.MAKESCREENPUBLIC@{ub}
+     Boolean
+
+@{b}SCREENPREFS.SHANGHAIWINDOWS@{ub}
+     Boolean
+
+@{b}SCREENPREFS.BLINKING@{ub}
+     Boolean
+
+@{b}SCREENPREFS.FASTERLAYOUT@{ub}
+     Boolean
+
+@{b}SCREENPREFS.TITLEBAR@{ub}
+     Boolean
+
+@{b}SCREENPREFS.STATUSLINEMODE@{ub}
+     @{b}DISABLED@{ub} @{b}STANDARD@{ub} @{b}COMPRESSED@{ub}
+
+@{b}SCREENPREFS.USEPUBSCREEN@{ub}
+     Boolean
+
+@{b}SCREENPREFS.PUBSCREENNAME@{ub}
+     Text
+
+@{b}SCREENPREFS.USEPENS@{ub}
+     Boolean
+
+@{b}SCREENPREFS.WINDOWBORDER@{ub}
+     Boolean
+
+@{b}SCREENPREFS.SPLITSTATUS@{ub}
+     Boolean
+
+@{b}SCREENPREFS.ONLINEDISPLAY@{ub}
+     @{b}TIME@{ub} @{b}COST@{ub} @{b}BOTH@{ub}
+
+@{u}The TERMINALPREFS object@{uu}
+
+   Available fields are:
+@{b}TERMINALPREFS.BELLMODE@{ub}
+     @{b}NONE@{ub} @{b}VISIBLE@{ub} @{b}AUDIBLE@{ub} @{b}BOTH@{ub} @{b}SYSTEM@{ub}
+
+@{b}TERMINALPREFS.ALERTMODE@{ub}
+     @{b}NONE@{ub} @{b}BELL@{ub} @{b}SCREEN@{ub} @{b}BOTH@{ub}
+
+@{b}TERMINALPREFS.EMULATIONMODE@{ub}
+     @{b}INTERNAL@{ub} @{b}ATOMIC@{ub} @{b}TTY@{ub} @{b}EXTERNAL@{ub} @{b}HEX@{ub}
+
+@{b}TERMINALPREFS.FONTMODE@{ub}
+     @{b}STANDARD@{ub} @{b}IBM@{ub} @{b}IBMRAW@{ub}
+
+@{b}TERMINALPREFS.SENDCRMODE@{ub}
+     @{b}IGNORE@{ub} @{b}CR@{ub} @{b}CRLF@{ub}
+
+@{b}TERMINALPREFS.SENDLFMODE@{ub}
+     @{b}IGNORE@{ub} @{b}LF@{ub} @{b}LFCR@{ub}
+
+@{b}TERMINALPREFS.RECEIVECRMODE@{ub}
+     @{b}IGNORE@{ub} @{b}CR@{ub} @{b}CRLF@{ub}
+
+@{b}TERMINALPREFS.RECEIVELFMODE@{ub}
+     @{b}IGNORE@{ub} @{b}LF@{ub} @{b}LFCR@{ub}
+
+@{b}TERMINALPREFS.NUMCOLUMNS@{ub}
+     Numeric
+
+@{b}TERMINALPREFS.NUMLINES@{ub}
+     Numeric
+
+@{b}TERMINALPREFS.KEYMAPNAME@{ub}
+     Text
+
+@{b}TERMINALPREFS.EMULATIONNAME@{ub}
+     Text
+
+@{b}TERMINALPREFS.FONTNAME@{ub}
+     Text
+
+@{b}TERMINALPREFS.FONTSIZE@{ub}
+     Numeric
+
+@{b}TERMINALPREFS.USETERMINALPROCESS@{ub}
+     Boolean
+
+@{u}The EMULATIONPREFS object@{uu}
+
+   Available fields are:
+@{b}EMULATIONPREFS.CURSORMODE@{ub}
+     @{b}STANDARD@{ub} @{b}APPLICATION@{ub}
+
+@{b}EMULATIONPREFS.NUMERICMODE@{ub}
+     @{b}STANDARD@{ub} @{b}APPLICATION@{ub}
+
+@{b}EMULATIONPREFS.CURSORWRAP@{ub}
+     Boolean
+
+@{b}EMULATIONPREFS.LINEWRAP@{ub}
+     Boolean
+
+@{b}EMULATIONPREFS.INSERTMODE@{ub}
+     Boolean
+
+@{b}EMULATIONPREFS.NEWLINEMODE@{ub}
+     Boolean
+
+@{b}EMULATIONPREFS.FONTSCALEMODE@{ub}
+     @{b}NORMAL@{ub} @{b}HALF@{ub}
+
+@{b}EMULATIONPREFS.SCROLLMODE@{ub}
+     @{b}JUMP@{ub} @{b}SMOOTH@{ub}
+
+@{b}EMULATIONPREFS.DESTRUCTIVEBACKSPACE@{ub}
+     @{b}OFF@{ub} @{b}OVERSTRIKE@{ub} @{b}OVERSTRIKESHIFT@{ub}
+
+@{b}EMULATIONPREFS.SWAPBSDELETE@{ub}
+     Boolean
+
+@{b}EMULATIONPREFS.PRINTERENABLED@{ub}
+     Boolean
+
+@{b}EMULATIONPREFS.ANSWERBACKTEXT@{ub}
+     Text
+
+@{b}EMULATIONPREFS.CLSRESETSCURSOR@{ub}
+     Boolean
+
+@{b}EMULATIONPREFS.NUMPADLOCKED@{ub}
+     Boolean
+
+@{b}EMULATIONPREFS.CURSORLOCKED@{ub}
+     Boolean
+
+@{b}EMULATIONPREFS.FONTLOCKED@{ub}
+     Boolean
+
+@{b}EMULATIONPREFS.WRAPLOCKED@{ub}
+     Boolean
+
+@{b}EMULATIONPREFS.STYLELOCKED@{ub}
+     Boolean
+
+@{b}EMULATIONPREFS.COLOURLOCKED@{ub}
+     Boolean
+
+@{b}EMULATIONPREFS.MAXPRESCROLL@{ub}
+     Numeric
+
+@{b}EMULATIONPREFS.MAXJUMP@{ub}
+     Numeric
+
+@{b}EMULATIONPREFS.USEPENS@{ub}
+     Boolean
+
+@{u}The CLIPBOARDPREFS object@{uu}
+
+   Available fields are:
+@{b}CLIPBOARDPREFS.UNIT@{ub}
+     Numeric
+
+@{b}CLIPBOARDPREFS.CONVERTLF@{ub}
+     Wahrheitswert
+
+@{b}CLIPBOARDPREFS.LINEDELAY@{ub}
+     Numeric
+
+     Paste line delay in 1/100 seconds.
+
+@{b}CLIPBOARDPREFS.CHARDELAY@{ub}
+     Numeric
+
+     Paste character delay in 1/100 seconds.
+
+@{b}CLIPBOARDPREFS.LINEPROMPTTEXT@{ub}
+     Text
+
+@{b}CLIPBOARDPREFS.SENDTIMEOUT@{ub}
+     Numeric
+
+     Timeout in 1/100 seconds.
+
+@{b}CLIPBOARDPREFS.TEXTPACING@{ub}
+     @{b}DIRECT@{ub} @{b}ECHO@{ub} @{b}ANYECHO@{ub} @{b}PROMPT@{ub} @{b}DELAY@{ub} @{b}KEYBOARD@{ub}
+
+@{b}CLIPBOARDPREFS.INSERTPREFIXTEXT@{ub}
+     Text
+
+@{b}CLIPBOARDPREFS.INSERTSUFFIXTEXT@{ub}
+     Text
+
+@{u}The CAPTUREPREFS object@{uu}
+
+   Available fields are:
+@{b}CAPTUREPREFS.LOGACTIONS@{ub}
+     Boolean
+
+@{b}CAPTUREPREFS.LOGFILENAME@{ub}
+     Text
+
+@{b}CAPTUREPREFS.LOGCALLS@{ub}
+     Boolean
+
+@{b}CAPTUREPREFS.CALLLOGFILENAME@{ub}
+     Text
+
+@{b}CAPTUREPREFS.MAXBUFFERSIZE@{ub}
+     Numeric
+
+@{b}CAPTUREPREFS.BUFFER@{ub}
+     Boolean
+
+@{b}CAPTUREPREFS.BUFFERSAVEPATH@{ub}
+     Text
+
+@{b}CAPTUREPREFS.CONNECTAUTOCAPTURE@{ub}
+     Boolean
+
+@{b}CAPTUREPREFS.AUTOCAPTUREDATE@{ub}
+     @{b}NAME@{ub}, @{b}INCLUDE@{ub}
+
+@{b}CAPTUREPREFS.CAPTUREFILTER@{ub}
+     Boolean
+
+@{b}CAPTUREPREFS.CONVERTCHARACTERS@{ub}
+     Boolean
+
+@{b}CAPTUREPREFS.CAPTUREPATH@{ub}
+     Text
+
+@{b}CAPTUREPREFS.OPENBUFFERWINDOW@{ub}
+     @{b}TOP@{ub}, @{b}END@{ub}
+
+@{b}CAPTUREPREFS.REMEMBERBUFFERWINDOW@{ub}
+     Boolean
+
+@{b}CAPTUREPREFS.OPENBUFFERSCREEN@{ub}
+     @{b}TOP@{ub}, @{b}END@{ub}
+
+@{b}CAPTUREPREFS.REMEMBERBUFFERSCREEN@{ub}
+     Boolean
+
+@{b}CAPTUREPREFS.BUFFERSCREENPOSITION@{ub}
+     @{b}LEFT@{ub}, @{b}MID@{ub}, @{b}RIGHT@{ub}
+
+@{b}CAPTUREPREFS.BUFFERWIDTH@{ub}
+     Numeric
+
+@{b}CAPTUREPREFS.SEARCHHISTORY@{ub}
+     Numeric
+
+@{u}The COMMANDPREFS object@{uu}
+
+   Available fields are:
+@{b}COMMANDPREFS.STARTUPMACROTEXT@{ub}
+     Text
+
+@{b}COMMANDPREFS.LOGINMACROTEXT@{ub}
+     Text
+
+@{b}COMMANDPREFS.LOGOFFMACROTEXT@{ub}
+     Text
+
+@{b}COMMANDPREFS.UPLOADMACROTEXT@{ub}
+     Text
+
+@{b}COMMANDPREFS.DOWNLOADMACROTEXT@{ub}
+     Text
+
+@{u}The MISCPREFS object@{uu}
+
+   Available fields are:
+@{b}MISCPREFS.PRIORITY@{ub}
+     Numeric
+
+@{b}MISCPREFS.BACKUPCONFIG@{ub}
+     Boolean
+
+@{b}MISCPREFS.OPENFASTMACROPANEL@{ub}
+     Boolean
+
+@{b}MISCPREFS.RELEASEDEVICE@{ub}
+     Boolean
+
+@{b}MISCPREFS.CREATEICONS@{ub}
+     Boolean
+
+@{b}MISCPREFS.SIMPLEIO@{ub}
+     Boolean
+
+@{b}MISCPREFS.PROTECTIVEMODE@{ub}
+     Boolean
+
+@{b}MISCPREFS.IOBUFFERSIZE@{ub}
+     Numeric
+
+@{u}The PATHPREFS object@{uu}
+
+   Available fields are:
+@{b}PATHPREFS.ASCIIUPLOADPATH@{ub}
+     Text
+
+@{b}PATHPREFS.ASCIIDOWNLOADPATH@{ub}
+     Text
+
+@{b}PATHPREFS.TEXTUPLOADPATH@{ub}
+     Text
+
+@{b}PATHPREFS.TEXTDOWNLOADPATH@{ub}
+     Text
+
+@{b}PATHPREFS.BINARYUPLOADPATH@{ub}
+     Text
+
+@{b}PATHPREFS.BINARYDOWNLOADPATH@{ub}
+     Text
+
+@{b}PATHPREFS.CONFIGPATH@{ub}
+     Text
+
+@{b}PATHPREFS.EDITORNAME@{ub}
+     Text
+
+@{b}PATHPREFS.HELPFILENAME@{ub}
+     Text
+
+@{u}The TRANSFERPREFS object@{uu}
+
+   Available fields are:
+@{b}TRANSFERPREFS.DEFAULTPROTOCOL@{ub}
+     Text
+
+@{b}TRANSFERPREFS.ERRORNOTIFYCOUNT@{ub}
+     Numeric
+
+@{b}TRANSFERPREFS.ERRORNOTIFYWHEN@{ub}
+     @{b}NEVER@{ub} @{b}ALWAYS@{ub} @{b}START@{ub} @{b}END@{ub}
+
+@{b}TRANSFERPREFS.ASCIIUPLOADPROTOCOL@{ub}
+     Text
+
+@{b}TRANSFERPREFS.ASCIIDOWNLOADPROTOCOL@{ub}
+     Text
+
+@{b}TRANSFERPREFS.QUIETTRANSFER@{ub}
+     Boolean
+
+@{b}TRANSFERPREFS.MANGLEFILENAMES@{ub}
+     Boolean
+
+@{b}TRANSFERPREFS.LINEDELAY@{ub}
+     Numeric
+
+@{b}TRANSFERPREFS.CHARDELAY@{ub}
+     Numeric
+
+@{b}TRANSFERPREFS.LINEPROMPTTEXT@{ub}
+     Text
+
+@{b}TRANSFERPREFS.TEXTPACING@{ub}
+     @{b}DIRECT@{ub} @{b}ECHO@{ub} @{b}ANYECHO@{ub} @{b}PROMPT@{ub} @{b}DELAY@{ub} @{b}KEYBOARD@{ub}
+
+@{b}TRANSFERPREFS.SENDTIMEOUT@{ub}
+     Numeric
+
+@{b}TRANSFERPREFS.STRIPBIT8@{ub}
+     Boolean
+
+@{b}TRANSFERPREFS.IGNOREDATAPASTTERMINATOR@{ub}
+     Boolean
+
+@{b}TRANSFERPREFS.TERMINATORCHAR@{ub}
+     Numeric
+
+@{b}TRANSFERPREFS.TEXTUPLOADPROTOCOL@{ub}
+     Text
+
+@{b}TRANSFERPREFS.TEXTDOWNLOADPROTOCOL@{ub}
+     Text
+
+@{b}TRANSFERPREFS.BINARYUPLOADPROTOCOL@{ub}
+     Text
+
+@{b}TRANSFERPREFS.BINARYDOWNLOADPROTOCOL@{ub}
+     Text
+
+@{b}TRANSFERPREFS.OVERRIDEPATH@{ub}
+     Boolean
+
+@{b}TRANSFERPREFS.SETARCHIVEDBIT@{ub}
+     Boolean
+
+@{b}TRANSFERPREFS.COMMENTMODE@{ub}
+     @{b}IGNORE@{ub} @{b}FILETYPE@{ub} @{b}SOURCE@{ub}
+
+@{b}TRANSFERPREFS.TRANSFERICONS@{ub}
+     Boolean
+
+@{b}TRANSFERPREFS.HIDEUPLOADICON@{ub}
+     Boolean
+
+@{b}TRANSFERPREFS.TRANSFERPERFMETER@{ub}
+     Boolean
+
+@{b}TRANSFERPREFS.DEFAULTTYPE@{ub}
+     @{b}XPR@{ub} or @{b}PROGRAM@{ub}
+
+@{b}TRANSFERPREFS.DEFAULTSENDSIGNATURE@{ub}
+     Text
+
+@{b}TRANSFERPREFS.DEFAULTRECEIVESIGNATURE@{ub}
+     Text
+
+@{b}TRANSFERPREFS.ASCIIUPLOADTYPE@{ub}
+     @{b}XPR@{ub}, @{b}PROGRAM@{ub}, @{b}DEFAULT@{ub} or @{b}INTERNAL@{ub}
+
+@{b}TRANSFERPREFS.ASCIIUPLOADSIGNATURE@{ub}
+     Text
+
+@{b}TRANSFERPREFS.ASCIIDOWNLOADSIGNATURE@{ub}
+     Text
+
+@{b}TRANSFERPREFS.ASCIIDOWNLOADTYPE@{ub}
+     @{b}XPR@{ub}, @{b}PROGRAM@{ub}, @{b}DEFAULT@{ub} or @{b}INTERNAL@{ub}
+
+@{b}TRANSFERPREFS.ASCIIDOWNLOADSIGNATURE@{ub}
+     Text
+
+@{b}TRANSFERPREFS.ASCIIDOWNLOADSIGNATURE@{ub}
+     Text
+
+@{b}TRANSFERPREFS.TEXTUPLOADTYPE@{ub}
+     @{b}XPR@{ub}, @{b}PROGRAM@{ub} or @{b}DEFAULT@{ub}
+
+@{b}TRANSFERPREFS.TEXTUPLOADSIGNATURE@{ub}
+     Text
+
+@{b}TRANSFERPREFS.TEXTDOWNLOADSIGNATURE@{ub}
+     Text
+
+@{b}TRANSFERPREFS.TEXTDOWNLOADTYPE@{ub}
+     @{b}XPR@{ub}, @{b}PROGRAM@{ub} or @{b}DEFAULT@{ub}
+
+@{b}TRANSFERPREFS.TEXTDOWNLOADSIGNATURE@{ub}
+     Text
+
+@{b}TRANSFERPREFS.TEXTDOWNLOADSIGNATURE@{ub}
+     Text
+
+@{b}TRANSFERPREFS.BINARYUPLOADTYPE@{ub}
+     @{b}XPR@{ub}, @{b}PROGRAM@{ub} or @{b}DEFAULT@{ub}
+
+@{b}TRANSFERPREFS.BINARYUPLOADSIGNATURE@{ub}
+     Text
+
+@{b}TRANSFERPREFS.BINARYDOWNLOADSIGNATURE@{ub}
+     Text
+
+@{b}TRANSFERPREFS.BINARYDOWNLOADTYPE@{ub}
+     @{b}XPR@{ub}, @{b}PROGRAM@{ub} or @{b}DEFAULT@{ub}
+
+@{b}TRANSFERPREFS.BINARYDOWNLOADSIGNATURE@{ub}
+     Text
+
+@{b}TRANSFERPREFS.BINARYDOWNLOADSIGNATURE@{ub}
+     Text
+
+@{u}The PROTOCOLPREFS object@{uu}
+
+   This object features no fields, it contains a single line of text:
+the XPR protocol options.
+
+@{u}The TRANSLATIONPREFS object@{uu}
+
+   Indices referring to the ascii codes range from 0 to 255, available
+fields are:
+@{b}TRANSLATIONPREFS.n.SEND@{ub}
+     Text
+
+@{b}TRANSLATIONPREFS.n.RECEIVE@{ub}
+     Text
+
+@{u}The FUNCTIONKEYPREFS object@{uu}
+
+   Key indices range from 1 to 10 (representing F1 through F10),
+available fields are:
+@{b}FUNCTIONKEYPREFS.n@{ub}
+     Text
+
+@{b}FUNCTIONKEYPREFS.SHIFT.n@{ub}
+     Text
+
+@{b}FUNCTIONKEYPREFS.ALT.n@{ub}
+     Text
+
+@{b}FUNCTIONKEYPREFS.CONTROL.n@{ub}
+     Text
+
+@{u}The CURSORKEYPREFS object@{uu}
+
+   Available fields are:
+@{b}CURSORKEYPREFS.UPTEXT@{ub}
+     Text
+
+@{b}CURSORKEYPREFS.RIGHTTEXT@{ub}
+     Text
+
+@{b}CURSORKEYPREFS.DOWNTEXT@{ub}
+     Text
+
+@{b}CURSORKEYPREFS.LEFTTEXT@{ub}
+     Text
+
+@{b}CURSORKEYPREFS.SHIFT.UPTEXT@{ub}
+     Text
+
+@{b}CURSORKEYPREFS.SHIFT.RIGHTTEXT@{ub}
+     Text
+
+@{b}CURSORKEYPREFS.SHIFT.DOWNTEXT@{ub}
+     Text
+
+@{b}CURSORKEYPREFS.SHIFT.LEFTTEXT@{ub}
+     Text
+
+@{b}CURSORKEYPREFS.ALT.UPTEXT@{ub}
+     Text
+
+@{b}CURSORKEYPREFS.ALT.RIGHTTEXT@{ub}
+     Text
+
+@{b}CURSORKEYPREFS.ALT.DOWNTEXT@{ub}
+     Text
+
+@{b}CURSORKEYPREFS.ALT.LEFTTEXT@{ub}
+     Text
+
+@{b}CURSORKEYPREFS.CONTROL.UPTEXT@{ub}
+     Text
+
+@{b}CURSORKEYPREFS.CONTROL.RIGHTTEXT@{ub}
+     Text
+
+@{b}CURSORKEYPREFS.CONTROL.DOWNTEXT@{ub}
+     Text
+
+@{b}CURSORKEYPREFS.CONTROL.LEFTTEXT@{ub}
+     Text
+
+@{u}The FASTMACROPREFS object@{uu}
+
+@{b}FASTMACROPREFS.COUNT@{ub}
+     Numeric
+
+     The number of fast macros available, entries range from
+     @{b}FASTMACROPREFS.0...@{ub} to @{b}FASTMACROPREFS.n-1...@{ub}
+
+@{b}FASTMACROPREFS.n.NAME@{ub}
+     Text
+
+@{b}FASTMACROPREFS.n.CODE@{ub}
+     Text
+
+@{u}The HOTKEYPREFS object@{uu}
+
+   Available fields are:
+@{b}HOTKEYPREFS.TERMSCREENTOFRONTTEXT@{ub}
+     Text
+
+@{b}HOTKEYPREFS.BUFFERSCREENTOFRONTTEXT@{ub}
+     Text
+
+@{b}HOTKEYPREFS.SKIPDIALENTRYTEXT@{ub}
+     Text
+
+@{b}HOTKEYPREFS.ABORTAREXX@{ub}
+     Text
+
+@{b}HOTKEYPREFS.COMMODITYPRIORITY@{ub}
+     Numeric
+
+@{b}HOTKEYPREFS.HOTKEYSENABLED@{ub}
+     Boolean
+
+@{u}The SPEECHPREFS object@{uu}
+
+   Available fields are:
+@{b}SPEECHPREFS.RATE@{ub}
+     Numeric
+
+@{b}SPEECHPREFS.PITCH@{ub}
+     Numeric
+
+@{b}SPEECHPREFS.FREQUENCY@{ub}
+     Numeric
+
+@{b}SPEECHPREFS.SEXMODE@{ub}
+     @{b}MALE@{ub} @{b}FEMALE@{ub}
+
+@{b}SPEECHPREFS.VOLUME@{ub}
+     Numeric
+
+@{b}SPEECHPREFS.SPEECH@{ub}
+     Boolean
+
+@{u}The SOUNDPREFS object@{uu}
+
+   Available fields are:
+@{b}SOUNDPREFS.BELLNAME@{ub}
+     Text
+
+@{b}SOUNDPREFS.CONNECTNAME@{ub}
+     Text
+
+@{b}SOUNDPREFS.DISCONNECTNAME@{ub}
+     Text
+
+@{b}SOUNDPREFS.GOODTRANSFERNAME@{ub}
+     Text
+
+@{b}SOUNDPREFS.BADTRANSFERNAME@{ub}
+     Text
+
+@{b}SOUNDPREFS.RINGNAME@{ub}
+     Text
+
+@{b}SOUNDPREFS.VOICENAME@{ub}
+     Text
+
+@{b}SOUNDPREFS.ERRORNAME@{ub}
+     Text
+
+@{b}SOUNDPREFS.PRELOAD@{ub}
+     Boolean
+
+@{u}The CONSOLEPREFS object@{uu}
+
+   This object features no fields, it contains a single line of text:
+the console output window specification.
+
+@{u}The FILEPREFS object@{uu}
+
+   Available fields are:
+@{b}FILEPREFS.TRANSFERPROTOCOLNAME@{ub}
+     Text
+
+@{b}FILEPREFS.TRANSLATIONFILENAME@{ub}
+     Text
+
+@{b}FILEPREFS.MACROFILENAME@{ub}
+     Text
+
+@{b}FILEPREFS.CURSORFILENAME@{ub}
+     Text
+
+@{b}FILEPREFS.FASTMACROFILENAME@{ub}
+     Text
+
+
+@EndNode
+
+@Node "Wanted!" "termRexx.guide/Wanted!"
+@Next "Index"
+@Prev "Attributes"
+@Toc "Main"
+
+@{b}@{u}Wanted!@{ub}@{uu}
+
+   As of this writing only a single example ARexx script is included in
+the `term' distribution (see the @{b}Rexx@{ub} drawer). However, it is desirable
+to include more sample scripts so more users will be able to take
+advantage of the ARexx interface.
+
+   If you wish to share your scripts with the `term' user community,
+send them (including documentation) to:
+
+                             Olaf Barthel
+                           Brabeckstrasse 35
+                           D-30559 Hannover
+
+                      Federal Republic of Germany
+
+                    Internet: olsen@sourcery.han.de
+
+
+@EndNode
+
+@Node "Index" "termRexx.guide/Index"
+@Prev "Wanted!"
+@Toc "Main"
+
+@{b}@{u}Index@{ub}@{uu}
+
+
+
+ @{" , (Comma) " Link "Commands"}                            Commands
+ @{" , (Comma) " Link "Commands"}                            Commands
+ @{" < > (Angle brackets) " Link "Commands"}                 Commands
+ @{" <Option>/K " Link "Commands"}                           Commands
+ @{" <Option>/M " Link "Commands"}                           Commands
+ @{" <Option>/N " Link "Commands"}                           Commands
+ @{" <Option>/S " Link "Commands"}                           Commands
+ @{" <Parameter>/A " Link "Commands"}                        Commands
+ @{" <Text>/F " Link "Commands"}                             Commands
+ @{" { } (Curly braces) " Link "Commands"}                   Commands
+ @{" ACTIVATE " Link "ACTIVATE"}                             ACTIVATE
+ @{" ADDITEM " Link "ADDITEM"}                              ADDITEM
+ @{" BAUD " Link "BAUD"}                                 BAUD
+ @{" BEEPSCREEN " Link "BEEPSCREEN"}                           BEEPSCREEN
+ @{" CALLMENU " Link "CALLMENU"}                             CALLMENU
+ @{" CAPTURE " Link "CAPTURE"}                              CAPTURE
+ @{" CAPTUREPREFS " Link "Attributes"}                         Attributes
+ @{" CLEAR " Link "CLEAR"}                                CLEAR
+ @{" CLEARSCREEN " Link "CLEARSCREEN"}                          CLEARSCREEN
+ @{" CLIPBOARDPREFS " Link "Attributes"}                       Attributes
+ @{" CLOSE " Link "CLOSE"}                                CLOSE
+ @{" CLOSEDEVICE " Link "CLOSEDEVICE"}                          CLOSEDEVICE
+ @{" CLOSEREQUESTER " Link "CLOSEREQUESTER"}                       CLOSEREQUESTER
+ @{" COMMANDPREFS " Link "Attributes"}                         Attributes
+ @{" CONSOLEPREFS " Link "Attributes"}                         Attributes
+ @{" CURSORKEYPREFS " Link "Attributes"}                       Attributes
+ @{" DEACTIVATE " Link "DEACTIVATE"}                           DEACTIVATE
+ @{" DELAY " Link "DELAY"}                                DELAY
+ @{" DIAL " Link "DIAL"}                                 DIAL
+ @{" Dial list " Link "ADDITEM"}                            ADDITEM
+ @{" Download list " Link "ADDITEM"}                        ADDITEM
+ @{" DUPLEX " Link "DUPLEX"}                               DUPLEX
+ @{" EMULATIONPREFS " Link "Attributes"}                       Attributes
+ @{" Example: " Link "Commands"}                             Commands
+ @{" EXECTOOL " Link "EXECTOOL"}                             EXECTOOL
+ @{" FASTMACROPREFS " Link "Attributes"}                       Attributes
+ @{" FAULT " Link "FAULT"}                                FAULT
+ @{" FILEPREFS " Link "Attributes"}                            Attributes
+ @{" Format: " Link "Commands"}                              Commands
+ @{" FUNCTIONKEYPREFS " Link "Attributes"}                     Attributes
+ @{" GETATTR " Link "GETATTR"}                              GETATTR
+ @{" GETCLIP " Link "GETCLIP"}                              GETCLIP
+ @{" GOONLINE " Link "GOONLINE"}                             GOONLINE
+ @{" HANGUP " Link "HANGUP"}                               HANGUP
+ @{" HELP " Link "HELP"}                                 HELP
+ @{" HOTKEYPREFS " Link "Attributes"}                          Attributes
+ @{" MISCPREFS " Link "Attributes"}                            Attributes
+ @{" MODEMPREFS " Link "Attributes"}                           Attributes
+ @{" OPEN " Link "OPEN"}                                 OPEN
+ @{" OPENDEVICE " Link "OPENDEVICE"}                           OPENDEVICE
+ @{" OPENREQUESTER " Link "OPENREQUESTER"}                        OPENREQUESTER
+ @{" PARITY " Link "PARITY"}                               PARITY
+ @{" PASTECLIP " Link "PASTECLIP"}                            PASTECLIP
+ @{" PATHPREFS " Link "Attributes"}                            Attributes
+ @{" PHONEBOOK " Link "Attributes"}                            Attributes
+ @{" PRINT " Link "PRINT"}                                PRINT
+ @{" PROCESSIO " Link "PROCESSIO"}                            PROCESSIO
+ @{" PROTOCOL " Link "PROTOCOL"}                             PROTOCOL
+ @{" PROTOCOLPREFS " Link "Attributes"}                        Attributes
+ @{" Purpose: " Link "Commands"}                             Commands
+ @{" PUTCLIP " Link "PUTCLIP"}                              PUTCLIP
+ @{" QUIT " Link "QUIT"}                                 QUIT
+ @{" READ " Link "READ"}                                 READ
+ @{" RECEIVEFILE " Link "RECEIVEFILE"}                          RECEIVEFILE
+ @{" REDIAL " Link "REDIAL"}                               REDIAL
+ @{" REMITEM " Link "REMITEM"}                              REMITEM
+ @{" REQUESTFILE " Link "REQUESTFILE"}                          REQUESTFILE
+ @{" REQUESTNOTIFY " Link "REQUESTNOTIFY"}                        REQUESTNOTIFY
+ @{" REQUESTNUMBER " Link "REQUESTNUMBER"}                        REQUESTNUMBER
+ @{" REQUESTRESPONSE " Link "REQUESTRESPONSE"}                      REQUESTRESPONSE
+ @{" REQUESTSTRING " Link "REQUESTSTRING"}                        REQUESTSTRING
+ @{" RESETSCREEN " Link "RESETSCREEN"}                          RESETSCREEN
+ @{" RESETSTYLES " Link "RESETSTYLES"}                          RESETSTYLES
+ @{" RESETTEXT " Link "RESETTEXT"}                            RESETTEXT
+ @{" RESETTIMER " Link "RESETTIMER"}                           RESETTIMER
+ @{" Result: " Link "Commands"}                              Commands
+ @{" RX " Link "RX"}                                   RX
+ @{" SAVE " Link "SAVE"}                                 SAVE
+ @{" SAVEAS " Link "SAVEAS"}                               SAVEAS
+ @{" SCREENPREFS " Link "Attributes"}                          Attributes
+ @{" SELECTITEM " Link "SELECTITEM"}                           SELECTITEM
+ @{" SEND " Link "SEND"}                                 SEND
+ @{" SENDBREAK " Link "SENDBREAK"}                            SENDBREAK
+ @{" SENDFILE " Link "SENDFILE"}                             SENDFILE
+ @{" SERIALPREFS " Link "Attributes"}                          Attributes
+ @{" SETATTR " Link "SETATTR"}                              SETATTR
+ @{" SOUNDPREFS " Link "Attributes"}                           Attributes
+ @{" SPEAK " Link "SPEAK"}                                SPEAK
+ @{" Specifications: " Link "Commands"}                      Commands
+ @{" SPEECHPREFS " Link "Attributes"}                          Attributes
+ @{" STOPBITS " Link "STOPBITS"}                             STOPBITS
+ @{" Template: " Link "Commands"}                            Commands
+ @{" TERM " Link "Attributes"}                                 Attributes
+ @{" TERMINALPREFS " Link "Attributes"}                        Attributes
+ @{" TEXTBUFFER " Link "TEXTBUFFER"}                           TEXTBUFFER
+ @{" TIMEOUT " Link "TIMEOUT"}                              TIMEOUT
+ @{" TRANSFERPREFS " Link "Attributes"}                        Attributes
+ @{" TRANSLATIONPREFS " Link "Attributes"}                     Attributes
+ @{" TRAP " Link "TRAP"}                                 TRAP
+ @{" Upload list " Link "ADDITEM"}                          ADDITEM
+ @{" WAIT " Link "WAIT"}                                 WAIT
+ @{" Wait list " Link "ADDITEM"}                            ADDITEM
+ @{" Warning: " Link "Commands"}                             Commands
+ @{" WINDOW " Link "WINDOW"}                               WINDOW
+ @{" [ ] (Square brackets) " Link "Commands"}                Commands
+ @{" | (Vertical bar) " Link "Commands"}                     Commands
+
+@EndNode
+

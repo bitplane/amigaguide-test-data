@@ -1,0 +1,2364 @@
+@database dop_help
+$VER: Dyrektor Opery - dokumentacja wstëpna V1.01, Bohdan R. Rau 1995
+
+
+@node main "Dyrektor Opery - Help"
+                              Witamy w imieniu
+
+                            Dyrektora Opery V1.0
+
+                   Czyli najnowszego pakietu obsîugi plików
+
+@{"       Wymagania        " Link wymagania} @{"       Instalacja       " Link instalacja} @{"      Uruchomienie      " Link startdop}
+@{"        Zasady pracy programu        " Link Jaktorobie} @{"         Uruchamianie Opery         " link Odpalenie}
+
+@{"                              Opcje programu                              " Link gadgety}
+@{"                                   Menu                                   " Link menu}
+@{"                             Klawiatura i mysz                            " link mouseboard}
+@{"                             Obsîuga archiwów                             " link lha}
+@{"                      Przeglâdarka plików tekstowych                      " link viewer}
+@{"                               Port ARexx'a                               " link arexx}
+@{"                          Wspóîpraca z Exchange                           " link Exchange}
+@{"                              Komenda WBRun                               " link wbrun}
+
+@{"        Co zostaîo do zrobienia      " link codalej} @{"         Bîëdy w programie          " link errors}
+@{"         Ograniczenia programu       " link limity} @{"       Kilka sîów od autora         " link odemnie}
+@endnode
+
+
+@node Odpalenie "Uruchamianie Opery"
+
+Opera w czasie startu sprawdza, czy moûe sië uruchomiê.  Czyni to w sposób
+nastëpujâcy:
+
+
+a) Zakîada,  ûe wszystkie  biblioteki systemowe sâ dostëpne.  Wymagania sâ
+   nastëpujâce:
+
+   - biblioteki z ROMu, a wiëc:
+     dos.library
+     intuition.library
+     graphics.library
+     exec.library
+     workbench.library
+   - biblioteki systemowe na dysku:
+     icon.library
+     gadtools.library
+     diskfont.library
+     asl.library
+
+Jeôli  którejô  z  nich  brakuje,  moûe sië to skoïczyê smutno!  Niestety,
+Opera  NIE  SPRAWDZA,  CZY  BIBLIOTEKI  TE  SÂ  PRAWIDÎOWO  ZAINSTALOWANE!
+Program powinien pracowaê z peînym dostëpem do bibliotek systemowych...
+		
+b) Próbuje  otworzyê  patmatch.library;  jeôli  próba  sië  nie powiedzie,
+   koïczy pracë.
+
+c) Sprawdza,  czy  istnieje  urzâdzenie  "LHA:"  oraz port  "viewer_port".
+   Jeôli  nie  -  informuje  o  nieprawidîowej  instalacji  i  pozwala  na
+   uruchomienie w wersji nieco okrojonej.
+
+   
+Inne opcjonalne biblioteki (np. powerpacker.library lub xfdmaster.library)
+otwierane  sâ w miarë potrzeby na bieûâco.  Ich brak powoduje niedziaîanie
+konkretnej funkcji, a nie caîego programu!
+   
+Brak   pliku  C:LhA  powoduje  nieprawidîowe  dziaîanie  LHA:   oraz  brak
+moûliwoôci pakowania/rozpakowywania archiwów.
+@endnode
+
+
+@node Jaktorobie "Zasady pracy programu"
+
+Program przy starcie tworzy dwa dodatkowe procesy:
+- Sekretarka - proces przechwytujâcy polecenia DOSu i  aktualizujâcy  bazë
+danych Opery,
+- TOS - proces "technicznej obsîugi sceny" wykonujâcy caîâ "czarnâ robotë"
+(kopiowanie, uruchamianie poleceï zewnëtrznych itp.)
+
+Program przechwytuje dane z nastëpujâcych funkcji DOSu:
+- DeleteFile
+- CreateDir
+- Open
+- Close
+- Rename
+- SetProtection
+- SetComment
+        
+Wszystkie zmiany dokonywane w systemie za pomocâ typowych poleceï AmigaDOS
+oraz funkcji stdio powodujâ  odpowiednie  zmiany  w  bazie  danych  Opery.
+Prawie wszystkie funkcje dziaîajâ asynchronicznie (tzn. wykonanie  funkcji
+zakoïczy sië przed aktualizacjâ bazy danych programu, jako ûe program moûe
+byê akurat zajëty). Wyjâtkiem jest  funkcja  DeleteFile  której  wykonanie
+musi byê (w przypadku kasowania katalogu) synchronizowane z  pracâ  moduîu
+sekretarki. Powodem tego wyjâtku  jest  koniecznoôê  eliminacji  sytuacji,
+w której kasowany katalog jest buforowany przez  Operë  (a  wiëc  istnieje
+dostëp do katalogu zagwarantowany przez wykonanie funkcji Lock), w zwiâzku
+z  czym  katalog  nie  moûe  byê  skasowany  (bîâd  "Obiekt  w   uûyciu").
+Odpowiednia funkcja Opery w takim przypadku usuwa katalog z  bufora,  lecz
+jest to moûliwe  tylko  wtedy,  gdy  program  (zarówno  moduî  gîówny  jak
+i sekretarka) nie wykonuje ûadnej innej funkcji.
+
+Dziëki takiemu podziaîowi moûliwe jest:
+a) Odblokowanie interface'u uûytkownika w czasie  wykonywania  czasochîon-
+   nych poleceï (np. kopiowania wiëkszej iloôci plików);
+b) Moûliwoôê wydania wielu poleceï, które  bëdâ  wykonywane  kolejno  (np.
+   utworzenie dyskietki zawierajâcej wiëkszâ  liczbë  katalogów  i  plików
+   poprzez kolejne tworzenie katalogów i kopiowanie do  nich  odpowiednich
+   plików). W  dotychczas  istniejâcych  programach  uûytkownik  nie  miaî
+   dostëpu do interface'u w czasie  wykonywania  polecenia.  Tutaj  moûemy
+   wydaê od razu wiëkszâ liczbë poleceï i pójôê na kawë. Moduî TOS wykonu-
+   je polecenia w kolejnoôci ich wydania.
+
+UWAGA!!!
+Poniewaû Opera  zmienia  wektory  wyûej  wymienionych  funkcji  biblioteki
+DOSLibrary, naleûy dbaê o to, by programy  które  równieû  to  robiâ  (np.
+SnoopDos - autor Eddy Carroll) uruchomiomione przed  Operâ  byîy  koïczone
+dopiero po zakoïczeniu pracy Opery i odwrotnie, programy te uruchomione po
+uruchomieniu Opery byîy ukoïczone przed jego zakoïczeniem. Wszystkie prog-
+ramy  zmieniajâce  wektory  bibliotek  zawierajâ  odpowiednie  ostrzeûenia
+w dokumentacji.
+
+Opera "uôpionâ" równieû przejmuje owe informacje - uôpienie dotyczy  tylko
+moduîu gîównego, a nie sekreterki i TOSU.
+
+Patrz  równieû:
+@{" Ograniczenia " link limity}
+@{" Pamiëê Opery " link memor}
+@endnode
+
+
+
+@node  Exchange "Wspóîpraca z programem Exchange"
+
+Moûliwe jest:
+a) Uaktywnienie i deaktywacja brokera obsîugi klawiatury (popup).
+b) Uôpienie i obudzenie programu
+c) Zakoïczenie pracy programu  (wyîâcznie  wtedy,  gdy  program  NIE  JEST
+   uôpiony!)
+@endnode
+
+
+
+@node wbrun "Komenda WBRun"
+
+Format:
+
+   WBRun <prog> [<parametry>]
+	
+   WBRun wykonuje program prog mniej wiëcej tak,  jakby  byî  on  wywoîany
+   przez Workbencha. Stosuje sië go  do  programów,  które  mogâ  pobieraê
+   argumenty tylko z Workbencha (np. DPaintIV).
+
+UWAGA!
+Wiëkszoôê programów nie dziaîa z poleceniem WBRun!
+	
+Przykîad:
+	
+WBRun SYS:DPaintIV WORK:Grafiki/Demo1
+
+lub (jako parametr w menu @{" Kadry " link pref_kadry})
+
+WBRun SYS:DPaintIV %f
+@endnode
+
+
+
+@node startdop "Uruchomienie"
+
+Program moûe byê uruchomiony WYÎÂCZNIE z Workbencha!
+
+W ikonie Opery mogâ znaleúê sië nastëpujâce parametry:
+
+SCREEN=WBENCH  lub  SCREEN=WORKBENCH  -  otwiera  okno  Opery  na  ekranie
+Workbencha
+
+SCREEN=CUSTOM - Opera otwiera wîasny ekran. Jeôli ûaden z tych dwóch para-
+metrów nie bëdzie podany, przyjmowany jest SCREEN=CUSTOM
+
+CX_POPUP - Opis kombinacji klawiszy przywoîania
+
+MEM=<liczba> - gdzie liczba jest dowolnâ z  zakresu  32  do  128.  Oznacza
+iloôê pamiëci przydzielonej jako bufor statyczny  programu.  Iloôê  64  KB
+wystarcza do typowej pracy programu, lecz jeôli dysponujemy wiëkszâ pamië-
+ciâ, moûna przydzieliê 128 KB.
+
+UWAGA!
+WSKUTEK @{" BÎËDU W PROGRAMIE " link errors}  NIE NALEÛY PRZYDZIELAÊ PAMIËCI 
+WIËKSZEJ NIÛ 64 KB!
+@endnode
+
+
+@node wymagania "Wymagania programu"
+
+Program do pracy potrzebuje:
+- Komputera Amiga z wersjâ systemu operacyjnego 2.0 lub wyûszâ,
+- Dostëpnej pamiëci min. 1 MB,
+- Mile widziany jest twardy dysk,
+- Do operacji "Drukuj" naleûy zaopatrzyê sië w drukarkë,
+- Polska lokalizacja  (sys:  Locale/Catalogs/Polski)  nie  jest  konieczna
+(tyle, ûe w procedurach bibliotecznych napisy bëdâ w jëzyku obcym. Polskie
+znaki (topazpl/8 oraz PLFonts) oraz polskie  klawiatury  (usa-pl  i  d-pl)
+standartu AmigaPL dostarczone sâ z programem.
+- Program bëdzie dziaîaî lepiej, jeôli na Twoim  komputerze  zainstalowane
+sâ juû:
+
+           - LhA (konieczny do poruszania sië po archiwach .LHA i .LZH)
+             Autor & ©: Stefan Boberg
+           
+           - LZX (konieczny do poruszania sië po archiwach .LZX)
+             Autorzy: Jonathan Forbes i Tomi Poutanen
+             © Data Compression Technologies
+
+           - powerpacker.library V35.0 lub wyûsza (obsîuga plików
+             PP20 i PX20 spakowanych PowerPackerem)
+             Autor & ©: Nico François
+
+           - stc.library V2.0 lub wyûsza (obsîuga plików S403 i S404
+             spakowanych StoneCrackerPackerem)
+             Autor & ©: Jouni 'Mr.Spiv' Korhonen
+
+           - xfdmaster.library (absolutny komfort obsîugi spakowanych
+             plików)
+             Autor & ©: Georg Hörmann
+
+           - reqtools.library (przeglâdarka bez niej pracuje, ale jak...)
+             Autor & ©: Nico François
+        
+@endnode           
+
+
+
+@node instalacja "Instalacja programu"
+
+Program korzysta z nastëpujâcych plików:
+
+        @{" Obsîuga archiwów " link lha}
+        Devs:DosDrivers/lha
+        L:lha-handler
+        C:lhi
+        C:lhmount
+        C:LhA
+        C:LZX 		// brak w pakiecie
+	S:LHADISKINFO
+
+        @{" Przeglâdarka plików tekstowych " link viewer}
+        Devs:DosDrivers/view
+        L:viewer-handler
+        C:dview
+        C:PPShow
+        Libs:powerpacker.library
+        Libs:reqtools.library
+        Libs:stc.library        // brak w pakiecie
+        Libs:xfdmaster.library  // brak w pakiecie
+
+        @{" Program gîówny " link main}
+        Opera
+        Opera.info
+        Libs:patmatch.library
+        Libs:powerpacker.library
+        Libs:reqtools.library
+        Libs:stc.library        // brak w pakiecie
+        Libs:xfdmaster.library  // brak w pakiecie
+        C:WBRun
+        Fonts:topazpl.font
+        Fonts:topazpl/8
+
+   Aby zainstalowaê program naleûy skopiowaê:
+   - z dyskietki z katalogu C na partycjë systemowâ do katalogu C nastëpu-
+     jâce pliki:
+
+     dview
+     lha
+     lhi
+     lhmount
+     ppshow
+     wbrun     
+
+   - z dyskietki z katalogu L na partycjë systemowâ do katalogu L nastëpu-
+     jâce pliki
+
+     lha-handler
+     viewer-handler
+
+   - z dyskietki z katalogu S na partycjë systemowâ do katalogu S pliki:
+
+     LHADISKINFO
+     ekran.opera
+     funkcje.opera
+     kadry.opera
+     okno.opera
+
+   - z dyskietki z katalogu Libs na partycjë systemowâ  do  katalogu  Libs
+     nastëpujâce pliki
+
+     patmatch.library
+     powerpacker.library
+     reqtools.library
+
+   - z dyskietki z katalogu Fonts na partycjë systemowâ do  katalogu Fonts
+     nastëpujâce obiekty
+
+     plik topazpl.font
+     katalog topazpl
+
+   - z dyskietki z katalogu Utilities na partycjë  systemowâ  do  katalogu 
+     Utilities nastëpujâce pliki
+
+     BadFormat.guide
+     BadFormat.guide.info
+     BadFormat20
+     BadFormat20.info
+
+   - z dyskietki z katalogu gîównego na dowolnâ partycjë do dowolnego  ka-
+     talogu pliki:
+
+     Opera
+     Opera.info
+     Opera.guide
+     Opera.guide.info
+
+
+   Naleûy równieû zmodyfikowaê sekwencjë startowâ. Polecenie "lhi" powinno
+   byê wydane  jak  najwczeôniej  (najlepiej  PRZED  "loadwb"),  polecenie
+   "dview" zaô w dowolnym miejscu (najlepiej PO "loadwb"). Jeôli zabraknie
+   "dview", nie bëdâ dziaîaê funkcje @{" Tekst " link g_view} i @{" Hex " link g_view}.
+   Jeôli zabraknie "lhi", nie bëdâ dziaîaê operacje na archiwach.
+
+   Pliki biblioteczne oraz C: LhA i C: LZX nie sâ konieczne do pracy prog-
+   ramu, lecz w przypadku ich nieobecnoôci nie  bëdâ  dziaîaê  nastëpujâce
+   funkcje:
+
+        @{" Rozprëû  " link g_ppck}
+        @{" Sprëû    " link g_ppck}
+        @{" Spakuj   " link g_lhap}
+        @{" Rozpakuj " link g_lhap}
+
+   oraz wbudowana obsîuga archiwów.lha,.lzh,.run spakowanych programem LhA
+   i .lzx spakowanych programem LZX.
+
+UWAGA!
+Po  zainstalowaniu  naleûy  jak  najszybciej  utworzyê  plik   preferencji
+@{" kadr " link pref_kadry}!!!
+@endnode
+
+
+
+@node lha "Wbudowana obsîuga archiwów"
+
+Program obsîuguje pliki archiwalne w ten sposób, ûe ma sië wraûenie  pracy
+z normalnym katalogiem. System obsîugi plików archiwalnych jest niezaleûny
+od programu gîównego i moûe byê uûyty samodzielnie.
+
+Uûytkownik ma do dyspozycji nastëpujâce polecenia:
+ 
+   a) lhi
+
+Format:
+     lhi
+
+lhi instaluje pseudo-dysk o nazwie LHA w urzâdzeniu o nazwie LHA. Powtórne
+wydanie polecenia powoduje "wyjëcie" pseudo-dyskietki (pozostaje  zamonto-
+wany napëd LHA) Jeôli urzâdzenie  LHA:  nie  jest  zamontowane,  polecenie
+wykonuje operacjë "mount LHA:".  !!! jaôniej napisaê
+
+   b) lhmount
+
+Format:
+   lhmount <lista plików> [force]
+
+Przykîady:
+   lhmount DH1:Archives/SomeThing
+   lhmount MyArchives/#?.lha
+    
+Polecenie doîâcza plik archiwalny do "dysku" LHA.  W  przypadku  parametru
+"force" polecenie w przypadku istnienia katalogu o podanej nazwie usuwa go
+z katalogu LhA. Parametr jest  przydatny  w  przypadku  istnienia  róûnych
+plików archiwalnych o tej  samej  nazwie.  Wymagane  jest  podanie  peînej
+ôcieûki dostëpu do danego pliku, rozszerzenie nie jest konieczne.
+
+Format:
+   lhmount <lista plików> remove
+
+Przykîad:
+   lhmount SomeThing.lha remove
+    
+Polecenie usuwa plik z katalogu LHA:.  Nie  jest  wymagana  peîna  ôcieûka
+dostëpu do pliku, wymagane jest rozszerzenie.
+
+Format:
+   lhmount <lista plików> flush
+   
+Przykîad:
+   lhmount SomeThing.lha flush
+    
+Polecenie zwalnia pamiëê buforów pliku w katalogu LHA:. Nie jest  wymagana
+peîna ôcieûka dostëpu do pliku, wymagane jest rozszerzenie.
+
+Format:
+   lhmount <lista plików> name
+
+Przykîad:
+   lhmount SomeThing.lha name
+
+Odpowiedú:
+   WORK:Archives/SomeThing.lha
+
+Polecenie w odpowiedzi drukuje na konsoli peînâ ôcieûkë dostëpu  do  pliku
+w katalogu LHA:. Wymagane jest rozszerzenie.
+
+Urzâdzenie LHA: realizuje wiëkszoôê @{" typowych akcji " link LhIActions} systemu 2.1+.
+W szczególnoôci moûliwe jest wykonanie dowolnego polecenia DOSu w stosunku
+do pliku znajdujâcego sië w archiwum. Ze wzglëdu na koniecznoôê wspóîpracy
+z innymi programami, dziaîanie @{" niektórych funkcji DOSu " link DoschgLHA} zostaîo
+zmienione!
+
+Urzâdzenie LHA: stosuje nastëpujâcy sposób buforowania:
+a) Pliki ".info" odnoszâce sië do  archiwów  -  statyczny  bufor  pamiëci,
+   niedopuszczalne  operacje  zapisu.  Operacja  kasowania  moûliwa  tylko
+   w przypadku, jeôli nie istnieje juû odnoônik do archiwum.
+
+b) Pliki ".info" odnoszâce sië do plików zawartych w archiwum - dynamiczny
+   przydziaî pamiëci, buforowanie po pierwszym  odczycie,  niedopuszczalne
+   operacje zapisu i kasowania w przypadku, jeôli plik jest buforowany.
+
+c) Plik "LHA: disk.info" - w rzeczywistoôci  wszystkie  odwoîania  dotyczâ
+   pliku "S: LHADISKINFO". Niedopuszczalna operacja kasowania.  Nie  wolno
+   kasowaê pliku "S: LHADISKINFO"!!!!
+
+d) Katalogi archiwów - buforowanie w pamiëci po pierwszym dostëpie.
+
+e) Pozostaîe pliki - buforowanie w "T:" pod unikalnâ  nazwâ  po  pierwszym
+   dostëpie. Pliki, do których dostëp zostaî zakoïczony zostajâ  skasowane
+   z bufora w kolejnoôci dostëpów. W buforze pozostaje nie wiëcej niû trzy
+   takie pliki. 
+
+UWAGA!
+Nie naleûy zmieniaê zawartoôci archiwum doîâczonego do LHA: Implementowane
+sâ nastëpujâce operacje zmieniajâce zawartoôê archiwum:
+- Utworzenie i zapisanie nowego pliku
+- Zapisanie czegokolwiek do istniejâcego juû pliku
+- Skasowanie pliku
+@endnode
+
+
+
+@node DoschgLhA "Zmienione dziaîanie niektórych funkcji"
+
+Zmiany sâ spowodowane koniecznoôciâ wspóîpracy z Operâ, która  aktualizuje
+swoje dane "podglâdajâc" dziaîania podstawowych funkcji DOSu
+
+Funkcja CreateDir
+
+   Zastosowana  do  pseudo-katalogu  archiwum  dziaîa  jak  Lock   (nazwa,
+   ACCESS_READ). Poniewaû zarówno lhmount, jak i Opera wywoîujâ të funkcjë
+   przy doîâczaniu  nowego  archiwum,  program  samoczynnie  moûe  odebraê
+   informacjë o zmianach w katalogu gîównym LHA:
+   Tworzenie nowego katalogu odbywa  sië  tylko  w  buforach  wewnëtrznych
+   LHA:, a nie na rzeczywistym pliku archiwum!
+
+Funkcja DeleteFile
+
+   Zastosowana do pseudo-katalogu usuwa go z katalogu  LHA:,  jednoczeônie
+   wywoîujâc DeleteFile dla odpowiedniego pliku.info  odnoszâcego  sië  do
+   pseudo-katalogu. Opera moûe odebraê informacjë  o  usuniëciu  archiwum.
+   Jednoczeônie umoûliwia to usuniâcie z poziomu Opery  poprzez  polecenie
+   "Usuï".
+@endnode
+
+
+
+@node viewer "Przeglâdarka plików tekstowych"
+
+Przeglâdarka sîuûy do oglâdania zawartoôci  plików  ASCII  oraz  IFF-FTXT.
+Wszystkie inne pliki bëdâ wyôwietlane w postaci szesnastkowej. Przeglâdar-
+ka automatycznie rozpoznaje podstawowe kody ANSI oraz formatuje wyôwietla-
+ny tekst. Jeôli w wyôwietlanym tekôcie nie wystëpujâ kody  ANSI  dotyczâce
+kolorów, ustawione zostanâ odpowiednio TEXTPEN i BACKGROUNDPEN dla  tekstu
+i tîa. Jeôli dostëpna jest biblioteka "powerpacker.library", moûliwe  jest
+przeglâdanie plików danych spakowanych PowerPackerem.
+
+Przeglâdarka moûe byê wywoîana na dwa róûne sposoby:
+
+a) Jako program analogiczny do "More"
+
+Format:
+   dview [[FILE] <lista plików>] [HEX] [ASCII] [SCREEN] [PUBSCREEN <nazwa>]
+
+Przykîad:
+   dview Excellence!:demo.doc PUBLICSCREEN OperaCarmen
+
+gdzie parametry majâ nastëpujâce znaczenie:
+   HEX - przeglâd szesnastkowy
+   ASCII - przeglâd tekstu
+   SCREEN - otwórz wîasny ekran
+   PUBSCREEN - otwórz okno na ekranie o podanej nazwie
+
+UWAGA!
+Program "dview" NIE TWORZY nowego procesu przeglâdarki, lecz doîâcza prze-
+glâdany plik do istniejâcego juû procesu!
+
+b) Jako urzâdzenie  wyjôciowe  nazwane "VIEW:parametry",  gdzie  parametry
+tworzâ nastëpujâcy ciâg:
+
+   SN<nazwa> - tytuî (pierwsze litery tytuîu) ekranu, na którym bëdzie,
+               otwarte okno przeglâdarki.
+   SD<liczba dziesiëtna>
+   SH<liczba szesnastkowa>
+   SX<liczba szesnastkowa> - adres ekranu, na którym bëdzie otwarte okno
+                             przeglâdarki.
+
+UWAGA!
+Nie muszâ to byê ekrany publiczne, lecz w  tym  przypadku  uûytkownik  sam
+musi zadbaê o zamkniëcie okien przeglâdarki przed zamkniëciem ekranu!
+
+   SP<nazwa> - nazwa ekranu publicznego, na którym bëdzie otwarte okno
+               przeglâdarki;
+   S - oznacza, ûe przeglâdarka ma otworzyê wîasny ekran.
+   A - oznacza wymuszenie trybu tekstowego dla plików zawierajâcych znaki
+       inne niû ASCII;
+   H - oznacza wymuszenie trybu szesnastkowego
+
+Jeôli wystëpujâ îâcznie parametry S oraz A lub H, muszâ one byê oddzielone
+znakiem '/' (slash).
+
+
+Przykîad:
+    Search #?.c printf >View:SPCED/A   !!! skâd ten printf???
+
+otworzy okno przeglâdarki na którym umieszczone bëdâ wyniki pracy programu
+Search.
+
+UWAGA!
+Zamkniëcie strumienia VIEW: koïczy proces zwiâzany z jego  obsîugâ.  Prze-
+glâdarka jest obsîugiwana przez uruchomiony juû proces "dview".
+
+
+W oknie przeglâdarki uûytkownik ma  do  dyspozycji  menu  z  nastëpujâcymi
+opcjami:
+- Projekt/Otwórz - uruchomienie nastëpnego przeglâdu (wymagana  biblioteka
+reqtools.library)
+- Projekt/Zamknij - koïczy pracë z bieûâcym oknem
+- Przeskok/Skocz do - skacze do okreôlonej linii (ASCII) lub bajtu  (HEX).
+Wymagana biblioteka reqtools.library
+- Przeskok/Szukaj - W trybie tekstowym wyszukuje  okreôlony  tekst.  Tekst
+musi zawieraê sië w jednej  linii,  duûe  i  maîe  litery  sâ  równowaûne.
+W trybie szesnastkowym wyszukuje okreôlony ciâg bajtów, podany w  nastëpu-
+jâcy sposób:
+   "tekst" lub 'tekst' - ciâg bajtów odpowiadajâcy znakom tekstu;
+   liczba szesnastkowa - ciâg bajtów tworzâcy danâ liczbë
+   ?                   - dowolny bajt
+
+Przykîad podanego napisu:
+
+    DEAD????"=" znajdzie ciâg skîadajâcy sië z:
+        bajtu 0xDE
+        bajtu 0xAD
+        czterech dowolnych bajtów
+        bajtu '='
+
+Wymagana jest biblioteka reqtools.library
+
+UWAGA!
+- Pierwsze wydanie polecenie dview uruchamia samoczynnie system przeglâda-
+nia!
+- Otwierane przez przeglâdarkë okna automatycznie otrzymujâ parametr VISI-
+TOR jeôli otwarte sâ na ekranie publicznym.
+- Wszystkie okna majâ wspólny UserPort (moûliwoôê otwarcia dowolnej, nawet
+bardzo duûej liczby okien!)
+- Przeglâdarka  moûe  czytaê  spakowane  pliki.  Do  rozpakowywania  uûywa
+xfdmaster.library, w przypadku jej braku sprawdza czy sâ to pliki spakowa-
+ne przez PowerPacker (do rozpakowania potrzebna  powerpacker.library)  lub
+StoneCrackerPacker (do rozpakowania potrzebna  stc.library).  W  przypadku
+pliku zabezpieczanego hasîem potrzebna jest równieû reqtools.library.
+@endnode
+
+
+@node  gadgety "Gadgety obsîugi programu"
+
+                  SHIFT        ALT
+---------------------------------
+F1  @{" Patrz    " link g_view} @{" Drukuj   " link g_prin} @{" Hex      " link g_view}
+F2  @{" Edycja   " link g_edit} @{" Znajdú   " link g_find} @{" Tekst    " link g_view}
+F3  @{" Szukaj   " link g_szuk} @{" AppWin   " link g_appw} @{" Shell    " link g_shel}
+F4  @{" Nowy     " link g_mkdi} @{" Dysk     " link g_info} @{" Info     " link g_info}
+F5  @{" Kopiuj   " link g_copy} @{" Kop.do   " link g_copy} @{" Spakuj   " link g_lhap}
+F6  @{" Przenieô " link g_copy} @{" Przen.do " link g_copy} @{" Rozpakuj " link g_lhap}
+F7  @{" Usuï     " link g_dele} @{" Rozprëû  " link g_ppck} @{" Sprëû    " link g_ppck}
+F8  @{" Nazwa    " link g_name} @{" Pulpit   " link g_tool} @{" Koment   " link g_come}
+F9  @{" Zaznacz  " link g_mark} @{" Drzewo   " link g_tree} @{" Wspólne  " link g_mark}
+F10 @{" Druk     " link g_pdir} @{" Katalog  " link g_cach} @{" Czyôê    " link g_clea}
+@endnode
+
+
+
+@node g_view "Przyciski przeglâdarek"
+
+Przycisk "Hex" wywoîuje wbudowanâ przeglâdarkë szesnastkowâ.
+Przycisk "Tekst" wywoîuje wbudowanâ przeglâdarkë tekstowâ.
+Przycisk "Patrz" wywoîuje przeglâdarkë okreôlonâ w preferencjach @{" Kadry " link pref_kadry}
+Jeôli dla danego typu pliku nie jest  okreôlona  przeglâdarka,  wywoîywana
+jest przeglâdarka domyôlna lub @{" przeglâdarka wbudowana " link viewer}.
+@endnode
+
+
+
+@node g_edit "Przycisk edytora"
+
+Przycisk "Edycja" wywoîuje edytor okreôlony w preferencjach @{" Kadry " link pref_kadry}
+Jeôli dla danego typu pliku nie jest  okreôlony  edytor,  wywoîywany  jest
+edytor domyôlny lub C: Ed.
+@endnode
+
+
+@node g_szuk "Przycisk szukania pliku"
+
+Przycisk wywoîuje operacjë wyszukiwania pliku o nazwie pasujâcej do 
+@{" p-wzorca " link patmat_pat}.
+Przeszukiwane sâ wszystkie podkatalogi oraz katalog  bieûâcy.  Wynik  jest
+wyôwietlony w sposób umoûliwiajâcy wybranie  katalogu  zawierajâcego  dany
+plik jako katalogu bieûâcego.
+@endnode
+
+
+@node g_mkdi "Przycisk tworzenia katalogu"
+
+Operacja tworzy nowy katalog (szufladë) w katalogu bieûâcym.
+@endnode
+
+
+@node g_copy "Przyciski kopiowania"
+
+Dostëpne sâ cztery sposoby kopiowania:
+
+- Kopiuj   - kopiowanie wskazanego obiektu lub grupy obiektów do  katalogu
+             docelowego,
+- Kop.do   - kopiowanie wskazanego obiektu w inne miejsce pod nowâ nazwë,
+- Przenieô - przeniesienie (lub przemianowanie) obiektu lub grupy obiektów
+             do katalogu docelowego;
+- Przen.do - przeniesienie (lub przemianowanie) obiektu w inne miejsce pod
+             nowâ nazwë;
+
+Kopiowanie przebiega @{" rekurencyjnie " link gloss_recur} przez wszystkie podkatalogi.
+Kopiowanie jest @{" asynchroniczne " link TOS}
+Moûliwe jest przerwanie w kaûdej chwili procesu kopiowania.
+Parametry kopiowania ustala sië w preferencjach @{" Xero " link pref_xero}
+
+Patrz równieû:
+@{" Wskazywanie i zaznaczanie obiektów " link markit}
+@endnode
+
+
+@node g_dele "Przycisk usuwania"
+
+Usuwa wskazany obiekt lub grupë obiektów z katalogu bieûâcego.
+
+Usuwanie przebiega @{" rekurencyjnie " link gloss_recur} przez wszystkie podkatalogi.
+Usuwanie jest @{" asynchroniczne " link TOS}
+
+Patrz równieû:
+@{" Wskazywanie i zaznaczanie obiektów " link markit}
+@endnode
+
+
+@node g_name "Przycisk zmiany nazwy"
+
+Zmienia nazwë wskazanego obiektu.
+@endnode
+
+
+@node g_mark "Przyciski grupowania obiektów"
+
+Istniejâ dwa przyciski grupowania obiektów:
+
+1) Przycisk "Zaznacz" z rzëdu górnego - umoûliwia zaznaczenie grupy plików
+biorâc pod uwagë:
+- typ obiektu (plik, katalog)
+- dopasowanie nazwy do @{" p-wzorca " link patmat_pat}
+- dopasowanie komentarza do @{" p-wzorca " link patmat_pat}
+- czas modyfikacji obiektu.
+    
+Obiekt pasuje, jeôli îâcznie speînione sâ nastëpujâce warunki:
+a) Wybrany jest przycisk "Od", a czas modyfikacji obiektu jest póúniejszy,
+   niû w sâsiednim polu edycyjnym,
+b) Wybrany jest  przycisk  "Do",  a  czas  modyfikacji  obiektu  nie  jest
+   póúniejszy, niû w sâsiednim polu edycyjnym,
+c) Wybrany jest przycisk "Wzorzec",  a  nazwa  obiektu  pasuje  do  wzorca
+   w sâsiednim polu edycyjnym,
+d) Wybrany jest przycisk "Koment.", a komentarz zwiâzany z obiektem pasuje
+   do wzorca w sâsiednim polu edycyjnym.
+
+Jeôli powyûsze przyciski nie sâ wybrane, obiekt pasuje.
+        
+Moûliwe jest:
+a) zaznaczenie wszystkich obiektów z danej kategorii  (plik,  szuflada)  -
+   przycisk "Wszystkie";
+b) skasowanie zaznaczenia wszystkich obiektów z danej kategorii - przycisk
+   "Ûaden";
+c) zmiana zaznaczenia wszystkich obiektów z  danej  kategorii  -  przycisk
+   "Odwrotnie";
+d) zaznaczenie na podstawie dopasowania obiektu - przycisk "Zaznacz";
+e) rezygnacja...
+
+Metody zaznaczania na podstawie dopasowania (przycisk "Metoda")
+a) "Tylko pasujâce" - po wykonaniu operacji w  danej  kategorii  pozostanâ
+   zaznaczone tylko obiekty pasujâce,
+b) "Tylko niepasujâce" - po wykonaniu operacji w danej kategorii pozostanâ
+   zaznaczone tylko obiekty pasujâce,
+c) "Dodaj pasujâce" - po wykonaniu operacji w danej kategorii bëdâ  zazna-
+   czone oprócz uprzednio zaznaczonych obiektów równieû obiekty pasujâce,
+d) "Dodaj niepasujâce" - po wykonaniu  operacji  w  danej  kategorii  bëdâ
+   zaznaczone oprócz uprzednio zaznaczonych obiektów równieû obiekty  nie-
+   pasujâce,
+e) "Usuï pasujâce" - po wykonaniu operacji w danej kategorii  bëdâ  zazna-
+   czone uprzednio zaznaczonych obiekty z wyjâtkiem obiektów pasujâcych,
+f) "Usuï niepasujâce" - po  wykonaniu  operacji  w  danej  kategorii  bëdâ
+   zaznaczone uprzednio zaznaczonych obiekty z wyjâtkiem obiektów niepasu-
+   jâcych.
+
+
+2) Gadget "Wspólne" umoûliwia zaznaczenie grupy plików w obu oknach  majâ-
+cych pewne cechy wspólne lub zaleûne.  !!! niejasne
+
+Pliki mogâ byê filtrowane przez @{" p-wzorzec " link patmat_pat}, przy czym po obu stronach
+muszâ mieê albo wspólnâ nazwë, albo odpowiednik pliku po stronie docelowej
+musi byê zwiâzany z plikiem po stronie bieûâcej wspólnym  wzorcem  (wzorce
+wbudowane /0 oraz %0). Kryterium zaznaczania moûe byê równieû czas  ostat-
+niego zapisu pliku (póúniejszy po stronie bieûâcej)  i  wielkoôê  (równa).
+Pliki mogâ byê zaznaczane po obu stronach  jednoczeônie.  Zaznaczane  mogâ
+byê pliki speîniajâce lub nie speîniajâce obu ostatnich kryteriów.  Wresz-
+cie jest moûliwoôê operowania tylko na plikach juû zaznaczonych.
+@endnode
+
+
+@node g_tree "Przycisk wczytania drzewa"
+
+Wykonanie funkcji powoduje wczytanie  i  wyôwietlenie  bieûâcego  katalogu
+w postaci drzewa. W menu "Preferencje/Peîne  drzewo"  moûna  ustaliê,  czy
+wczytywane drzewo ma zawieraê wszystkie obiekty, czy tylko  nazwy  katalo-
+gów.
+
+UWAGA!
+- Próba wczytania duûego katalogu w trybie "Peîne  drzewo"  (np.  katalogu
+roboczej partycji twardego dysku z paroma tysiâcami obiektów) moûe  spowo-
+dowaê przepeînienie bufora pamiëciowego Opery!
+- Operacje na duûych drzewach naleûy przeprowadzaê, przydzielajâc  progra-
+mowi maksymalnâ moûliwâ iloôê pamiëci (128 KB)
+
+Po wczytanym drzewie moûna poruszaê sië w nastëpujâcy sposób:
+a) klawisze "Góra" ("Dóî") ustawia kursor na poprzednim (nastëpnym) obiek-
+   cie,
+b) klawisz "w lewo" ustawia kursor na obiekcie nadrzëdnym
+c) klawisz "w prawo" ustawia kursor na pierwszym obiekcie podrzëdnym,
+d) "klikniëcie" lewym klawiszem myszy ustawia kursor na  wskazanym  obiek-
+cie,
+e) przesuniëcie zawartoôci okna wyôwietlania drzewa  (za  pomocâ  gadgetów
+z boku drzewa, lub klawiszy góra/dóî wraz z Shift lub Alt) ustawia  kursor
+tak, aby mieôciî sië na wyôwietlanym fragmencie drzewa.
+
+Wciôniëcie klawisza "Esc" powoduje zamkniëcie okna wyôwietlania drzewa.
+
+Wciôniëcie klawisza "Return" powoduje zamkniëcie okna wyôwietlania drzewa,
+oraz:
+a) jeôli obiekt wskazany przez  kursor  jest  plikiem,  nadrzëdny  katalog
+zostanie wczytany przez Operë, a kursor programu wskaûe na obiekt,
+b) w przeciwnym przypadku zostanie wczytany katalog wskazany przez kursor.
+
+Wciôniëcie "Return" wraz z "Alt" spowoduje wykonanie  tej  samej  operacji
+bez zamkniëcia okna wyôwietlania drzewa. To samo spowoduje podwójne "klik-
+niëcie" lewym klawiszem myszy na obiekcie.
+@endnode
+
+
+@node g_pdir "Przycisk drukowania bieûâcego katalogu"
+
+Umoûliwia wydruk (lub skierowanie do pliku) zawartoôci bieûâcego katalogu.
+@endnode
+
+
+@node g_prin "Drukowanie pliku"
+
+Umoûliwia wydruk zawartoôci wskazanego pliku lub grupy. Jeôli w  preferen-
+cjach @{" Kadry " link pref_kadry} ustalony jest program obsîugi danego typu pliku,
+jest on wywoîywany. W przeciwnym razie nastëpuje proste kopiowanie  zawar-
+toôci pliku do urzâdzenia "PRT:" (drukarka).
+
+Patrz równieû:
+@{" Wskazywanie i zaznaczanie obiektów " link markit}
+@endnode
+
+
+@node g_find "Przycisk wyszukiwania tekstu w pliku"
+
+Operacja umoûliwia wyszukanie dowolnego tekstu lub @{" p-wzorca " link patmat_pat} w pliku
+tekstowym. Operacja wykonywana jest na pliku lub grupie plików. W przypad-
+ku uûycia wzorca pamiëtaê naleûy, ûe do wzorca musi naleûeê CAÎA linia!
+
+Przykîadowo:
+
+   &' 'printf\(*
+
+bëdzie pasowaê do kaûdej linii, zawierajâcej  wywoîanie  funkcji  "printf"
+jako pierwszâ instrukcjë w linii, ale
+
+   &' 'printf\(
+
+najprawdopodobniej nie bëdzie pasowaê do ûadnej z linii programu...
+
+W przypadku tekstu nie sâ odróûniane duûe i maîe litery.
+
+Wyniki dziaîania operacji kierowane sâ do @{" przeglâdarki wbudowanej " link viewer}.
+
+Patrz równieû:
+@{" Wskazywanie i zaznaczanie obiektów " link markit}
+@endnode
+
+
+@node g_appw "Przycisk tworzenia okna AppWindow"
+
+Przycisk moûe byê uûyty tylko wtedy,  gdy  Opera  uûywa  wîasnego  ekranu.
+Wynikiem  operacji  jest  otwarcie  na   ekranie   Workbencha   okna  typu 
+@{" AppWindow " link gloss_appwindow}, do którego przesuniëcie ikony powoduje:
+- w przypadku gdy ikona jest ikonâ katalogu - potraktowanie tego  katalogu
+jako bieûâcego;
+- w przeciwnym razie - potraktowanie katalogu zawierajâcego plik  zwiâzany
+z ikonâ jako bieûâcego.
+
+Jeôli Opera otwarta jest na ekranie Workbencha, jej okno jest  oknem  typu
+AppWindow i moûna przesuwaê doï ikony do obu stron!
+@endnode
+
+
+@node g_info "Przycisk Informacji"
+
+Uûycie przycisku powoduje wyôwietlenie okna informacyjnego. W oknie  moûna
+oglâdaê wszystkie waûniejsze  parametry  pliku  (katalogu,  dysku).  Moûna
+równieû zmieniaê:
+a) Bity protekcji obiektu (hsparwed);
+b) Komentarz
+c) Pola ikony (Program zwiâzany, parametry, pozycjonowanie)
+
+Wszystkie trzy moûliwoôci mogâ byê zapisywane oddzielnie (w rzeczywistoôci
+Opera w innym miejscu trzyma komentarz, w innym zawartoôê pola  protekcji,
+a ikona stanowi w ogóle oddzielny plik!)
+
+Uûycie przycisku "Info" jeôli w oknie zaznaczone sâ  jakiekolwiek  obiekty
+powoduje zsumowanie wielkoôci  tych  obiektów  i  wyôwietlenie  informacji
+zawierajâcej:
+   - Iloôê zajmowanego miejsca w bajtach,
+   - Iloôê zajmowanego miejsca w blokach wraz z blokami nagîówkowymi,
+   - Iloôê wszystkich obiektów.
+
+Jeôli istnieje taka moûliwoôê, to równieû:
+   - Iloôê miejsca w blokach, jakie zajëîyby obiekty po  skopiowaniu  wraz
+     z blokami nagîówkowymi,
+   - Informacjë, czy dana iloôê obiektów zmieôci sië na dysku zawierajâcym
+     katalog docelowy.
+@endnode
+
+
+@node g_ppck "Przyciski wspóîpracy z programami kompresji"
+
+Przyciski umoûliwiajâ  spakowanie  ("Sprëû")  i  rozpakowanie  ("Rozprëû")
+pliku lub grupy plików.
+
+Do  kompresji  konieczna   jest   biblioteka   "powerpacker.library"   lub
+"stc.library" (zaleûnie od wybranego sposobu  kompresji).  Do  dekompresji
+przydatna jest "xfdmaster.library", w przypadku jej braku Opera zakîada ûe
+pliki sâ typu "powerpacker"  (PP20  i  PX20)  lub  "stc"  (S403  i  S404),
+i w zaleûnoôci od typu pliku szuka odpowiedniej biblioteki
+@endnode
+
+
+@node g_tool "Przycisk otwarcia okna narzëdziowego"
+
+Uûycie przycisku powoduje pojawienie sië/schowanie dodatkowego okna zawie-
+rajâcego przyciski funkcji i katalogów uûytkownika oraz  czëôê  przycisków
+odpowiadajâcych opcjom z menu.
+@endnode
+
+
+@node g_cach "Przycisk pobrania katalogu"
+
+Operacja umoûliwia szybkie pobranie nazwy oraz potraktowanie jako bieûâcego
+katalogu, którego nazwa znana jest Operze. Moûe to byê:
+a) dowolna nazwa z menu @{" Szuflady " link m_szuflady},
+b) dowolna nazwa katalogu, który jest aktualnie @{" buforowany " link cachedir},
+c) nazwa wpisana rëcznie przez uûytkownika.
+
+Do poruszania sië w oknie operacji sîuûâ klawisze "Góra" i "Dóî" (kursor).
+Klawisz "W prawo" powoduje wejôcie do trybu wpisywania rëcznego.
+@endnode
+
+
+@node g_come "Przycisk zmiany komentarza"
+
+Umoûliwia zmianë komentarza zwiâzanego z obiektem.
+@endnode
+
+
+@node g_lhap "Przyciski wspóîpracy z archiwami"
+
+Operacje umoûliwiajâ utworzenie archiwum lub  dopisanie  pliku  lub  grupy
+plików do istniejâcego archiwum ("Spakuj") oraz rozpakowanie  archiwum  do
+katalogu docelowego ("Rozpakuj"). Do pracy wymagany jest program @{" LhA " link Boberg}
+nie doîâczony do pakietu.
+
+UWAGA!
+W aktualnej wersji wykonanie "Spakuj" nie odznacza spakowanych plików!
+
+Patrz równieû:
+@{" Wskazywanie i zaznaczanie obiektów " link markit}
+@endnode
+
+
+@node g_shel "Przycisk Shella"
+
+Umoûliwia otwarcie okna konsoli Shella. Shell otrzymuje opis  okna  podany
+w preferencjach @{" Kadry " link pref_kadry} co umoûliwia dowolne konfigurowanie 
+okna (np. otwarcie okna KingCON: zamiast CON:, otwarcie na ekranie Opery).
+@endnode
+
+@node g_clea "Przycisk Czyôê"
+
+Operacja wywoîuje:
+a) utratë informacji zawartej w @{" buforach katalogów " link cachedir},
+b) odczytanie listy urzâdzeï.
+
+Wykonanie operacji moûe byê konieczne gdy jakiô program próbuje niekonwen-
+cjonalnego dostëpu do buforowanych katalogów (np. asynchroniczne  skasowa-
+nie katalogu) oraz gdy z jakichô przyczyn Opera nie zostaîa  poinformowana
+o zamontowaniu lub wymontowaniu jakiegoô urzâdzenia.
+@endnode
+
+
+@node Boberg "Program LhA"
+
+Program stanowi jeden z najpopularniejszych programów archiwizujâcych  dla
+Amigi. Realizuje on kompresjë Lempel-Zev (najlepszy znany  algorytm  szyb-
+kiej kompresji). Program jest shareware, autorem jest Stefan Boberg.
+Istniejâ trzy wersje programu:
+a) LhEx - umoûliwiajâca tylko rozpakowywanie plików
+b) LhA wersja ewaluacyjna (pozbawiona niektórych moûliwoôci, wolniejsza od
+   peînej)
+c) LhA wersja peîna dostëpna po opîaceniu okreôlonej kwoty autorowi.
+@endnode
+
+
+@node cachedir "Buforowanie katalogów"
+
+Opera buforuje wszystkie odczytane katalogi (z wyjâtkiem LHA:, który i tak
+jest buforowany!). Maksymalna liczba  buforowanych  katalogów  wynosi  16.
+Buforowanie zachodzi w staîym obszarze pamiëci. Kasowanie bufora moûe  byê
+wynikiem:
+a) Wykonania funkcji DOSu DeleteFile  zakoïczonej  sukcesem.  Katalog  nie
+   musi byê dîuûej buforowany, bo go nie ma!
+b) Wykonania funkcji uûytkownika "Czyôê"
+c) Koniecznoôci buforowania nastëpnego katalogu w  przypadku,  jeôli  jest
+   juû szesnaôcie w buforze;
+d) Koniecznoôci przydzielenia pamiëci dla napisu lub  obiektu  Opery  przy
+   caîkowicie wypeînionym obszarze pamiëci roboczej.
+
+W przypadku c) i d) usuniëciu podlegajâ katalogi, do których najdîuûej nie
+byîo dostëpu. Taki sposób  eliminuje  moûliwoôê  odmowy  wczytania  nowego
+katalogu, gdy caîa pamiëê zajëta jest na bufory.
+
+Wszystkie operacje wykonywane przez funkcje  DOSu  wywoîujâ  automatycznie
+korektë zawartoôci buforów.
+@endnode
+
+
+@node markit "Wskazywanie i grupowanie plików"
+
+Opera odróûnia dwa rodzaje wskazania obiektu:
+a) obiekt wskazany - to znaczy ten, na którym aktualnie stoi kursor,
+b) obiekt zaznaczony - to znaczy taki, którego opis jest podôwietlony.
+
+O ile w danej chwili wskazany moûe byê  dokîadnie  jeden  obiekt,  o  tyle
+obiektów zaznaczonych moûe byê dowolnie duûo, od  zera  aû  do  wszystkich
+pokazanych na ekranie plików i katalogów.
+
+Wiëkszoôê operacji dziaîa w ten sposób, ûe jeôli w bieûâcym katalogu ûaden
+obiekt nie jest zaznaczony, argumentem jej jest wskazany obiekt.  W  prze-
+ciwnym razie argumentem jest caîa lista zaznaczonych obiektów (np.  kopio-
+wanie).
+
+Istniejâ jednak operacje moûliwe do wykonania tylko na pojedynczym  obiek-
+cie. Taka operacja ignoruje zaznaczenie obiektów, a argumentem jest zawsze
+obiekt wskazany.
+
+Zaznaczenia moûna dokonaê nastëpujâcymi metodami:
+a) Wcisnâê PRAWY klawisz myszy ustawiajâc wskaúnik myszy na opisie obiektu
+   po stronie katalogu bieûâcego.  Obiekt  zostanie zaznaczony  (jeôli juû
+   byî, zaznaczenie bëdzie skasowane), a kursor wskaûe na obiekt.
+b) Wcisnâê klawisz spacji. Obiekt wskazany przez kursor zostanie zaznaczo-
+   ny (jeôli juû byî, zaznaczenie bëdzie skasowane).
+c) Wcisnâê klawisz "Ins" (czyli Zero na  klawiaturze  numerycznej.  Obiekt
+   wskazany przez kursor zostanie zaznaczony  (jeôli juû byî,  zaznaczenie
+   bëdzie skasowane), a kursor przesunie sië do nastëpnego obiektu.
+d) Ustawiajâc wskaúnik na  opisie  obiektu  ncisnâê  LEWY  klawisz  myszy,
+   a nastëpnie przytrzymujâc go wcisnâê PRAWY klawisz myszy.  Program wej-
+   dzie w tryb "zaznaczanie bloku", syygnalizujâc to zmianâ wyglâdu wskaú-
+   nika myszy.
+e) Wcisnâê klawisz spacji wraz z SHIFT. Program wejdzie w tryb  "zaznacza-
+   nie bloku".
+f) W trybie "zaznaczanie bloku" wcisnâê:
+   - Prawy klawisz myszy lub klawisz Enter/Return. Blok zostanie zaznaczo-
+     ny.
+   - Lewy klawisz myszy lub klawisz Enter/Return wraz z SHIFT. Zaznaczenie
+     wszystkich obiektów w obrëbie bloku zostanie skasowane.
+g) Uûyê któregoô z przycisków @{" Zaznacz " link g_mark} lub @{" Wspólne " link g_mark}
+
+Patrz równieû:
+@{" Klawiatura i mysz " link mouseboard}
+@endnode
+
+
+@node mouseboard "Klawiatura i mysz"
+
+Podstawowe klawisze obsîugi (nie liczâc klawiszy funkcyjnych oraz  obsîugi
+menu) to:
+1) Tab             - klawisz zmiany bieûâcej strony
+2) Ctrl-o          - klawisz zmiany trybu wyôwietlania
+3) Spacja          - klawisz @{" zaznaczania " link markit}
+4) Ins             - klawisz @{" zaznaczania " link markit}
+5) Klawiatura numeryczna 1..9
+                   - klawisze funkcyjne uûytkownika
+6) Esc             - "Uôpienie" Opery
+7) Klawisze kursora:
+        Góra/Dóî   - poprzedni/nastëpny obiekt;
+  Shift+Góra/Dóî   - poprzedni/nastëpny zaznaczony obiekt;
+        Lewo/Prawo - poprzednia/nastëpna kolumna;
+  Shift+Lewo/Prawo - pierwszy/ostatni obiekt
+8) Enter           - klawisz wykonania @{" akcji " link akcja}
+   Enter + Shift   - kompletowanie linii komend;
+   Enter + Alt     - wywoîanie okna kompletowania linii bez dopisania 
+                     obiektu
+9) Help            - klawisz "Pierwszej pomocy". Wyôwietla krótki opis 
+                     obiektu wskazanego przez mysz, lub (na górnej linii)
+                     opis klawiatury.
+10)Del             - wymuszenie odôwieûenia wyôwietlanego katalogu.
+
+Klawisze funkcyjne F1.. F10 wywoîujâ funkcje z górnego  rzëdu  przycisków,
+wraz z Shift ze ôrodkowego, a wraz z Alt z dolnego rzëdu przycisków.
+
+Lewy klawisz myszy peîni nastëpujâce funkcje:
+a) "Klikniëcie" na obiekt - ustawienie kursora na obiekcie;
+b) Podwójne "klikniëcie" na obiekt - wykonanie @{" akcji " link akcja}.
+c) "Klikniëcie" na stronë poza obiektem - aktywacja strony
+
+Prawy klawisz myszy zaznacza obiekt lub (jeôli  kursor  byî  ustawiony  po
+przeciwnej stronie) tylko przesuwa kursor. "Klikniëcie"  prawym  klawiszem
+na którykolwiek z przycisków wyôwietla krótki opis  funkcji.  "Klikniëcie"
+szybko po sobie lewym i prawym klawiszem wywoîuje kompletowanie komendy.
+!!! co to jest kompletowanie komendy???
+
+Specjalne znaczenie ma podôwietlone pole nad wyôwietlaczem obiektów:
+a) "Klikniëcie" dowolnym klawiszem na pole nieaktywne - aktywacja strony
+b) "Klikniëcie" lewym klawiszem na pole aktywne - odczyt katalogu nadrzëd-
+   nego lub w przypadku listy urzâdzeï powrót do ostatniego katalogu;
+c) "Klikniëcie" prawym klawiszem na pole aktywne - odczyt katalogu dysku;
+d) "Klikniëcie" oboma klawiszami na pole aktywne (waûne  jest,  aby  przez
+   moment OBA klawisze byîy naciôniëte) - skopiowanie  zawartoôci  sâsied-
+   niej strony.
+
+Patrz równieû:
+@{" Wskazywanie i grupowanie plików " link markit}
+@endnode
+
+
+@node LhIActions "Akcje realizowane przez lhi"
+
+Program @{" lhi " link lha} realizuje nastëpujâce akcje:
+
+ACTION_DIE              ACTION_DELETE_OBJECT
+ACTION_SAME_LOCK        ACTION_CREATE_DIR
+ACTION_FINDUPDATE       ACTION_INFO
+ACTION_DISK_INFO        ACTION_READ
+ACTION_SEEK             ACTION_WRITE
+ACTION_END              ACTION_FINDOUTPUT
+ACTION_FINDINPUT        ACTION_PARENT
+ACTION_PARENT_FH        ACTION_COPY_DIR
+ACTION_COPY_DIR_FH      ACTION_LOCATE_OBJECT
+ACTION_EXAMINE_OBJECT   ACTION_EXAMINE_FH
+ACTION_EXAMINE_NEXT     ACTION_FREE_LOCK
+@endnode
+
+
+@node pref_kadry "Preferencje: kadry"
+
+Kadry - czyli zaangaûowani z zewnâtrz pracownicy OPERY...
+
+W preferencjach moûna ustawiê nastëpujâce polecenia:
+- Przeglâdarka i Edytor dla nierozpoznanych plików,
+- Przeglâdarkë, Edytor, Drukarza i Wykonawcë dla rozpoznanych plików,
+- nazwë konsoli przekazywanâ do NewShell przy wykonywaniu polecenia 
+  "Shell".
+
+Treôê polecenia moûe zawieraê zestaw znaków %f (znak procent i maîa litera
+'f') - w tym przypadku w miejsce to wstawiona bëdzie nazwa pliku.  
+
+Przykîad (przeglâdarka):
+
+   C:DView %f SCREEN
+   C:DView %f PUBSCREEN OperaCarmen
+
+UWAGA!
+Jeôli nie podano %f, nazwa automatycznie zostanie dopisana na koïcu  pole-
+cenia!
+
+
+Rozpoznawanie plików moûe odbywaê sië na trzy sposoby:
+a) na podstawie pasowania nazwy do @{" wzorca DOSu " link DosPattern},
+b) na podstawie pierwszego dîugiego sîowa,
+c) na podstawie typu pliku IFF.
+
+W przypadku b) i c) przycisk wprowadzania  wartoôci  dzieli  sië  na  dwie
+czëôci. Po lewej  stronie  cztery  znaki  stanowiâce  interpretacjë  ASCII
+dîugiego sîowa, po prawer osiem znaków stanowiâcych interpretacjë szesnas-
+tkowâ. Dodatkowo dziaîajâ klawisze kursora góra/dóî zmieniajâc o wartoôê 1
+znak na którym stoi kursor.
+@endnode
+
+
+@node DosPattern "Wzorce DOSu"
+
+Rozpoznawany przez AmigaDOS wzorzec moûe zawieraê:
+- parë znaków #? oznaczajâcâ dowolny (równieû pusty) ciâg znaków,
+- znak ? oznaczajâcy dowolny znak,
+- pozostaîe znaki traktowane sâ normalnie.
+
+AmigaDOS nie odróûnia duûych i maîych liter.
+@endnode
+
+
+@node codalej "I co dalej..."
+
+Nastëpne wersje powinny realizowaê:
+
+1) Inteligentnâ deaktywacjë programu z poziomu commodity (Exchange), a 
+wiëc:
+a) nieaktywny program powinien:
+   - przechodziê w stan uôpienia,
+   - przywróciê poprzedni stan wektorów biblioteki,
+   - usunâê AppMenu i AppIcon.
+b) aktywowany program powinien sprawdziê stan bazy danych i w razie stwie-
+rdzenia dokonania zmian:
+   - w buforze katalogu - usunâê bufor,
+   - w katalogu wyôwietlanym - uaktualniê katalog.
+
+2) Kopiowanie ze zmianâ nazwy przy pomocy @{" p-wzorców " link patmat_pat} /0 i %0, a wiëc:
+
+Uûytkownik mógîby zaîoûyê, ûe  pliki  o  okreôlonym  typie  nazwy  zostanâ
+skopiowane pod innâ nazwë, bëdâcâ pochodnâ pierwotnej nazwy pliku.  I  tak
+np. dla podania wzorca: /0*.'ca' dla okna úródîowego  oraz  wzorca  %0.bak
+dla okna docelowego Operry powinien wykonaê kopie plików  úródîowych  w  C
+i asemblerze, ze zmianâ rozszerzenia na.bak
+
+3) Wybieranie obiektów do kopiowania na drzewie, czyli:
+
+moûliwoôê wyboru do skopiowania  np.  kilkunastu  plików  rozrzuconych  po
+caîej dyskietce w róûnych katalogach za pomocâ jednego polecenia.
+
+4) Moûliwoôê przydzielenia oddzielnej pamiëci na drzewa
+
+niestety, peîny katalog twardego dysku zawierajâcy np. piëê tysiëcy obiek-
+tów nawet w 128 KB sië nie zmieôci...
+@endnode
+
+
+
+@node errors "Bîëdy w programie"
+
+Jak kaûdy program, Opera nie jest stuprocentowo bezbîëdna (napisanie abso-
+lutnie bezbîëdnego programu jest wedîug wspóîczesnego stanu wiedzy o prog-
+ramowaniu niestety niemoûliwe).
+
+Na razie wiem o bîëdach nastëpujâcych:
+
+a) Czasem (bardzo rzadko, wyîâcznie przy zmianach filtrów)  kursor  ucieka
+   poza okienko. To znaczy, on gdzieô tam jest, swoje robi,  tyle  ûe  nie
+   bardzo wiadomo gdzie. Zalecenie: Wcisnâê np. SHIFT i W LEWO.
+
+b) Czasem (jeszcze rzadziej, nie bardzo wiem kiedy, a juû mi  paru  siwych
+   wîosów od szukania tego bîëdu przybyîo)  Opera  zapisuje  coô  omyîkowo
+   w niewîaôciwym miejscu bufora.  Objawia sië to poîâczeniem  dwóch  nazw
+   w jednâ z jakimiô dwoma  dziwnymi  znakami poôrodku. Szczególnie czësto
+   zdarza sië to w przypadku przepeînienia bufora pamiëciowego. Nie zdarza
+   sië natomiast przy buforze nie wiëkszym niû 64 KB.  Niestety, procedury
+   operacji na buforze sâ najbardziej "wypieszczonymi"  przeze mnie proce-
+   durami programu. Tak wiëc, jeôli przypadek nie pomoûe, to osiwiejë...
+
+   Zalecenie: Nie panikowaê, wyczyôciê bufory i jeszcze raz wczytaê  kata-
+   log. A w ogóle nie uûywaê bufora wiëkszego niû 64 KB, bo tyle do wszys-
+   tkiego praktycznie wystarczy! 
+
+c) Bîâd  w  bibliotece  "patmatch.library" - wskutek  bîëdu  w  algorytmie
+   opracowywania wzorca {} nie jest on w tej chwili zaimplementowany. Mimo
+   to pozostawiono skîadnië wzorca,  wzorzec  zawodzi.  Sytuacja  zostanie
+   naprawiona w nastëpnej wersji!
+
+   Zalecenie: Ja naprawdë w ûyciu miaîem tylko kilka sytuacji kiedy  powi-
+   nienem tego wzorca uûyê. Dwie moûliwoôci. Poczekaê albo sië przyzwycza-
+   iê. Znajâc siebie i swój stosunek do kodu úródîowego  patmatch.library,
+   polecam drugâ.
+
+         ..... /* miejsce dla wydawcy i uûytkownika :-) */
+
+
+z) Na  pewno  ich  kilka jeszcze jest, ale  ja  o  nich  nie  wiem.  Kaûdâ
+   informacjë o bîëdach przyjmë z wielkâ radoôciâ i natychmiast siadam  do
+   poprawiania!
+
+                                        @{" Autor " link bodzio}
+@endnode
+
+
+@node akcja "Akcja zwiâzana z obiektem"
+
+Akcje domyôlne:
+a) dla obiektów nie bëdâcych plikami - odczyt katalogu,
+b) dla plików archiwum (. LHA,. LZH,. RUN) - instalacja pliku w urzâdzeniu
+   LHA: i odczyt katalogu pliku,
+c) dla plików wykonywalnych - wykonanie pliku,
+d) dla plików nierozpoznanego typu - przeglâd.
+
+Pliki rozpoznawane przez program opisane w opcji @{" Kadry " link pref_kadry}:
+a) jeôli okreôlony jest aktywator (wykonawca) - wykonanie programu aktywa-
+   tora z odpowiednimi parametrami;
+b) jeôli nie  okreôlony  jest  wykonawca,  program  szuka  opisu  edytora,
+   a jeôli go nie ma - przeglâdarki;
+@endnode
+
+
+@node limity "Ograniczenia Opery"
+
+Opera nie moûe wspóîpracowaê z  handlerami,  które  w  czasie  wykonywania
+akcji wywoîujâ funkcjë DeleteFile. W szczególnoôci wykonanie  przez  Operë
+funkcji wywoîujâcej pakiet "Object archive" moûe zablokowaê pracë  progra-
+mu. Doîâczony pakiet @{" obsîugi archiwów " link lha} jest pisany w ten sposób,
+aby nie powodowaê blokady.
+
+Opera  monitoruje  wyîâcznie  @{"  funkcje  biblioteczne  DOSu  " link gloss_doslibfun},  a  nie 
+@{" pakiety DOSu " link gloss_dospacket}. Z tego powodu moûe zaistnieê sytuacja, w której baza 
+danych Opery nie jest  odzwierciedleniem  stanu  systemu  (np.  utworzenie
+pliku    przez    ACTION_FINDOUTPUT    lub    jego    skasowanie     przez
+ACTION_DELETE_OBJECT).
+@endnode
+
+
+@node glossary "Sîowniczek"
+
+   @{" Funkcje biblioteczne DOSu     " link gloss_doslibfun}
+   @{" Pakiety DOSu                  " link gloss_dospacket}
+   @{" Rekursja                      " link gloss_recur}
+@endnode
+
+
+
+@node gloss_doslibfun "Funkcje biblioteczne DOSu"
+
+AmigaDOS udostëpnia kilkaset funkcji, z których tylko  nieliczne  powodujâ
+zmiany stanu systemu plików. Wiëkszoôê programów korzysta z  tych  funkcji
+do komunikacji z otoczeniem. Przykîadowe funkcje to:
+
+    Open - otwiera dostëp do pliku
+    Close - zamyka dostëp do pliku
+    DeleteFile - kasuje obiekt(plik lub katalog)
+
+Istniejâ jednak programy  wykorzystujâce  np.  asynchronicznâ  transmisjë,
+które komunikujâ sië z systemem poprzez zlecenia (akcje). Programy  te  to
+z reguîy skomplikowane programy optymalizujâce np. kopiowanie lub archiwi-
+zacjë plików.
+@endnode
+
+
+
+@node gloss_dospacket "Pakiety DOSu"
+
+Wykonanie kaûdej prawie funkcji DOSu sprowadza sië w  koïcu  do  wykonania
+przez odpowiedni handler odpowiedniej akcji. Zasadâ jest, ûe akcje  danego
+handlera sâ niepodzielne w czasie (tzn. w rzeczywistoôci tylko jedno zada-
+nie moûe w danej chwili wykonywaê operacjë  na  konkretnej  dyskietce  czy
+urzâdzeniu). Przykîady akcji:
+   ACTION_WRITE     - zapis (wywoîywana przez funkcjë WRITE),
+   ACTION_FINDINPUT - otwarcie kanaîu wejôciowego (wywoîywana przez 
+                      funkcjë Open(...,MODE_OLDFILE),
+   ACTION_PARENT    - wywoîywana przez funkcjë ParentDir.
+@endnode
+
+
+@node gloss_recur "Rekursja"
+
+Rekursja polega w skrócie na opisywaniu danych za  pomocâ  samych  siebie.
+Rekurencyjne wykonanie procedury polega  na  wywoîaniu  w  razie  potrzeby
+procedury przez siebie samâ.
+
+Przykîadem takiej  procedury  jest  np.  procedura  kopiowania.  Procedura
+sprawdza, czy dany obiekt jest plikiem czy katalogiem. Jeôli jest plikiem,
+wykonuje kopië pliku. Jeôli jest katalogiem, wykonuje operacjë  utworzenia
+katalogu i wywoîuje sama siebie dla kolejnych obiektów w katalogu.
+@endnode
+
+@node arexx "Obsîuga portu ARexx'a"
+
+Port ARexx'a Opery nie sîuûy (jak w innych programach tego typu) do  wyko-
+nywania skomplikowanych skryptów, lecz raczej do komunikacji innych  prog-
+ramów z Operâ. Dlatego teû nie ma dostëpu z  poziomu  ARexx'a  do  funkcji
+modyfikujâcych pliki czy katalogi, lecz wyîâcznie do  funkcji  informacyj-
+nych.
+
+Komendy ARexxa (nazwa portu: dop_rexx)
+
+   @{" Action       " link rexx_Action} 
+   @{" Comment      " link rexx_Comment} 
+   @{" Count        " link rexx_Count} 
+   @{" Date         " link rexx_Date} 
+   @{" Dir          " link rexx_Dir} 
+   @{" Doslist      " link rexx_Doslist} 
+   @{" Edit         " link rexx_Edit} 
+   @{" First        " link rexx_First} 
+   @{" FirstMatch   " link rexx_FirstMatch} 
+   @{" IsMatch      " link rexx_IsMatch} 
+   @{" Mode         " link rexx_Mode} 
+   @{" Name         " link rexx_Name} 
+   @{" Next         " link rexx_Next}
+   @{" NextMatch    " link rexx_NextMatch}
+   @{" Object       " link rexx_Object}
+   @{" Parent       " link rexx_Parent}
+   @{" Path         " link rexx_Path}
+   @{" Pos          " link rexx_Pos}
+   @{" Protection   " link rexx_Protection}
+   @{" Selection    " link rexx_Selection}
+   @{" SetComment   " link rexx_SetComment}
+   @{" SetProtection" link rexx_SetProtection}
+   @{" Time         " link rexx_Time}
+   @{" Timeval      " link rexx_Timeval}
+   @{" View         " link rexx_View}
+   @{" Volume       " link rexx_Volume}
+   @{" Window       " link rexx_Window}
+@endnode
+
+
+
+@node rexx_Dir "ARexx: Dir"
+
+Dir <ôcieûka>
+
+Odczyt katalogu do aktualnego okna; zwraca ôcieûkë dostëpu.
+@endnode
+
+
+@node rexx_Object "ARexx: Object"
+
+Object <nazwa>
+
+Ustawia kursor na podanym obiekcie; zwraca nazwë.
+@endnode
+
+
+@node rexx_Action "ARexx: Action"
+
+Action [<nazwa>] - wykonaj akcjë [dla pliku o okreôlonej nazwie];
+
+Wykonuje akcjë zwiâzanâ z danym obiektem. Jeôli  wystëpuje  nazwa,  kursor
+bëdzie ustawiony na podany obiekt.
+@endnode
+
+
+@node rexx_Edit "ARexx: Edit"
+
+Edit [<nazwa>] - wykonaj edycjë
+
+Wykonuje edycjë danego obiektu. Jeôli wystëpuje nazwa, kursor bëdzie usta-
+wiony na podany obiekt.
+@endnode
+
+
+@node rexx_View "ARexx: View"
+
+View [<nazwa>]
+
+Wykonuje przeglâd danego obiektu. Jeôli  wystëpuje  nazwa,  kursor  bëdzie
+ustawiony na podany obiekt.
+@endnode
+
+
+@node rexx_Path "ARexx: Path"
+
+Path
+
+Zwraca nazwë aktualnego katalogu.
+@endnode
+
+
+@node rexx_Window "ARexx: Window"
+
+Window [l|p|r]
+
+Przeîâcza aktywne okna. Jeôli wystëpuje parametr l, ustawia  aktywne  okno
+lewe, jeôli wystëpuje parametr r lub p, ustawia aktywne okno prawe
+@endnode
+
+
+@node rexx_First "ARexx: First"
+
+First [file | dir]
+
+Przesuwa kursor do pierwszego obiektu. Jeôli wystëpuje parametr  file,  do
+pierwszego pliku; jeôli  wystëpuje  dir,  do  pierwszej  szuflady.  Zwraca
+nazwë obiektu.
+@endnode
+
+
+@node rexx_Next "ARexx: Next"
+
+Next
+
+Przesuwa kursor i zwraca nazwë nastëpnego obiektu.
+@endnode
+
+
+@node rexx_FirstMatch "ARexx: FirstMatch"
+
+FirstMatch <@{" p-wzorzec " link patmat_pat}>
+
+Przesuwa kursor i zwraca nazwë pierwszego pasujâcego do wzorca obiektu.
+@endnode
+
+
+@node rexx_NextMatch "ARexx: NextMatch"
+
+NextMatch <@{" p-wzorzec " link patmat_pat}>
+
+Przesuwa kursor zwraca nazwë nastëpnego pasujâcego do wzorca obiektu.
+@endnode
+
+
+@node rexx_Name "ARexx: Name"
+
+Name
+
+Zwraca nazwë aktualnego obiektu.
+@endnode
+
+
+@node rexx_Comment "ARexx: Comment"
+
+Comment
+
+Zwraca komentarz zwiâzany z obiektem.
+@endnode
+
+
+@node rexx_Date "ARexx: Date"
+
+Date 
+
+Zwraca datë ostatniej modyfikacji obiektu w formacie DD:MM:YY.
+@endnode
+
+
+@node rexx_Time "ARexx: Time"
+
+Time
+
+Zwraca czas ostatniej modyfikacji obiektu w formacie HH:MM:SS.
+@endnode
+
+
+@node rexx_Timeval "ARexx: Timeval"
+
+Timeval
+
+Zwraca czas ostatniej modyfikacji obiektu jako liczbë sekund od 1 stycznia
+1970 godz. 00: 00: 00 GMT.
+@endnode
+
+
+@node rexx_Protection "ARexx: Protection"
+
+Protection
+
+Zwraca aktualne bity stanu obiektu.
+@endnode
+
+
+@node rexx_SetProtection "ARexx: SetProtection"
+
+SetProtection [h][s][p][a][r][w][e][d]
+
+Zmienia bity stanu obiektu.
+Zwraca aktualne bity stanu obiektu.
+@endnode
+
+
+@node rexx_SetComment "ARexx: SetComment"
+
+SetComment [<napis>]
+
+Zmienia komentarz zwiâzany z obiektem.
+Zwraca aktualne zwiâzany z obiektem.
+@endnode
+
+
+@node rexx_Selection "ARexx: Selection"
+
+Selection <on|off|swap> [all|files|dirs]
+
+Zaznacza obiekt w nastëpujâcy sposób:
+   - z parametrem on zaznacza obiekt,
+   - z parametrem off kasuje zaznaczenie obiektu,
+   - z parametrem swap zmienia zaznaczenie obiektu,
+   - z parametrem files operacja dotyczy wszystkich plików,
+   - z parametrem dirs operacja dotyczy wszystkich szuflad,
+   - z parametrem all operacja dotyczy wszystkich obiektów.
+@endnode
+
+
+@node rexx_Mode "ARexx: Mode"
+
+Mode
+
+Testuje aktualny obiekt i zwraca:
+   - file jeôli obiekt jest plikiem
+   - dir  jeôli obiekt jest katalogiem
+   - dev  jeôli obiekt jest urzâdzeniem
+   - sys  jeôli obiekt jest "*"
+   - pdir jeôli obiekt jest "/" lub ":"
+@endnode
+
+
+@node rexx_Parent "ARexx: Parent"
+
+Parent
+
+Odczytuje katalog nadrzëdny do aktualnego okna.
+@endnode
+
+
+@node rexx_Volume "ARexx: Volume"
+
+Volume
+
+Odczytuje dysk nadrzëdny do aktualnego okna.
+@endnode
+
+
+@node rexx_Doslist "ARexx: Doslist"
+
+Doslist
+
+Odczytuje listë urzâdzeï systemu do aktualnego okna.
+@endnode
+
+
+@node rexx_Count "ARexx: Count"
+
+Count [selected] [files|dirs]
+
+Liczy obiekty w aktualnym oknie. Jeôli wystëpuje parametr selected,  liczy
+tylko obiekty zaznaczone. Jeôli wystëpujâ files lub dirs, liczone sâ pliki
+(dla files) i szuflady (dla dirs).  Jeôli  nie  wystëpujâ  files  i  dirs,
+liczone sâ równieû obiekty systemowe (nadrzëdny, dysk,  system).
+@endnode
+
+
+@node rexx_Pos "ARexx: Pos"
+
+Pos [<numer>] [dir|file]
+
+[Ustawia i] zwraca pozycjë kursora.
+Dla parametru dir pozycja liczona jest od pierwszej szuflady, dla file  od
+pierwszego pliku
+@endnode
+
+
+@node rexx_IsMatch "ARexx: IsMatch"
+
+IsMatch <@{" p-wzorzec " link patmat_pat}> <napis>
+
+Zwraca 1 jeôli napis pasuje do wzorca, 0 jeôli nie.
+@endnode
+
+
+@node menu "Menu"
+
+   @{" Projekt     " link m_projekt}
+   @{" Lewy        " link m_lewyprawy}
+   @{" Prawy       " link m_lewyprawy}
+   @{" Funkcje     " link m_funkcje}
+   @{" Szuflady    " link m_szuflady}
+   @{" Preferencje " link m_prefer}
+@endnode
+
+
+@node m_projekt "Menu: Projekt"
+
+1.Wielce waûne informacje (Amiga + 'a')
+  
+Wyôwietla róûne mniej lub bardziej potrzebne informacje, takie jak:
+- Pamiëê przydzielona  - iloôê przydzielonej pamiëci w bajtach,
+- Zajëte na napisy - iloôê pamiëci zajëtej przez wszystkie napisy pamiëta-
+  ne przez Operë,
+- Obiekty - liczba obiektów, których opisy zawarte sâ w buforze programu,
+- Pozostaîo pamiëci - iloôê w bajtach wolnej pamiëci w buforze,
+- Ômieciarka pracowaîa - podaje czas pracy odômiecacza w msec.,
+- Sterta obiektów - podaje liczbë wolnych miejsc w stercie obiektów,
+- Buforowane katalogi - podaje liczbë buforowanych katalogów  oraz  liczbë
+  buforów (aktualnie 16)
+- Wolna pamiëê CHIP
+- Wolna pamiëê FAST - podaje iloôê wolnej pamiëci w systemie
+
+Patrz równieû:
+@{" Pamiëê Opery " link memor}
+
+2.Dobranoc, szefie! (Esc)
+Wprowadza Operë w stan uôpienia.
+
+3.Ûegnaj, Opero! (Amiga + 'q')
+Koïczy pracë programu. Bieûâce ustawienia parametrów oraz nazwy  katalogów
+i pozycje plików zapamiëtane zostanâ w pliku "S: aktual.opera"  i  automa-
+tycznie odtworzone przy nastëpnym uruchomieniu programu.
+@endnode
+
+
+@node m_lewyprawy "Menu: Lewy i Prawy"
+
+1.Pole selekcji
+2.Pole dolne
+
+Ustawienie  poniûszych  przeîâczników  powoduje   wîâczenie   odpowiedniej
+funkcji wyôwietlania danych o pliku odpowiednio na  oknie  roboczym  (pole
+selekcji) i linii informacyjnej (pole dolne):
+- Liczba bloków - wyôwietla iloôê bloków zajëtych przez plik,
+- Wielkoôê - wyôwietla wielkoôê pliku w bajtach,
+- Data - wyôwietla datë ostatniej modyfikacji obiektu,
+- Czas - wyôwietla czas ostatniej modyfikacji obiektu,
+- Bity stanu - wyôwietla bity protekcji obiektu:
+   r - do czytania (readable),
+   w - do pisania (writeable),
+   e - wykonywalny (executable),
+   d - kasowalny (deletable),
+   s - skrypt DOSu,
+   p - tzw. "czysty kod" (pure), czyli program z moûliwoôciâ wielodostëpu,
+   a - archiwalny (archive),
+   h - ukryty (hidden).
+       
+
+3.Filtr
+
+Ustawienie odpowiednich  przeîâczników  powoduje  wîâczenie  odpowiedniego
+filtru przy wyôwietlaniu plików (filtracja nie dotyczy szuflad!)
+
+- #?.info - nie wyôwietla plików z rozszerzeniem .info,
+- #?.bak - nie wyôwietla plików z rozszerzeniem .bak,
+- uûytkownika - aktywuje filtr uûytkownika.
+
+
+4.Definiuj filtr (Amiga + lewy lub prawy nawias)
+
+Wywoîuje funkcjë ustawiania filtru uûytkownika za  pomocâ  @{" p-wzorców " link patmat_pat}.
+Wpisanie wzorca w pole "Chowaj" powoduje, ûe pliki o nazwach pasujâcych do
+wzorca nie bëdâ wyôwietlane. Wpisanie wzorca w pole "Pokaû"  powoduje,  ûe
+bëdâ wyôwietlane wyîâcznie pliki pasujâce do wzorca.
+
+
+5.Uîóû wedîug rozszerzeï
+
+Wybranie tej opcji powoduje, ûe pliki bëdâ ustawione alfabetycznie  wedîug
+rozszerzeï (czyli tekstu po ostatniej kropce) a  nastëpnie  wedîug  nazwy.
+Pliki bez rozszerzeï wyôwietlane bëdâ na koïcu.
+
+
+6.Uîóû chronologicznie
+
+Wybranie tej opcji powoduje, ûe pliki bëdâ ustawiane  od  najstarszego  do
+najmîodszego
+
+
+7.Chowaj ukryte pliki
+
+Wybranie tej opcji powoduje, ûe pliki z  ustawionym  bitem  'h'  nie  bëdâ
+wyôwietlane.
+@endnode
+
+
+@node m_funkcje "Menu: Funkcje"
+
+To menu rozdzielone jest na dwie grupy.
+
+I) Funkcje wbudowane:
+
+1. Przeîâcz wyôwietlanie (Control + 'o')
+  
+Przeîâcza tryb wyôwietlania peîny/uproszczony.
+
+
+2.Zamieï aktywne okna (Tab)
+
+Zamienia aktywne okno selekcji lewe/prawe.
+
+
+3.Szuflada nadrzëdna (Amiga + 'n')
+
+Powoduje odczytanie i wyôwietlenie katalogu nadrzëdnego.
+
+
+4.Dysk nadrzëdny (Amiga + 'd')
+
+Powoduje odczytanie i wyôwietlenie katalogu nadrzëdnego.
+          
+
+5.Dyski w systemie (Amiga + 's')
+
+Powoduje odczytanie i wyôwietlenie katalogu dysku nadrzëdnego.
+          
+
+6.Rëczne wprowadzenie nazwy (Amiga + 'r')
+
+Powoduje odczytanie i wyôwietlenie katalogu o podanej nazwie.
+
+
+7.Oblicz sumë bajtów (Control + F5)
+
+Powoduje  zsumowanie  i  wyôwietlenie  wielkoôci  wszystkich  zaznaczonych
+obiektów. Dla szuflad sumowana jest wielkoôê wszystkich obiektów  w  danej
+szufladzie. Ponadto podawana jest informacja, czy w  przypadku  kopiowania
+obiekty zmieszczâ sië  na  noôciku  docelowym  (np.  dyskietce).  Wielkoôê
+obiektu obliczana jest w sposób nastëpujâcy:
+   Dla noônika úródîowego:
+   - Szuflada - 1 blok,
+   - Plik     - n+1 bloków, gdzie n jest liczbâ bloków podanâ przez DOS
+                dla danego pliku.
+   Dla noônika docelowego:
+   - Szuflada - 1 blok,
+   - Plik     - n+1 bloków, gdzie n jest liczbâ bloków o wielkoôci podanej
+                przez DOS dla noônika docelowego wystarczajâcej do 
+                pomieszczenia pliku o danej dîugoôci. Jeden blok dodawany
+                jest zawsze na nagîówek.
+          
+UWAGA!
+MOÛE zaistnieê sytuacja, w której liczba bloków  faktycznie  zajëta  przez
+danâ liczbë obiektów jest wiëksza niû obliczona. Moûe to wystâpiê w  przy-
+padku przepeînienia tablicy obiektów (hash table) na  dyskietce  (w  takim
+przypadku przydzielany jest dodatkowy blok rozszerzenia -  tzw.  Extension
+Block) sformatowanej w OFS!  
+
+
+II) Funkcje uûytkownika:
+   
+Moûliwe jest wprowadzenie  dziewiëciu  dowolnych  funkcji  operujâcych  na
+pojedynczych obiektach. Wybranie menu po lewej stronie (przy cyfrze stano-
+wiâcej numer funkcji) powoduje wîâczenie edytora funkcji. Wybranie menu po
+prawej stronie powoduje uruchomienie danej funcji.
+
+Wybranie menu "Zapisz" powoduje zapisanie  treôci  wszystkich  funkcji  na
+dysku pod nazwâ "S: funkcje.opera"
+
+Kaûdâ funkcjë moûna wywoîaê wciôniëciem dowolnego  klawisza  cyfrowego  od
+'1' do '9'.
+
+W linii zawierajâcej opis funkcji moûliwe jest wprowadzenie  nastëpujâcych
+znaków formatowania komendy:
+   %f - w tym miejscu umieszczona zostanie nazwa obiektu,
+   %d - w tym miejscu umieszczona zostanie nazwa katalogu zawierajâcego
+        obiekt,
+   %D - w tym miejscu umieszczona zostanie nazwa katalogu zawierajâcego
+        obiekt wraz z koïczâcym znakiem '/' jeôli jest potrzebny,
+   %e - w tym miejscu umieszczona zostanie nazwa katalogu wyôwietlanego
+        w nieaktywnym oknie,
+   %E - w tym miejscu umieszczona zostanie nazwa katalogu wyôwietlanego
+        w nieaktywnym oknie wraz z koïczâcym znakiem '/' jeôli jest 
+        potrzebny,
+   %n - w tym miejscu umieszczona zostanie nazwa obiektu bez rozszerzenia
+        i kropki, jeôli rozszerzenie wystëpuje,
+   %x - w tym miejscu umieszczone zostanie rozszerzenie nazwy obiektu wraz
+        z kropkâ, o ile rozszerzenie wystëpuje,
+   %S - w tym miejscu umieszczony zostanie szesnastkowy adres ekranu 
+        Opery,
+   ?f{tekst} - ten tekst zostanie umieszczony w komendzie tylko wtedy, gdy
+        obiekt jest plikiem,
+   ?d{tekst} - ten tekst zostanie umieszczony w komendzie tylko wtedy, gdy
+        obiekt jest szufladâ.
+@endnode
+
+
+@node m_szuflady "Menu: Szuflady"
+
+Moûliwe jest wprowadzenie dziewiëciu dowolnych szuflad  najczëôciej  prze-
+glâdanych przez uûytkownika. Wybranie menu po lewej stronie  (przy  cyfrze
+stanowiâcej numer funkcji) powoduje wîâczenie  edytora  szuflad.  Wybranie
+menu po prawej stronie powoduje odczytanie danej szuflady. Szufladë  moûna
+wybraê równieû za pomocâ  kombinacji  klawiszy  Amiga  +  klawisz  cyfrowy
+z zakresu '1'..'9'.
+
+Wybranie menu "Zapisz" powoduje zapisanie nazw wszystkich szuflad na dysku
+pod nazwâ "S: katalogi.opera"
+@endnode
+
+
+@node m_prefer "Menu: Preferencje"
+
+1.Xero (Amiga + 'x')
+
+Wîâcza edytor @{" preferencji kopiarki " link pref_xero}
+
+
+2.Kadry (Amiga + 'k')
+
+Wîâcza edytor @{" programów wspóîpracujâcych " link pref_kadry}
+
+
+3.Pytajnik
+
+- odpowiedú myszâ  -  wîâczenie  opcji  powoduje,  ûe  okienka  informacji
+  i zapytaï nie bëdâ zawieraîy przycisków typu "Tak" i "Nie",  lecz  odpo-
+  wied nich odpowiedzi naleûy udzieliê naciskajâc okreôlony klawisz myszy.
+- pytajnik poôrodku - wîâczenie  opcji  powoduje,  ûe  okienka  informacji
+  i zapytaï bëdâ otwierane zawsze poôrodku ekranu Opery, a  nie na pozycji
+  wskaúnika myszy.
+
+
+4.Ekran
+
+Wîâcza edytor @ {" preferencji ekranu  "  link  pref_screen}  jeôli  Opera
+uûywa wîasnego ekranu lub @ {" preferencji okna " link pref_window}, jeôli
+uûywa ekranu Workbencha.
+
+
+5.Sprëûarka
+
+Wîâcza edytor preferencji programu kompresji. Moûliwa  jest  kompresja  za
+pomocâ  biblioteki  "powerpacker.library"  lub  "stc.library".   Znaczenie
+pposzczególnych parametrów edytora podajâ dokumentacje bibliotek.
+
+
+6.Informator
+
+- wyôwietl czas - wîâczenie opcji powoduje, ûe w dolnej linii  informacyj-
+  nej bëdzie na bieûâco podawany aktualny czas.
+- format skrócony - wîâczenie  opcji  powoduje,  ûe  informacje  o  wolnej
+  pamiëci podawane bëdâ:
+    - w megabajtach dla wartoôci powyûej 1 MB,
+    - w kilobajtach dla wartoôci od 1KB do 1MB,
+    - w bajtach dla wartoôci poniûej 1 KB.
+
+
+7.Drukuj zaznaczone
+
+Wîâczenie opcji powoduje, ûe drukowany katalog zawieraê  bëdzie  wyîâcznie
+zaznaczone obiekty.
+
+
+8.Pozostaw selekcjë
+
+Wîâczenie opcji powoduje, ûe operacje wykonujâce  deselekcjë  zaznaczonego
+obiektu (kopiowanie, przeszukiwanie itd.) nie bëdâ jej wykonywaîy.
+
+
+9.Peîne drzewo
+
+Wîâczenie opcji powoduje, ûe @{" drzewa wyôwietlania katalogów " link g_tree} bëdâ 
+zawieraîy równieû pliki. 
+        
+
+10.Pojedyncza linia górna
+
+Wîâczenie opcji powoduje, ûe bezwzglëdnie utworzona zostanie  tylko  jedna
+linia @{" przycisków " link gadgety} niezaleûnie od wielkoôci okna
+
+
+11.Pojedyncza linia dolna
+
+Wîâczenie opcji powoduje, ûe bezwzglëdnie utworzona zostanie  tylko  jedna
+linia informacyjna niezaleûnie od wielkoôci okna
+@endnode
+
+
+@node memor "Pamiëê Opery"
+
+Opera operuje pamiëciâ w nastëpujâcy sposób:
+
+Przydzielony bufor pamiëciowy wykorzystywany jest do zapamiëtywania infor-
+macji o obiektach (dane o obiekcie takie jak wielkoôê czy czas modyfikacji
+oraz wewnëtrzne parametry Opery) oraz o wszystkich napisów (zarówno  nazwy
+i komentarze, jak i wszystkie wprowadzane przez uûytkownika napisy  stano-
+wiâce parametry preferencji. Powody takiej organizacji sâ nastëpujâce:
+   1) Opera nie musi bez przerwy pobieraê i zwracaê pamiëci  dla  systemu.
+      Wskutek takich operacji mogîoby sië zdarzyê, ûe np. w systemie  jest
+      wolne 2 MB pamiëci, a najdîuûszy fragment to 16 KB...
+   2) Raz przydzielona pamiëê pozostaje caîy czas do dyspozycji  programu.
+      Nie istnieje niebezpieczeïstwo zaîamania sië programu z powodu braku
+      dostëpnej pamiëci.
+   3) Program nie musi dobieraê pamiëci z systemu - oznacza  to,  ûe  inne
+      programy mogâ liczyê na to, ûe nikt im nagle nie zabierze ostatniego
+      kawaîka wolnego RAMu
+   4) Program nie musi przydzielaê pamiëci  na  najdîuûszy  moûliwy  napis
+      danego typu (np. w przypadku nazwy pliku jest to 108 bajtów). Dlate-
+      go bufor 128 KB wystarcza do zapamiëtania  informacji o kilku tysiâ-
+      cach obiektów.
+   5) Poniewaû w przypadku przepeîniania sië bufora  pamiëciowego  automa-
+      tycznie kasowane sâ bufory katalogów, nie istnieje ûadne  niebezpie-
+      czeïstwo, ûe wczytywany katalog nie bëdzie chciaî  sië  wczytaê,  bo
+      caîa pamiëê zajëta jest na bufory... 
+
+Oprócz tego istnieje sterta obiektów, w której zapamiëtywane sâ  wszystkie
+obiekty do których Opera musi mieê natychmiastowy dostëp. Sterta ma pojem-
+noôê 64 obiektów i w czasie normalnej pracy nie powinna zostaê przepeînio-
+na. Przepeînienie sië sterty moûe byê  wynikiem  bîëdu  programu  i  takie
+przypadki naleûy zgîaszaê bezpoôrednio @ {" Autorowi " link  bodzio}  (nie
+sprzedawcy!!!).
+
+Chwilowe zatrzymania w pracy programu sâ normalne. W tym czasie  specjalna
+procedura odômiecania zajmuje sië porzâdkowaniem bufora. Dla bufora 128 KB
+i komputera A1200 z pamiëciâ FAST czas odômiecania nie powinien byê  dîuû-
+szy niû sekunda.
+
+UWAGA!
+Pracujâc w trybie ekranu SUPERHIRES_LACE 4 kolory i z buforem 64 KB  Opera
+zabiera od systemu ok. 550 KB pamiëci, przy czym ûadnych wiëkszych  obsza-
+rów nie ma zamiaru sobie przydzielaê. Umoûliwia  to  wykorzystanie  wszys-
+tkich moûliwoôci programu na maszynach z pamiëciâ 1 MB, jak  równieû  kom-
+fortowâ pracë na maszynach z pamiëciâ mniejszâ. Pracujâca  w  "minimalnym"
+trybie (HIRES, 4 kolory, 32 KB bufor) Opera potrzebuje tylko 380 KB!
+@endnode
+
+
+@node pref_xero "Preferencje: Xero"
+
+Edytor umoûliwia ustawienie nastëpujâcych moûliwoôci:
+
+1.Pytanie przy kopiowaniu
+2.Pytanie przy przenoszeniu
+  
+Potwierdzenie przez uûytkownika wydania polecenia.
+
+Moûliwoôci:
+   - zawsze
+   - przy kopiowaniu katalogu
+   - przy kopiowaniu grupy zaznaczonych obiektów
+   - nigdy
+        
+3.Jeôli plik juû istnieje
+
+Reakcja na fakt, ûe w katalogu docelowym istnieje  juû  obiekt  o  podanej
+nazwie.
+
+Moûliwoôci:
+   - zapytaj uûytkownika co robiê
+   - pomiï podejrzany plik
+   - przerwij kopiowanie
+   - kopiuj bezwzglëdnie
+@endnode
+
+
+@node pref_screen "Preferencje: Ekran Opery"
+
+Okno preferencji  ekranu  zawiera  nastëpujâce  przyciski  (nie  wszystkie
+z nich ukaûâ sië w systemach niûszych od 3.0):
+
+       Nazwa przycisku          Odpowiednik     Wymagana
+                                Intuition       wersja
+  ------------------------------------------------------
+    linie gadgetów              DETAILPEN
+    bloki gadgetów              BLOCKPEN
+    napisy                      TEXTPEN
+    jasne krawëdzie             SHINEPEN
+    ciemne krawëdzie            SHADOWPEN
+    wypeînienie                 FILLPEN
+    napisy na wypeînieniu       FILLTEXTPEN
+    podôwietlone napisy         HIGHLIGHTTEXTPEN
+    tekst na belce ekranu       BARBLOCKPEN      3.0+
+    belka ekranu                BARDETAILPEN     3.0+
+    oddzielamy belkë            BARTRIMPEN       3.0+
+    nazwy plików                    -
+    nazwy katalogów                 -
+    nazwy wybranych plików          -
+    nazwy wybranych katalogów       -
+    tîo wybranych plików            -
+    tîo wybranych katalogów         -
+
+Przyciski te sîuûâ do wybrania kolorów, jakie podobajâ sië  uûytkownikowi.
+Oprócz tego istnieje moûliwoôê ustawienia palety (w zakresie czterobitowym
+RGB) dla kaûdego koloru, oraz moûliwoôê wyboru trybu  wyôwietlania  ekranu
+programu.  
+
+Ustawienia mogâ byê zapisane. Zapis odbywa sië do pliku  "S:  ekran.opera"
+i zostanie automatycznie odtworzony przy ponownym uruchomieniu programu na
+wîasnym ekranie.
+@endnode
+
+
+@node pref_window "Preferencje: Okno Opery"
+
+Okno preferencji okne zawiera nastëpujâce przyciski:
+
+
+       Nazwa przycisku          Odpowiednik
+                                Intuition  
+  -----------------------------------------
+    linie gadgetów              DETAILPEN
+    bloki gadgetów              BLOCKPEN
+    nazwy plików                    -
+    nazwy katalogów                 -
+    nazwy wybranych plików          -
+    nazwy wybranych katalogów       -
+    tîo wybranych plików            -
+    tîo wybranych katalogów         -
+
+Przyciski te sîuûâ do wybrania kolorów, jakie podobajâ sië uûytkownikowi. 
+
+Ustawienia mogâ byê zapisane. Zapis odbywa sië do  pliku  "S:  okno.opera"
+i zostanie automatycznie odtworzony przy ponownym uruchomieniu programu na
+ekranie Workbencha.
+@endnode
+
+
+@node bodzio "Autor programu"
+
+        Mój adres dla korespondencji:
+                Bohdan R. Rau
+                ul. Poleska 25/1
+                15-476 Biaîystok
+
+Telefon (085)761285 - ale zbyt rzadko moûna mnie zastaê w domu...
+@endnode
+
+
+@node patmat_pat
+
+Wzorce wbudowane w bibliotece patmatch.library
+
+@         - Pasuje do napisu pustego. Jeôli dopasowanie za @ zawodzi, 
+            zawodzi caîa funkcja.
+$         - Sprawia, ûe zawodzi caîa funkcja
+!         - Sprawia, ûe zawodzi bieûâca gaîâú
+?         - pasuje do dowolnego znaku
+*         - Pasuje do dowolnego (równieû pustego) ciâgu znaków
+^         - Sprawia, ûe funkcja dopasowywujâca koïczy sië sukcesem
+'cset'    - Pasuje do dowolnego znaku ze zbioru cset
+&'cset'   - Pasuje do najdîuûszego niepustego ciâgu znaków ze zbioru cset
+~'cset'   - Pasuje do dowolnego znaku spoza cset
+&~'cset'  - Pasuje do najdîuûszego niepustego ciâgu znaków spoza cset
+~&'cset'  - Pasuje do najdîuûszego niepustego ciâgu znaków spoza cset pod
+           warunkiem, ûe za nim znajduje sië znak ze zbioru cset
+()        - Nawiasy umoûliwiajâce grupowanie wzorców
+|         - Rozdziela wzorce alternatywne
+{}        - Ujëcie wzorca w nawiasy klamrowe oznacza, ûe taki wzorzec 
+            pasuje do dowolnej niezerowej iloôci powtórzeï wzorca wewnâtrz 
+            nawiasów. 
+[liczba]  - Przesuwa kursor procedury do podanej pozycji. Pozycja ujemna
+            oznacza, ûe wîaôciwa pozycja liczona jest od prawej
+            (np [-1] przesuwa kursor przed ostatni znak). Zawodzi przy
+            próbie przesuniëcia kursora w lewo od bieûâcej pozycji lub 
+            poza dopasowywany napis.
+[#liczba] - Zawodzi, jeôli kursor procedury nie znajduje sië w okreôlonej
+            pozycji. Pozycja ujemna oznacza, ûe wîaôciwa pozycja liczona
+            jest od prawej.
+/cyfra    - Zapamiëtuje w rejestrze o podanym numerze napis pasujâcy do
+            nastëpnego wzorca
+%cyfra    - Pasuje do napisu z rejestru o podanym numerze. Np. /1?%1 
+            pasuje do pary dwóch takich samych znaków.
+%litera   - oznacza wzorzec globalny.
+<>        - Ujëcie wzorca w nawiasy kâtowe oznacza, ûe taki wzorzec
+            pasuje tylko do pierwszej koïczâcej sië sukcesem gaîëzi.
++cyfra    - Oznacza, ûe nastëpny wzorzec dopasowywany jest nie do
+            bieûâcego napisu, ale do napisu bëdâcego wartoôciâ okreôlonego
+            rejestru. Wystëpujâce wewnâtrz dopasowywanego wzorca wbudowane
+            wzorce $ oraz ^ nie powodujâ przerwania gîównej funkcji, lecz
+            oznaczajâ odpowiednio niepowodzenie lub sukces dopasowania do
+            argumentu.
+\znak     - Oznacza, ûe znak nie jest interpretowany jako znak specjalny.
+            W szczególnoôci jeôli wewnâtrz argumentu wzorca operujâcego
+            zbiorami znaków znajdzie sië kombinacja \' oznacza to, ûe znak
+            apostrofu nie jest znakiem koïczâcym wykaz znaków zbioru a 
+            jednym ze znaków zbioru, natomiast kombinacja \\ oznacza znak
+            \ explicite. Np. a\*b pasuje do napisu a*b, a\\b pasuje do a\b.
+:cyfra    - Zapamiëtuje w rejestrze bieûâcâ pozycjë kursora.
+[%cyfra]  - Przesuwa kursor procedury do pozycji zapamiëtanej w rejestrze.
+            Jeôli przed znakiem % znajduje sië minus, pozycja jest liczona
+            od prawej. Zawodzi przy próbie przesuniëcia kursora w lewo od
+            bieûâcej pozycji lub poza dopasowywany napis.
+[#%cyfra] - Zawodzi, jeôli kursor procedury nie znajduje sië w pozycji
+            zapamiëtanej w rejestrze.
+
+Rejestr tekstu 0 ma znaczenie specjalne. Jeôli  jest  to  konieczne,  jako
+bufor rejestru sîuûy statyczny bufor zewnëtrzny, co sîuûy do przekazywania
+wartoôci rejestru miëdzy wywoîaniami.
+
+Przykîad: 
+W programie Opera operacja "Wspólne" - wyszukiwanie plików úródîowych w  C
+dla których istniejâ pliki wynikowe:
+
+    Wzorzec 1: /0*.c
+    Wzorzec 2: %0.o
+
+Po dopasowaniu do nazwy wzorca pierwszego w buforze  rejestru  0  znajdzie
+sië nazwa pliku bez rozszerzenia.
+
+Podczas konstruowania wzorca  operator  skîadania  (niejawny)  wzorców  ma
+wyûszy priorytet niû  operator  alternatywy.  Nawiasowanie  nie  musi  byê
+zachowane dla operatorów o jednakowych priorytetach, np.:
+
+    (a|b)|c
+    a|(b|c)
+    a|b|c
+    
+dadzâ w wyniku taki sam wzorzec!
+
+Podczas dopasowywania nie sâ rozróûniane duûe i  maîe  litery  z  alfabetu
+îaciïskiego. Wzorce alternatywne sâ dopasowywane w  kolejnoôci  wystëpowa-
+nia.
+
+Dopasowywanie  jest  zawsze  zakotwiczone.  Dopasowywanie  niezakotwiczone
+wymuszane jest przez wstawienie jako pierwszego wzorca *.
+
+UWAGI:
+
+   1) Wskutek bîëdu w algorytmie opracowywania wzorca {} nie jest on w tej
+      chwili zaimplementowany.  Mimo to pozostawiono skîadnië wzorca, lecz
+      wzorzec zawodzi. Sytuacja zostanie naprawiona w nastëpnej wersji!
+
+   2) Wzorzec * jeôli nie ma nastëpnika opracowywany jest jak [-1]
+
+   3) Wzorzec * (z wyjâtkiem przypadku powyûej) dziaîa powoli!
+
+   4) Wzorzec + tworzy wîasnâ kopië napisu bëdâcego argumentem, co umoûli-
+      wia uûycie wewnâtrz nastëpnego wzorca tego samego rejestru
+
+   5) Rejestry pozycji nie sâ identyczne z rejestrami napisowymi.
+
+
+Przykîady wzorców:
+
+a) Pasujâcy do dowolnego napisu zakoïczonego ".c" lub ".h"
+
+   *.(c|h)
+   *.'ch'
+   [-2].'ch'
+
+b) Pasujâcy do wszystkich nazw nie dîuûszych niû 5-literowe
+
+   [6]$|*
+
+c) Pasujâcy do nazw rozpoczynajâcych sië i koïczâcych tâ samâ literâ
+
+   /1?*%1
+   /1?[-1]%1
+
+d) Pasujâcy do dowolnej liczby powtórzeï par znaków, z których drugim jest
+   samogîoska
+
+   {?'aeiouy'}
+
+   Patrz: Uwaga 1)
+
+e) Pasujâcy do wszystkich nazw rozpoczynajâcych sië od "mod." lub  koïczâ-
+   cych na ".smus"
+
+	mod.*|*.smus
+
+f) Pasujâcy do nazwy skîadajâcej sië z dwóch par znaków, w  których  pier-
+   wsze znaki sâ identyczne, drugie sâ dowolnymi samogîoskami
+
+   /1?'aeiouy'%1'aeiouy'
+
+g) Pasujâcy do nazwy, w której wystëpujâ co najmniej dwa znaki  identyczne
+   z ostatnim znakiem. Wzorzec ten uûywa wzorca! do wymuszenia nawrotu.
+
+   [-1]/1?!|*%1*%1*?
+
+h) Pasujâcy do nazw rozpoczynajâcych sië od "pat" i  koïczâcych  sië  ".c"
+   lub ".h" oraz do wszystkich innych nazw  nie  rozpoczynajâcych  sië  od 
+   "pat". Wzorzec wbudowany @ powoduje,  ûe  dopasowanie  zawodzi dla nazw
+   rozpoczynajâcych sië od "pat" i nie koïczâcych sië  podanym  rozszerze-
+   niem.
+
+   pat@[-2].'ch'|*
+
+i) Pasujâcy do nazw bëdâcych palindromami (warto przeôledziê jak dziaîa)
+
+   */1?:1<[-%1]|^><%1|$>!
+
+j) Wzorce równowaûne pasujâce do wszystkich plików koïczâcych sië  na.info
+   Drugi wzorzec jest duûo szybszy, poniewaû nie wymaga dopasowywania  ko-
+   lejnych podnapisów.
+
+   *.info
+   [-5].info
+
+
+
+Dla wykorzystania wszystkich moûliwoôci naleûy zrozumieê proces  dopasowy-
+wania  do  wzorca  uûyty  w  procedurach  patmatch.library. Otóû procedura 
+CreatePattern tworzy strukturë bëdâcâ odwzorowaniem tzw.  diagramu korali-
+kowego,  którego  wierzchoîki  okreôlajâ  konkretne  jednostkowe   wzorce.
+Istniejâ dwa wskaúniki, z których jeden (kursor) porusza sië po analizowa-
+nym napisie, drugi (igîa) po grafie.
+
+Istniejâ dwa rodzaje wierzchoîków:
+a) Wierzchoîki statyczne - czyli takie, które albo pasujâ, albo nie pasujâ
+do danego fragmentu napisu oraz wszystkie ujëte w nawiasy kâtowe <>.
+b) Wierzchoîki wielowariantowe - czyli takie, które mogâ pasowaê  do  róû-
+nych napisów o róûnych dîugoôciach, przy czym  to  ûe  wzorzec  pasuje  do
+jakiegoô fragmentu nie wyklucza moûliwoôci  pasowania  do  innego.  Dobrym
+przykîadem jest tu wzorzec * który pasuje do dowolnego napisu.
+
+Jeôli igîa przechodzi przez wierzchoîek statyczny i dopasowanie koïczy sië
+sukcesem, kursor jest przesuwany o  wartoôê  równâ  dîugoôci  dopasowanego
+napisu. Jeôli dopasowanie zawodzi, funkcja próbuje cofnâê  igîë  po  swoim
+ôladzie (cofajâc równieû kursor) aû do napotkania ostatniego wzorca wielo-
+wariantowego. Jeôli takowego nie ma, zawodzi caîe dopasowanie. Jeôli jest,
+nastëpuje próba dopasowania nastëpnego wariantu. Jeôli nie ma  juû  moûli-
+woôci, nastëpuje próba wycofanie igîy dalej wstecz.
+
+Jeôli igîa przechodzi przez wierzchoîek wielowariantowy, dopasowywany jest
+pierwszy wariant.  W  przypadku  powodzenia  igîa  przechodzi  dalej  (jak
+w przypadku wierzchoîka statycznego), w przypadku niepowodzenia  nastëpuje
+próba dopasowania nastëpnego wariantu i dopiero po ich wyczerpaniu  nawrót
+(czyli wycofanie igîy).
+
+Jeôli po sukcesie igîa nie ma juû dokâd pójôê,  a  napis  zawiera  jeszcze
+niedopasowane znaki, traktowane jest to jak niepowodzenie.
+
+Oto, w jaki sposób zachodzi dopasowanie. Napis wejôciowy "file.cpp",  wzo-
+rzec *.('ca'|cpp)
+
+
+1)	* 	file.cpp  dopasowanie do ""
+	    	^
+2)	.	file.cpp  nie pasuje, nawrót
+	    	^
+3)	*	file.cpp  dopasowanie do "f"
+		^
+4)	.	file.cpp  nie pasuje, nawrót
+		 ^
+5)	*	file.cpp  dopasowanie do "fi"
+		^
+6)	.	file.cpp  nie pasuje, nawrót
+		  ^
+7)	*	file.cpp  dopasowanie do "fil"
+		^
+8)	.	file.cpp  nie pasuje, nawrót
+		   ^
+9)	*	file.cpp  dopasowanie do "file"
+		^
+10)	.	file.cpp  dopasowanie do "."
+		    ^
+11)	'ca'	file.cpp  dopasowanie do "c"
+		     ^
+12)	END	file.cpp  nie koniec napisu, nawrót
+		      ^
+13)	cpp	file.cpp  dopasowanie do "cpp"
+		     ^
+14)	END	file.cpp  koniec napisu, sukces
+			^
+
+I równowaûny z nim wzorzec [-2].'ca'| [-4].cpp,  przy  tym  samym  napisie
+wejôciowym:
+
+
+1)	[-2]	file.cpp  przesuwa kursor w prawo
+		^
+2)	.	file.cpp  nie pasuje, nawrót
+		      ^
+3)	[-4]	file.cpp  przesuwa kursor w prawo
+		^
+4)	.cpp	file.cpp  dopasowanie do ".cpp"
+		    ^
+5)	END	file.cpp  koniec napisu, sukces
+@endnode
+
+
+@node TOS "Operacje asynchroniczne"
+
+Procedury TOS (Techniczna Obsîuga Sceny, czyli banda robotników fizycznych
+rzucajâca sië na robotë) dziaîa asynchronicznie z moduîem  gîównym.  Moûna
+to opisaê w sposób nastëpujâcy:
+   a) Moduî gîówny pobiera polecenia od  uûytkownika  (np.  "kopiuj  listë
+      obiektów") i przekazuje je do portu TOSu  (tak, jak dyrektor przeka-
+      zuje polecenie brygadziôcie sceny).
+   b) Moduî TOSu pobiera polecenia z portu i wykonuje  je,  nie  angaûujâc
+      moduîu gîównego. Jeôli TOS zrobiî coô mâdrego z obiektem,  informuje
+      o tym natychmiast moduî sekretarki,  która  odznacza  na oknie robo-
+      czym, ûe obiekt jest juû opracowany.
+   c) Moduî gîówny pobiera nastëpne polecenia, wysyîa je do portu TOSu nie
+      zwracajâc uwagi na to, ûe TOS w danej chwili jest zajëty.
+   d) TOS po skoïczeniu wykonywania polecenia pobiera  nastëpne  polecenia
+      z portu i wykonuje je w takiej kolejnoôci, w jakiej byîy wydane. Je-
+      ôli poleceï nie ma, przechodzi w stn oczekiwania.
+
+Funkcje wykonywane asynchronicznie to:
+- Kopiowanie (we wszystkich moûliwych odmianach),
+- Usuwanie obiektów,
+- Sprëûanie i rozprëûanie,
+- Archiwizacja i dearchiwizacja,
+- Wywoîanie przeglâdarki ("Patrz") i edytora ("Edycja"),
+- Funkcje zdeklarowane przez uûytkownika w @{" Kadrach " link pref_kadry}.
+
+UWAGA!
+Wywoîanie "Tekst" i "Hex" sâ synchroniczne i wykonywane bezpoôrednio przez
+moduî gîówny.
+@endnode
+
+
+
+@node odemnie "Od Autora"
+
+Interface uûytkownika
+~~~~~~~~~~~~~~~~~~~~~
+Juû w trakcie pisania wstëpnych wersji programu spotkaîem sië z zarzutami,
+ûe Operë obsîuguje sië inaczej niû np.  DirectoryOpusa.  A  niby  dlaczego
+miaîoby sië obsîugiwaê tak samo? Zasady pracy obu  programów  sâ  zupeînie
+inne, stâd inna obsîuga. Piszâc OPerë staraîem sië (nie wiem, na ile mi to
+wyszîo) "ukraôê" parë mâdrych rzeczy zarówno z Opusa, jak i z Norton  Com-
+mandera (stâd znaczenie kilku klawiszy, takich jak TAB,  Ctrl-O  czy  Ins)
+oraz paru innych programów. Równie dobrze moûnaby postawiê zarzut, ûe Ope-
+rë obsîuguje sië inaczej niû Nortona...
+
+Na jeden powaûny zarzut muszë jednak odpowiedzieê serio.
+Nie jest moûliwe uûycie innego kroju niû topazpl/8. Uûytkownicy  monitorów
+VGA mogâ mieê lekkie pretensje, ale...
+
+Sam uûywam  podobnej  rozdzielczoôci  (PAL  HIRES/LACE  lub  PAL  SUPERHI-
+RES/LACE, mam taki ômieszny monitor który mi na to pozwala). I  myôlë,  ûe
+waûniejsza jest moûliwoôê umieszczenia na wyôwietlanym oknie jak  najwiëk-
+szej iloôci danych, a  nie  îadnego  kroju  czcionki  jakâ  sië  owe  dane
+wyôwietla!
+
+A poza tym:
+Zalecana minimalna wielkoôê monitora dla wyûszych rozdzielczoôci (np 800 x
+400) to 17 cali. Na takim ekranie 8-punktowa czcionka jest  wyraúnie  czy-
+telna. Moûe to jednak sprawa nie programu, a monitora?
+
+
+Jëzyk komunikacji z uûytkownikiem
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Jest to oczywiôcie jëzyk polski (Opera  przeznaczony  jest  wyîâcznie  dla
+polskich uûytkowników, stâd brak lokalizacji).
+
+Piszâc program, staraîem sië dopasowaê jëzyk, jakim Opera  komunikuje  sië
+z uûytkownikiem do potrzeb nie tyle superpoprawnej polszczyzny,  co  przy-
+najmniej w miarë poprawnego, potocznego jëzyka. Stâd w odpowiedziach  sys-
+temu moûe pojawiê sië np. "kulawy dysk" (ang.  invalid  disk,  jeôli  ktoô
+miaî Spektrusia to  pewnie  pamiëta  "kulawego  murzyna",  czyli  "invalid
+colour"). Dlatego teû nie staraîem sië tîumaczyê niektórych  terminów  nie
+majâcych odpowiednika polskiego.
+
+I tak na przykîad:
+
+Okreôlenia CHIP i FAST  pozostawiîem  -  traktujë  je  jako  nazwy  wîasne
+(a tych sië z reguîy nie tîumaczy). Poza tym przyjëte w polskiej  termino-
+logii terminy typu "pamiëê graficzna" sâ po prostu bîëdne  -  pamiëê  CHIP
+nie jest absolutnie ûadnâ pamiëciâ graficznâ, co najwyûej  moûe  byê  jako
+taka uûyta! Natomiast bardzo  poprawne  z  punktu  widzenia  prawidîowoôci
+jëzyka okreôlenie "PAMIËÊ DOSTËPNA DLA WSZYSTKICH UKÎADÓW WSPÓÎPRACUJÂCYCH
+Z KANAÎAMI BEZPOÔREDNIEGO DOSTËPU" za ûadne  skarby  nie  chciaîo  mi  sië
+w jednej linijce zmieôciê... AppWin pozostawiîem jako skrót od  AppWindow.
+Jest to po prostu jeden z typów okna i tak sië nazywa. Poza tym  tîumacze-
+nie imion czy nazwisk jest niespecjalnie na ôwiecie przyjëte - jak jeúdzi-
+îem do Francji to ja tam byîem Bohdan a nie Dieudonne! A juû na pewno  nie
+bëdë tîumaczyî dosîownie. Wystarczy mi tego, ûe ktoô kiedyô  przetîumaczyî
+"interface" na "miëdzymordzie"...
+@endnode

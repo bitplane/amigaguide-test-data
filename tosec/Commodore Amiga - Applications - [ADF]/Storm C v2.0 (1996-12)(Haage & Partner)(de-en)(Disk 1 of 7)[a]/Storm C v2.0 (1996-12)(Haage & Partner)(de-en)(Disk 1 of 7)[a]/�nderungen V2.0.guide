@@ -1,0 +1,647 @@
+@database StormC2.0.guide
+@(C) Copyright 1996 by HAAGE & PARTNER Computer GmbH
+
+@Width 70
+
+@TAB 3
+
+@MACRO HEADER "@{B}@{FG Shine}"
+@MACRO UHEADER "@{FG Text}@{UB}@{PAR}"
+@MACRO SUBHDR "@{U}"
+@MACRO USUBHDR "@{UU}@{PAR}"
+
+@MACRO ENUM "@{B}"
+@MACRO UENUM "@{UB}"
+
+@MACRO FUNC "@{B}@{FG Shine}"
+@MACRO UFUNC "@{FG Text}@{UB}@{PAR}"
+@MACRO SYN "@{B}"
+@MACRO USYN "@{UB}@{PAR}"
+@MACRO PORT "@{B}
+@MACRO UPORT "@{UB}@{PAR}"
+@MACRO XPL "@{B}"
+@MACRO UXPL "@{UB}@{PAR}"
+@MACRO RSLT "@{B}"
+@MACRO URSLT "@{UB}@{PAR}"
+@MACRO ATT "@{B}"
+@MACRO UATT "@{UB}@{PAR}"
+@MACRO SEE "@{B}"
+@MACRO USEE "@{UB}@{PAR}"
+@MACRO XMPL "@{B}"
+@MACRO UXMPL "@{UB}@{PAR}"
+@MACRO MTHD "@{B}"
+@MACRO UMTHD "@{UB}@{PAR}"
+
+@MACRO MARK "@{B}"
+@MACRO UMARK "@{UB}"
+@MACRO LETTER "@{B}@{FG Shine}"
+@MACRO ULETTER "@{FG Text}@{UB}"
+
+This is the AmigaGuide® file StormC.guide
+
+This file documents StormC, a development system for AmigaOS V2.04
+or newer.
+
+
+@Node Main "StormC.guide"
+@Next "Main"
+@Prev "Main"
+@Title "Erste Seite"
+
+@{HEADER}StormC V2.0 Erweiterungen@{UHEADER}
+
+  Software und Dokumentation 
+© 1996 by HAAGE & PARTNER Computer GmbH
+
+  Postfach 80
+  61188 Rosbach
+
+  Tel: 06007/930050
+  Fax: 06007/7543
+
+
+Inhaltsverzeichnis
+
+ @{" Projektverwaltung   " Link "STC_Sort"}  Eigene Makescripts
+
+ @{" Der Profiler        " Link "STC_Sections"}  Neue Kontrollmöglichkeiten mit dem Profiler
+
+Desweiteren wird mit der Version 2.0 von StormC der Profi-Texteditor
+GoldED 4 zusätzlich zum StormED 2 geliefert. Sie können nun zwischen den beiden
+Editoren auswählen. Die Anbindung von GoldED geschieht dabei genauso harmonisch
+wie bereits von StormED gewohnt.
+
+ @{" Portierung          " Link "STC_Project"}  Anmerkungen zur Portierung von SAS/C nach StormC
+
+
+
+@EndNode
+
+@Node "STC_Sort" "StormC.guide/STC_Sort"
+@Next "STC_Sections"
+@Toc "Main"
+
+Eigene "Makescripts" in der StormC-Projektverwaltung
+
+Ein Make verläuft prinzipiell nach einigen einfachen Regeln. Zuerst werden
+alle, im Projekt eingetragenen Dateien daraufhin überprüft, ob sie neu
+kompiliert werden müssen.
+
+Bei einem C Quelltext sieht das so aus, daß das Datum der Objektdatei und der
+Debugdatei mit dem Datum des Quelltextes und aller Headerdateien, die von dem
+Quelltext eingebunden werden, verglichen wird. Ist einer dieser Texte jünger
+als die Objekt- oder die Debugdatei, muß der Quelltext neu kompiliert werden.
+
+Der Quelltext muß ebenfalls neu kompiliert werden, wenn eine der Headerdateien
+durch eine andere Compileranweisung neu erzeugt wird. Das ist z.B. der Fall,
+wenn das Programm "catcomp" aus einer Lokaledatei eine Headerdatei erzeugt.
+
+Stehen die neu zu kompilierenden Dateien fest, werden dann für alle Dateien,
+die neu kompiliert werden müssen und für das Programm, das gelinkt werden muß
+ARexxanweisungen erzeugt, die den Compiler StormC und den Linker StormLink
+steuern. Diese Anweisungen werden nacheinander abgearbeitet.
+
+Um auch andere Dateien als nur C Quelltexte und Assemblerquelltexte übersetzen
+zu können, werden Makescripts benutzt:
+
+Der Menüpunkt "Select Makescript..." erlaubt die Angabe eines ARexxskripts
+für die ausgewählte Projektdatei oder - falls ein Sektionstitel ausgewählt ist -
+für alle Dateien der Sektion. Diese Skripte erlauben den Einsatz externer
+Compiler wie z.B. "catcomp", um die Lokaledateien automatisch zu kompilieren.
+Sie werden automatisch aufgerufen, wenn die Projektdatei neu kompiliert werden
+muß. Diese Makescripts sollten das Suffix ".srx" besitzen. Dateien mit dieser
+Endung werden auch in die Sektion ARexx aufgenommen.
+
+Mit dem Menüpunkt "Remove Makescript" wird das Makescript von einem Projekteintrag
+oder allen Projekteinträgen einer Sektion entfernt.
+
+Die Regel, ob eine Projektdatei, für die ein Makescript gesetzt ist, neu
+kompiliert werden muß, ist prinzipiell mit der Regel der C Quelltexte
+identisch.
+
+Beim ersten Make nach der Angabe eines Makescripts wird die Datei immer neu
+kompiliert.
+
+Als Beispiel für ein Makescript wird hier das Makescript "catcomp.srx" kommentiert:
+
+/*
+
+Als Argumente werden der Dateiname (das ist der Pfad des Projekteintrags) und der
+Pfad des Projekts übergeben. Die beiden Pfade sind in Hochkommata eingeschlossen, um
+auch Leerzeichen zu ermöglichen.
+
+Am Ende der Argumentenliste muß unbedingt ein Punkt stehen, um zusätzliche Argumente, die
+in zukünftigen Versionen übergeben werden, zu überlesen.
+
+*/
+PARSE ARG '"' filename '"' '"' projectname '"' .
+
+/*
+
+Der Objektname muß vernünftig aus dem Dateinamen entwickelt werden. Objektname ist
+dabei nicht nur eine Datei, die auf ".o" endet und gelinkt wird, sondern jeweils die
+Datei, die erzeugt wird. Catcomp erzeugt eine Headerdatei.
+
+*/
+objectname = LEFT(filename,LASTPOS('.cd',filename)-1)||".h"
+
+/*
+
+Alle Ausgaben werden auf einem Konsolefenster ausgegeben.
+
+*/
+SAY ""
+SAY "Catcomp Script ©1996 HAAGE & PARTNER GmbH"
+SAY "Compile "||filename||" to header "||objectname||"."
+
+/*
+
+Damit die Notwendigkeit einer Neukompilierung ermittelt werden kann, muß der
+Objektdateiname mit dem Projekteintrag verknüpft werden. Fehlt diese Anweisung,
+wird das Makescript bei jedem Make aufgerufen.
+
+Es können maximal zwei Objektdateinamen angegeben werden, also etwa so:
+
+OBJECTS filename objectname1 objectname2
+
+Diese werden beide der Datei zugeordnet und beim Neukompilieren getestet.
+
+Der Befehl OBJECTS darf nicht verwendet werden, wenn das Makescript für den
+Aufruf eines Assemblers der Sektion "Asm Quelltexte" benutzt wird. Diese Sektion
+ermittelt den Objektnamen immer selbst. Siehe auch das Makescript
+"StormC:rexx/phxass.srx"
+
+*/
+OBJECTS filename objectname
+
+/*
+
+Hier erfolgt der Aufruf des Übersetzerprogramms. Fehlermeldungen werden auf der
+Konsole ausgegeben.
+
+*/
+ADDRESS COMMAND "catcomp "||filename||" CFILE "||objectname
+
+/*
+
+Da catcomp eine Headerdatei erzeugt, ist es sinnvoll diese Headerdatei im Projekt
+anzumelden. Der Parameter QUIET unterdrückt dabei die Ausgabe einer Fehlermeldung,
+falls die Headerdatei schon Teil des Projekts ist.
+
+*/
+ADDFILE objectname QUIET
+
+/* Ende des Makescript */
+
+Fast jedes Makescript kann diesem Schema folgen. Unter Umständen ist noch eine
+Anweisung praktisch:
+
+DEPENDENCIES filename file1 file2 file3 ...
+
+Mit dieser Anweisung verknüpft man den Projekteintrag mit weiteren Dateien, deren
+Datum daraufhin geprüft wird, ob das Makescript aufgerufen werden muß oder nicht. Der
+eigentliche Projekteintrag wird dabei immer getestet und muß nicht extra mit diesem
+Befehl gesetzt werden. Aber wenn das Skript auch noch andere Dateien mit einbezieht,
+ist diese Anweisung sinnvoll (der StormC Compiler setzt zum Beipiel alle
+Headerdateien, die mit einer Anweisung #include "abc.h" - aber nicht
+#include <abc.h> - geladen werden).
+
+Die Sektion für C Quelltexte beachtet gesetzte Makescripts nicht. C Quelltexte werden immer
+mit dem StormC Compiler compiliert. Die Sektion für Assemblerquelltexte hingegen erlaubt
+die Benutzung der Makescripts - obwohl hier die eingebaute Regel für das Programm StormASM
+benutzt wird (welches seinerseits den Assembler PhxAss aufruft), wenn kein Makescript gesetzt
+ist.
+
+Argumentenübergabe an Makescripts
+
+Als Argumente werden der Dateiname (das ist der Pfad des Projekteintrags) und der
+Pfad des Projekts übergeben. Die beiden Pfade sind in Hochkommata eingeschlossen, um
+auch Leerzeichen zu ermöglichen.
+
+Dann folgt ein Zahlargument, dessen Wert angibt, ob die Objektdateien alle in ein
+Verzeichnis geschrieben werden sollen. 0 bedeutet, die Objektdatei gehört in das gleiche
+Verzeichnis, wie die Quelltextdatei; 1 bedeutet, die Objektdatei gehört in das Objektverzeichnis.
+Der Name des Objektverzeichnisses wird - ebenfalls in Hochkommata eingeschlossen - als nächstes
+Argument übergeben (der Name wird immer übergeben, also auch, wenn die vorherige Zahl 0 ist).
+
+Das Objektverzeichnis ist nur interessant für Programme, die Code erzeugen. Makescripts,
+die Quelltext erzeugen (z.B. "catcomp.srx"), schreiben ihr Objekt immer in das Verzeichnis,
+in dem auch der Projekteintrag steht. Das Objektverzeichnis ist also nur für Assembler und
+andere Compiler interessant.
+
+Makescripts für Assembler Quelltexte erhalten als einzige ein zusätzliches Argument an
+dritter Stelle: der Name der Objektdatei. Dieser Name sollte unbedingt benutzt werden, um
+die Assemblerobjektdatei zu erzeugen. Im Pfad dieser Objektdatei ist dabei das mögliche
+Objektverzeichnis schon berücksichtigt.
+
+Am Ende der Argumentenliste muß unbedingt ein Punkt stehen, um zusätzliche Argumente, die
+in zukünftigen Versionen übergeben werden, zu überlesen.
+
+Eine vollständige PARSE Anweisung für Makeskripts sieht also so aus (kein Assemblerskript):
+
+PARSE ARG '"' filename '"' '"' projectname '"' useobjectdir '"' objectdir '"' .
+
+Und die Anweisung für Assemblermakescripts:
+
+PARSE ARG '"' filename '"' '"' projectname '"' '"' objectname  '"' useobjectdir '"' objectdir '"' .
+
+
+Die fertigen Makescripts
+
+Im Verzeichnis "StormC:rexx" liegen einige fertige Makescripts. Diese können auch
+an die jeweilige Situation angepaßt werden:
+
+Die Assemblerskripte:
+
+Makescripts für Assembler sind insofern eine Besonderheit, daß die Makescripts nicht
+die Anweisung OBJECTS enthalten dürfen.
+
+"phxass.srx"
+
+Dieses Skript übersetzt eine Assemblerdatei mit dem Assembler PhxAss. Eigentlich ein
+unnötiges Skript, da dieser Assembler direkt von der StormShell unterstützt wird,
+aber vielleicht sollen ja spezielle Assembleroptionen benutzt werden.
+
+"oma.srx"
+
+Dieses Skript übersetzt eine Assemblerdatei mit dem Assembler OMA.
+
+"masm.srx"
+
+Dieses Skript übersetzt eine Assemblerdatei mit dem Assembler MASM.
+
+Weitere Skripte:
+
+"catcomp.srx"
+
+Dieses Skript übersetzt eine Lokale Katalogdatei mit dem Programm catcomp.
+
+"librarian.srx"
+
+Auch der StormLibrarian kann über Makeskripts aufgerufen werden. Ein Projekteintrag
+der Sektion "Librarian" kann mit Doppelklick in den StormLibrarian geladen werden
+oder mit Alt-Doppelklick kann direkt die Linkerbibliothek erzeugt werden. Wenn jedoch
+ein Projekt immer eine Linkerbibliothek erzeugen soll, empfiehlt sich der Einsatz
+eines Makescripts. Die Liste der Objektdateien muß wie gewöhnlich im StormLibrarian
+erzeugt werden. Das Makescript ruft dann den StormLibrarian auf. Dieser erzeugt nicht
+nur die Bibliothek automatisch, sondern setzt auch die Linkerbibliothek als
+Objekt (mit OBJECTS) und alle Objektdateien der Liste als abhängige Dateien (mit
+DEPENDENCIES). Dadurch wird nach dem ersten Make automatisch die Linkerbibliothek
+neu erzeugt, wenn einer der C oder Assemblerquelltexte neu kompiliert wurde.
+Ebenso wird die Bibliothek neu erzeugt, wenn an der Liste der Objektdateien mit Hilfe
+des StormLibrarian Änderungen gemacht wurden.
+
+"fd2pragma.srx"
+
+Dieses Makescript erzeugt aus einer FD Datei eine Headerdatei mit den notwendigen
+"#pragma amicall" Anweisungen für eine shared library. Normalerweise ist dieses
+Skript nicht notwendig, denn der Linker erzeugt ebenfalls diese Headerdatei
+automatisch, wenn eine shared library gelinkt wird.
+@EndNode
+
+@Node "STC_Sections" "StormC.guide/STC_Sections"
+@Next "STC_Project"
+@Prev "STC_Sort"
+@Toc "Main"
+
+Der Profiler
+------------
+
+Ein Profiler ist ein unverzichtbares Hilfsmittel, wenn es darum geht, ein Programm
+zu optimieren. Alle Optimierungsmöglichkeiten des Compilers können ein Programm
+immer nur graduell beschleunigen. Ein Profiler kann jedoch Hinweise geben, welche
+Funktionen eines Programms besonders viel Zeit benötigen. Diese Funktionen sollten
+dann, falls möglich, mit einem besseren Algorithmus neu geschrieben oder
+zumindest mit der Hand so weit wie möglich optimiert werden.
+
+Der StormC Profiler ist dabei besonders leistungsfähig, erlaubt eine exakte
+Zeitmessung und gibt viele, statistisch wertvollen Information über das Programm.
+
+Wie immer haben wir uns an unsere Maxime gehalten, daß auch für den Profiler keine
+spezielle Programmversion erzeugt werden muß. Die Erzeugung der Debuginformationen
+reicht aus, um das Profilerprotokoll zu erstellen. Dies - wie auch die Möglichkeit
+den Profiler während des Debuggens laufen lassen zu können - ist wohl einmalig auf
+dem Amiga.
+
+Um den Profiler zu aktivieren müssen im Compilereinsteller die Debugoption auf
+"Große Debugdateien" oder "Kleine Debugdateien" stehen. Im Starteinsteller
+muß die Option "Profiler benutzen" angewählt sein. Dann kann das Programm wie
+gewohnt gestartet werden. Das gleichzeitige Debuggen des Programms ist möglich,
+kann jedoch geringfügige Fehler in der Zeitmessung zur Folge haben.
+
+Nach dem Start des Programms kann das Profilerprotokollfenster geöffnet werden.
+Der Knopf links oben bringt das Protokoll auf den aktuellen Stand, d.h. alle
+Prozent- und Zeitwerte werden auf den aktuellen Stand gebracht.
+
+In der Hilfezeile wird die aktuelle CPU Zeit angezeigt. Diese Zeit ist die echte
+CPU Zeit, d.h. Zeitspannen, in welchen das Programm wartet (auf Signale, Nachrichten
+oder I/O), werden nicht mit eingerechnet, ebensowenig Zeitspannen in denen das
+Programm nicht läuft, weil andere Programme im Multitasking an der Reihe sind.
+
+In der Liste unten werden die Funktionen mit folgenden Informationen angezeigt:
+
+1. Der Funktionsname.
+
+Memberfunktionen einer Klasse wird der Klassenname mit zwei Doppelpunkten
+vorangestellt.
+
+2. Der prozentuale Zeitbedarf.
+
+Dabei wird nur die Zeit berechnet, die das Programm
+in der jeweiligen Funktion oder einer tiefer verschachtelten Betriebssystemfunktion
+verbracht hat. Nicht berücksichtigt werden Funktionsaufrufe im eigenen Programm.
+Dies ist der wichtigste Wert, um herauszufinden, welche Funktion besonders viel
+Zeit benötigt. Die Summe dieser Spalte aller Funktionen beträgt 99 - 100 % (das
+fehlende Prozent geht im Startupcode und kleinen Ungenauigkeiten verloren).
+
+3. Der prozentuale rekursive Zeitbedarf.
+
+Hierbei werden alle Unterprogrammaufrufe
+mit aufsummiert. Deshalb hat die Funktion main() fast immer 99 %.
+
+4. Der absolute Zeitbedarf.
+
+5. Der maximale Zeitbedarf.
+
+6. Der minimale Zeitbedarf.
+
+Diese drei Spalten erlauben einen Überblick über die Aufrufe dieser Funktion. Wie
+eine Funktion optimiert werden kann, hängt oft auch davon ab, ob die Funktion
+im allgemeinen für jeden Aufruf ähnlich viel Zeit benötigt (geringer Unterschied
+zwischen maximaler und minimaler Zeit) oder für einige Aufrufe deutlich länger als
+für andere Aufrufe braucht (hoher Zeitunterschied). Dann lohnt es sich eventuell,
+diese Spezialfälle zu optimieren.
+
+7. Die Anzahl der Aufrufe.
+
+Eine Funktion, die relativ viel Zeit benötigt, aber nur dadurch, daß sie sehr häufig
+aufgerufen wird, pro Aufruf nur sehr kurze Zeit braucht, ist ein "schwerer
+Kandidat" zur Optimierung. Natürlich kann es hier besonders helfen, die Funktion
+als Inlinefunktion zu deklarieren ("__inline" in ANSI-C, "inline" in C++).
+
+Über dieser Liste befinden sich einige Elemente zur Arbeit mit dem Protokoll:
+
+Die oberste Zeile ist die Hilfezeile mit kurzen Hilfetexten über die
+Bedienungselemente.
+
+Darunter befinden sich links drei Knöpfe. Der erste bringt die Funktionsliste auf
+den neusten Stand.
+
+Mit dem zweiten Knopf kann man das Profilerprotokoll als ASCII Datei abspeichern,
+dazu öffnet sich ein Dateirequester.
+
+Der dritte Knopf druckt das Protokoll auf dem Drucker (verwendet wird das Gerät
+"PRT:") aus.
+
+Rechts in dieser Zeile kann man die Sortierung der Funktionsliste festlegen. Der
+erste Eintrag "Prozentual" sortiert die Liste nach der 2. Spalte, der Eintrag
+"Rekursiv" sortiert die Liste nach der 3. Spalte, der Eintrag "Alphabetisch"
+sortiert die Liste alphabetisch nach den Funktionsnamen der 1. Spalte. Und der
+letzte Eintrag "Aufrufe" sortiert die Liste nach der letzten Spalte.
+
+Eine Zeile tiefer befindet sich ein Texteingabefeld für ein DOS Pattern. Dieses
+DOS Pattern wird auf die Funktionsnamen angewendet und erlaubt so die Beschränkung
+der häufig sehr langen Liste auf ein überschaubares Maß. Zum Beispiel kann man
+die Liste sehr einfach auf alle Methoden einer Klasse beschränken, indem man
+den Namen der Klasse gefolgt von "#?" eingibt.
+
+Rechts daneben befindet sich ein Zahleingabefeld zur Angabe einer Mindestprozentzahl,
+die die Funktionen belegt haben müssen, um angezeigt zu werden. Funktionen mit weniger
+als 5 oder 10 % sind häufig nur sehr schwer zu optimieren und selbst eine Halbierung
+der Laufzeit würde das Programm nur unwesentlich (eben um 2.5 bis 5 %) beschleunigen.
+
+Neben diesen beiden wählbaren Einschränkungen kommen grundsätzlich nur Funktionen
+zur Anzeige, die mindestens einmal aufgerufen wurden.
+
+Eine Funktion kann über einen Doppelklick auch direkt im Quelltext angesprungen
+werden.
+
+Das Profilerprotokoll wird am Ende des Programmlaufs auch automatisch geöffnet und
+die Anzeige auf den neuesten Stand gebracht. Das Kontrollfenster bleibt dann ebenfalls
+geöffnet. Wird das Kontrollfenster geschlossen, so wird auch das Protokollfenster
+geschlossen und die Liste gelöscht. Werden die Profilerinformationen noch benötigt,
+so müssen sie vorher gespeichert oder gedruckt werden.
+
+Technische Informationen
+
+Beim Funktionseinsprung werden die LINE $A Befehle $A123 und $A124 benutzt.
+Diese beiden Maschinenbefehle sind bei allen Motorola 68K CPUs unbenutzt und
+lösen eine Exception aus. Diese Expcetion führt die Protokollierung der
+Zeiten und Aufrufe durch.
+
+Durch die Nutzung der Exceptions hat man den kleinen Nachteil, daß diese die
+maximale Programmgeschwindigkeit dämpfen, d.h. das Programm langsamer abläuft,
+als ohne Profilerbetrieb. Besonders bei sehr vielen Aufrufen kurzer Funktionen
+kann sich das bemerkbar machen. Allerdings sollte der Profiler immer noch schneller
+und vor allen Dingen genauer arbeiten als die meisten bisher unter Amiga OS
+bestehenden.Zudem wird dieser Nachteil sicher durch den Vorteil aufgewogen, das
+Programm für den Profiler nicht speziell kompilieren zu müssen.
+
+Die Benutzung von Rekursionen ist eingeschränkt: die Minimum- und Maximumwerte
+sind meistens nicht korrekt, die Gesamtzeit (und damit auch die prozentualen
+Werte) können falsch sein. Eine einfache Rekursion (f() ruft f() auf) zeigt
+die richtigen prozentualen Werte an, eine verschachtelte Rekursion (f() ruft
+g() ruft f() auf) akkumuliert alle Zeiten auf einer der beiden Funktionen.
+Funktionsaufrufe, die aus der Rekursion herausführen, werden allerdings korrekt
+behandelt.
+
+Die Wirkung auf Long Jumps ist nicht vorhersehbar, meistens sollte es jedoch
+nur zu einer kleinen Ungenauigkeit bei der verlassenen und eingesprungenen
+Funktion kommen.
+
+Theoretisch können nicht alle Funktionen gemessen werden: Nur Funktionen, deren
+Maschinencode mit einem link oder einem movem Befehl beginnen, stehen dem Profiler
+zur Verfügung. Allerdings ist selbst bei hohen Optimierungsstufen des Compilers
+fast immer einer der beiden Befehle notwendig. Und Funktionen, die ohne diese
+Befehle auskommen, müssen so kurz sein (keine Variablen auf dem Stack, nur die
+Register d0, d1, a0 und a1 verändert), daß sie kaum noch optimiert werden können
+oder dafür auch nur interessant sind.
+
+Inlinefunktionen können im allgemeinen nicht gemessen werden.
+
+@EndNode
+
+@Node "STC_Project" "StormC.guide/STC_Project"
+@Next "STC_Options"
+@Prev "STC_Sections"
+@Toc "Main"
+
+Anmerkungen zur Portierung von SAS/C nach StormC
+------------------------------------------------
+
+Wir haben uns bemüht, dem StormC Compiler viele wichtige Eigenschaften des SAS/C
+Compilers mitzugeben, d.h. diverse Schlüsselwörter und #pragmas, die SAS/C
+spezifisch sind. Dennoch wird es - abhängig von Ihrem Programmierstil - zu
+mehr oder weniger großen Problemen kommen, wenn Sie Software vom SAS/C Compiler
+auf den StormC Compiler portieren.
+
+Bedenken Sie, daß StormC ein ANSI-C und C++ Compiler ist. SAS/C hingegen ist
+ein C und ANSI-C Compiler (den C++ Precompiler hat wohl kaum jemand ernsthaft
+benutzt), d.h er versteht viele alte Syntax, die StormC nicht akzeptiert. Nur
+wenn sie Ihre Programme mit SAS/C grundsätzlich strikt ANSI übersetzt haben
+(SAS/C Option ansi), sollten Ihre Programm auch problemlos mit dem StormC
+übersetzbar sein.
+
+Projekteinstellungen
+--------------------
+
+Zuerst sollten Sie darauf achten, daß in dem Projekt, das Sie aus ihren
+SAS/C Quelltexten aufgebaut haben, ANSI-C als Compilermodus eingestellt ist.
+Schalten Sie möglichst viele Warnungen an, und versuchen Sie später, Ihre
+Programme so zu verändern, daß auch keine Warnungen kommen. Dadurch haben Sie
+die größtmögliche Sicherheit, daß das Programm auch das tut, was Sie wollen.
+
+Selbst für reine ANSI-C Projekte empfiehlt sich die spätere Umstellung auf
+C++. Dadurch erhalten Sie einige Vorteile: Prototypen werden immer erwartet
+und der implizite Cast eines void * in einen anderen Pointer ist verboten.
+Dies bedeutet zwar zuerst eine relativ aufwendge Überarbeitung Ihres Programms
+(besonders der zweite Fall kann durch malloc() oder AllocMem() sehr häufig
+vorkommen), aber dann können Sie viel sicherer sein, daß Ihr Programm auch
+wirklich das tut, was es soll.
+
+Ebenso bieten die langen C++ Symbole eine zusätzliche Sicherheit beim Linken:
+Wenn Prototyp und Funktionsdefinition aus irgendeinem Grund nicht
+übereinstimmen, so wird der Linker einen entsprechenden Fehler ausgeben, daß
+ein bestimmtes Symbol nicht gefunden werden konnte.
+
+Außerdem steht Ihnen dann die Möglichkeit offen, Ihr Programm um die modernen
+objektorientierten Konzepte zu erweitern und weitere kleinere C++ Features zu
+benutzen (z.B. die Variablendeklaration an jeder Stelle in Code und nicht nur
+am Anfang eines Klammerblocks).
+
+Syntax
+------
+
+Manche SAS/C Keywords versteht der StormC Compiler nicht, andere sehr wohl,
+aber nur in der typischen ANSI-C Syntax und nicht so frei wie der SAS/C
+Compiler.
+
+Unbenannte unions werden auch von StormC akzeptiert, aber implizite Strukturen
+nicht. Ebenso werden equivalente Strukturen unterschieden. Wenn Sie dieses
+Feature verwendet haben, müssen Sie an den jeweiligen Stellen Casts einfügen.
+Falls Ihnen dieses Feature wichtig ist, so sollten Sie über eine Umstellung
+Ihres Projekts auf C++ nachdenken: Äquivalente Strukturen sind nichts anderes
+als ein Aspekt der Vererbung.
+
+Typübereinstimmung wird in StormC viel strenger gehandhabt. Das gilt
+insbesondere auch für den Funktionsparameterqualifizierer const. Ein Beispiel:
+
+typedef int (*ftyp)(const int *);
+int f(int *);
+ftyp p = f; // Fehler
+
+Entweder sollten Sie entsprechende Casts einführen, oder aber (was auf alle
+Fälle zu bevorzugen ist) Ihre Funktionen passend deklarieren, schließlich
+ist der const Qualifizierer ein wichtiges Hilfsmittel zur Sicherung der
+Korrektheit Ihres Programms.
+
+Die C++ Kommentare ("//") werden von StormC auch im ANSI Modus akzeptiert,
+verschachtelte C Kommentare werden hingegen nicht akzeptiert. Allerdings
+können Sie eine entsprechende Warnung aktivieren, die auf diese Gefahr
+hinweist.
+
+Umlaute werden in Variablennamen nicht toleriert, ebenso nicht das
+Dollarzeichen.
+
+Keywords
+--------
+
+Grundsätzlich sollten Sie auf den Einsatz der speziellen Keywords möglichst
+verzichten - zumindest für Programme, die Sie vielleicht auch einmal auf
+ein anderes Betriebssystem oder einen völlig anderen Compiler portieren wollen.
+
+StormC benutzt stärker die in ANSI-C bevorzugten #pragma Anweisungen zur
+Anpassung der Software an die speziellen AmigaOS Bedingungen (z.B. #pragma chip
+und #pragma fast).
+
+Für Keywords, die auf anderen Compilersystemen vielleicht nicht existieren,
+aber auch nicht notwendigerweise benutzt werden müssen, empfiehlt sich die
+Verwendung geeigneter Makros, z.B.:
+
+#define INLINE __inline
+
+#define REG(x) register __##x
+
+#define CHIP __chip
+
+Diese Makros können dann einfach den Compilergegebenheiten angepasst werden.
+
+Manche Keywords, die der StormC Compiler nicht kennt, die aber auch nicht notwendig
+sind, können auch als Makro definiert werden:
+
+#define __asm
+#define __stdarg
+
+Hier folgen die Keywords des SAS/C Compilers und Ihre Interpretation durch
+StormC:
+
+__aligned: ist unbekannt. Es gibt keine einfache Möglichkeit, dieses Keyword
+zu ersetzen, aber es wird auch nur sehr selten benötigt.
+
+__chip: Dieses Keyword legt ein Datenelement in die Chip-Memory Sektion des
+Objektfiles. Beachten Sie jedoch, daß dieses Keyword wie jede Speicherklasse
+und andere Qualifier nur vor dem Typ der Deklaration und nicht dahinter stehen
+kann:
+
+__chip UWORD NormalImage[] = { 0x0000, .... }; // korrekt
+
+UWORD __chip NormalImage[] = { 0x0000, .... }; // falsch
+
+Die 2. Syntax wird nicht akzeptiert, da sie nicht ANSI-C typisch ist.
+
+In StormC werden "#pragma chip" und "#pragma fast" bevorzugt. Beachten Sie dabei
+jedoch, daß __chip sich nur auf eine Deklaration bezieht, "#pragma chip" jedoch
+alle folgenden Datenelemente in die Chip Sektion legt, bis zum nächsten
+"#pragma fast"
+
+__far und __near: sind unbekannt. Es gibt keine einfache Möglichkeit, diese
+Keywords zu ersetzen, aber sie werden nur sehr selten benötigt.
+
+__interrupt: Ist ebenso unter StormC nutzbar, wie Sie es vom SAS/C her
+gewohnt sind.
+
+__asm, __regargs, __stdarg: sind unbekannt und werden nicht benötigt. Wenn Sie
+Funktionsparameter in Registern übergeben wollen, so sollten Sie die Funktion
+mit dem ANSI Keyword "register" deklarieren, oder die Parametern einzeln mit
+dem Keyword "register" oder einer genauen Registerspezifikation (z.B.
+"register __a0") versehen. Ansonsten werden die Register auf dem Stack
+übergeben.
+
+__saveds: Verhält sich ähnlich wie das SAS/C __saveds. Im großen Datenmodell
+erzeugt dieses Keyword keinen Code, im kleinen Datenmodell bzgl a4 wird a4
+auf den Stack gesichert und mit dem Symbol __LinkerDB geladen, im kleinen
+Datenmodell bzgl a6 wird a6 entsprechend behandelt.
+
+Verwenden Sie __saveds nicht leichtfertig. Es sollte ausschließlich für
+Funktionen benutzt werden, die von außerhalb Ihres Programms aufgerufen werden,
+z.B. Dispatcher von BOOPSI Klassen.
+
+In der jetzigen Compiler Version empfiehlt sich nur die Verwendung des großen
+Datenmodells für die Erstellung von shared libraries. Bedenken Sie dabei auch,
+daß im kleinen Datenmodell ein weiteres Register für den Optimierer verloren
+geht und somit nur noch die Register a0 bis a3 zur Verfügung stehen - der
+Vorteil des kleinen Datenmodells kann so sehr schnell verloren gehen, wenn Sie
+nicht sehr viele globale Variablen benutzen.
+
+__inline: Dieses Keyword ist ein Funktionsspezifizierer wie die anderen auch.
+D.h. Prototypen und Funktionsdefinitionen müssen darin übereinstimmen.
+
+Wenn mehrere Module eine __inline Funktion benutzen wollen, so muß diese
+Funktion mit der Definition (also nicht nur der Prototyp) in einer Headerdatei
+stehen.
+
+__stackext: ist unbekannt. Stackcheck oder automatische Vergößerung des
+Stacks wird derzeit nicht unterstützt.
+
+Pragmas
+-------
+
+#pragma libcall, #pragma tagcall, #pragma flibcall: Obwohl diese SAS/C pragmas
+unterstützt sind, werden die StormC Pragmas #pragma amicall und #pragma tagcall
+bevorzugt. Deren Syntax ist flexibler und leichter lesbar.
+
+Der Linker erzeugt aus der FD Datei, die die Funktionen einer shared library
+beschreibt, automatisch eine passende Headerdatei mit den benötigten
+#pragma amicall und #pragma tagcall Anweisungen.
+
+@EndNode
